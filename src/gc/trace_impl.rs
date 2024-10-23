@@ -6,7 +6,7 @@ macro_rules! static_trace {
     ($type:ty) => {
         impl Trace for $type {
             #[inline]
-            fn trace(&self) { }
+            fn trace(&self) {}
         }
     };
 }
@@ -60,15 +60,6 @@ where
         for value in self {
             value.trace();
         }
-    }
-}
-
-impl<T> Trace for Box<T>
-where
-    T: Trace,
-{
-    fn trace(&self) {
-        self.as_ref().trace();
     }
 }
 

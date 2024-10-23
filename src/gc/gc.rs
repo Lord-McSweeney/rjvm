@@ -49,16 +49,14 @@ impl<T> Clone for Gc<T> {
     }
 }
 
-impl<T> Copy for Gc<T> { }
+impl<T> Copy for Gc<T> {}
 
 impl<T> std::fmt::Debug for Gc<T>
 where
     T: std::fmt::Debug,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        unsafe {
-            write!(f, "{:?}", self.ptr.as_ref().value.as_ref())
-        }
+        unsafe { write!(f, "{:?}", self.ptr.as_ref().value.as_ref()) }
     }
 }
 
@@ -80,7 +78,8 @@ impl<T> Gc<T> {
             next: Cell::new(previous_next),
             drop: |gc| {
                 let unerased = gc.unerased::<T>();
-                let created_box_inner = unsafe { Box::from_raw(unerased.ptr.as_ref().value.as_ptr()) };
+                let created_box_inner =
+                    unsafe { Box::from_raw(unerased.ptr.as_ref().value.as_ptr()) };
                 drop(created_box_inner);
 
                 let created_box_outer = unsafe { Box::from_raw(unerased.ptr.as_ptr()) };
@@ -89,12 +88,19 @@ impl<T> Gc<T> {
             value: leaked_non_null(value),
         };
 
-        let created_gc = Self { ptr: leaked_non_null(structure) };
+        let created_gc = Self {
+            ptr: leaked_non_null(structure),
+        };
         let erased_created_gc = created_gc.erased();
 
         unsafe {
             // The "first" of the real first Gc is now this Gc.
-            gc_ctx.first_gc.ptr.as_ref().next.set(Some(erased_created_gc));
+            gc_ctx
+                .first_gc
+                .ptr
+                .as_ref()
+                .next
+                .set(Some(erased_created_gc));
 
             // The "previous" of the previous "first" Gc is now this Gc.
             if let Some(previous_next) = previous_next {
@@ -108,7 +114,9 @@ impl<T> Gc<T> {
     pub fn erased(&self) -> Gc<()> {
         let ptr = self.ptr.as_ptr() as *mut GcBox<()>;
 
-        Gc { ptr: NonNull::new(ptr).expect("NonNull holds non-null pointer") }
+        Gc {
+            ptr: NonNull::new(ptr).expect("NonNull holds non-null pointer"),
+        }
     }
 }
 
@@ -118,17 +126,21 @@ impl Gc<()> {
             status: Cell::new(CollectionStatus::NotMarked),
             prev: Cell::new(None),
             next: Cell::new(None),
-            drop: |_| { },
+            drop: |_| {},
             value: leaked_non_null(()),
         };
 
-        Self { ptr: leaked_non_null(structure) }
+        Self {
+            ptr: leaked_non_null(structure),
+        }
     }
 
     pub fn unerased<T>(&self) -> Gc<T> {
         let ptr = self.ptr.as_ptr() as *mut GcBox<T>;
 
-        Gc { ptr: NonNull::new(ptr).expect("NonNull holds non-null pointer") }
+        Gc {
+            ptr: NonNull::new(ptr).expect("NonNull holds non-null pointer"),
+        }
     }
 }
 
@@ -136,9 +148,7 @@ impl<T> Deref for Gc<T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
-        unsafe {
-            self.ptr.as_ref().value.as_ref()
-        }
+        unsafe { self.ptr.as_ref().value.as_ref() }
     }
 }
 
@@ -182,7 +192,7 @@ impl GcCtx {
                 let status = gc_box.status.get();
                 let prev = gc_box.prev.get();
                 let next = gc_box.next.get();
-                
+
                 if gc.ptr.as_ptr() as usize != self.first_gc.ptr.as_ptr() as usize {
                     if matches!(status, CollectionStatus::NotMarked) {
                         // Remove it from the linked list.
