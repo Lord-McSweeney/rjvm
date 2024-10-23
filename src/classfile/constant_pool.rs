@@ -75,6 +75,29 @@ impl ConstantPool {
             Ok(self.entries[index as usize - 1])
         }
     }
+
+    pub fn get_class(&self, index: u16) -> Result<JvmString, Error> {
+        match self.entry(index)? {
+            ConstantPoolEntry::Class { name_idx } => {
+                let entry = self.entry(name_idx)?;
+
+                let ConstantPoolEntry::Utf8 { string } = entry else {
+                    // Guaranteed by validation
+                    unreachable!();
+                };
+
+                Ok(string)
+            }
+            _ => Err(Error::ConstantPoolTypeMismatch),
+        }
+    }
+
+    pub fn get_utf8(&self, index: u16) -> Result<JvmString, Error> {
+        match self.entry(index)? {
+            ConstantPoolEntry::Utf8 { string } => Ok(string),
+            _ => Err(Error::ConstantPoolTypeMismatch),
+        }
+    }
 }
 
 #[derive(Clone, Copy)]

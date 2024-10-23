@@ -1,6 +1,9 @@
-use super::constant_pool::{read_constant_pool, ConstantPool, ConstantPoolEntry};
+use super::attribute::Attribute;
+use super::constant_pool::{read_constant_pool, ConstantPool};
 use super::error::Error;
+use super::field::Field;
 use super::flags::ClassFlags;
+use super::method::Method;
 use super::reader::{FileData, Reader};
 
 use crate::gc::GcCtx;
@@ -11,8 +14,14 @@ pub struct ClassFile {
 
     flags: ClassFlags,
 
-    this_class_name: JvmString,
-    super_class_name: Option<JvmString>,
+    this_class: JvmString,
+    super_class: Option<JvmString>,
+
+    interfaces: Box<[JvmString]>,
+
+    fields: Box<[Field]>,
+    methods: Box<[Method]>,
+    attributes: Box<[Attribute]>,
 }
 
 pub fn read_class(gc_ctx: &GcCtx, data: Vec<u8>) -> Result<ClassFile, Error> {
@@ -33,49 +42,51 @@ pub fn read_class(gc_ctx: &GcCtx, data: Vec<u8>) -> Result<ClassFile, Error> {
 
     // Read this-class name
     let this_class_idx = reader.read_u16()?;
-    let this_class = constant_pool.entry(this_class_idx)?;
-
-    let this_class_name = match this_class {
-        ConstantPoolEntry::Class { name_idx } => {
-            let entry = constant_pool.entry(name_idx)?;
-
-            let ConstantPoolEntry::Utf8 { string } = entry else {
-                // Guaranteed by validation
-                unreachable!();
-            };
-
-            string
-        }
-        _ => return Err(Error::ConstantPoolTypeMismatch),
-    };
+    let this_class = constant_pool.get_class(this_class_idx)?;
 
     // Read superclass name
     let super_class_idx = reader.read_u16()?;
-
-    let super_class_name = if super_class_idx == 0 {
+    let super_class = if super_class_idx == 0 {
         None
     } else {
-        let super_class = constant_pool.entry(super_class_idx)?;
-
-        Some(match super_class {
-            ConstantPoolEntry::Class { name_idx } => {
-                let entry = constant_pool.entry(name_idx)?;
-
-                let ConstantPoolEntry::Utf8 { string } = entry else {
-                    // Guaranteed by validation
-                    unreachable!();
-                };
-
-                string
-            }
-            _ => return Err(Error::ConstantPoolTypeMismatch),
-        })
+        Some(constant_pool.get_class(super_class_idx)?)
     };
+
+    let interface_count = reader.read_u16()?;
+    let mut interface_list = Vec::with_capacity(interface_count as usize);
+    for _ in 0..interface_count {
+        let interface_idx = reader.read_u16()?;
+        let interface = constant_pool.get_class(interface_idx)?;
+
+        interface_list.push(interface);
+    }
+
+    let field_count = reader.read_u16()?;
+    let mut field_list = Vec::with_capacity(field_count as usize);
+    for _ in 0..field_count {
+        field_list.push(Field::read_from(&mut reader, &constant_pool)?);
+    }
+
+    let method_count = reader.read_u16()?;
+    let mut method_list = Vec::with_capacity(method_count as usize);
+    for _ in 0..method_count {
+        method_list.push(Method::read_from(&mut reader, &constant_pool)?);
+    }
+
+    let attribute_count = reader.read_u16()?;
+    let mut attribute_list = Vec::with_capacity(attribute_count as usize);
+    for _ in 0..attribute_count {
+        attribute_list.push(Attribute::read_from(&mut reader, &constant_pool)?);
+    }
 
     Ok(ClassFile {
         constant_pool,
         flags,
-        this_class_name,
-        super_class_name,
+        this_class,
+        super_class,
+        interfaces: interface_list.into_boxed_slice(),
+        fields: field_list.into_boxed_slice(),
+        methods: method_list.into_boxed_slice(),
+        attributes: attribute_list.into_boxed_slice(),
     })
 }
