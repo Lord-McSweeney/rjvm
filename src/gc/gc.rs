@@ -43,6 +43,7 @@ pub struct Gc<T> {
     ptr: NonNull<GcBox<T>>,
 }
 
+// Clone and Copy can't be #[derive]d here, see https://github.com/rust-lang/rust/issues/26925
 impl<T> Clone for Gc<T> {
     fn clone(&self) -> Self {
         Self { ptr: self.ptr }
@@ -111,7 +112,7 @@ impl<T> Gc<T> {
         created_gc
     }
 
-    pub fn erased(&self) -> Gc<()> {
+    fn erased(&self) -> Gc<()> {
         let ptr = self.ptr.as_ptr() as *mut GcBox<()>;
 
         Gc {
@@ -135,7 +136,7 @@ impl Gc<()> {
         }
     }
 
-    pub fn unerased<T>(&self) -> Gc<T> {
+    fn unerased<T>(&self) -> Gc<T> {
         let ptr = self.ptr.as_ptr() as *mut GcBox<T>;
 
         Gc {
