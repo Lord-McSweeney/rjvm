@@ -6,11 +6,12 @@ use std::ops::Deref;
 
 use crate::gc::{Gc, GcCtx};
 
+#[derive(Clone, Copy)]
 pub struct JvmString(Gc<String>);
 
 impl JvmString {
-    fn new(gc_ctx: &GcCtx, string: String) -> Self {
-        Self(Gc::new(&gc_ctx, string))
+    pub fn new(gc_ctx: &GcCtx, string: String) -> Self {
+        Self(Gc::new(gc_ctx, string))
     }
 }
 
