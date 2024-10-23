@@ -61,17 +61,19 @@ impl ConstantPool {
     }
 
     fn ensure_entry_type(&self, index: u16, tag: u8) -> Result<(), Error> {
-        if index == 0 {
-            Err(Error::ExpectedNonZero)
-        } else if self.entry(index - 1).tag() != tag {
+        if self.entry(index)?.tag() != tag {
             Err(Error::ConstantPoolTypeMismatch)
         } else {
             Ok(())
         }
     }
 
-    pub fn entry(&self, index: u16) -> ConstantPoolEntry {
-        self.entries[index as usize]
+    pub fn entry(&self, index: u16) -> Result<ConstantPoolEntry, Error> {
+        if index == 0 {
+            Err(Error::ExpectedNonZero)
+        } else {
+            Ok(self.entries[index as usize - 1])
+        }
     }
 }
 
