@@ -51,6 +51,10 @@ impl Method {
     pub fn descriptor(&self) -> JvmString {
         self.descriptor
     }
+
+    pub fn attributes(&self) -> &[Attribute] {
+        &self.attributes
+    }
 }
 
 impl Trace for Method {

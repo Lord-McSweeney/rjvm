@@ -21,6 +21,14 @@ impl Attribute {
 
         Ok(Self { name, data })
     }
+
+    pub fn name(&self) -> JvmString {
+        self.name
+    }
+
+    pub fn data(&self) -> &[u8] {
+        &self.data
+    }
 }
 
 impl Trace for Attribute {

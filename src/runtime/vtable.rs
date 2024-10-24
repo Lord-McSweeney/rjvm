@@ -16,7 +16,7 @@ impl<T> Clone for VTable<T> {
 
 impl<T> Copy for VTable<T> {}
 
-impl<T: Eq + Hash> VTable<T> {
+impl<T: Copy + Eq + Hash> VTable<T> {
     pub fn empty(gc_ctx: GcCtx) -> Self {
         Self(Gc::new(
             gc_ctx,
@@ -54,6 +54,18 @@ impl<T: Eq + Hash> VTable<T> {
 
     fn first_unused(self) -> usize {
         self.0.first_unused
+    }
+
+    pub fn lookup(self, key: T) -> Option<usize> {
+        if let Some(idx) = self.0.mapping.get(&key) {
+            Some(*idx)
+        } else if let Some(parent) = self.0.parent {
+            // Recursively lookup on parent
+            parent.lookup(key)
+        } else {
+            // No parent and mapping didn't include key: lookup failed
+            None
+        }
     }
 }
 

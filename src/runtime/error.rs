@@ -1,3 +1,5 @@
+use crate::classfile::error::Error as ClassFileError;
+
 #[derive(Debug)]
 pub enum Error {
     Native(NativeError),
@@ -7,4 +9,12 @@ pub enum Error {
 pub enum NativeError {
     ClassNotFound,
     InvalidDescriptor,
+    ReadError,
+    VTableLookupFailed,
+}
+
+impl From<ClassFileError> for Error {
+    fn from(error: ClassFileError) -> Self {
+        Error::Native(NativeError::ReadError)
+    }
 }

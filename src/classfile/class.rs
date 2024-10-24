@@ -98,6 +98,10 @@ impl ClassFile {
         )))
     }
 
+    pub fn constant_pool(&self) -> &ConstantPool {
+        &self.0.constant_pool
+    }
+
     pub fn this_class(self) -> JvmString {
         self.0.this_class
     }

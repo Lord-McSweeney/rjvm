@@ -2,6 +2,7 @@ use super::context::Context;
 use super::descriptor::{Descriptor, MethodDescriptor};
 use super::error::{Error, NativeError};
 use super::method::Method;
+use super::value::Value;
 use super::vtable::VTable;
 
 use crate::classfile::class::ClassFile;
@@ -48,7 +49,7 @@ impl Class {
         let static_method_vtable =
             VTable::from_parent_and_keys(context.gc_ctx, None, static_method_names);
 
-        Ok(Self(Gc::new(
+        let created_class = Self(Gc::new(
             context.gc_ctx,
             ClassData {
                 class_file: Some(class_file),
@@ -57,7 +58,13 @@ impl Class {
                 static_method_vtable,
                 static_methods: static_methods.into_boxed_slice(),
             },
-        )))
+        ));
+
+        for static_method in &created_class.0.static_methods {
+            static_method.set_class_and_parse_code(context, created_class)?;
+        }
+
+        Ok(created_class)
     }
 
     pub fn new(gc_ctx: GcCtx, name: JvmString) -> Self {
@@ -75,6 +82,27 @@ impl Class {
 
     pub fn name(self) -> JvmString {
         self.0.name
+    }
+
+    pub fn class_file(&self) -> &Option<ClassFile> {
+        &self.0.class_file
+    }
+
+    pub fn call_static(
+        self,
+        context: Context,
+        args: &[Value],
+        name_and_descriptor: (JvmString, MethodDescriptor),
+    ) -> Result<Option<Value>, Error> {
+        let method_idx = self
+            .0
+            .static_method_vtable
+            .lookup(name_and_descriptor)
+            .ok_or(Error::Native(NativeError::VTableLookupFailed))?;
+
+        let method = self.0.static_methods[method_idx];
+
+        method.exec(context, args)
     }
 }
 

@@ -11,6 +11,7 @@
 //   - /Almost/ zero-cost pointers (e.g. no reference counting)
 
 use std::cell::Cell;
+use std::hash::{Hash, Hasher};
 use std::mem::drop;
 use std::ops::Deref;
 use std::ptr::NonNull;
@@ -60,6 +61,28 @@ where
         unsafe { write!(f, "{:?}", self.ptr.as_ref().value.as_ref()) }
     }
 }
+
+impl<T> PartialEq for Gc<T>
+where
+    T: PartialEq,
+{
+    fn eq(&self, other: &Self) -> bool {
+        unsafe { self.ptr.as_ref().value.as_ref() == other.ptr.as_ref().value.as_ref() }
+    }
+}
+
+impl<T> Hash for Gc<T>
+where
+    T: Hash,
+{
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        unsafe {
+            self.ptr.as_ref().value.as_ref().hash(state);
+        }
+    }
+}
+
+impl<T> Eq for Gc<T> where T: PartialEq {}
 
 fn leaked_non_null<T>(value: T) -> NonNull<T> {
     let pointer = Box::into_raw(Box::new(value));

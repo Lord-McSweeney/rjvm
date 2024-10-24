@@ -76,6 +76,13 @@ impl ConstantPool {
         }
     }
 
+    pub fn get_utf8(&self, index: u16) -> Result<JvmString, Error> {
+        match self.entry(index)? {
+            ConstantPoolEntry::Utf8 { string } => Ok(string),
+            _ => Err(Error::ConstantPoolTypeMismatch),
+        }
+    }
+
     pub fn get_class(&self, index: u16) -> Result<JvmString, Error> {
         match self.entry(index)? {
             ConstantPoolEntry::Class { name_idx } => {
@@ -92,9 +99,32 @@ impl ConstantPool {
         }
     }
 
-    pub fn get_utf8(&self, index: u16) -> Result<JvmString, Error> {
+    pub fn get_field_ref(&self, index: u16) -> Result<(JvmString, JvmString, JvmString), Error> {
         match self.entry(index)? {
-            ConstantPoolEntry::Utf8 { string } => Ok(string),
+            ConstantPoolEntry::FieldRef {
+                class_idx,
+                name_and_type_idx,
+            } => {
+                let class = self.get_class(class_idx)?;
+                let name_and_type = self.get_name_and_type(name_and_type_idx)?;
+
+                Ok((class, name_and_type.0, name_and_type.1))
+            }
+            _ => Err(Error::ConstantPoolTypeMismatch),
+        }
+    }
+
+    pub fn get_name_and_type(&self, index: u16) -> Result<(JvmString, JvmString), Error> {
+        match self.entry(index)? {
+            ConstantPoolEntry::NameAndType {
+                name_idx,
+                descriptor_idx,
+            } => {
+                let name = self.get_utf8(name_idx)?;
+                let descriptor = self.get_utf8(descriptor_idx)?;
+
+                Ok((name, descriptor))
+            }
             _ => Err(Error::ConstantPoolTypeMismatch),
         }
     }

@@ -5,6 +5,9 @@ use crate::gc::Trace;
 #[derive(Clone, Copy)]
 pub enum Value {
     Integer(i32),
+    Long(i64),
+    Float(f32),
+    Double(f64),
     Object(Option<Object>),
 }
 

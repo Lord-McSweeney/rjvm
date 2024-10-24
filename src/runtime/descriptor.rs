@@ -7,10 +7,10 @@ use crate::string::JvmString;
 
 use std::hash::{Hash, Hasher};
 
-#[derive(Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum Descriptor {
     Class(JvmString),
-    Array(Box<Descriptor>),
+    Array(Gc<Descriptor>),
     Boolean,
     Byte,
     Character,
@@ -23,6 +23,7 @@ pub enum Descriptor {
 }
 
 impl Descriptor {
+    // TODO: This function allocates and should not be used in hot code
     fn from_data_counting(
         gc_ctx: GcCtx,
         descriptor: &[u8],
@@ -63,7 +64,7 @@ impl Descriptor {
                 let inner = Descriptor::from_data_counting(gc_ctx, &descriptor[1..], false)?;
                 consumed_bytes += inner.1;
 
-                Descriptor::Array(Box::new(inner.0))
+                Descriptor::Array(Gc::new(gc_ctx, inner.0))
             }
             _ => return None,
         };
