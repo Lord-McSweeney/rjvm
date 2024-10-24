@@ -4,6 +4,7 @@ use super::error::Error;
 use super::flags::FieldFlags;
 use super::reader::{FileData, Reader};
 
+use crate::gc::Trace;
 use crate::string::JvmString;
 
 pub struct Field {
@@ -37,5 +38,13 @@ impl Field {
             descriptor,
             attributes: attribute_list.into_boxed_slice(),
         })
+    }
+}
+
+impl Trace for Field {
+    fn trace(&self) {
+        self.name.trace();
+        self.descriptor.trace();
+        self.attributes.trace();
     }
 }

@@ -2,6 +2,7 @@ use super::constant_pool::ConstantPool;
 use super::error::Error;
 use super::reader::{FileData, Reader};
 
+use crate::gc::Trace;
 use crate::string::JvmString;
 
 pub struct Attribute {
@@ -18,5 +19,11 @@ impl Attribute {
         let data = data.read_bytes(length as usize)?;
 
         Ok(Self { name, data })
+    }
+}
+
+impl Trace for Attribute {
+    fn trace(&self) {
+        self.name.trace();
     }
 }

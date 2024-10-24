@@ -68,7 +68,7 @@ fn leaked_non_null<T>(value: T) -> NonNull<T> {
 }
 
 impl<T> Gc<T> {
-    pub fn new(gc_ctx: &GcCtx, value: T) -> Self {
+    pub fn new(gc_ctx: GcCtx, value: T) -> Self {
         // This is the previous "first" Gc (that is not the real first one)
         let previous_next = unsafe { gc_ctx.first_gc.ptr.as_ref().next.get() };
 
@@ -153,7 +153,7 @@ impl<T> Deref for Gc<T> {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub struct GcCtx {
     first_gc: Gc<()>,
 }
@@ -170,7 +170,7 @@ impl GcCtx {
     //     also has `trace` called on it
     //   - There are no `Gc`s registered under this `GcCtx` that are reachable in any
     //     way other than accessing them through `root`
-    pub unsafe fn collect<T>(&self, root: &T)
+    pub unsafe fn collect<T>(self, root: &T)
     where
         T: Trace,
     {
@@ -209,18 +209,6 @@ impl GcCtx {
                 current = next;
             }
         }
-    }
-}
-
-impl Drop for GcCtx {
-    fn drop(&mut self) {
-        let first_gc = self.first_gc;
-
-        let created_box_inner = unsafe { Box::from_raw(first_gc.ptr.as_ref().value.as_ptr()) };
-        drop(created_box_inner);
-
-        let created_box_outer = unsafe { Box::from_raw(first_gc.ptr.as_ptr()) };
-        drop(created_box_outer);
     }
 }
 

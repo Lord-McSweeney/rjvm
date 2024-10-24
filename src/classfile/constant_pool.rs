@@ -1,7 +1,7 @@
 use super::error::Error;
 use super::reader::{FileData, Reader};
 
-use crate::gc::GcCtx;
+use crate::gc::{GcCtx, Trace};
 use crate::string::JvmString;
 
 const UTF8: u8 = 1;
@@ -100,6 +100,12 @@ impl ConstantPool {
     }
 }
 
+impl Trace for ConstantPool {
+    fn trace(&self) {
+        self.entries.trace();
+    }
+}
+
 #[derive(Clone, Copy)]
 pub enum ConstantPoolEntry {
     Utf8 {
@@ -138,8 +144,17 @@ impl ConstantPoolEntry {
     }
 }
 
+impl Trace for ConstantPoolEntry {
+    fn trace(&self) {
+        match self {
+            ConstantPoolEntry::Utf8 { string } => string.trace(),
+            _ => {}
+        }
+    }
+}
+
 fn read_constant_pool_entry(
-    gc_ctx: &GcCtx,
+    gc_ctx: GcCtx,
     data: &mut FileData,
 ) -> Result<ConstantPoolEntry, Error> {
     let tag = data.read_u8()?;
@@ -193,7 +208,7 @@ fn read_constant_pool_entry(
     }
 }
 
-pub fn read_constant_pool(gc_ctx: &GcCtx, data: &mut FileData) -> Result<ConstantPool, Error> {
+pub fn read_constant_pool(gc_ctx: GcCtx, data: &mut FileData) -> Result<ConstantPool, Error> {
     let entry_count = match data.read_u16()? {
         0 => return Err(Error::ExpectedNonZero),
         entry_count => entry_count - 1,

@@ -1,4 +1,6 @@
 use std::cell::Cell;
+use std::cell::RefCell;
+use std::collections::HashMap;
 
 use super::gc::Trace;
 
@@ -69,5 +71,38 @@ where
 {
     fn trace(&self) {
         self.as_ref().trace();
+    }
+}
+
+impl<T> Trace for Box<[T]>
+where
+    T: Trace,
+{
+    fn trace(&self) {
+        for value in self.as_ref() {
+            value.trace();
+        }
+    }
+}
+
+impl<T> Trace for RefCell<T>
+where
+    T: Trace,
+{
+    fn trace(&self) {
+        self.borrow().trace();
+    }
+}
+
+impl<K, V, S> Trace for HashMap<K, V, S>
+where
+    K: Trace,
+    V: Trace,
+{
+    fn trace(&self) {
+        for (k, v) in self {
+            k.trace();
+            v.trace();
+        }
     }
 }

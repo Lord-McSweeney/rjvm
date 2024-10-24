@@ -4,6 +4,7 @@ use super::error::Error;
 use super::flags::MethodFlags;
 use super::reader::{FileData, Reader};
 
+use crate::gc::Trace;
 use crate::string::JvmString;
 
 pub struct Method {
@@ -37,5 +38,13 @@ impl Method {
             descriptor,
             attributes: attribute_list.into_boxed_slice(),
         })
+    }
+}
+
+impl Trace for Method {
+    fn trace(&self) {
+        self.name.trace();
+        self.descriptor.trace();
+        self.attributes.trace();
     }
 }
