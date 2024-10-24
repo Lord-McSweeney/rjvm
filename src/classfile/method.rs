@@ -39,6 +39,18 @@ impl Method {
             attributes: attribute_list.into_boxed_slice(),
         })
     }
+
+    pub fn flags(&self) -> MethodFlags {
+        self.flags
+    }
+
+    pub fn name(&self) -> JvmString {
+        self.name
+    }
+
+    pub fn descriptor(&self) -> JvmString {
+        self.descriptor
+    }
 }
 
 impl Trace for Method {

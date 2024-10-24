@@ -105,6 +105,10 @@ impl ClassFile {
     pub fn super_class(self) -> Option<JvmString> {
         self.0.super_class
     }
+
+    pub fn methods(&self) -> &[Method] {
+        &self.0.methods
+    }
 }
 
 impl Trace for ClassFile {

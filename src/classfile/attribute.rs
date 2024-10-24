@@ -5,6 +5,7 @@ use super::reader::{FileData, Reader};
 use crate::gc::Trace;
 use crate::string::JvmString;
 
+#[derive(Clone)]
 pub struct Attribute {
     name: JvmString,
     data: Vec<u8>,

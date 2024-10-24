@@ -1,7 +1,11 @@
 use super::context::Context;
-use super::error::Error;
+use super::descriptor::{Descriptor, MethodDescriptor};
+use super::error::{Error, NativeError};
+use super::method::Method;
+use super::vtable::VTable;
 
 use crate::classfile::class::ClassFile;
+use crate::classfile::flags::MethodFlags;
 use crate::gc::{Gc, GcCtx, Trace};
 use crate::string::JvmString;
 
@@ -14,6 +18,9 @@ struct ClassData {
     name: JvmString,
 
     super_class: Option<Class>,
+
+    static_method_vtable: VTable<(JvmString, MethodDescriptor)>,
+    static_methods: Box<[Method]>,
 }
 
 impl Class {
@@ -25,12 +32,30 @@ impl Class {
             .map(|name| context.lookup_class(name))
             .transpose()?;
 
+        let methods = class_file.methods();
+
+        let mut static_method_names = Vec::with_capacity(methods.len());
+        let mut static_methods = Vec::with_capacity(methods.len());
+        for method in methods {
+            if method.flags().contains(MethodFlags::STATIC) {
+                let created_method = Method::from_method(context.gc_ctx, method)?;
+
+                static_method_names.push((method.name(), created_method.descriptor()));
+                static_methods.push(created_method);
+            }
+        }
+
+        let static_method_vtable =
+            VTable::from_parent_and_keys(context.gc_ctx, None, static_method_names);
+
         Ok(Self(Gc::new(
             context.gc_ctx,
             ClassData {
                 class_file: Some(class_file),
                 name,
                 super_class,
+                static_method_vtable,
+                static_methods: static_methods.into_boxed_slice(),
             },
         )))
     }
@@ -42,6 +67,8 @@ impl Class {
                 class_file: None,
                 name,
                 super_class: None,
+                static_method_vtable: VTable::empty(gc_ctx),
+                static_methods: Box::new([]),
             },
         ))
     }

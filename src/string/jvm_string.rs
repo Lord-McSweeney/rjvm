@@ -2,11 +2,11 @@
 // stored as UTF-8 strings. Note that the java/lang/String class stores strings
 // as UTF-16.
 
+use crate::gc::{Gc, GcCtx, Trace};
+
 use std::fmt;
 use std::hash::{DefaultHasher, Hash, Hasher};
 use std::ops::Deref;
-
-use crate::gc::{Gc, GcCtx, Trace};
 
 #[derive(Clone, Copy, Debug)]
 pub struct JvmString(Gc<JvmStringData>);
