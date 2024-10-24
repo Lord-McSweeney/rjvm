@@ -222,7 +222,11 @@ where
 {
     fn trace(&self) {
         unsafe {
-            self.ptr.as_ref().status.set(CollectionStatus::Marked);
+            let gc_box = self.ptr.as_ref();
+
+            gc_box.value.as_ref().trace();
+
+            gc_box.status.set(CollectionStatus::Marked);
         }
     }
 }
