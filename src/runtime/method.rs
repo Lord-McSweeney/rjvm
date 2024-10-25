@@ -53,15 +53,32 @@ impl Method {
                 class: Cell::new(None),
                 flags: method.flags(),
                 raw_code_data,
-                method_info: RefCell::new(MethodInfo::Unknown),
+                method_info: RefCell::new(MethodInfo::Empty),
             },
         )))
+    }
+
+    pub fn empty(gc_ctx: GcCtx, descriptor: MethodDescriptor, flags: MethodFlags) -> Self {
+        Self(Gc::new(
+            gc_ctx,
+            MethodData {
+                descriptor,
+                class: Cell::new(None),
+                flags,
+                raw_code_data: None,
+                method_info: RefCell::new(MethodInfo::Empty),
+            },
+        ))
     }
 
     pub fn exec(self, context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
         // Typecheck args
 
         Ok(None)
+    }
+
+    pub fn flags(self) -> MethodFlags {
+        self.0.flags
     }
 
     pub fn descriptor(self) -> MethodDescriptor {
@@ -95,14 +112,14 @@ impl Trace for MethodData {
 
 enum MethodInfo {
     Bytecode(BytecodeMethodInfo),
-    Unknown,
+    Empty,
 }
 
 impl Trace for MethodInfo {
     fn trace(&self) {
         match self {
             MethodInfo::Bytecode(bytecode_info) => bytecode_info.trace(),
-            MethodInfo::Unknown => {}
+            MethodInfo::Empty => {}
         }
     }
 }
@@ -124,12 +141,12 @@ impl BytecodeMethodInfo {
         let max_stack = reader.read_u16()?;
         let max_locals = reader.read_u16()?;
 
-        let code_start = reader.position();
         let code_length = reader.read_u32()? as usize;
+        let code_start = reader.position();
         let mut code = Vec::with_capacity(code_length / 2);
 
         while reader.position() < code_start + code_length {
-            code.push(Op::read_from(context, constant_pool, &mut reader)?);
+            code.push(Op::read_from(context, class, constant_pool, &mut reader)?);
         }
 
         Ok(Self {

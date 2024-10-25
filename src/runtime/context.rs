@@ -38,8 +38,7 @@ impl Context {
     }
 
     fn init_object_class(self) {
-        let object_class_name = JvmString::new(self.gc_ctx, "java/lang/Object".to_string());
-        let object_class = Class::new(self.gc_ctx, object_class_name);
+        let object_class = Class::create_object_class(self.gc_ctx);
 
         self.register_class(object_class);
     }

@@ -135,6 +135,10 @@ impl<T> Gc<T> {
         created_gc
     }
 
+    pub fn ptr_eq(this: Self, other: Self) -> bool {
+        this.ptr.as_ptr() == other.ptr.as_ptr()
+    }
+
     fn erased(&self) -> Gc<()> {
         let ptr = self.ptr.as_ptr() as *mut GcBox<()>;
 

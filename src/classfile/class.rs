@@ -102,6 +102,10 @@ impl ClassFile {
         &self.0.constant_pool
     }
 
+    pub fn flags(self) -> ClassFlags {
+        self.0.flags
+    }
+
     pub fn this_class(self) -> JvmString {
         self.0.this_class
     }

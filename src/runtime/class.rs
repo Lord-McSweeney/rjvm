@@ -7,7 +7,7 @@ use super::value::Value;
 use super::vtable::VTable;
 
 use crate::classfile::class::ClassFile;
-use crate::classfile::flags::{FieldFlags, MethodFlags};
+use crate::classfile::flags::{ClassFlags, FieldFlags, MethodFlags};
 use crate::gc::{Gc, GcCtx, Trace};
 use crate::string::JvmString;
 
@@ -16,6 +16,7 @@ pub struct Class(Gc<ClassData>);
 
 struct ClassData {
     class_file: Option<ClassFile>,
+    flags: ClassFlags,
 
     name: JvmString,
 
@@ -92,16 +93,23 @@ impl Class {
         let static_method_vtable =
             VTable::from_parent_and_keys(context.gc_ctx, None, static_method_names);
 
-        let instance_field_vtable =
-            VTable::from_parent_and_keys(context.gc_ctx, None, instance_field_names);
+        let instance_field_vtable = VTable::from_parent_and_keys(
+            context.gc_ctx,
+            super_class.map(|c| c.instance_field_vtable()),
+            instance_field_names,
+        );
 
-        let instance_method_vtable =
-            VTable::from_parent_and_keys(context.gc_ctx, None, instance_method_names);
+        let instance_method_vtable = VTable::from_parent_and_keys(
+            context.gc_ctx,
+            super_class.map(|c| c.instance_method_vtable()),
+            instance_method_names,
+        );
 
         let created_class = Self(Gc::new(
             context.gc_ctx,
             ClassData {
                 class_file: Some(class_file),
+                flags: class_file.flags(),
                 name,
                 super_class,
                 static_method_vtable,
@@ -126,19 +134,34 @@ impl Class {
         Ok(created_class)
     }
 
-    pub fn new(gc_ctx: GcCtx, name: JvmString) -> Self {
+    pub fn create_object_class(gc_ctx: GcCtx) -> Self {
+        let object_class_name = JvmString::new(gc_ctx, "java/lang/Object".to_string());
+        let init_name = JvmString::new(gc_ctx, "<init>".to_string());
+        let void_descriptor_name = JvmString::new(gc_ctx, "()V".to_string());
+
+        let void_descriptor =
+            MethodDescriptor::from_string(gc_ctx, void_descriptor_name).expect("Valid descriptor");
+
+        let instance_method_names = vec![(init_name, void_descriptor)];
+
+        let instance_methods = vec![Method::empty(gc_ctx, void_descriptor, MethodFlags::PUBLIC)];
+
+        let instance_method_vtable =
+            VTable::from_parent_and_keys(gc_ctx, None, instance_method_names);
+
         Self(Gc::new(
             gc_ctx,
             ClassData {
                 class_file: None,
-                name,
+                flags: ClassFlags::PUBLIC,
+                name: object_class_name,
                 super_class: None,
                 static_method_vtable: VTable::empty(gc_ctx),
                 static_methods: Box::new([]),
                 static_field_vtable: VTable::empty(gc_ctx),
                 static_fields: Box::new([]),
-                instance_method_vtable: VTable::empty(gc_ctx),
-                instance_methods: Box::new([]),
+                instance_method_vtable,
+                instance_methods: instance_methods.into_boxed_slice(),
                 instance_field_vtable: VTable::empty(gc_ctx),
                 instance_fields: Box::new([]),
             },
@@ -149,8 +172,16 @@ impl Class {
         &self.0.class_file
     }
 
+    pub fn is_interface(self) -> bool {
+        self.0.flags.contains(ClassFlags::INTERFACE)
+    }
+
     pub fn name(self) -> JvmString {
         self.0.name
+    }
+
+    pub fn super_class(self) -> Option<Class> {
+        self.0.super_class
     }
 
     pub fn static_method_vtable(self) -> VTable<(JvmString, MethodDescriptor)> {
@@ -159,6 +190,32 @@ impl Class {
 
     pub fn static_field_vtable(self) -> VTable<(JvmString, Descriptor)> {
         self.0.static_field_vtable
+    }
+
+    pub fn instance_method_vtable(self) -> VTable<(JvmString, MethodDescriptor)> {
+        self.0.instance_method_vtable
+    }
+
+    pub fn instance_methods(&self) -> &[Method] {
+        &self.0.instance_methods
+    }
+
+    pub fn instance_field_vtable(self) -> VTable<(JvmString, Descriptor)> {
+        self.0.instance_field_vtable
+    }
+
+    // This does not check if the checked class is an interface implemented by this class.
+    pub fn has_super_class(self, checked_class: Class) -> bool {
+        let mut current_class = self.super_class();
+        while let Some(some_class) = current_class {
+            if Gc::ptr_eq(some_class.0, checked_class.0) {
+                return true;
+            }
+
+            current_class = some_class.super_class();
+        }
+
+        return false;
     }
 
     pub fn call_static(
