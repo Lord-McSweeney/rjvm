@@ -91,7 +91,7 @@ impl Method {
             .0
             .raw_code_data
             .clone()
-            .map(|data| BytecodeMethodInfo::from_code_data(context, class, data))
+            .map(|data| BytecodeMethodInfo::from_code_data(context, self, class, data))
             .transpose()?;
 
         if let Some(bytecode_method_info) = bytecode_method_info {
@@ -132,8 +132,15 @@ struct BytecodeMethodInfo {
 }
 
 impl BytecodeMethodInfo {
-    pub fn from_code_data(context: Context, class: Class, data: Vec<u8>) -> Result<Self, Error> {
+    pub fn from_code_data(
+        context: Context,
+        method: Method,
+        class: Class,
+        data: Vec<u8>,
+    ) -> Result<Self, Error> {
         let mut reader = FileData::new(data);
+
+        let return_type = method.descriptor().return_type();
 
         let class_file = class.class_file().unwrap();
         let constant_pool = class_file.constant_pool();
@@ -146,7 +153,13 @@ impl BytecodeMethodInfo {
         let mut code = Vec::with_capacity(code_length / 2);
 
         while reader.position() < code_start + code_length {
-            code.push(Op::read_from(context, class, constant_pool, &mut reader)?);
+            code.push(Op::read_from(
+                context,
+                class,
+                return_type,
+                constant_pool,
+                &mut reader,
+            )?);
         }
 
         Ok(Self {

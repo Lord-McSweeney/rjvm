@@ -12,6 +12,7 @@ pub enum NativeError {
     InvalidJar,
     ReadError,
     VTableLookupFailed,
+    WrongReturnType,
 }
 
 impl From<ClassFileError> for Error {

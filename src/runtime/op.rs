@@ -4,14 +4,16 @@ use super::descriptor::{Descriptor, MethodDescriptor};
 use super::error::{Error, NativeError};
 use super::method::Method;
 
-use crate::classfile::constant_pool::ConstantPool;
+use crate::classfile::constant_pool::{ConstantPool, ConstantPoolEntry};
 use crate::classfile::reader::{FileData, Reader};
 use crate::gc::Trace;
 use crate::string::JvmString;
 
 #[derive(Clone, Copy)]
 pub enum Op {
+    Ldc(ConstantPoolEntry),
     ALoad(usize),
+    Return,
     GetStatic(Class, usize),
     InvokeSpecial(Class, Method),
 }
@@ -19,7 +21,11 @@ pub enum Op {
 impl Trace for Op {
     fn trace(&self) {
         match self {
+            Op::Ldc(entry) => {
+                entry.trace();
+            }
             Op::ALoad(_) => {}
+            Op::Return => {}
             Op::GetStatic(class, _) => {
                 class.trace();
             }
@@ -31,8 +37,10 @@ impl Trace for Op {
     }
 }
 
+const LDC: u8 = 0x12;
 const A_LOAD_0: u8 = 0x2A;
 const A_LOAD_1: u8 = 0x2B;
+const RETURN: u8 = 0xB1;
 const GET_STATIC: u8 = 0xB2;
 const INVOKE_SPECIAL: u8 = 0xB7;
 
@@ -40,6 +48,7 @@ impl Op {
     pub fn read_from(
         context: Context,
         current_class: Class,
+        method_return_type: Descriptor,
         constant_pool: &ConstantPool,
         data: &mut FileData,
     ) -> Result<Self, Error> {
@@ -47,8 +56,21 @@ impl Op {
 
         let opcode = data.read_u8()?;
         match opcode {
+            LDC => {
+                let constant_pool_idx = data.read_u8()?;
+                let entry = constant_pool.entry(constant_pool_idx as u16)?;
+
+                Ok(Op::Ldc(entry))
+            }
             A_LOAD_0 => Ok(Op::ALoad(0)),
             A_LOAD_1 => Ok(Op::ALoad(1)),
+            RETURN => {
+                if !matches!(method_return_type, Descriptor::Void) {
+                    Err(Error::Native(NativeError::WrongReturnType))
+                } else {
+                    Ok(Op::Return)
+                }
+            }
             GET_STATIC => {
                 let field_ref_idx = data.read_u16()?;
                 let field_ref = constant_pool.get_field_ref(field_ref_idx)?;

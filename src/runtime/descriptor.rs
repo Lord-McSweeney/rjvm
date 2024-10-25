@@ -106,8 +106,8 @@ impl Hash for MethodDescriptor {
 
 #[derive(Eq, Hash, PartialEq)]
 struct MethodDescriptorData {
-    pub args: Box<[Descriptor]>,
-    pub return_type: Descriptor,
+    args: Box<[Descriptor]>,
+    return_type: Descriptor,
 }
 
 impl MethodDescriptor {
@@ -153,6 +153,10 @@ impl MethodDescriptor {
                 return_type,
             },
         )))
+    }
+
+    pub fn return_type(self) -> Descriptor {
+        self.0.return_type
     }
 }
 
