@@ -15,6 +15,7 @@ pub enum Op {
     ALoad(usize),
     Return,
     GetStatic(Class, usize),
+    InvokeVirtual(Class, (JvmString, MethodDescriptor)),
     InvokeSpecial(Class, Method),
 }
 
@@ -29,6 +30,11 @@ impl Trace for Op {
             Op::GetStatic(class, _) => {
                 class.trace();
             }
+            Op::InvokeVirtual(class, (method_name, method_descriptor)) => {
+                class.trace();
+                method_name.trace();
+                method_descriptor.trace();
+            }
             Op::InvokeSpecial(class, method) => {
                 class.trace();
                 method.trace();
@@ -42,6 +48,7 @@ const A_LOAD_0: u8 = 0x2A;
 const A_LOAD_1: u8 = 0x2B;
 const RETURN: u8 = 0xB1;
 const GET_STATIC: u8 = 0xB2;
+const INVOKE_VIRTUAL: u8 = 0xB6;
 const INVOKE_SPECIAL: u8 = 0xB7;
 
 impl Op {
@@ -87,6 +94,18 @@ impl Op {
                     .ok_or(Error::Native(NativeError::VTableLookupFailed))?;
 
                 Ok(Op::GetStatic(class, field_slot))
+            }
+            INVOKE_VIRTUAL => {
+                let method_ref_idx = data.read_u16()?;
+                let method_ref = constant_pool.get_method_ref(method_ref_idx)?;
+
+                let (class_name, method_name, descriptor_name) = method_ref;
+
+                let class = context.lookup_class(class_name)?;
+                let descriptor = MethodDescriptor::from_string(context.gc_ctx, descriptor_name)
+                    .ok_or(Error::Native(NativeError::InvalidDescriptor))?;
+
+                Ok(Op::InvokeVirtual(class, (method_name, descriptor)))
             }
             INVOKE_SPECIAL => {
                 let method_ref_idx = data.read_u16()?;
