@@ -52,7 +52,7 @@ impl Class {
         let mut static_field_names = Vec::with_capacity(fields.len());
         let mut static_fields = Vec::with_capacity(fields.len());
         let mut instance_field_names = Vec::with_capacity(fields.len());
-        let mut instance_fields = Vec::with_capacity(fields.len());
+        let mut instance_fields = super_class.map_or(Vec::new(), |c| c.instance_fields().to_vec());
 
         for field in fields {
             if field.flags().contains(FieldFlags::STATIC) {
@@ -71,7 +71,8 @@ impl Class {
         let mut static_method_names = Vec::with_capacity(methods.len());
         let mut static_methods = Vec::with_capacity(methods.len());
         let mut instance_method_names = Vec::with_capacity(methods.len());
-        let mut instance_methods = Vec::with_capacity(methods.len());
+        let mut instance_methods =
+            super_class.map_or(Vec::new(), |c| c.instance_methods().to_vec());
 
         for method in methods {
             if method.flags().contains(MethodFlags::STATIC) {
@@ -188,8 +189,16 @@ impl Class {
         self.0.static_method_vtable
     }
 
+    pub fn static_methods(&self) -> &[Method] {
+        &self.0.static_methods
+    }
+
     pub fn static_field_vtable(self) -> VTable<(JvmString, Descriptor)> {
         self.0.static_field_vtable
+    }
+
+    pub fn static_fields(&self) -> &[Field] {
+        &self.0.static_fields
     }
 
     pub fn instance_method_vtable(self) -> VTable<(JvmString, MethodDescriptor)> {
@@ -202,6 +211,10 @@ impl Class {
 
     pub fn instance_field_vtable(self) -> VTable<(JvmString, Descriptor)> {
         self.0.instance_field_vtable
+    }
+
+    pub fn instance_fields(&self) -> &[Field] {
+        &self.0.instance_fields
     }
 
     // This does not check if the checked class is an interface implemented by this class.
