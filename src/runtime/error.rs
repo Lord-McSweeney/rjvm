@@ -9,6 +9,7 @@ pub enum Error {
 pub enum NativeError {
     ClassNotFound,
     InvalidDescriptor,
+    InvalidJar,
     ReadError,
     VTableLookupFailed,
 }

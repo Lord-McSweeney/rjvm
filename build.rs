@@ -1,6 +1,5 @@
 use glob::glob;
 use std::env;
-use std::fs;
 use std::path::PathBuf;
 use std::process::Command;
 
@@ -25,17 +24,35 @@ fn compile_globals() {
     }
 
     // This makes the next operations easier
-    env::set_current_dir(fs::canonicalize("./src/runtime/globals/").expect("Valid path"))
-        .expect("Should set");
+    env::set_current_dir(out_dir.clone()).expect("Should set");
 
     // Now gather the .class files together into a .jar archive
     let mut archive_command = Command::new("jar");
     archive_command.args(["cf", &out_dir.join("classes.jar").to_string_lossy()]);
 
-    let class_file_list = glob("./java/*/*.class").expect("Valid pattern");
+    let class_file_list =
+        glob(&out_dir.join("java/*/*.class").to_string_lossy()).expect("Valid pattern");
+
     archive_command.args(
         class_file_list
-            .map(|p| p.expect("Files should read"))
+            // This is very hacky: glob gives us absolute paths, so we need
+            // to strip the OUT_DIR prefix to make them appear relative. Also,
+            // jar doesn't accept files if they're not prefixed with "./", so
+            // we need to add it manually.
+            .map(|path| {
+                let mut string = path
+                    .expect("Files should read")
+                    .strip_prefix(out_dir.clone())
+                    .expect("Paths should be prefixed with out_dir")
+                    .to_path_buf()
+                    .into_os_string()
+                    .into_string()
+                    .expect("Should be valid string");
+
+                string.insert_str(0, "./");
+
+                string
+            })
             .collect::<Vec<_>>(),
     );
 

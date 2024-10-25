@@ -1,5 +1,6 @@
 mod classfile;
 mod gc;
+mod jar;
 mod runtime;
 mod string;
 
@@ -39,4 +40,6 @@ fn main() {
     let class_file = ClassFile::from_data(context.gc_ctx, read_file).unwrap();
     let main_class =
         Class::from_class_file(context, class_file).expect("Failed to load main class");
+
+    context.register_class(main_class);
 }
