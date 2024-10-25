@@ -110,6 +110,10 @@ impl ClassFile {
         self.0.super_class
     }
 
+    pub fn fields(&self) -> &[Field] {
+        &self.0.fields
+    }
+
     pub fn methods(&self) -> &[Method] {
         &self.0.methods
     }

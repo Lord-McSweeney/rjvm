@@ -1,12 +1,13 @@
 use super::context::Context;
 use super::descriptor::{Descriptor, MethodDescriptor};
 use super::error::{Error, NativeError};
+use super::field::Field;
 use super::method::Method;
 use super::value::Value;
 use super::vtable::VTable;
 
 use crate::classfile::class::ClassFile;
-use crate::classfile::flags::MethodFlags;
+use crate::classfile::flags::{FieldFlags, MethodFlags};
 use crate::gc::{Gc, GcCtx, Trace};
 use crate::string::JvmString;
 
@@ -22,6 +23,9 @@ struct ClassData {
 
     static_method_vtable: VTable<(JvmString, MethodDescriptor)>,
     static_methods: Box<[Method]>,
+
+    static_field_vtable: VTable<(JvmString, Descriptor)>,
+    static_fields: Box<[Field]>,
 }
 
 impl Class {
@@ -33,7 +37,19 @@ impl Class {
             .map(|name| context.lookup_class(name))
             .transpose()?;
 
+        let fields = class_file.fields();
         let methods = class_file.methods();
+
+        let mut static_field_names = Vec::with_capacity(fields.len());
+        let mut static_fields = Vec::with_capacity(fields.len());
+        for field in fields {
+            if field.flags().contains(FieldFlags::STATIC) {
+                let created_field = Field::from_field(context.gc_ctx, field)?;
+
+                static_field_names.push((field.name(), created_field.descriptor()));
+                static_fields.push(created_field);
+            }
+        }
 
         let mut static_method_names = Vec::with_capacity(methods.len());
         let mut static_methods = Vec::with_capacity(methods.len());
@@ -46,6 +62,9 @@ impl Class {
             }
         }
 
+        let static_field_vtable =
+            VTable::from_parent_and_keys(context.gc_ctx, None, static_field_names);
+
         let static_method_vtable =
             VTable::from_parent_and_keys(context.gc_ctx, None, static_method_names);
 
@@ -57,6 +76,8 @@ impl Class {
                 super_class,
                 static_method_vtable,
                 static_methods: static_methods.into_boxed_slice(),
+                static_field_vtable,
+                static_fields: static_fields.into_boxed_slice(),
             },
         ));
 
@@ -76,16 +97,26 @@ impl Class {
                 super_class: None,
                 static_method_vtable: VTable::empty(gc_ctx),
                 static_methods: Box::new([]),
+                static_field_vtable: VTable::empty(gc_ctx),
+                static_fields: Box::new([]),
             },
         ))
+    }
+
+    pub fn class_file(&self) -> &Option<ClassFile> {
+        &self.0.class_file
     }
 
     pub fn name(self) -> JvmString {
         self.0.name
     }
 
-    pub fn class_file(&self) -> &Option<ClassFile> {
-        &self.0.class_file
+    pub fn static_method_vtable(self) -> VTable<(JvmString, MethodDescriptor)> {
+        self.0.static_method_vtable
+    }
+
+    pub fn static_field_vtable(self) -> VTable<(JvmString, Descriptor)> {
+        self.0.static_field_vtable
     }
 
     pub fn call_static(

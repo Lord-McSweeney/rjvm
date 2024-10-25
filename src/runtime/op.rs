@@ -9,16 +9,14 @@ use crate::gc::Trace;
 use crate::string::JvmString;
 
 pub enum Op {
-    GetStatic(Class, (JvmString, Descriptor)),
+    GetStatic(Class, usize),
 }
 
 impl Trace for Op {
     fn trace(&self) {
         match self {
-            Op::GetStatic(class, (field_name, descriptor)) => {
+            Op::GetStatic(class, _) => {
                 class.trace();
-                field_name.trace();
-                descriptor.trace();
             }
         }
     }
@@ -44,7 +42,12 @@ impl Op {
                 let descriptor = Descriptor::from_string(context.gc_ctx, descriptor_name)
                     .ok_or(Error::Native(NativeError::InvalidDescriptor))?;
 
-                Ok(Op::GetStatic(class, (field_name, descriptor)))
+                let field_slot = class
+                    .static_field_vtable()
+                    .lookup((field_name, descriptor))
+                    .ok_or(Error::Native(NativeError::VTableLookupFailed))?;
+
+                Ok(Op::GetStatic(class, field_slot))
             }
             other => unimplemented!("Unimplemented opcode {}", other),
         }
