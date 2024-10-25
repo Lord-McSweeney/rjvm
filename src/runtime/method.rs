@@ -6,6 +6,7 @@ use super::op::Op;
 use super::value::Value;
 
 use crate::classfile::attribute::Attribute;
+use crate::classfile::flags::MethodFlags;
 use crate::classfile::method::Method as ClassFileMethod;
 use crate::classfile::reader::{FileData, Reader};
 use crate::gc::{Gc, GcCtx, Trace};
@@ -23,7 +24,10 @@ impl Trace for Method {
 
 struct MethodData {
     descriptor: MethodDescriptor,
+    flags: MethodFlags,
+
     class: Cell<Option<Class>>,
+
     raw_code_data: Option<Vec<u8>>,
     method_info: RefCell<MethodInfo>,
 }
@@ -47,6 +51,7 @@ impl Method {
             MethodData {
                 descriptor,
                 class: Cell::new(None),
+                flags: method.flags(),
                 raw_code_data,
                 method_info: RefCell::new(MethodInfo::Unknown),
             },

@@ -26,6 +26,14 @@ struct ClassData {
 
     static_field_vtable: VTable<(JvmString, Descriptor)>,
     static_fields: Box<[Field]>,
+
+    instance_method_vtable: VTable<(JvmString, MethodDescriptor)>,
+    instance_methods: Box<[Method]>,
+
+    instance_field_vtable: VTable<(JvmString, Descriptor)>,
+    // The values present on the class are the default values: when instantiating
+    // an instance, the `instance_fields` should be cloned and added to the instance.
+    instance_fields: Box<[Field]>,
 }
 
 impl Class {
@@ -42,23 +50,39 @@ impl Class {
 
         let mut static_field_names = Vec::with_capacity(fields.len());
         let mut static_fields = Vec::with_capacity(fields.len());
+        let mut instance_field_names = Vec::with_capacity(fields.len());
+        let mut instance_fields = Vec::with_capacity(fields.len());
+
         for field in fields {
             if field.flags().contains(FieldFlags::STATIC) {
                 let created_field = Field::from_field(context.gc_ctx, field)?;
 
                 static_field_names.push((field.name(), created_field.descriptor()));
                 static_fields.push(created_field);
+            } else {
+                let created_field = Field::from_field(context.gc_ctx, field)?;
+
+                instance_field_names.push((field.name(), created_field.descriptor()));
+                instance_fields.push(created_field);
             }
         }
 
         let mut static_method_names = Vec::with_capacity(methods.len());
         let mut static_methods = Vec::with_capacity(methods.len());
+        let mut instance_method_names = Vec::with_capacity(methods.len());
+        let mut instance_methods = Vec::with_capacity(methods.len());
+
         for method in methods {
             if method.flags().contains(MethodFlags::STATIC) {
                 let created_method = Method::from_method(context.gc_ctx, method)?;
 
                 static_method_names.push((method.name(), created_method.descriptor()));
                 static_methods.push(created_method);
+            } else {
+                let created_method = Method::from_method(context.gc_ctx, method)?;
+
+                instance_method_names.push((method.name(), created_method.descriptor()));
+                instance_methods.push(created_method);
             }
         }
 
@@ -67,6 +91,12 @@ impl Class {
 
         let static_method_vtable =
             VTable::from_parent_and_keys(context.gc_ctx, None, static_method_names);
+
+        let instance_field_vtable =
+            VTable::from_parent_and_keys(context.gc_ctx, None, instance_field_names);
+
+        let instance_method_vtable =
+            VTable::from_parent_and_keys(context.gc_ctx, None, instance_method_names);
 
         let created_class = Self(Gc::new(
             context.gc_ctx,
@@ -78,11 +108,19 @@ impl Class {
                 static_methods: static_methods.into_boxed_slice(),
                 static_field_vtable,
                 static_fields: static_fields.into_boxed_slice(),
+                instance_method_vtable,
+                instance_methods: instance_methods.into_boxed_slice(),
+                instance_field_vtable,
+                instance_fields: instance_fields.into_boxed_slice(),
             },
         ));
 
         for static_method in &created_class.0.static_methods {
             static_method.set_class_and_parse_code(context, created_class)?;
+        }
+
+        for instance_method in &created_class.0.instance_methods {
+            instance_method.set_class_and_parse_code(context, created_class)?;
         }
 
         Ok(created_class)
@@ -99,6 +137,10 @@ impl Class {
                 static_methods: Box::new([]),
                 static_field_vtable: VTable::empty(gc_ctx),
                 static_fields: Box::new([]),
+                instance_method_vtable: VTable::empty(gc_ctx),
+                instance_methods: Box::new([]),
+                instance_field_vtable: VTable::empty(gc_ctx),
+                instance_fields: Box::new([]),
             },
         ))
     }
