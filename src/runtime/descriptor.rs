@@ -75,6 +75,48 @@ impl Descriptor {
     pub fn from_string(gc_ctx: GcCtx, descriptor: JvmString) -> Option<Self> {
         Self::from_data_counting(gc_ctx, descriptor.as_bytes(), false).map(|o| o.0)
     }
+
+    pub fn default_value(self) -> Value {
+        match self {
+            Descriptor::Class(_) | Descriptor::Array(_) => Value::Object(None),
+            Descriptor::Integer => Value::Integer(0),
+            _ => unimplemented!(),
+        }
+    }
+
+    pub fn array_inner_descriptor(self) -> Option<Descriptor> {
+        match self {
+            Descriptor::Array(inner_descriptor) => Some(*inner_descriptor),
+            _ => None,
+        }
+    }
+
+    pub fn to_string(self) -> String {
+        let mut result = String::with_capacity(8);
+
+        match self {
+            Descriptor::Class(class_name) => {
+                result.push('L');
+                result.push_str(&class_name);
+                result.push(';');
+            }
+            Descriptor::Array(inner_descriptor) => {
+                result.push('[');
+                result.push_str(&inner_descriptor.to_string());
+            }
+            Descriptor::Byte => result.push('B'),
+            Descriptor::Character => result.push('C'),
+            Descriptor::Double => result.push('D'),
+            Descriptor::Float => result.push('F'),
+            Descriptor::Integer => result.push('I'),
+            Descriptor::Long => result.push('J'),
+            Descriptor::Short => result.push('S'),
+            Descriptor::Boolean => result.push('Z'),
+            Descriptor::Void => result.push('V'),
+        }
+
+        result
+    }
 }
 
 impl Trace for Descriptor {
@@ -153,6 +195,10 @@ impl MethodDescriptor {
                 return_type,
             },
         )))
+    }
+
+    pub fn args(&self) -> &[Descriptor] {
+        &self.0.args
     }
 
     pub fn return_type(self) -> Descriptor {

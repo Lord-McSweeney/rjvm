@@ -3,13 +3,15 @@ use super::descriptor::{Descriptor, MethodDescriptor};
 use super::error::{Error, NativeError};
 use super::field::Field;
 use super::method::Method;
-use super::value::Value;
+use super::value::{Value, ValueType};
 use super::vtable::VTable;
 
 use crate::classfile::class::ClassFile;
 use crate::classfile::flags::{ClassFlags, FieldFlags, MethodFlags};
 use crate::gc::{Gc, GcCtx, Trace};
 use crate::string::JvmString;
+
+use std::cell::{Ref, RefCell};
 
 #[derive(Clone, Copy)]
 pub struct Class(Gc<ClassData>);
@@ -22,19 +24,26 @@ struct ClassData {
 
     super_class: Option<Class>,
 
-    static_method_vtable: VTable<(JvmString, MethodDescriptor)>,
-    static_methods: Box<[Method]>,
+    // If this class represents an array (T[]), the descriptor of the value type of the array.
+    array_value_type: Option<Descriptor>,
 
     static_field_vtable: VTable<(JvmString, Descriptor)>,
     static_fields: Box<[Field]>,
-
-    instance_method_vtable: VTable<(JvmString, MethodDescriptor)>,
-    instance_methods: Box<[Method]>,
 
     instance_field_vtable: VTable<(JvmString, Descriptor)>,
     // The values present on the class are the default values: when instantiating
     // an instance, the `instance_fields` should be cloned and added to the instance.
     instance_fields: Box<[Field]>,
+
+    method_data: RefCell<Option<MethodData>>,
+}
+
+struct MethodData {
+    static_method_vtable: VTable<(JvmString, MethodDescriptor)>,
+    static_methods: Box<[Method]>,
+
+    instance_method_vtable: VTable<(JvmString, MethodDescriptor)>,
+    instance_methods: Box<[Method]>,
 }
 
 impl Class {
@@ -47,7 +56,6 @@ impl Class {
             .transpose()?;
 
         let fields = class_file.fields();
-        let methods = class_file.methods();
 
         let mut static_field_names = Vec::with_capacity(fields.len());
         let mut static_fields = Vec::with_capacity(fields.len());
@@ -68,42 +76,13 @@ impl Class {
             }
         }
 
-        let mut static_method_names = Vec::with_capacity(methods.len());
-        let mut static_methods = Vec::with_capacity(methods.len());
-        let mut instance_method_names = Vec::with_capacity(methods.len());
-        let mut instance_methods =
-            super_class.map_or(Vec::new(), |c| c.instance_methods().to_vec());
-
-        for method in methods {
-            if method.flags().contains(MethodFlags::STATIC) {
-                let created_method = Method::from_method(context.gc_ctx, method)?;
-
-                static_method_names.push((method.name(), created_method.descriptor()));
-                static_methods.push(created_method);
-            } else {
-                let created_method = Method::from_method(context.gc_ctx, method)?;
-
-                instance_method_names.push((method.name(), created_method.descriptor()));
-                instance_methods.push(created_method);
-            }
-        }
-
         let static_field_vtable =
             VTable::from_parent_and_keys(context.gc_ctx, None, static_field_names);
-
-        let static_method_vtable =
-            VTable::from_parent_and_keys(context.gc_ctx, None, static_method_names);
 
         let instance_field_vtable = VTable::from_parent_and_keys(
             context.gc_ctx,
             super_class.map(|c| c.instance_field_vtable()),
             instance_field_names,
-        );
-
-        let instance_method_vtable = VTable::from_parent_and_keys(
-            context.gc_ctx,
-            super_class.map(|c| c.instance_method_vtable()),
-            instance_method_names,
         );
 
         let created_class = Self(Gc::new(
@@ -113,26 +92,65 @@ impl Class {
                 flags: class_file.flags(),
                 name,
                 super_class,
-                static_method_vtable,
-                static_methods: static_methods.into_boxed_slice(),
+
+                array_value_type: None,
+
                 static_field_vtable,
                 static_fields: static_fields.into_boxed_slice(),
-                instance_method_vtable,
-                instance_methods: instance_methods.into_boxed_slice(),
                 instance_field_vtable,
                 instance_fields: instance_fields.into_boxed_slice(),
+
+                method_data: RefCell::new(None),
             },
         ));
 
-        for static_method in &created_class.0.static_methods {
-            static_method.set_class_and_parse_code(context, created_class)?;
-        }
-
-        for instance_method in &created_class.0.instance_methods {
-            instance_method.set_class_and_parse_code(context, created_class)?;
-        }
-
         Ok(created_class)
+    }
+
+    // This must be called after the Class is registered.
+    pub fn load_method_data(self, context: Context) -> Result<(), Error> {
+        let class_file = self.class_file().unwrap();
+        let super_class = self.super_class();
+
+        let methods = class_file.methods();
+
+        let mut static_method_names = Vec::with_capacity(methods.len());
+        let mut static_methods = Vec::with_capacity(methods.len());
+        let mut instance_method_names = Vec::with_capacity(methods.len());
+        let mut instance_methods =
+            super_class.map_or(Vec::new(), |c| c.instance_methods().to_vec());
+
+        for method in methods {
+            if method.flags().contains(MethodFlags::STATIC) {
+                let created_method = Method::from_method(context, method, self)?;
+
+                static_method_names.push((method.name(), created_method.descriptor()));
+                static_methods.push(created_method);
+            } else {
+                let created_method = Method::from_method(context, method, self)?;
+
+                instance_method_names.push((method.name(), created_method.descriptor()));
+                instance_methods.push(created_method);
+            }
+        }
+
+        let static_method_vtable =
+            VTable::from_parent_and_keys(context.gc_ctx, None, static_method_names);
+
+        let instance_method_vtable = VTable::from_parent_and_keys(
+            context.gc_ctx,
+            super_class.map(|c| *c.instance_method_vtable()),
+            instance_method_names,
+        );
+
+        *self.0.method_data.borrow_mut() = Some(MethodData {
+            static_method_vtable,
+            static_methods: static_methods.into_boxed_slice(),
+            instance_method_vtable,
+            instance_methods: instance_methods.into_boxed_slice(),
+        });
+
+        Ok(())
     }
 
     pub fn create_object_class(gc_ctx: GcCtx) -> Self {
@@ -150,6 +168,13 @@ impl Class {
         let instance_method_vtable =
             VTable::from_parent_and_keys(gc_ctx, None, instance_method_names);
 
+        let method_data = MethodData {
+            static_method_vtable: VTable::empty(gc_ctx),
+            static_methods: Box::new([]),
+            instance_method_vtable,
+            instance_methods: instance_methods.into_boxed_slice(),
+        };
+
         Self(Gc::new(
             gc_ctx,
             ClassData {
@@ -157,14 +182,52 @@ impl Class {
                 flags: ClassFlags::PUBLIC,
                 name: object_class_name,
                 super_class: None,
-                static_method_vtable: VTable::empty(gc_ctx),
-                static_methods: Box::new([]),
+
+                array_value_type: None,
+
                 static_field_vtable: VTable::empty(gc_ctx),
                 static_fields: Box::new([]),
-                instance_method_vtable,
-                instance_methods: instance_methods.into_boxed_slice(),
                 instance_field_vtable: VTable::empty(gc_ctx),
                 instance_fields: Box::new([]),
+
+                method_data: RefCell::new(Some(method_data)),
+            },
+        ))
+    }
+
+    // TODO: Cache the created class
+    pub fn for_array(context: Context, array_descriptor: Descriptor) -> Self {
+        let object_class_name = JvmString::new(context.gc_ctx, "java/lang/Object".to_string());
+        let object_class = context
+            .lookup_class(object_class_name)
+            .expect("Object class should exist");
+
+        let instance_methods = object_class.instance_methods();
+        let instance_method_vtable = *object_class.instance_method_vtable();
+
+        let method_data = MethodData {
+            static_method_vtable: VTable::empty(context.gc_ctx),
+            static_methods: Box::new([]),
+            instance_method_vtable,
+            instance_methods: instance_methods.clone(),
+        };
+
+        Self(Gc::new(
+            context.gc_ctx,
+            ClassData {
+                class_file: None,
+                flags: ClassFlags::PUBLIC,
+                name: JvmString::new(context.gc_ctx, array_descriptor.to_string()),
+                super_class: Some(object_class),
+
+                array_value_type: Some(array_descriptor.array_inner_descriptor().unwrap()),
+
+                static_field_vtable: VTable::empty(context.gc_ctx),
+                static_fields: Box::new([]),
+                instance_field_vtable: VTable::empty(context.gc_ctx),
+                instance_fields: Box::new([]),
+
+                method_data: RefCell::new(Some(method_data)),
             },
         ))
     }
@@ -185,12 +248,16 @@ impl Class {
         self.0.super_class
     }
 
-    pub fn static_method_vtable(self) -> VTable<(JvmString, MethodDescriptor)> {
-        self.0.static_method_vtable
+    pub fn static_method_vtable(&self) -> Ref<VTable<(JvmString, MethodDescriptor)>> {
+        Ref::map(self.0.method_data.borrow(), |data| {
+            &data.as_ref().unwrap().static_method_vtable
+        })
     }
 
-    pub fn static_methods(&self) -> &[Method] {
-        &self.0.static_methods
+    pub fn static_methods(&self) -> Ref<Box<[Method]>> {
+        Ref::map(self.0.method_data.borrow(), |data| {
+            &data.as_ref().unwrap().static_methods
+        })
     }
 
     pub fn static_field_vtable(self) -> VTable<(JvmString, Descriptor)> {
@@ -201,12 +268,16 @@ impl Class {
         &self.0.static_fields
     }
 
-    pub fn instance_method_vtable(self) -> VTable<(JvmString, MethodDescriptor)> {
-        self.0.instance_method_vtable
+    pub fn instance_method_vtable(&self) -> Ref<VTable<(JvmString, MethodDescriptor)>> {
+        Ref::map(self.0.method_data.borrow(), |data| {
+            &data.as_ref().unwrap().instance_method_vtable
+        })
     }
 
-    pub fn instance_methods(&self) -> &[Method] {
-        &self.0.instance_methods
+    pub fn instance_methods(&self) -> Ref<Box<[Method]>> {
+        Ref::map(self.0.method_data.borrow(), |data| {
+            &data.as_ref().unwrap().instance_methods
+        })
     }
 
     pub fn instance_field_vtable(self) -> VTable<(JvmString, Descriptor)> {
@@ -238,12 +309,11 @@ impl Class {
         name_and_descriptor: (JvmString, MethodDescriptor),
     ) -> Result<Option<Value>, Error> {
         let method_idx = self
-            .0
-            .static_method_vtable
+            .static_method_vtable()
             .lookup(name_and_descriptor)
             .ok_or(Error::Native(NativeError::VTableLookupFailed))?;
 
-        let method = self.0.static_methods[method_idx];
+        let method = self.static_methods()[method_idx];
 
         method.exec(context, args)
     }

@@ -8,6 +8,9 @@ use crate::classfile::class::ClassFile;
 use crate::gc::{Gc, GcCtx, Trace};
 use crate::runtime::class::Class;
 use crate::runtime::context::Context;
+use crate::runtime::descriptor::MethodDescriptor;
+use crate::runtime::value::Value;
+use crate::string::JvmString;
 
 use std::env;
 use std::fs;
@@ -42,4 +45,22 @@ fn main() {
         Class::from_class_file(context, class_file).expect("Failed to load main class");
 
     context.register_class(main_class);
+
+    main_class
+        .load_method_data(context)
+        .expect("Failed to load main class method data");
+
+    let main_name = JvmString::new(gc_ctx, "main".to_string());
+    let main_descriptor_name = JvmString::new(gc_ctx, "([Ljava/lang/String;)V".to_string());
+
+    let main_descriptor =
+        MethodDescriptor::from_string(gc_ctx, main_descriptor_name).expect("Valid descriptor");
+
+    main_class
+        .call_static(
+            context,
+            &[Value::Object(None)],
+            (main_name, main_descriptor),
+        )
+        .expect("Failed to run main");
 }

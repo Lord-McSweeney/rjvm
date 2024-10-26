@@ -1,7 +1,8 @@
 use super::class::Class;
 use super::context::Context;
-use super::descriptor::MethodDescriptor;
+use super::descriptor::{Descriptor, MethodDescriptor};
 use super::error::{Error, NativeError};
+use super::interpreter::Interpreter;
 use super::op::Op;
 use super::value::Value;
 
@@ -26,15 +27,18 @@ struct MethodData {
     descriptor: MethodDescriptor,
     flags: MethodFlags,
 
-    class: Cell<Option<Class>>,
+    class: Option<Class>,
 
-    raw_code_data: Option<Vec<u8>>,
     method_info: RefCell<MethodInfo>,
 }
 
 impl Method {
-    pub fn from_method(gc_ctx: GcCtx, method: &ClassFileMethod) -> Result<Self, Error> {
-        let descriptor = MethodDescriptor::from_string(gc_ctx, method.descriptor())
+    pub fn from_method(
+        context: Context,
+        method: &ClassFileMethod,
+        class: Class,
+    ) -> Result<Self, Error> {
+        let descriptor = MethodDescriptor::from_string(context.gc_ctx, method.descriptor())
             .ok_or(Error::Native(NativeError::InvalidDescriptor))?;
 
         let attributes = method.attributes();
@@ -46,14 +50,24 @@ impl Method {
             }
         }
 
+        // Ugh, cloned again...
+        let bytecode_method_info = raw_code_data
+            .map(|data| BytecodeMethodInfo::from_code_data(context, descriptor, class, data))
+            .transpose()?;
+
+        let method_info = if let Some(bytecode_method_info) = bytecode_method_info {
+            MethodInfo::Bytecode(bytecode_method_info)
+        } else {
+            MethodInfo::Empty
+        };
+
         Ok(Self(Gc::new(
-            gc_ctx,
+            context.gc_ctx,
             MethodData {
                 descriptor,
-                class: Cell::new(None),
+                class: Some(class),
                 flags: method.flags(),
-                raw_code_data,
-                method_info: RefCell::new(MethodInfo::Empty),
+                method_info: RefCell::new(method_info),
             },
         )))
     }
@@ -63,18 +77,46 @@ impl Method {
             gc_ctx,
             MethodData {
                 descriptor,
-                class: Cell::new(None),
+                class: None,
                 flags,
-                raw_code_data: None,
                 method_info: RefCell::new(MethodInfo::Empty),
             },
         ))
     }
 
     pub fn exec(self, context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
-        // Typecheck args
+        let descriptor = self.descriptor();
+        let descriptor_types = descriptor.args();
+        let return_type = descriptor.return_type();
 
-        Ok(None)
+        // Typecheck args
+        let mut args = args.to_vec();
+        if args.len() != descriptor_types.len() {
+            return Err(Error::Native(NativeError::WrongArgCount));
+        }
+
+        for (arg, descriptor_type) in args.iter_mut().zip(descriptor_types.iter()) {
+            *arg = arg.type_check(*descriptor_type)?;
+        }
+
+        let mut result = match &*self.0.method_info.borrow() {
+            MethodInfo::Bytecode(bytecode_info) => {
+                let mut interpreter = Interpreter::new(self, args);
+
+                interpreter.interpret_ops(context, &bytecode_info.code)?
+            }
+            MethodInfo::Empty => None,
+        };
+
+        if let Some(some_result) = result {
+            result = Some(some_result.type_check(return_type)?);
+        } else {
+            if !matches!(return_type, Descriptor::Void) {
+                return Err(Error::Native(NativeError::WrongReturnType));
+            }
+        }
+
+        Ok(result)
     }
 
     pub fn flags(self) -> MethodFlags {
@@ -85,20 +127,18 @@ impl Method {
         self.0.descriptor
     }
 
-    pub fn set_class_and_parse_code(self, context: Context, class: Class) -> Result<(), Error> {
-        // Ugh, cloned again...
-        let bytecode_method_info = self
-            .0
-            .raw_code_data
-            .clone()
-            .map(|data| BytecodeMethodInfo::from_code_data(context, self, class, data))
-            .transpose()?;
-
-        if let Some(bytecode_method_info) = bytecode_method_info {
-            *self.0.method_info.borrow_mut() = MethodInfo::Bytecode(bytecode_method_info);
+    pub fn max_stack(self) -> usize {
+        match &*self.0.method_info.borrow() {
+            MethodInfo::Bytecode(bytecode_info) => bytecode_info.max_stack as usize,
+            MethodInfo::Empty => 0,
         }
+    }
 
-        Ok(())
+    pub fn max_locals(self) -> usize {
+        match &*self.0.method_info.borrow() {
+            MethodInfo::Bytecode(bytecode_info) => bytecode_info.max_locals as usize,
+            MethodInfo::Empty => 0,
+        }
     }
 }
 
@@ -134,13 +174,13 @@ struct BytecodeMethodInfo {
 impl BytecodeMethodInfo {
     pub fn from_code_data(
         context: Context,
-        method: Method,
+        descriptor: MethodDescriptor,
         class: Class,
         data: Vec<u8>,
     ) -> Result<Self, Error> {
         let mut reader = FileData::new(data);
 
-        let return_type = method.descriptor().return_type();
+        let return_type = descriptor.return_type();
 
         let class_file = class.class_file().unwrap();
         let constant_pool = class_file.constant_pool();

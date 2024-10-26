@@ -1,4 +1,5 @@
 use super::class::Class;
+use super::descriptor::Descriptor;
 use super::error::{Error, NativeError};
 
 use crate::classfile::class::ClassFile;
@@ -48,6 +49,15 @@ impl Context {
 
         if let Some(class) = class_registry.get(&class_name) {
             Ok(*class)
+        } else if class_name.starts_with('[') {
+            drop(class_registry);
+            let array_descriptor = Descriptor::from_string(self.gc_ctx, class_name)
+                .ok_or(Error::Native(NativeError::ClassNotFound))?;
+
+            let created_class = Class::for_array(self, array_descriptor);
+            self.register_class(created_class);
+
+            Ok(created_class)
         } else {
             drop(class_registry);
 
@@ -55,8 +65,10 @@ impl Context {
                 if jar_file.has_class(class_name) {
                     let read_data = jar_file.read_class(class_name)?;
                     let class_file = ClassFile::from_data(self.gc_ctx, read_data)?;
+
                     let class = Class::from_class_file(self, class_file)?;
                     self.register_class(class);
+                    class.load_method_data(self)?;
 
                     return Ok(class);
                 }

@@ -22,17 +22,23 @@ impl Field {
         let descriptor = Descriptor::from_string(gc_ctx, descriptor_name)
             .ok_or(Error::Native(NativeError::InvalidDescriptor))?;
 
+        let value = descriptor.default_value();
+
         Ok(Self(Gc::new(
             gc_ctx,
             FieldData {
                 descriptor,
-                value: Cell::new(Value::Object(None)),
+                value: Cell::new(value),
             },
         )))
     }
 
     pub fn descriptor(self) -> Descriptor {
         self.0.descriptor
+    }
+
+    pub fn value(self) -> Value {
+        self.0.value.get()
     }
 }
 

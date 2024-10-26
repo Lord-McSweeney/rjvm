@@ -11,10 +11,12 @@ use crate::string::JvmString;
 
 #[derive(Clone, Copy)]
 pub enum Op {
+    AConstNull,
     Ldc(ConstantPoolEntry),
     ALoad(usize),
     Return,
     GetStatic(Class, usize),
+    PutStatic(Class, usize),
     InvokeVirtual(Class, (JvmString, MethodDescriptor)),
     InvokeSpecial(Class, Method),
 }
@@ -22,12 +24,16 @@ pub enum Op {
 impl Trace for Op {
     fn trace(&self) {
         match self {
+            Op::AConstNull => {}
             Op::Ldc(entry) => {
                 entry.trace();
             }
             Op::ALoad(_) => {}
             Op::Return => {}
             Op::GetStatic(class, _) => {
+                class.trace();
+            }
+            Op::PutStatic(class, _) => {
                 class.trace();
             }
             Op::InvokeVirtual(class, (method_name, method_descriptor)) => {
@@ -43,11 +49,13 @@ impl Trace for Op {
     }
 }
 
+const A_CONST_NULL: u8 = 0x01;
 const LDC: u8 = 0x12;
 const A_LOAD_0: u8 = 0x2A;
 const A_LOAD_1: u8 = 0x2B;
 const RETURN: u8 = 0xB1;
 const GET_STATIC: u8 = 0xB2;
+const PUT_STATIC: u8 = 0xB3;
 const INVOKE_VIRTUAL: u8 = 0xB6;
 const INVOKE_SPECIAL: u8 = 0xB7;
 
@@ -63,6 +71,7 @@ impl Op {
 
         let opcode = data.read_u8()?;
         match opcode {
+            A_CONST_NULL => Ok(Op::AConstNull),
             LDC => {
                 let constant_pool_idx = data.read_u8()?;
                 let entry = constant_pool.entry(constant_pool_idx as u16)?;
@@ -94,6 +103,23 @@ impl Op {
                     .ok_or(Error::Native(NativeError::VTableLookupFailed))?;
 
                 Ok(Op::GetStatic(class, field_slot))
+            }
+            PUT_STATIC => {
+                let field_ref_idx = data.read_u16()?;
+                let field_ref = constant_pool.get_field_ref(field_ref_idx)?;
+
+                let (class_name, field_name, descriptor_name) = field_ref;
+
+                let class = context.lookup_class(class_name)?;
+                let descriptor = Descriptor::from_string(context.gc_ctx, descriptor_name)
+                    .ok_or(Error::Native(NativeError::InvalidDescriptor))?;
+
+                let field_slot = class
+                    .static_field_vtable()
+                    .lookup((field_name, descriptor))
+                    .ok_or(Error::Native(NativeError::VTableLookupFailed))?;
+
+                Ok(Op::PutStatic(class, field_slot))
             }
             INVOKE_VIRTUAL => {
                 let method_ref_idx = data.read_u16()?;

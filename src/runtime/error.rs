@@ -12,6 +12,8 @@ pub enum NativeError {
     InvalidJar,
     ReadError,
     VTableLookupFailed,
+    WrongArgCount,
+    WrongArgType,
     WrongReturnType,
 }
 
