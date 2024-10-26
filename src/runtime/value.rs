@@ -1,3 +1,4 @@
+use super::class::Class;
 use super::descriptor::Descriptor;
 use super::error::{Error, NativeError};
 use super::object::Object;
@@ -60,6 +61,20 @@ impl Value {
         }
 
         Ok(self)
+    }
+
+    pub fn expect_as_object(self) -> Option<Object> {
+        match self {
+            Value::Object(object) => object,
+            _ => panic!("Expected value to be object"),
+        }
+    }
+
+    pub fn is_of_class(self, class: Class) -> bool {
+        match self {
+            Value::Object(object) => object.map_or(true, |obj| obj.class().matches_class(class)),
+            _ => false,
+        }
     }
 }
 

@@ -90,9 +90,15 @@ impl Method {
         let descriptor_types = descriptor.args();
         let return_type = descriptor.return_type();
 
+        let maybe_receiver_included = if self.flags().contains(MethodFlags::STATIC) {
+            0
+        } else {
+            1
+        };
+
         // Typecheck args
         let mut args = args.to_vec();
-        if args.len() != descriptor_types.len() {
+        if args.len() != descriptor_types.len() + maybe_receiver_included {
             return Err(Error::Native(NativeError::WrongArgCount));
         }
 
@@ -102,9 +108,9 @@ impl Method {
 
         let mut result = match &*self.0.method_info.borrow() {
             MethodInfo::Bytecode(bytecode_info) => {
-                let mut interpreter = Interpreter::new(self, args);
+                let mut interpreter = Interpreter::new(context, self, args);
 
-                interpreter.interpret_ops(context, &bytecode_info.code)?
+                interpreter.interpret_ops(&bytecode_info.code)?
             }
             MethodInfo::Empty => None,
         };
@@ -122,6 +128,10 @@ impl Method {
 
     pub fn descriptor(self) -> MethodDescriptor {
         self.0.descriptor
+    }
+
+    pub fn arg_count(self) -> usize {
+        self.descriptor().args().len()
     }
 
     pub fn flags(self) -> MethodFlags {

@@ -14,8 +14,11 @@ pub enum NativeError {
     VTableLookupFailed,
     WrongArgCount,
     WrongArgType,
+    WrongObjectClass,
     WrongReturnType,
     WrongValueType,
+
+    NullPointerException,
 }
 
 impl From<ClassFileError> for Error {

@@ -305,6 +305,14 @@ impl Class {
         return false;
     }
 
+    pub fn matches_class(self, checked_class: Class) -> bool {
+        if Gc::ptr_eq(self.0, checked_class.0) {
+            true
+        } else {
+            self.has_super_class(checked_class)
+        }
+    }
+
     // This does not call the constructor.
     pub fn new_instance(self, gc_ctx: GcCtx) -> Object {
         // TODO can you somehow instantiate an array class?

@@ -40,6 +40,11 @@ impl Field {
     pub fn value(self) -> Value {
         self.0.value.get()
     }
+
+    pub fn set_value(self, value: Value) {
+        // TODO check that value is of descriptor type
+        self.0.value.set(value);
+    }
 }
 
 impl Trace for Field {

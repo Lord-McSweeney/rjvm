@@ -41,6 +41,20 @@ impl Object {
         ))
     }
 
+    pub fn class(self) -> Class {
+        self.0.class
+    }
+
+    pub fn set_field(self, field_idx: usize, value: Value) {
+        match &self.0.data {
+            FieldOrArrayData::Fields(fields) => {
+                let field = fields[field_idx];
+                field.set_value(value);
+            }
+            FieldOrArrayData::Array(_) => panic!("Cannot set field on array"),
+        }
+    }
+
     pub fn call_construct(
         self,
         context: Context,
