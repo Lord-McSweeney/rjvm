@@ -39,16 +39,23 @@ impl Interpreter {
         while ip < ops.len() {
             let op = ops[ip];
             match op {
-                Op::ALoad(index) => self.a_load(index),
-                Op::Ldc(constant_pool_entry) => self.ldc(constant_pool_entry),
+                Op::AConstNull => self.op_a_const_null(),
+                Op::Ldc(constant_pool_entry) => self.op_ldc(constant_pool_entry),
+                Op::ALoad(index) => self.op_a_load(index),
+                Op::Dup => self.op_dup(),
                 Op::Return => return Ok(None),
-                Op::GetStatic(class, static_field_idx) => self.get_static(class, static_field_idx),
-                Op::PutField(class, field_idx) => self.put_field(class, field_idx)?,
-                Op::InvokeVirtual((method_name, method_descriptor)) => {
-                    self.invoke_virtual(method_name, method_descriptor)?
+                Op::GetStatic(class, static_field_idx) => {
+                    self.op_get_static(class, static_field_idx)
                 }
-                Op::InvokeSpecial(class, method) => self.invoke_special(class, method)?,
-                other => unimplemented!("Tried to execute unimplemented op"),
+                Op::PutStatic(class, static_field_idx) => {
+                    self.op_put_static(class, static_field_idx)
+                }
+                Op::PutField(class, field_idx) => self.op_put_field(class, field_idx)?,
+                Op::InvokeVirtual((method_name, method_descriptor)) => {
+                    self.op_invoke_virtual(method_name, method_descriptor)?
+                }
+                Op::InvokeSpecial(class, method) => self.op_invoke_special(class, method)?,
+                Op::New(class) => self.op_new(class),
             }
 
             ip += 1;
@@ -65,17 +72,11 @@ impl Interpreter {
         self.stack.pop().unwrap()
     }
 
-    fn a_load(&mut self, index: usize) {
-        let loaded = self.local_registers[index];
-
-        if !matches!(loaded, Value::Object(_)) {
-            panic!("Local should be of reference type");
-        }
-
-        self.stack_push(loaded);
+    fn op_a_const_null(&mut self) {
+        self.stack_push(Value::Object(None));
     }
 
-    fn ldc(&mut self, constant_pool_entry: ConstantPoolEntry) {
+    fn op_ldc(&mut self, constant_pool_entry: ConstantPoolEntry) {
         let class_file = self.method.class().unwrap().class_file().unwrap();
         let constant_pool = class_file.constant_pool();
 
@@ -112,13 +113,37 @@ impl Interpreter {
         self.stack_push(pushed_value);
     }
 
-    fn get_static(&mut self, class: Class, static_field_idx: usize) {
+    fn op_a_load(&mut self, index: usize) {
+        let loaded = self.local_registers[index];
+
+        if !matches!(loaded, Value::Object(_)) {
+            panic!("Local should be of reference type");
+        }
+
+        self.stack_push(loaded);
+    }
+
+    fn op_dup(&mut self) {
+        let value = self.stack_pop();
+        self.stack_push(value);
+        self.stack_push(value);
+    }
+
+    fn op_get_static(&mut self, class: Class, static_field_idx: usize) {
         let static_field = class.static_fields()[static_field_idx];
 
         self.stack_push(static_field.value());
     }
 
-    fn put_field(&mut self, class: Class, field_idx: usize) -> Result<(), Error> {
+    fn op_put_static(&mut self, class: Class, static_field_idx: usize) {
+        let value = self.stack_pop();
+
+        let static_field = class.static_fields()[static_field_idx];
+
+        static_field.set_value(value);
+    }
+
+    fn op_put_field(&mut self, class: Class, field_idx: usize) -> Result<(), Error> {
         let value = self.stack_pop();
 
         let object = self.stack_pop();
@@ -136,7 +161,7 @@ impl Interpreter {
         }
     }
 
-    fn invoke_virtual(
+    fn op_invoke_virtual(
         &mut self,
         method_name: JvmString,
         method_descriptor: MethodDescriptor,
@@ -169,7 +194,7 @@ impl Interpreter {
         }
     }
 
-    fn invoke_special(&mut self, class: Class, method: Method) -> Result<(), Error> {
+    fn op_invoke_special(&mut self, class: Class, method: Method) -> Result<(), Error> {
         let mut args = vec![Value::Object(None); method.arg_count() + 1];
         for arg in args.iter_mut().skip(1).rev() {
             // TODO: Long and Double arguments require two pops
@@ -193,5 +218,11 @@ impl Interpreter {
         }
 
         Ok(())
+    }
+
+    fn op_new(&mut self, class: Class) {
+        let instance = class.new_instance(self.context.gc_ctx);
+
+        self.stack_push(Value::Object(Some(instance)));
     }
 }

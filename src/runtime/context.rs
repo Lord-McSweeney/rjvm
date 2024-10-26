@@ -111,6 +111,7 @@ pub struct CommonData {
     pub java_lang_string: JvmString,
     pub array_char_desc: JvmString,
     pub init_name: JvmString,
+    pub clinit_name: JvmString,
     pub noargs_void_desc: MethodDescriptor,
     pub arg_char_array_void_desc: MethodDescriptor,
 }
@@ -133,6 +134,7 @@ impl CommonData {
             java_lang_string: JvmString::new(gc_ctx, "java/lang/String".to_string()),
             array_char_desc: JvmString::new(gc_ctx, "[C".to_string()),
             init_name: JvmString::new(gc_ctx, "<init>".to_string()),
+            clinit_name: JvmString::new(gc_ctx, "<clinit>".to_string()),
             noargs_void_desc,
             arg_char_array_void_desc,
         }
@@ -145,6 +147,7 @@ impl Trace for CommonData {
         self.java_lang_string.trace();
         self.array_char_desc.trace();
         self.init_name.trace();
+        self.clinit_name.trace();
         self.noargs_void_desc.trace();
         self.arg_char_array_void_desc.trace();
     }

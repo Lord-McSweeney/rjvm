@@ -14,12 +14,14 @@ pub enum Op {
     AConstNull,
     Ldc(ConstantPoolEntry),
     ALoad(usize),
+    Dup,
     Return,
     GetStatic(Class, usize),
     PutStatic(Class, usize),
     PutField(Class, usize),
     InvokeVirtual((JvmString, MethodDescriptor)),
     InvokeSpecial(Class, Method),
+    New(Class),
 }
 
 impl Trace for Op {
@@ -30,6 +32,7 @@ impl Trace for Op {
                 entry.trace();
             }
             Op::ALoad(_) => {}
+            Op::Dup => {}
             Op::Return => {}
             Op::GetStatic(class, _) => {
                 class.trace();
@@ -48,6 +51,9 @@ impl Trace for Op {
                 class.trace();
                 method.trace();
             }
+            Op::New(class) => {
+                class.trace();
+            }
         }
     }
 }
@@ -56,12 +62,14 @@ const A_CONST_NULL: u8 = 0x01;
 const LDC: u8 = 0x12;
 const A_LOAD_0: u8 = 0x2A;
 const A_LOAD_1: u8 = 0x2B;
+const DUP: u8 = 0x59;
 const RETURN: u8 = 0xB1;
 const GET_STATIC: u8 = 0xB2;
 const PUT_STATIC: u8 = 0xB3;
 const PUT_FIELD: u8 = 0xB5;
 const INVOKE_VIRTUAL: u8 = 0xB6;
 const INVOKE_SPECIAL: u8 = 0xB7;
+const NEW: u8 = 0xBB;
 
 impl Op {
     pub fn read_from(
@@ -84,6 +92,7 @@ impl Op {
             }
             A_LOAD_0 => Ok(Op::ALoad(0)),
             A_LOAD_1 => Ok(Op::ALoad(1)),
+            DUP => Ok(Op::Dup),
             RETURN => {
                 if !matches!(method_return_type, Descriptor::Void) {
                     Err(Error::Native(NativeError::WrongReturnType))
@@ -183,6 +192,14 @@ impl Op {
                 let method = class.instance_methods()[method_slot];
 
                 Ok(Op::InvokeSpecial(class, method))
+            }
+            NEW => {
+                let class_idx = data.read_u16()?;
+                let class_name = constant_pool.get_class(class_idx)?;
+
+                let class = context.lookup_class(class_name)?;
+
+                Ok(Op::New(class))
             }
             other => unimplemented!("Unimplemented opcode {}", other),
         }

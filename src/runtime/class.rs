@@ -151,7 +151,15 @@ impl Class {
             instance_methods: instance_methods.into_boxed_slice(),
         });
 
-        // TODO: Run <clinit> here
+        let clinit_string = context.common.clinit_name;
+        let void_descriptor = context.common.noargs_void_desc;
+        let clinit_method_idx = static_method_vtable.lookup((clinit_string, void_descriptor));
+        if let Some(clinit_method_idx) = clinit_method_idx {
+            // If this class actually has a clinit method, run it
+            let clinit_method = self.static_methods()[clinit_method_idx];
+
+            clinit_method.exec(context, &[])?;
+        }
 
         Ok(())
     }
