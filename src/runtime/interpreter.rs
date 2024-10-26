@@ -1,5 +1,6 @@
 use super::class::Class;
 use super::context::Context;
+use super::descriptor::MethodDescriptor;
 use super::error::{Error, NativeError};
 use super::method::Method;
 use super::object::Object;
@@ -7,6 +8,7 @@ use super::op::Op;
 use super::value::Value;
 
 use crate::classfile::constant_pool::{ConstantPool, ConstantPoolEntry};
+use crate::string::JvmString;
 
 pub struct Interpreter {
     method: Method,
@@ -42,7 +44,9 @@ impl Interpreter {
                 Op::Return => return Ok(None),
                 Op::GetStatic(class, static_field_idx) => self.get_static(class, static_field_idx),
                 Op::PutField(class, field_idx) => self.put_field(class, field_idx)?,
-                Op::InvokeVirtual(class, (method_name, method_descriptor)) => todo!(),
+                Op::InvokeVirtual((method_name, method_descriptor)) => {
+                    self.invoke_virtual(method_name, method_descriptor)?
+                }
                 Op::InvokeSpecial(class, method) => self.invoke_special(class, method)?,
                 other => unimplemented!("Tried to execute unimplemented op"),
             }
@@ -132,15 +136,53 @@ impl Interpreter {
         }
     }
 
+    fn invoke_virtual(
+        &mut self,
+        method_name: JvmString,
+        method_descriptor: MethodDescriptor,
+    ) -> Result<(), Error> {
+        let mut args = vec![Value::Object(None); method_descriptor.args().len() + 1];
+        for arg in args.iter_mut().skip(1).rev() {
+            // TODO: Long and Double arguments require two pops
+            *arg = self.stack_pop();
+        }
+
+        let receiver = self.stack_pop().expect_as_object();
+
+        if let Some(receiver) = receiver {
+            let receiver_class = receiver.class();
+            let method_idx = receiver_class
+                .instance_method_vtable()
+                .lookup((method_name, method_descriptor))
+                .ok_or(Error::Native(NativeError::VTableLookupFailed))?;
+            let method = receiver_class.instance_methods()[method_idx];
+
+            args[0] = Value::Object(Some(receiver));
+
+            let result = method.exec(self.context, &args)?;
+            if let Some(result) = result {
+                self.stack_push(result);
+            }
+            Ok(())
+        } else {
+            Err(Error::Native(NativeError::NullPointerException))
+        }
+    }
+
     fn invoke_special(&mut self, class: Class, method: Method) -> Result<(), Error> {
         let mut args = vec![Value::Object(None); method.arg_count() + 1];
         for arg in args.iter_mut().skip(1).rev() {
+            // TODO: Long and Double arguments require two pops
             *arg = self.stack_pop();
         }
 
         let receiver = self.stack_pop();
         if !receiver.is_of_class(class) {
             panic!("Object on stack was of wrong Class");
+        }
+
+        if matches!(receiver, Value::Object(None)) {
+            return Err(Error::Native(NativeError::NullPointerException));
         }
 
         args[0] = receiver;

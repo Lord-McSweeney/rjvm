@@ -18,7 +18,7 @@ pub enum Op {
     GetStatic(Class, usize),
     PutStatic(Class, usize),
     PutField(Class, usize),
-    InvokeVirtual(Class, (JvmString, MethodDescriptor)),
+    InvokeVirtual((JvmString, MethodDescriptor)),
     InvokeSpecial(Class, Method),
 }
 
@@ -40,8 +40,7 @@ impl Trace for Op {
             Op::PutField(class, _) => {
                 class.trace();
             }
-            Op::InvokeVirtual(class, (method_name, method_descriptor)) => {
-                class.trace();
+            Op::InvokeVirtual((method_name, method_descriptor)) => {
                 method_name.trace();
                 method_descriptor.trace();
             }
@@ -149,11 +148,12 @@ impl Op {
 
                 let (class_name, method_name, descriptor_name) = method_ref;
 
-                let class = context.lookup_class(class_name)?;
+                // Method is called based on class of object on stack
+                let _class = context.lookup_class(class_name)?;
                 let descriptor = MethodDescriptor::from_string(context.gc_ctx, descriptor_name)
                     .ok_or(Error::Native(NativeError::InvalidDescriptor))?;
 
-                Ok(Op::InvokeVirtual(class, (method_name, descriptor)))
+                Ok(Op::InvokeVirtual((method_name, descriptor)))
             }
             INVOKE_SPECIAL => {
                 let method_ref_idx = data.read_u16()?;
