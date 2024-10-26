@@ -1,5 +1,5 @@
 use super::class::Class;
-use super::descriptor::Descriptor;
+use super::descriptor::{Descriptor, MethodDescriptor};
 use super::error::{Error, NativeError};
 
 use crate::classfile::class::ClassFile;
@@ -16,6 +16,8 @@ pub struct Context {
 
     jar_files: Gc<RefCell<Vec<Jar>>>,
 
+    pub common: CommonData,
+
     pub gc_ctx: GcCtx,
 }
 
@@ -26,6 +28,7 @@ impl Context {
         let created_self = Self {
             class_registry: Gc::new(gc_ctx, RefCell::new(HashMap::new())),
             jar_files: Gc::new(gc_ctx, RefCell::new(Vec::new())),
+            common: CommonData::new(gc_ctx),
             gc_ctx,
         };
 
@@ -39,7 +42,7 @@ impl Context {
     }
 
     fn init_object_class(self) {
-        let object_class = Class::create_object_class(self.gc_ctx);
+        let object_class = Class::create_object_class(self);
 
         self.register_class(object_class);
     }
@@ -99,5 +102,50 @@ impl Trace for Context {
         self.class_registry.trace();
         self.jar_files.trace();
         self.class_registry.borrow().trace();
+    }
+}
+
+#[derive(Clone, Copy)]
+pub struct CommonData {
+    pub java_lang_object: JvmString,
+    pub java_lang_string: JvmString,
+    pub array_char_desc: JvmString,
+    pub init_name: JvmString,
+    pub noargs_void_desc: MethodDescriptor,
+    pub arg_char_array_void_desc: MethodDescriptor,
+}
+
+impl CommonData {
+    fn new(gc_ctx: GcCtx) -> Self {
+        let void_descriptor_name = JvmString::new(gc_ctx, "()V".to_string());
+
+        let noargs_void_desc =
+            MethodDescriptor::from_string(gc_ctx, void_descriptor_name).expect("Valid descriptor");
+
+        let arg_char_array_void_descriptor_name = JvmString::new(gc_ctx, "([C)V".to_string());
+
+        let arg_char_array_void_desc =
+            MethodDescriptor::from_string(gc_ctx, arg_char_array_void_descriptor_name)
+                .expect("Valid descriptor");
+
+        Self {
+            java_lang_object: JvmString::new(gc_ctx, "java/lang/Object".to_string()),
+            java_lang_string: JvmString::new(gc_ctx, "java/lang/String".to_string()),
+            array_char_desc: JvmString::new(gc_ctx, "[C".to_string()),
+            init_name: JvmString::new(gc_ctx, "<init>".to_string()),
+            noargs_void_desc,
+            arg_char_array_void_desc,
+        }
+    }
+}
+
+impl Trace for CommonData {
+    fn trace(&self) {
+        self.java_lang_object.trace();
+        self.java_lang_string.trace();
+        self.array_char_desc.trace();
+        self.init_name.trace();
+        self.noargs_void_desc.trace();
+        self.arg_char_array_void_desc.trace();
     }
 }

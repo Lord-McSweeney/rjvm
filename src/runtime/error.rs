@@ -15,6 +15,7 @@ pub enum NativeError {
     WrongArgCount,
     WrongArgType,
     WrongReturnType,
+    WrongValueType,
 }
 
 impl From<ClassFileError> for Error {

@@ -17,6 +17,7 @@ pub enum Op {
     Return,
     GetStatic(Class, usize),
     PutStatic(Class, usize),
+    PutField(Class, usize),
     InvokeVirtual(Class, (JvmString, MethodDescriptor)),
     InvokeSpecial(Class, Method),
 }
@@ -34,6 +35,9 @@ impl Trace for Op {
                 class.trace();
             }
             Op::PutStatic(class, _) => {
+                class.trace();
+            }
+            Op::PutField(class, _) => {
                 class.trace();
             }
             Op::InvokeVirtual(class, (method_name, method_descriptor)) => {
@@ -56,6 +60,7 @@ const A_LOAD_1: u8 = 0x2B;
 const RETURN: u8 = 0xB1;
 const GET_STATIC: u8 = 0xB2;
 const PUT_STATIC: u8 = 0xB3;
+const PUT_FIELD: u8 = 0xB5;
 const INVOKE_VIRTUAL: u8 = 0xB6;
 const INVOKE_SPECIAL: u8 = 0xB7;
 
@@ -120,6 +125,23 @@ impl Op {
                     .ok_or(Error::Native(NativeError::VTableLookupFailed))?;
 
                 Ok(Op::PutStatic(class, field_slot))
+            }
+            PUT_FIELD => {
+                let field_ref_idx = data.read_u16()?;
+                let field_ref = constant_pool.get_field_ref(field_ref_idx)?;
+
+                let (class_name, field_name, descriptor_name) = field_ref;
+
+                let class = context.lookup_class(class_name)?;
+                let descriptor = Descriptor::from_string(context.gc_ctx, descriptor_name)
+                    .ok_or(Error::Native(NativeError::InvalidDescriptor))?;
+
+                let field_slot = class
+                    .instance_field_vtable()
+                    .lookup((field_name, descriptor))
+                    .ok_or(Error::Native(NativeError::VTableLookupFailed))?;
+
+                Ok(Op::PutField(class, field_slot))
             }
             INVOKE_VIRTUAL => {
                 let method_ref_idx = data.read_u16()?;

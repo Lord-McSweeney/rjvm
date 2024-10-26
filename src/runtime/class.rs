@@ -3,6 +3,7 @@ use super::descriptor::{Descriptor, MethodDescriptor};
 use super::error::{Error, NativeError};
 use super::field::Field;
 use super::method::Method;
+use super::object::Object;
 use super::value::{Value, ValueType};
 use super::vtable::VTable;
 
@@ -150,33 +151,36 @@ impl Class {
             instance_methods: instance_methods.into_boxed_slice(),
         });
 
+        // TODO: Run <clinit> here
+
         Ok(())
     }
 
-    pub fn create_object_class(gc_ctx: GcCtx) -> Self {
-        let object_class_name = JvmString::new(gc_ctx, "java/lang/Object".to_string());
-        let init_name = JvmString::new(gc_ctx, "<init>".to_string());
-        let void_descriptor_name = JvmString::new(gc_ctx, "()V".to_string());
-
-        let void_descriptor =
-            MethodDescriptor::from_string(gc_ctx, void_descriptor_name).expect("Valid descriptor");
+    pub fn create_object_class(context: Context) -> Self {
+        let object_class_name = context.common.java_lang_object;
+        let init_name = context.common.init_name;
+        let void_descriptor = context.common.noargs_void_desc;
 
         let instance_method_names = vec![(init_name, void_descriptor)];
 
-        let instance_methods = vec![Method::empty(gc_ctx, void_descriptor, MethodFlags::PUBLIC)];
+        let instance_methods = vec![Method::empty(
+            context.gc_ctx,
+            void_descriptor,
+            MethodFlags::PUBLIC,
+        )];
 
         let instance_method_vtable =
-            VTable::from_parent_and_keys(gc_ctx, None, instance_method_names);
+            VTable::from_parent_and_keys(context.gc_ctx, None, instance_method_names);
 
         let method_data = MethodData {
-            static_method_vtable: VTable::empty(gc_ctx),
+            static_method_vtable: VTable::empty(context.gc_ctx),
             static_methods: Box::new([]),
             instance_method_vtable,
             instance_methods: instance_methods.into_boxed_slice(),
         };
 
         Self(Gc::new(
-            gc_ctx,
+            context.gc_ctx,
             ClassData {
                 class_file: None,
                 flags: ClassFlags::PUBLIC,
@@ -185,9 +189,9 @@ impl Class {
 
                 array_value_type: None,
 
-                static_field_vtable: VTable::empty(gc_ctx),
+                static_field_vtable: VTable::empty(context.gc_ctx),
                 static_fields: Box::new([]),
-                instance_field_vtable: VTable::empty(gc_ctx),
+                instance_field_vtable: VTable::empty(context.gc_ctx),
                 instance_fields: Box::new([]),
 
                 method_data: RefCell::new(Some(method_data)),
@@ -195,9 +199,8 @@ impl Class {
         ))
     }
 
-    // TODO: Cache the created class
     pub fn for_array(context: Context, array_descriptor: Descriptor) -> Self {
-        let object_class_name = JvmString::new(context.gc_ctx, "java/lang/Object".to_string());
+        let object_class_name = context.common.java_lang_object;
         let object_class = context
             .lookup_class(object_class_name)
             .expect("Object class should exist");
@@ -300,6 +303,14 @@ impl Class {
         }
 
         return false;
+    }
+
+    // This does not call the constructor.
+    pub fn new_instance(self, gc_ctx: GcCtx) -> Object {
+        // TODO can you somehow instantiate an array class?
+        assert!(self.0.array_value_type.is_none());
+
+        Object::from_class(gc_ctx, self)
     }
 
     pub fn call_static(

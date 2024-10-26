@@ -1,8 +1,11 @@
 use super::context::Context;
-use super::error::Error;
+use super::error::{Error, NativeError};
 use super::method::Method;
+use super::object::Object;
 use super::op::Op;
 use super::value::Value;
+
+use crate::classfile::constant_pool::{ConstantPool, ConstantPoolEntry};
 
 pub struct Interpreter {
     method: Method,
@@ -30,6 +33,43 @@ impl Interpreter {
         while ip < ops.len() {
             let op = ops[ip];
             match op {
+                Op::ALoad(index) => {
+                    let loaded = self.local_registers[index];
+
+                    if !matches!(loaded, Value::Object(_)) {
+                        return Err(Error::Native(NativeError::WrongValueType));
+                    }
+
+                    self.stack.push(loaded);
+                }
+                Op::Ldc(constant_pool_entry) => {
+                    let class_file = self.method.class().unwrap().class_file().unwrap();
+                    let constant_pool = class_file.constant_pool();
+
+                    let pushed_value = match constant_pool_entry {
+                        ConstantPoolEntry::String { string_idx } => {
+                            let string = constant_pool.get_utf8(string_idx)?;
+                            let string_chars = string.encode_utf16().collect::<Vec<_>>();
+                            let chars_array_object = Object::char_array(context, &string_chars);
+
+                            let string_class = context
+                                .lookup_class(context.common.java_lang_string)
+                                .expect("String class should exist");
+
+                            let string_instance = string_class.new_instance(context.gc_ctx);
+                            string_instance.call_construct(
+                                context,
+                                context.common.arg_char_array_void_desc,
+                                &[Value::Object(Some(chars_array_object))],
+                            )?;
+
+                            Value::Object(Some(string_instance))
+                        }
+                        _ => unimplemented!(),
+                    };
+
+                    self.stack.push(pushed_value);
+                }
                 Op::Return => {
                     return Ok(None);
                 }

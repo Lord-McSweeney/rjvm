@@ -25,6 +25,7 @@ impl Trace for Method {
 
 struct MethodData {
     descriptor: MethodDescriptor,
+
     flags: MethodFlags,
 
     class: Option<Class>,
@@ -119,12 +120,16 @@ impl Method {
         Ok(result)
     }
 
+    pub fn descriptor(self) -> MethodDescriptor {
+        self.0.descriptor
+    }
+
     pub fn flags(self) -> MethodFlags {
         self.0.flags
     }
 
-    pub fn descriptor(self) -> MethodDescriptor {
-        self.0.descriptor
+    pub fn class(self) -> Option<Class> {
+        self.0.class
     }
 
     pub fn max_stack(self) -> usize {
