@@ -21,5 +21,6 @@ public class PrintStream extends FilterOutputStream {
         this.print("\n");
     }
 
+    // TODO implement this with proper Charset decoding
     private native static byte[] stringToUtf8(String string);
 }

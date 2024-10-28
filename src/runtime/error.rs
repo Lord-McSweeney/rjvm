@@ -8,6 +8,7 @@ pub enum Error {
 #[derive(Debug)]
 pub enum NativeError {
     ClassNotFound,
+    InvalidBranchPosition,
     InvalidDescriptor,
     InvalidJar,
     ReadError,

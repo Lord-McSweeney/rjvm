@@ -41,8 +41,18 @@ impl Interpreter {
             match op {
                 Op::AConstNull => self.op_a_const_null(),
                 Op::Ldc(constant_pool_entry) => self.op_ldc(constant_pool_entry),
+                Op::ILoad(_) => todo!(),
                 Op::ALoad(index) => self.op_a_load(index),
+                Op::BaLoad => todo!(),
+                Op::IStore(_) => todo!(),
                 Op::Dup => self.op_dup(),
+                Op::IAdd => todo!(),
+                Op::IInc(_, _) => todo!(),
+                Op::IfLt(_) => todo!(),
+                Op::IfGe(_) => todo!(),
+                Op::IfICmpGe(_) => todo!(),
+                Op::IfICmpGt(_) => todo!(),
+                Op::Goto(_) => todo!(),
                 Op::Return => return Ok(None),
                 Op::GetStatic(class, static_field_idx) => {
                     self.op_get_static(class, static_field_idx)
@@ -56,6 +66,9 @@ impl Interpreter {
                 }
                 Op::InvokeSpecial(class, method) => self.op_invoke_special(class, method)?,
                 Op::New(class) => self.op_new(class),
+                Op::ArrayLength => todo!(),
+                Op::AThrow => todo!(),
+                Op::IfNonNull(_) => todo!(),
             }
 
             ip += 1;

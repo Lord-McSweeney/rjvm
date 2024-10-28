@@ -203,19 +203,13 @@ impl BytecodeMethodInfo {
         let max_stack = reader.read_u16()?;
         let max_locals = reader.read_u16()?;
 
-        let code_length = reader.read_u32()? as usize;
-        let code_start = reader.position();
-        let mut code = Vec::with_capacity(code_length / 2);
-
-        while reader.position() < code_start + code_length {
-            code.push(Op::read_from(
-                context,
-                class,
-                return_type,
-                constant_pool,
-                &mut reader,
-            )?);
-        }
+        let code = Op::read_ops(
+            context,
+            class,
+            return_type,
+            constant_pool,
+            &mut reader,
+        )?;
 
         Ok(Self {
             max_stack,

@@ -12,7 +12,17 @@ public class FilterOutputStream extends OutputStream {
     }
 
     public void write(byte buffer[], int ofs, int len) throws IOException {
-        this.stream.write(buffer, ofs, len);
+        if (buffer == null) {
+            throw new NullPointerException();
+        }
+
+        if (ofs < 0 || len < 0 || ofs + len > buffer.length || ofs + len < 0) {
+            throw new IndexOutOfBoundsException();
+        }
+
+        for (int i = ofs; i < ofs + len; i ++) {
+            write(buffer[i]);
+        }
     }
 
     public void write(byte buffer[]) throws IOException {
