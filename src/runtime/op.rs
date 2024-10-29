@@ -14,11 +14,13 @@ use std::collections::HashMap;
 #[derive(Clone, Copy)]
 pub enum Op {
     AConstNull,
+    IConst(i32),
     Ldc(ConstantPoolEntry),
     ILoad(usize),
     ALoad(usize),
     BaLoad,
     IStore(usize),
+    AStore(usize),
     Dup,
     IAdd,
     IInc(usize, i32),
@@ -30,9 +32,11 @@ pub enum Op {
     Return,
     GetStatic(Class, usize),
     PutStatic(Class, usize),
+    GetField(Class, usize),
     PutField(Class, usize),
     InvokeVirtual((JvmString, MethodDescriptor)),
     InvokeSpecial(Class, Method),
+    InvokeStatic(Method),
     New(Class),
     ArrayLength,
     AThrow,
@@ -43,6 +47,7 @@ impl Trace for Op {
     fn trace(&self) {
         match self {
             Op::AConstNull => {}
+            Op::IConst(_) => {}
             Op::Ldc(entry) => {
                 entry.trace();
             }
@@ -50,6 +55,7 @@ impl Trace for Op {
             Op::ALoad(_) => {}
             Op::BaLoad => {}
             Op::IStore(_) => {}
+            Op::AStore(_) => {}
             Op::Dup => {}
             Op::IAdd => {}
             Op::IInc(_, _) => {}
@@ -65,6 +71,9 @@ impl Trace for Op {
             Op::PutStatic(class, _) => {
                 class.trace();
             }
+            Op::GetField(class, _) => {
+                class.trace();
+            }
             Op::PutField(class, _) => {
                 class.trace();
             }
@@ -74,6 +83,9 @@ impl Trace for Op {
             }
             Op::InvokeSpecial(class, method) => {
                 class.trace();
+                method.trace();
+            }
+            Op::InvokeStatic(method) => {
                 method.trace();
             }
             Op::New(class) => {
@@ -87,14 +99,18 @@ impl Trace for Op {
 }
 
 const A_CONST_NULL: u8 = 0x01;
+const I_CONST_0: u8 = 0x03;
 const LDC: u8 = 0x12;
 const I_LOAD: u8 = 0x15;
+const I_LOAD_1: u8 = 0x1B;
 const I_LOAD_2: u8 = 0x1C;
 const I_LOAD_3: u8 = 0x1D;
 const A_LOAD_0: u8 = 0x2A;
 const A_LOAD_1: u8 = 0x2B;
+const A_LOAD_2: u8 = 0x2C;
 const BA_LOAD: u8 = 0x33;
 const I_STORE: u8 = 0x36;
+const A_STORE_2: u8 = 0x4D;
 const DUP: u8 = 0x59;
 const I_ADD: u8 = 0x60;
 const I_INC: u8 = 0x84;
@@ -106,9 +122,11 @@ const GOTO: u8 = 0xA7;
 const RETURN: u8 = 0xB1;
 const GET_STATIC: u8 = 0xB2;
 const PUT_STATIC: u8 = 0xB3;
+const GET_FIELD: u8 = 0xB4;
 const PUT_FIELD: u8 = 0xB5;
 const INVOKE_VIRTUAL: u8 = 0xB6;
 const INVOKE_SPECIAL: u8 = 0xB7;
+const INVOKE_STATIC: u8 = 0xB8;
 const NEW: u8 = 0xBB;
 const ARRAY_LENGTH: u8 = 0xBE;
 const A_THROW: u8 = 0xBF;
@@ -157,7 +175,9 @@ impl Op {
                 | Op::IfICmpGe(position)
                 | Op::IfICmpGt(position)
                 | Op::Goto(position) => {
-                    *position = *offset_to_idx_map.get(position).ok_or(Error::Native(NativeError::InvalidBranchPosition))?;
+                    *position = *offset_to_idx_map
+                        .get(position)
+                        .ok_or(Error::Native(NativeError::InvalidBranchPosition))?;
                 }
                 _ => {}
             }
@@ -177,6 +197,7 @@ impl Op {
         let opcode = data.read_u8()?;
         match opcode {
             A_CONST_NULL => Ok(Op::AConstNull),
+            I_CONST_0 => Ok(Op::IConst(0)),
             LDC => {
                 let constant_pool_idx = data.read_u8()?;
                 let entry = constant_pool.entry(constant_pool_idx as u16)?;
@@ -188,16 +209,19 @@ impl Op {
 
                 Ok(Op::ILoad(local_idx as usize))
             }
+            I_LOAD_1 => Ok(Op::ILoad(1)),
             I_LOAD_2 => Ok(Op::ILoad(2)),
             I_LOAD_3 => Ok(Op::ILoad(3)),
             A_LOAD_0 => Ok(Op::ALoad(0)),
             A_LOAD_1 => Ok(Op::ALoad(1)),
+            A_LOAD_2 => Ok(Op::ALoad(2)),
             BA_LOAD => Ok(Op::BaLoad),
             I_STORE => {
                 let local_idx = data.read_u8()?;
 
                 Ok(Op::IStore(local_idx as usize))
             }
+            A_STORE_2 => Ok(Op::AStore(2)),
             DUP => Ok(Op::Dup),
             I_ADD => Ok(Op::IAdd),
             I_INC => {
@@ -272,6 +296,23 @@ impl Op {
 
                 Ok(Op::PutStatic(class, field_slot))
             }
+            GET_FIELD => {
+                let field_ref_idx = data.read_u16()?;
+                let field_ref = constant_pool.get_field_ref(field_ref_idx)?;
+
+                let (class_name, field_name, descriptor_name) = field_ref;
+
+                let class = context.lookup_class(class_name)?;
+                let descriptor = Descriptor::from_string(context.gc_ctx, descriptor_name)
+                    .ok_or(Error::Native(NativeError::InvalidDescriptor))?;
+
+                let field_slot = class
+                    .instance_field_vtable()
+                    .lookup((field_name, descriptor))
+                    .ok_or(Error::Native(NativeError::VTableLookupFailed))?;
+
+                Ok(Op::GetField(class, field_slot))
+            }
             PUT_FIELD => {
                 let field_ref_idx = data.read_u16()?;
                 let field_ref = constant_pool.get_field_ref(field_ref_idx)?;
@@ -330,6 +371,26 @@ impl Op {
                 let method = class.instance_methods()[method_slot];
 
                 Ok(Op::InvokeSpecial(class, method))
+            }
+            INVOKE_STATIC => {
+                let method_ref_idx = data.read_u16()?;
+                let method_ref = constant_pool.get_method_ref(method_ref_idx)?;
+
+                let (class_name, method_name, descriptor_name) = method_ref;
+
+                let class = context.lookup_class(class_name)?;
+
+                let descriptor = MethodDescriptor::from_string(context.gc_ctx, descriptor_name)
+                    .ok_or(Error::Native(NativeError::InvalidDescriptor))?;
+
+                let method_slot = class
+                    .static_method_vtable()
+                    .lookup((method_name, descriptor))
+                    .ok_or(Error::Native(NativeError::VTableLookupFailed))?;
+
+                let method = class.static_methods()[method_slot];
+
+                Ok(Op::InvokeStatic(method))
             }
             NEW => {
                 let class_idx = data.read_u16()?;

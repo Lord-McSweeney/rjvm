@@ -151,6 +151,15 @@ impl Class {
             instance_methods: instance_methods.into_boxed_slice(),
         });
 
+        // Now parse the actual ops, to ensure that the vtables have already been filled out
+        for method in &*self.static_methods() {
+            method.parse_info(context)?;
+        }
+
+        for method in &*self.instance_methods() {
+            method.parse_info(context)?;
+        }
+
         let clinit_string = context.common.clinit_name;
         let void_descriptor = context.common.noargs_void_desc;
         let clinit_method_idx = static_method_vtable.lookup((clinit_string, void_descriptor));

@@ -51,14 +51,12 @@ impl Method {
             }
         }
 
-        // Ugh, cloned again...
-        let bytecode_method_info = raw_code_data
-            .map(|data| BytecodeMethodInfo::from_code_data(context, descriptor, class, data))
-            .transpose()?;
-
-        let method_info = if let Some(bytecode_method_info) = bytecode_method_info {
-            MethodInfo::Bytecode(bytecode_method_info)
+        let method_info = if let Some(raw_code_data) = raw_code_data {
+            MethodInfo::BytecodeUnparsed(raw_code_data)
+        } else if method.flags().contains(MethodFlags::NATIVE) {
+            MethodInfo::Native
         } else {
+            // TODO: Support native methods
             MethodInfo::Empty
         };
 
@@ -83,6 +81,30 @@ impl Method {
                 method_info: RefCell::new(MethodInfo::Empty),
             },
         ))
+    }
+
+    pub fn parse_info(self, context: Context) -> Result<(), Error> {
+        let new_method_info = match &*self.0.method_info.borrow() {
+            MethodInfo::BytecodeUnparsed(code_data) => {
+                // Clone again...
+                let bytecode_method_info = BytecodeMethodInfo::from_code_data(
+                    context,
+                    self.descriptor(),
+                    self.class().unwrap(),
+                    code_data.clone(),
+                )?;
+
+                Some(MethodInfo::Bytecode(bytecode_method_info))
+            }
+            // None of the other method info types need (re-)parsing
+            _ => None,
+        };
+
+        if let Some(new_method_info) = new_method_info {
+            *self.0.method_info.borrow_mut() = new_method_info;
+        }
+
+        Ok(())
     }
 
     pub fn exec(self, context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
@@ -112,6 +134,8 @@ impl Method {
 
                 interpreter.interpret_ops(&bytecode_info.code)?
             }
+            MethodInfo::BytecodeUnparsed(_) => unreachable!(),
+            MethodInfo::Native => unimplemented!("Native method execution not yet implemented"),
             MethodInfo::Empty => None,
         };
 
@@ -145,14 +169,14 @@ impl Method {
     pub fn max_stack(self) -> usize {
         match &*self.0.method_info.borrow() {
             MethodInfo::Bytecode(bytecode_info) => bytecode_info.max_stack as usize,
-            MethodInfo::Empty => 0,
+            _ => 0,
         }
     }
 
     pub fn max_locals(self) -> usize {
         match &*self.0.method_info.borrow() {
             MethodInfo::Bytecode(bytecode_info) => bytecode_info.max_locals as usize,
-            MethodInfo::Empty => 0,
+            _ => 0,
         }
     }
 }
@@ -167,6 +191,8 @@ impl Trace for MethodData {
 
 enum MethodInfo {
     Bytecode(BytecodeMethodInfo),
+    BytecodeUnparsed(Vec<u8>),
+    Native,
     Empty,
 }
 
@@ -174,7 +200,7 @@ impl Trace for MethodInfo {
     fn trace(&self) {
         match self {
             MethodInfo::Bytecode(bytecode_info) => bytecode_info.trace(),
-            MethodInfo::Empty => {}
+            _ => {}
         }
     }
 }
@@ -203,13 +229,7 @@ impl BytecodeMethodInfo {
         let max_stack = reader.read_u16()?;
         let max_locals = reader.read_u16()?;
 
-        let code = Op::read_ops(
-            context,
-            class,
-            return_type,
-            constant_pool,
-            &mut reader,
-        )?;
+        let code = Op::read_ops(context, class, return_type, constant_pool, &mut reader)?;
 
         Ok(Self {
             max_stack,

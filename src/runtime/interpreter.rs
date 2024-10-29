@@ -15,6 +15,8 @@ pub struct Interpreter {
     stack: Vec<Value>,
     local_registers: Vec<Value>,
 
+    ip: usize,
+
     context: Context,
 }
 
@@ -30,21 +32,25 @@ impl Interpreter {
             method,
             stack,
             local_registers,
+
+            ip: 0,
+
             context,
         }
     }
 
     pub fn interpret_ops(&mut self, ops: &[Op]) -> Result<Option<Value>, Error> {
-        let mut ip = 0;
-        while ip < ops.len() {
-            let op = ops[ip];
+        while self.ip < ops.len() {
+            let op = ops[self.ip];
             match op {
                 Op::AConstNull => self.op_a_const_null(),
+                Op::IConst(val) => self.op_i_const(val),
                 Op::Ldc(constant_pool_entry) => self.op_ldc(constant_pool_entry),
                 Op::ILoad(_) => todo!(),
                 Op::ALoad(index) => self.op_a_load(index),
                 Op::BaLoad => todo!(),
                 Op::IStore(_) => todo!(),
+                Op::AStore(_) => todo!(),
                 Op::Dup => self.op_dup(),
                 Op::IAdd => todo!(),
                 Op::IInc(_, _) => todo!(),
@@ -60,18 +66,23 @@ impl Interpreter {
                 Op::PutStatic(class, static_field_idx) => {
                     self.op_put_static(class, static_field_idx)
                 }
+                Op::GetField(class, field_idx) => self.op_get_field(class, field_idx)?,
                 Op::PutField(class, field_idx) => self.op_put_field(class, field_idx)?,
                 Op::InvokeVirtual((method_name, method_descriptor)) => {
                     self.op_invoke_virtual(method_name, method_descriptor)?
                 }
                 Op::InvokeSpecial(class, method) => self.op_invoke_special(class, method)?,
+                Op::InvokeStatic(method) => self.op_invoke_static(method)?,
                 Op::New(class) => self.op_new(class),
                 Op::ArrayLength => todo!(),
                 Op::AThrow => todo!(),
-                Op::IfNonNull(_) => todo!(),
+                Op::IfNonNull(position) => {
+                    self.op_if_non_null(position);
+                    continue;
+                }
             }
 
-            ip += 1;
+            self.ip += 1;
         }
 
         panic!("Execution should never fall off function")
@@ -87,6 +98,10 @@ impl Interpreter {
 
     fn op_a_const_null(&mut self) {
         self.stack_push(Value::Object(None));
+    }
+
+    fn op_i_const(&mut self, value: i32) {
+        self.stack_push(Value::Integer(value));
     }
 
     fn op_ldc(&mut self, constant_pool_entry: ConstantPoolEntry) {
@@ -154,6 +169,22 @@ impl Interpreter {
         let static_field = class.static_fields()[static_field_idx];
 
         static_field.set_value(value);
+    }
+
+    fn op_get_field(&mut self, class: Class, field_idx: usize) -> Result<(), Error> {
+        let object = self.stack_pop();
+        if !object.is_of_class(class) {
+            panic!("Object on stack was of wrong Class");
+        }
+
+        let object = object.expect_as_object();
+        if let Some(object) = object {
+            self.stack_push(object.get_field(field_idx));
+
+            Ok(())
+        } else {
+            Err(Error::Native(NativeError::NullPointerException))
+        }
     }
 
     fn op_put_field(&mut self, class: Class, field_idx: usize) -> Result<(), Error> {
@@ -233,9 +264,37 @@ impl Interpreter {
         Ok(())
     }
 
+    fn op_invoke_static(&mut self, method: Method) -> Result<(), Error> {
+        let mut args = vec![Value::Object(None); method.arg_count()];
+        for arg in args.iter_mut().rev() {
+            // TODO: Long and Double arguments require two pops
+            *arg = self.stack_pop();
+        }
+
+        let result = method.exec(self.context, &args)?;
+        if let Some(result) = result {
+            self.stack_push(result);
+        }
+
+        Ok(())
+    }
+
     fn op_new(&mut self, class: Class) {
         let instance = class.new_instance(self.context.gc_ctx);
 
         self.stack_push(Value::Object(Some(instance)));
+    }
+
+    fn op_if_non_null(&mut self, position: usize) {
+        let value = self.stack_pop();
+        let Value::Object(obj) = value else {
+            panic!("Stack value should be of reference type");
+        };
+
+        if obj.is_some() {
+            self.ip = position;
+        } else {
+            self.ip += 1;
+        }
     }
 }

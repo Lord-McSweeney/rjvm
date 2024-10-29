@@ -45,6 +45,17 @@ impl Object {
         self.0.class
     }
 
+    pub fn get_field(self, field_idx: usize) -> Value {
+        match &self.0.data {
+            FieldOrArrayData::Fields(fields) => {
+                let field = fields[field_idx];
+
+                field.value()
+            }
+            FieldOrArrayData::Array(_) => panic!("Cannot get field of array"),
+        }
+    }
+
     pub fn set_field(self, field_idx: usize, value: Value) {
         match &self.0.data {
             FieldOrArrayData::Fields(fields) => {
