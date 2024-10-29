@@ -5,6 +5,7 @@ pub(crate) mod error;
 pub(crate) mod field;
 pub(crate) mod interpreter;
 pub(crate) mod method;
+pub(crate) mod native_impl;
 pub(crate) mod object;
 pub(crate) mod op;
 pub(crate) mod value;

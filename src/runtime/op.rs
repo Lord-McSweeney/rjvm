@@ -110,6 +110,7 @@ const A_LOAD_1: u8 = 0x2B;
 const A_LOAD_2: u8 = 0x2C;
 const BA_LOAD: u8 = 0x33;
 const I_STORE: u8 = 0x36;
+const A_STORE_1: u8 = 0x4C;
 const A_STORE_2: u8 = 0x4D;
 const DUP: u8 = 0x59;
 const I_ADD: u8 = 0x60;
@@ -221,6 +222,7 @@ impl Op {
 
                 Ok(Op::IStore(local_idx as usize))
             }
+            A_STORE_1 => Ok(Op::AStore(1)),
             A_STORE_2 => Ok(Op::AStore(2)),
             DUP => Ok(Op::Dup),
             I_ADD => Ok(Op::IAdd),

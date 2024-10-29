@@ -24,6 +24,23 @@ impl Object {
         ))
     }
 
+    pub fn byte_array(context: Context, chars: &[u8]) -> Self {
+        let value_list = chars
+            .iter()
+            .map(|b| Value::Integer(*b as i32))
+            .collect::<Vec<_>>();
+
+        Self(Gc::new(
+            context.gc_ctx,
+            ObjectData {
+                class: context
+                    .lookup_class(context.common.array_byte_desc)
+                    .expect("Should lookup"),
+                data: FieldOrArrayData::Array(value_list.into_boxed_slice()),
+            },
+        ))
+    }
+
     pub fn char_array(context: Context, chars: &[u16]) -> Self {
         let value_list = chars
             .iter()
@@ -63,6 +80,41 @@ impl Object {
                 field.set_value(value);
             }
             FieldOrArrayData::Array(_) => panic!("Cannot set field on array"),
+        }
+    }
+
+    pub fn array_length(self) -> usize {
+        match &self.0.data {
+            FieldOrArrayData::Fields(_) => panic!("Cannot get length of object"),
+            FieldOrArrayData::Array(data) => data.len(),
+        }
+    }
+
+    pub fn get_byte_at_index(self, idx: usize) -> u8 {
+        match &self.0.data {
+            FieldOrArrayData::Fields(_) => panic!("Cannot get index of object"),
+            FieldOrArrayData::Array(data) => {
+                let value = data[idx];
+                let Value::Integer(byte) = value else {
+                    unreachable!();
+                };
+
+                byte as u8
+            }
+        }
+    }
+
+    pub fn get_char_at_index(self, idx: usize) -> u16 {
+        match &self.0.data {
+            FieldOrArrayData::Fields(_) => panic!("Cannot get index of object"),
+            FieldOrArrayData::Array(data) => {
+                let value = data[idx];
+                let Value::Integer(character) = value else {
+                    unreachable!();
+                };
+
+                character as u16
+            }
         }
     }
 

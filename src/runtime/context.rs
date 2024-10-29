@@ -1,6 +1,7 @@
 use super::class::Class;
 use super::descriptor::{Descriptor, MethodDescriptor};
 use super::error::{Error, NativeError};
+use super::native_impl::{self, NativeMethod};
 
 use crate::classfile::class::ClassFile;
 use crate::gc::{Gc, GcCtx, Trace};
@@ -16,6 +17,8 @@ pub struct Context {
 
     jar_files: Gc<RefCell<Vec<Jar>>>,
 
+    native_mapping: Gc<RefCell<HashMap<(JvmString, JvmString, MethodDescriptor), NativeMethod>>>,
+
     pub common: CommonData,
 
     pub gc_ctx: GcCtx,
@@ -28,6 +31,7 @@ impl Context {
         let created_self = Self {
             class_registry: Gc::new(gc_ctx, RefCell::new(HashMap::new())),
             jar_files: Gc::new(gc_ctx, RefCell::new(Vec::new())),
+            native_mapping: Gc::new(gc_ctx, RefCell::new(HashMap::new())),
             common: CommonData::new(gc_ctx),
             gc_ctx,
         };
@@ -38,6 +42,8 @@ impl Context {
             Jar::from_bytes(gc_ctx, GLOBALS_JAR.to_vec()).expect("Builtin globals should be valid");
         created_self.jar_files.borrow_mut().push(globals_jar);
 
+        created_self.register_native_mapping();
+
         created_self
     }
 
@@ -45,6 +51,53 @@ impl Context {
         let object_class = Class::create_object_class(self);
 
         self.register_class(object_class);
+    }
+
+    fn register_native_mapping(self) {
+        // java/io/PrintStream : static byte[] stringToUtf8(String)
+        {
+            let printstream_name = JvmString::new(self.gc_ctx, "java/io/PrintStream".to_string());
+
+            let method_name = JvmString::new(self.gc_ctx, "stringToUtf8".to_string());
+
+            let descriptor_name = JvmString::new(self.gc_ctx, "(Ljava/lang/String;)[B".to_string());
+            let descriptor = MethodDescriptor::from_string(self.gc_ctx, descriptor_name)
+                .expect("Valid descriptor");
+
+            self.native_mapping.borrow_mut().insert(
+                (printstream_name, method_name, descriptor),
+                native_impl::string_to_utf8,
+            );
+        }
+
+        // java/lang/StdoutStream : void write(int)
+        {
+            let stdoutstream_name =
+                JvmString::new(self.gc_ctx, "java/lang/StdoutStream".to_string());
+
+            let method_name = JvmString::new(self.gc_ctx, "write".to_string());
+
+            let descriptor_name = JvmString::new(self.gc_ctx, "(I)V".to_string());
+            let descriptor = MethodDescriptor::from_string(self.gc_ctx, descriptor_name)
+                .expect("Valid descriptor");
+
+            self.native_mapping.borrow_mut().insert(
+                (stdoutstream_name, method_name, descriptor),
+                native_impl::stdout_write,
+            );
+        }
+    }
+
+    pub fn get_native_method(
+        self,
+        class_name: JvmString,
+        method_name: JvmString,
+        method_descriptor: MethodDescriptor,
+    ) -> Option<NativeMethod> {
+        self.native_mapping
+            .borrow()
+            .get(&(class_name, method_name, method_descriptor))
+            .copied()
     }
 
     pub fn lookup_class(self, class_name: JvmString) -> Result<Class, Error> {
@@ -109,6 +162,7 @@ impl Trace for Context {
 pub struct CommonData {
     pub java_lang_object: JvmString,
     pub java_lang_string: JvmString,
+    pub array_byte_desc: JvmString,
     pub array_char_desc: JvmString,
     pub init_name: JvmString,
     pub clinit_name: JvmString,
@@ -132,6 +186,7 @@ impl CommonData {
         Self {
             java_lang_object: JvmString::new(gc_ctx, "java/lang/Object".to_string()),
             java_lang_string: JvmString::new(gc_ctx, "java/lang/String".to_string()),
+            array_byte_desc: JvmString::new(gc_ctx, "[B".to_string()),
             array_char_desc: JvmString::new(gc_ctx, "[C".to_string()),
             init_name: JvmString::new(gc_ctx, "<init>".to_string()),
             clinit_name: JvmString::new(gc_ctx, "<clinit>".to_string()),

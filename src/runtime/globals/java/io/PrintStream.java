@@ -11,7 +11,12 @@ public class PrintStream extends FilterOutputStream {
 
     public void print(String string) {
         try {
+            if (string == null) {
+                string = "null";
+            }
+
             byte[] bytes = stringToUtf8(string);
+
             this.out.write(bytes);
         } catch (IOException e) { }
     }

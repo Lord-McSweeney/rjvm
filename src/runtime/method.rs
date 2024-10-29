@@ -3,6 +3,7 @@ use super::context::Context;
 use super::descriptor::{Descriptor, MethodDescriptor};
 use super::error::{Error, NativeError};
 use super::interpreter::Interpreter;
+use super::native_impl::NativeMethod;
 use super::op::Op;
 use super::value::Value;
 
@@ -54,9 +55,10 @@ impl Method {
         let method_info = if let Some(raw_code_data) = raw_code_data {
             MethodInfo::BytecodeUnparsed(raw_code_data)
         } else if method.flags().contains(MethodFlags::NATIVE) {
-            MethodInfo::Native
+            let native_method = context.get_native_method(class.name(), method.name(), descriptor);
+
+            MethodInfo::Native(native_method.expect("Native method lookup failed"))
         } else {
-            // TODO: Support native methods
             MethodInfo::Empty
         };
 
@@ -135,7 +137,7 @@ impl Method {
                 interpreter.interpret_ops(&bytecode_info.code)?
             }
             MethodInfo::BytecodeUnparsed(_) => unreachable!(),
-            MethodInfo::Native => unimplemented!("Native method execution not yet implemented"),
+            MethodInfo::Native(native_method) => native_method(context, &args)?,
             MethodInfo::Empty => None,
         };
 
@@ -192,7 +194,7 @@ impl Trace for MethodData {
 enum MethodInfo {
     Bytecode(BytecodeMethodInfo),
     BytecodeUnparsed(Vec<u8>),
-    Native,
+    Native(NativeMethod),
     Empty,
 }
 
