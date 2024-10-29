@@ -6,6 +6,7 @@ mod string;
 
 use crate::classfile::class::ClassFile;
 use crate::gc::{Gc, GcCtx, Trace};
+use crate::jar::Jar;
 use crate::runtime::class::Class;
 use crate::runtime::context::Context;
 use crate::runtime::descriptor::MethodDescriptor;
@@ -21,6 +22,11 @@ impl Trace for Root {
     fn trace(&self) {}
 }
 
+enum FileType {
+    Class,
+    Jar,
+}
+
 fn main() {
     let gc_ctx = GcCtx::new();
 
@@ -30,25 +36,49 @@ fn main() {
         return;
     }
 
-    let read_file = match fs::read(&args[1]) {
+    let file_info = if args[1] == "--jar" {
+        if args.len() < 3 {
+            eprintln!("--jar flag require passing an argument to it");
+            return;
+        } else {
+            (FileType::Jar, args[2].clone())
+        }
+    } else {
+        (FileType::Class, args[1].clone())
+    };
+
+    let read_file = match fs::read(&file_info.1) {
         Ok(data) => data,
         Err(error) => {
-            println!("Error: {}", error.to_string());
+            eprintln!("Error: {}", error.to_string());
             return;
         }
     };
 
     let context = Context::new(gc_ctx);
 
-    let class_file = ClassFile::from_data(context.gc_ctx, read_file).unwrap();
-    let main_class =
-        Class::from_class_file(context, class_file).expect("Failed to load main class");
+    let main_class = match file_info.0 {
+        FileType::Class => {
+            let class_file = ClassFile::from_data(context.gc_ctx, read_file).unwrap();
+            let main_class =
+                Class::from_class_file(context, class_file).expect("Failed to load main class");
 
-    context.register_class(main_class);
+            context.register_class(main_class);
 
-    main_class
-        .load_method_data(context)
-        .expect("Failed to load main class method data");
+            main_class
+                .load_method_data(context)
+                .expect("Failed to load main class method data");
+
+            main_class
+        }
+        FileType::Jar => {
+            let globals_jar = Jar::from_bytes(gc_ctx, read_file).expect("Invalid jar file passed");
+
+            context.add_jar(globals_jar);
+
+            todo!()
+        }
+    };
 
     let main_name = JvmString::new(gc_ctx, "main".to_string());
     let main_descriptor_name = JvmString::new(gc_ctx, "([Ljava/lang/String;)V".to_string());

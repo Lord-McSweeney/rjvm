@@ -40,7 +40,7 @@ impl Context {
 
         let globals_jar =
             Jar::from_bytes(gc_ctx, GLOBALS_JAR.to_vec()).expect("Builtin globals should be valid");
-        created_self.jar_files.borrow_mut().push(globals_jar);
+        created_self.add_jar(globals_jar);
 
         created_self.register_native_mapping();
 
@@ -98,6 +98,10 @@ impl Context {
             .borrow()
             .get(&(class_name, method_name, method_descriptor))
             .copied()
+    }
+
+    pub fn add_jar(self, jar: Jar) {
+        self.jar_files.borrow_mut().push(jar);
     }
 
     pub fn lookup_class(self, class_name: JvmString) -> Result<Class, Error> {
