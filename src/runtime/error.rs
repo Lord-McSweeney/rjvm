@@ -19,6 +19,7 @@ pub enum NativeError {
     WrongReturnType,
     WrongValueType,
 
+    ArrayIndexOutOfBoundsException,
     NullPointerException,
 }
 

@@ -12,6 +12,7 @@ use crate::classfile::flags::MethodFlags;
 use crate::classfile::method::Method as ClassFileMethod;
 use crate::classfile::reader::{FileData, Reader};
 use crate::gc::{Gc, GcCtx, Trace};
+use crate::string::JvmString;
 
 use std::cell::{Cell, RefCell};
 
@@ -28,6 +29,9 @@ struct MethodData {
     descriptor: MethodDescriptor,
 
     flags: MethodFlags,
+
+    // This should only be used for debugging.
+    name: Option<JvmString>,
 
     class: Option<Class>,
 
@@ -68,6 +72,7 @@ impl Method {
                 descriptor,
                 class: Some(class),
                 flags: method.flags(),
+                name: Some(method.name()),
                 method_info: RefCell::new(method_info),
             },
         )))
@@ -80,6 +85,7 @@ impl Method {
                 descriptor,
                 class: None,
                 flags,
+                name: None,
                 method_info: RefCell::new(MethodInfo::Empty),
             },
         ))
@@ -126,7 +132,17 @@ impl Method {
             return Err(Error::Native(NativeError::WrongArgCount));
         }
 
-        for (arg, descriptor_type) in args.iter_mut().zip(descriptor_types.iter()) {
+        if !self.flags().contains(MethodFlags::STATIC) {
+            if !matches!(args[0], Value::Object(_)) {
+                panic!("Instance methods should have arg #0 be an object");
+            }
+        }
+
+        for (arg, descriptor_type) in args
+            .iter_mut()
+            .skip(maybe_receiver_included)
+            .zip(descriptor_types.iter())
+        {
             *arg = arg.type_check(*descriptor_type)?;
         }
 

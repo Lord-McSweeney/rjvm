@@ -46,19 +46,34 @@ impl Interpreter {
                 Op::AConstNull => self.op_a_const_null(),
                 Op::IConst(val) => self.op_i_const(val),
                 Op::Ldc(constant_pool_entry) => self.op_ldc(constant_pool_entry),
-                Op::ILoad(_) => todo!(),
+                Op::ILoad(index) => self.op_i_load(index),
                 Op::ALoad(index) => self.op_a_load(index),
-                Op::BaLoad => todo!(),
-                Op::IStore(_) => todo!(),
-                Op::AStore(_) => todo!(),
+                Op::BaLoad => self.op_ba_load()?,
+                Op::IStore(index) => self.op_i_store(index),
+                Op::AStore(index) => self.op_a_store(index),
                 Op::Dup => self.op_dup(),
-                Op::IAdd => todo!(),
-                Op::IInc(_, _) => todo!(),
-                Op::IfLt(_) => todo!(),
-                Op::IfGe(_) => todo!(),
-                Op::IfICmpGe(_) => todo!(),
-                Op::IfICmpGt(_) => todo!(),
-                Op::Goto(_) => todo!(),
+                Op::IAdd => self.op_i_add(),
+                Op::IInc(index, amount) => self.op_i_inc(index, amount),
+                Op::IfLt(position) => {
+                    self.op_if_lt(position);
+                    continue;
+                }
+                Op::IfGe(position) => {
+                    self.op_if_ge(position);
+                    continue;
+                }
+                Op::IfICmpGe(position) => {
+                    self.op_if_i_cmp_ge(position);
+                    continue;
+                }
+                Op::IfICmpGt(position) => {
+                    self.op_if_i_cmp_gt(position);
+                    continue;
+                }
+                Op::Goto(position) => {
+                    self.ip = position;
+                    continue;
+                }
                 Op::Return => return Ok(None),
                 Op::GetStatic(class, static_field_idx) => {
                     self.op_get_static(class, static_field_idx)
@@ -74,7 +89,7 @@ impl Interpreter {
                 Op::InvokeSpecial(class, method) => self.op_invoke_special(class, method)?,
                 Op::InvokeStatic(method) => self.op_invoke_static(method)?,
                 Op::New(class) => self.op_new(class),
-                Op::ArrayLength => todo!(),
+                Op::ArrayLength => self.op_array_length()?,
                 Op::AThrow => todo!(),
                 Op::IfNonNull(position) => {
                     self.op_if_non_null(position);
@@ -141,6 +156,16 @@ impl Interpreter {
         self.stack_push(pushed_value);
     }
 
+    fn op_i_load(&mut self, index: usize) {
+        let loaded = self.local_registers[index];
+
+        if !matches!(loaded, Value::Integer(_)) {
+            panic!("Local should be of integer type");
+        }
+
+        self.stack_push(loaded);
+    }
+
     fn op_a_load(&mut self, index: usize) {
         let loaded = self.local_registers[index];
 
@@ -151,10 +176,141 @@ impl Interpreter {
         self.stack_push(loaded);
     }
 
+    fn op_ba_load(&mut self) -> Result<(), Error> {
+        let index = self.stack_pop();
+
+        let Value::Integer(index) = index else {
+            panic!("Stack value should be of integer type");
+        };
+
+        let array = self.stack_pop().expect_as_object();
+        if let Some(array) = array {
+            let length = array.array_length();
+            if index < 0 || index as usize >= length {
+                Err(Error::Native(NativeError::ArrayIndexOutOfBoundsException))
+            } else {
+                let result = array.get_byte_at_index(index as usize);
+
+                self.stack_push(Value::Integer(result as i32));
+
+                Ok(())
+            }
+        } else {
+            Err(Error::Native(NativeError::NullPointerException))
+        }
+    }
+
+    fn op_i_store(&mut self, index: usize) {
+        let value = self.stack_pop();
+
+        if !matches!(value, Value::Integer(_)) {
+            panic!("Stack value should be of integer type");
+        }
+
+        self.local_registers[index] = value;
+    }
+
+    fn op_a_store(&mut self, index: usize) {
+        let value = self.stack_pop();
+
+        if !matches!(value, Value::Object(_)) {
+            panic!("Stack value should be of reference type");
+        }
+
+        self.local_registers[index] = value;
+    }
+
     fn op_dup(&mut self) {
         let value = self.stack_pop();
         self.stack_push(value);
         self.stack_push(value);
+    }
+
+    fn op_i_add(&mut self) {
+        let value1 = self.stack_pop();
+        let value2 = self.stack_pop();
+
+        let Value::Integer(int1) = value1 else {
+            panic!("Stack value should be of integer type");
+        };
+
+        let Value::Integer(int2) = value2 else {
+            panic!("Stack value should be of integer type");
+        };
+
+        self.stack_push(Value::Integer(int1 + int2));
+    }
+
+    fn op_i_inc(&mut self, index: usize, amount: i32) {
+        let loaded = self.local_registers[index];
+
+        let Value::Integer(loaded) = loaded else {
+            panic!("Local should be of integer type");
+        };
+
+        self.local_registers[index] = Value::Integer(loaded + amount);
+    }
+
+    fn op_if_lt(&mut self, position: usize) {
+        let value = self.stack_pop();
+        let Value::Integer(int) = value else {
+            panic!("Stack value should be of integer type");
+        };
+
+        if int < 0 {
+            self.ip = position;
+        } else {
+            self.ip += 1;
+        }
+    }
+
+    fn op_if_ge(&mut self, position: usize) {
+        let value = self.stack_pop();
+        let Value::Integer(int) = value else {
+            panic!("Stack value should be of integer type");
+        };
+
+        if int >= 0 {
+            self.ip = position;
+        } else {
+            self.ip += 1;
+        }
+    }
+
+    fn op_if_i_cmp_ge(&mut self, position: usize) {
+        let value1 = self.stack_pop();
+        let Value::Integer(int1) = value1 else {
+            panic!("Stack value should be of integer type");
+        };
+
+        let value2 = self.stack_pop();
+        let Value::Integer(int2) = value2 else {
+            panic!("Stack value should be of integer type");
+        };
+
+        if int2 >= int1 {
+            self.ip = position;
+        } else {
+            self.ip += 1;
+        }
+    }
+
+    fn op_if_i_cmp_gt(&mut self, position: usize) {
+        let value1 = self.stack_pop();
+        let Value::Integer(int1) = value1 else {
+            panic!("Stack value should be of integer type");
+        };
+
+        let value2 = self.stack_pop();
+        let Value::Integer(int2) = value2 else {
+            panic!("Stack value should be of integer type");
+        };
+
+        if int2 > int1 {
+            self.ip = position;
+        } else {
+            self.ip += 1;
+        }
     }
 
     fn op_get_static(&mut self, class: Class, static_field_idx: usize) {
@@ -283,6 +439,20 @@ impl Interpreter {
         let instance = class.new_instance(self.context.gc_ctx);
 
         self.stack_push(Value::Object(Some(instance)));
+    }
+
+    fn op_array_length(&mut self) -> Result<(), Error> {
+        let object = self.stack_pop().expect_as_object();
+
+        if let Some(object) = object {
+            let length = object.array_length();
+
+            self.stack_push(Value::Integer(length as i32));
+
+            Ok(())
+        } else {
+            Err(Error::Native(NativeError::NullPointerException))
+        }
     }
 
     fn op_if_non_null(&mut self, position: usize) {
