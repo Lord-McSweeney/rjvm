@@ -2,7 +2,7 @@ use super::class::Class;
 use super::context::Context;
 use super::descriptor::MethodDescriptor;
 use super::error::{Error, NativeError};
-use super::method::Method;
+use super::method::{Exception, Method};
 use super::object::Object;
 use super::op::Op;
 use super::value::Value;
@@ -18,6 +18,12 @@ pub struct Interpreter {
     ip: usize,
 
     context: Context,
+}
+
+enum ControlFlow {
+    Continue,
+    ManualContinue,
+    Return(Option<Value>),
 }
 
 impl Interpreter {
@@ -39,66 +45,79 @@ impl Interpreter {
         }
     }
 
-    pub fn interpret_ops(&mut self, ops: &[Op]) -> Result<Option<Value>, Error> {
+    fn handle_err(&mut self, error: Error, exceptions: &[Exception]) -> Result<(), Error> {
+        match error {
+            Error::Native(_) => Err(error),
+            Error::Java(error_object) => {
+                for exception in exceptions {
+                    if self.ip >= exception.start && self.ip < exception.end {
+                        if error_object.class().matches_class(exception.catch_class) {
+                            self.ip = exception.target;
+
+                            self.stack.clear();
+                            self.stack.push(Value::Object(Some(error_object)));
+
+                            return Ok(());
+                        }
+                    }
+                }
+
+                Err(error)
+            }
+        }
+    }
+
+    pub fn interpret_ops(
+        &mut self,
+        ops: &[Op],
+        exceptions: &[Exception],
+    ) -> Result<Option<Value>, Error> {
         while self.ip < ops.len() {
             let op = ops[self.ip];
-            match op {
+            let control_flow = match op {
                 Op::AConstNull => self.op_a_const_null(),
                 Op::IConst(val) => self.op_i_const(val),
                 Op::Ldc(constant_pool_entry) => self.op_ldc(constant_pool_entry),
                 Op::ILoad(index) => self.op_i_load(index),
                 Op::ALoad(index) => self.op_a_load(index),
-                Op::AaLoad => self.op_aa_load()?,
-                Op::BaLoad => self.op_ba_load()?,
+                Op::AaLoad => self.op_aa_load(),
+                Op::BaLoad => self.op_ba_load(),
                 Op::IStore(index) => self.op_i_store(index),
                 Op::AStore(index) => self.op_a_store(index),
                 Op::Dup => self.op_dup(),
                 Op::IAdd => self.op_i_add(),
                 Op::IInc(index, amount) => self.op_i_inc(index, amount),
-                Op::IfLt(position) => {
-                    self.op_if_lt(position);
-                    continue;
-                }
-                Op::IfGe(position) => {
-                    self.op_if_ge(position);
-                    continue;
-                }
-                Op::IfICmpGe(position) => {
-                    self.op_if_i_cmp_ge(position);
-                    continue;
-                }
-                Op::IfICmpGt(position) => {
-                    self.op_if_i_cmp_gt(position);
-                    continue;
-                }
-                Op::Goto(position) => {
-                    self.ip = position;
-                    continue;
-                }
-                Op::Return => return Ok(None),
+                Op::IfLt(position) => self.op_if_lt(position),
+                Op::IfGe(position) => self.op_if_ge(position),
+                Op::IfICmpGe(position) => self.op_if_i_cmp_ge(position),
+                Op::IfICmpGt(position) => self.op_if_i_cmp_gt(position),
+                Op::Goto(position) => self.op_goto(position),
+                Op::Return => Ok(ControlFlow::Return(None)),
                 Op::GetStatic(class, static_field_idx) => {
                     self.op_get_static(class, static_field_idx)
                 }
                 Op::PutStatic(class, static_field_idx) => {
                     self.op_put_static(class, static_field_idx)
                 }
-                Op::GetField(class, field_idx) => self.op_get_field(class, field_idx)?,
-                Op::PutField(class, field_idx) => self.op_put_field(class, field_idx)?,
+                Op::GetField(class, field_idx) => self.op_get_field(class, field_idx),
+                Op::PutField(class, field_idx) => self.op_put_field(class, field_idx),
                 Op::InvokeVirtual((method_name, method_descriptor)) => {
-                    self.op_invoke_virtual(method_name, method_descriptor)?
+                    self.op_invoke_virtual(method_name, method_descriptor)
                 }
-                Op::InvokeSpecial(class, method) => self.op_invoke_special(class, method)?,
-                Op::InvokeStatic(method) => self.op_invoke_static(method)?,
+                Op::InvokeSpecial(class, method) => self.op_invoke_special(class, method),
+                Op::InvokeStatic(method) => self.op_invoke_static(method),
                 Op::New(class) => self.op_new(class),
-                Op::ArrayLength => self.op_array_length()?,
+                Op::ArrayLength => self.op_array_length(),
                 Op::AThrow => todo!(),
-                Op::IfNonNull(position) => {
-                    self.op_if_non_null(position);
-                    continue;
-                }
-            }
+                Op::IfNonNull(position) => self.op_if_non_null(position),
+            };
 
-            self.ip += 1;
+            match control_flow {
+                Ok(ControlFlow::Continue) => self.ip += 1,
+                Ok(ControlFlow::ManualContinue) => {}
+                Ok(ControlFlow::Return(value)) => return Ok(value),
+                Err(error) => self.handle_err(error, exceptions)?,
+            }
         }
 
         panic!("Execution should never fall off function")
@@ -130,15 +149,19 @@ impl Interpreter {
         Error::Java(exception_instance)
     }
 
-    fn op_a_const_null(&mut self) {
+    fn op_a_const_null(&mut self) -> Result<ControlFlow, Error> {
         self.stack_push(Value::Object(None));
+
+        Ok(ControlFlow::Continue)
     }
 
-    fn op_i_const(&mut self, value: i32) {
+    fn op_i_const(&mut self, value: i32) -> Result<ControlFlow, Error> {
         self.stack_push(Value::Integer(value));
+
+        Ok(ControlFlow::Continue)
     }
 
-    fn op_ldc(&mut self, constant_pool_entry: ConstantPoolEntry) {
+    fn op_ldc(&mut self, constant_pool_entry: ConstantPoolEntry) -> Result<ControlFlow, Error> {
         let class_file = self.method.class().unwrap().class_file().unwrap();
         let constant_pool = class_file.constant_pool();
 
@@ -173,9 +196,11 @@ impl Interpreter {
         };
 
         self.stack_push(pushed_value);
+
+        Ok(ControlFlow::Continue)
     }
 
-    fn op_i_load(&mut self, index: usize) {
+    fn op_i_load(&mut self, index: usize) -> Result<ControlFlow, Error> {
         let loaded = self.local_registers[index];
 
         if !matches!(loaded, Value::Integer(_)) {
@@ -183,9 +208,11 @@ impl Interpreter {
         }
 
         self.stack_push(loaded);
+
+        Ok(ControlFlow::Continue)
     }
 
-    fn op_a_load(&mut self, index: usize) {
+    fn op_a_load(&mut self, index: usize) -> Result<ControlFlow, Error> {
         let loaded = self.local_registers[index];
 
         if !matches!(loaded, Value::Object(_)) {
@@ -193,9 +220,11 @@ impl Interpreter {
         }
 
         self.stack_push(loaded);
+
+        Ok(ControlFlow::Continue)
     }
 
-    fn op_aa_load(&mut self) -> Result<(), Error> {
+    fn op_aa_load(&mut self) -> Result<ControlFlow, Error> {
         let index = self.stack_pop();
 
         let Value::Integer(index) = index else {
@@ -212,14 +241,14 @@ impl Interpreter {
 
                 self.stack_push(Value::Object(result));
 
-                Ok(())
+                Ok(ControlFlow::Continue)
             }
         } else {
             Err(self.null_pointer_exception())
         }
     }
 
-    fn op_ba_load(&mut self) -> Result<(), Error> {
+    fn op_ba_load(&mut self) -> Result<ControlFlow, Error> {
         let index = self.stack_pop();
 
         let Value::Integer(index) = index else {
@@ -236,14 +265,14 @@ impl Interpreter {
 
                 self.stack_push(Value::Integer(result as i32));
 
-                Ok(())
+                Ok(ControlFlow::Continue)
             }
         } else {
             Err(self.null_pointer_exception())
         }
     }
 
-    fn op_i_store(&mut self, index: usize) {
+    fn op_i_store(&mut self, index: usize) -> Result<ControlFlow, Error> {
         let value = self.stack_pop();
 
         if !matches!(value, Value::Integer(_)) {
@@ -251,9 +280,11 @@ impl Interpreter {
         }
 
         self.local_registers[index] = value;
+
+        Ok(ControlFlow::Continue)
     }
 
-    fn op_a_store(&mut self, index: usize) {
+    fn op_a_store(&mut self, index: usize) -> Result<ControlFlow, Error> {
         let value = self.stack_pop();
 
         if !matches!(value, Value::Object(_)) {
@@ -261,15 +292,19 @@ impl Interpreter {
         }
 
         self.local_registers[index] = value;
+
+        Ok(ControlFlow::Continue)
     }
 
-    fn op_dup(&mut self) {
+    fn op_dup(&mut self) -> Result<ControlFlow, Error> {
         let value = self.stack_pop();
         self.stack_push(value);
         self.stack_push(value);
+
+        Ok(ControlFlow::Continue)
     }
 
-    fn op_i_add(&mut self) {
+    fn op_i_add(&mut self) -> Result<ControlFlow, Error> {
         let value1 = self.stack_pop();
         let value2 = self.stack_pop();
 
@@ -282,9 +317,11 @@ impl Interpreter {
         };
 
         self.stack_push(Value::Integer(int1 + int2));
+
+        Ok(ControlFlow::Continue)
     }
 
-    fn op_i_inc(&mut self, index: usize, amount: i32) {
+    fn op_i_inc(&mut self, index: usize, amount: i32) -> Result<ControlFlow, Error> {
         let loaded = self.local_registers[index];
 
         let Value::Integer(loaded) = loaded else {
@@ -292,9 +329,11 @@ impl Interpreter {
         };
 
         self.local_registers[index] = Value::Integer(loaded + amount);
+
+        Ok(ControlFlow::Continue)
     }
 
-    fn op_if_lt(&mut self, position: usize) {
+    fn op_if_lt(&mut self, position: usize) -> Result<ControlFlow, Error> {
         let value = self.stack_pop();
         let Value::Integer(int) = value else {
             panic!("Stack value should be of integer type");
@@ -305,9 +344,11 @@ impl Interpreter {
         } else {
             self.ip += 1;
         }
+
+        Ok(ControlFlow::ManualContinue)
     }
 
-    fn op_if_ge(&mut self, position: usize) {
+    fn op_if_ge(&mut self, position: usize) -> Result<ControlFlow, Error> {
         let value = self.stack_pop();
         let Value::Integer(int) = value else {
             panic!("Stack value should be of integer type");
@@ -318,9 +359,11 @@ impl Interpreter {
         } else {
             self.ip += 1;
         }
+
+        Ok(ControlFlow::ManualContinue)
     }
 
-    fn op_if_i_cmp_ge(&mut self, position: usize) {
+    fn op_if_i_cmp_ge(&mut self, position: usize) -> Result<ControlFlow, Error> {
         let value1 = self.stack_pop();
         let Value::Integer(int1) = value1 else {
             panic!("Stack value should be of integer type");
@@ -336,9 +379,11 @@ impl Interpreter {
         } else {
             self.ip += 1;
         }
+
+        Ok(ControlFlow::ManualContinue)
     }
 
-    fn op_if_i_cmp_gt(&mut self, position: usize) {
+    fn op_if_i_cmp_gt(&mut self, position: usize) -> Result<ControlFlow, Error> {
         let value1 = self.stack_pop();
         let Value::Integer(int1) = value1 else {
             panic!("Stack value should be of integer type");
@@ -354,23 +399,43 @@ impl Interpreter {
         } else {
             self.ip += 1;
         }
+
+        Ok(ControlFlow::ManualContinue)
     }
 
-    fn op_get_static(&mut self, class: Class, static_field_idx: usize) {
+    fn op_goto(&mut self, position: usize) -> Result<ControlFlow, Error> {
+        self.ip = position;
+
+        Ok(ControlFlow::ManualContinue)
+    }
+
+    fn op_get_static(
+        &mut self,
+        class: Class,
+        static_field_idx: usize,
+    ) -> Result<ControlFlow, Error> {
         let static_field = class.static_fields()[static_field_idx];
 
         self.stack_push(static_field.value());
+
+        Ok(ControlFlow::Continue)
     }
 
-    fn op_put_static(&mut self, class: Class, static_field_idx: usize) {
+    fn op_put_static(
+        &mut self,
+        class: Class,
+        static_field_idx: usize,
+    ) -> Result<ControlFlow, Error> {
         let value = self.stack_pop();
 
         let static_field = class.static_fields()[static_field_idx];
 
         static_field.set_value(value);
+
+        Ok(ControlFlow::Continue)
     }
 
-    fn op_get_field(&mut self, class: Class, field_idx: usize) -> Result<(), Error> {
+    fn op_get_field(&mut self, class: Class, field_idx: usize) -> Result<ControlFlow, Error> {
         let object = self.stack_pop();
         if !object.is_of_class(class) {
             panic!("Object on stack was of wrong Class");
@@ -380,13 +445,13 @@ impl Interpreter {
         if let Some(object) = object {
             self.stack_push(object.get_field(field_idx));
 
-            Ok(())
+            Ok(ControlFlow::Continue)
         } else {
             Err(self.null_pointer_exception())
         }
     }
 
-    fn op_put_field(&mut self, class: Class, field_idx: usize) -> Result<(), Error> {
+    fn op_put_field(&mut self, class: Class, field_idx: usize) -> Result<ControlFlow, Error> {
         let value = self.stack_pop();
 
         let object = self.stack_pop();
@@ -398,7 +463,7 @@ impl Interpreter {
         if let Some(object) = object {
             object.set_field(field_idx, value);
 
-            Ok(())
+            Ok(ControlFlow::Continue)
         } else {
             Err(self.null_pointer_exception())
         }
@@ -408,7 +473,7 @@ impl Interpreter {
         &mut self,
         method_name: JvmString,
         method_descriptor: MethodDescriptor,
-    ) -> Result<(), Error> {
+    ) -> Result<ControlFlow, Error> {
         let mut args = vec![Value::Object(None); method_descriptor.args().len() + 1];
         for arg in args.iter_mut().skip(1).rev() {
             // TODO: Long and Double arguments require two pops
@@ -431,13 +496,14 @@ impl Interpreter {
             if let Some(result) = result {
                 self.stack_push(result);
             }
-            Ok(())
+
+            Ok(ControlFlow::Continue)
         } else {
             Err(self.null_pointer_exception())
         }
     }
 
-    fn op_invoke_special(&mut self, class: Class, method: Method) -> Result<(), Error> {
+    fn op_invoke_special(&mut self, class: Class, method: Method) -> Result<ControlFlow, Error> {
         let mut args = vec![Value::Object(None); method.arg_count() + 1];
         for arg in args.iter_mut().skip(1).rev() {
             // TODO: Long and Double arguments require two pops
@@ -460,10 +526,10 @@ impl Interpreter {
             self.stack_push(result);
         }
 
-        Ok(())
+        Ok(ControlFlow::Continue)
     }
 
-    fn op_invoke_static(&mut self, method: Method) -> Result<(), Error> {
+    fn op_invoke_static(&mut self, method: Method) -> Result<ControlFlow, Error> {
         let mut args = vec![Value::Object(None); method.arg_count()];
         for arg in args.iter_mut().rev() {
             // TODO: Long and Double arguments require two pops
@@ -475,16 +541,18 @@ impl Interpreter {
             self.stack_push(result);
         }
 
-        Ok(())
+        Ok(ControlFlow::Continue)
     }
 
-    fn op_new(&mut self, class: Class) {
+    fn op_new(&mut self, class: Class) -> Result<ControlFlow, Error> {
         let instance = class.new_instance(self.context.gc_ctx);
 
         self.stack_push(Value::Object(Some(instance)));
+
+        Ok(ControlFlow::Continue)
     }
 
-    fn op_array_length(&mut self) -> Result<(), Error> {
+    fn op_array_length(&mut self) -> Result<ControlFlow, Error> {
         let object = self.stack_pop().expect_as_object();
 
         if let Some(object) = object {
@@ -492,13 +560,13 @@ impl Interpreter {
 
             self.stack_push(Value::Integer(length as i32));
 
-            Ok(())
+            Ok(ControlFlow::Continue)
         } else {
             Err(self.null_pointer_exception())
         }
     }
 
-    fn op_if_non_null(&mut self, position: usize) {
+    fn op_if_non_null(&mut self, position: usize) -> Result<ControlFlow, Error> {
         let value = self.stack_pop();
         let Value::Object(obj) = value else {
             panic!("Stack value should be of reference type");
@@ -509,5 +577,7 @@ impl Interpreter {
         } else {
             self.ip += 1;
         }
+
+        Ok(ControlFlow::ManualContinue)
     }
 }

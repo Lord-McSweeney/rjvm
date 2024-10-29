@@ -144,7 +144,7 @@ impl Op {
         method_return_type: Descriptor,
         constant_pool: &ConstantPool,
         data: &mut FileData,
-    ) -> Result<Vec<Op>, Error> {
+    ) -> Result<(Vec<Op>, HashMap<usize, usize>), Error> {
         // TODO: Should current_class be None if this is a static method?
 
         let code_length = data.read_u32()? as usize;
@@ -188,7 +188,7 @@ impl Op {
             }
         }
 
-        Ok(code)
+        Ok((code, offset_to_idx_map))
     }
 
     fn read_op(

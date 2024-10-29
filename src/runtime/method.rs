@@ -14,7 +14,7 @@ use crate::classfile::reader::{FileData, Reader};
 use crate::gc::{Gc, GcCtx, Trace};
 use crate::string::JvmString;
 
-use std::cell::{Cell, RefCell};
+use std::cell::{Cell, Ref, RefCell};
 
 #[derive(Clone, Copy)]
 pub struct Method(Gc<MethodData>);
@@ -150,7 +150,7 @@ impl Method {
             MethodInfo::Bytecode(bytecode_info) => {
                 let mut interpreter = Interpreter::new(context, self, args);
 
-                interpreter.interpret_ops(&bytecode_info.code)?
+                interpreter.interpret_ops(&bytecode_info.code, &bytecode_info.exceptions)?
             }
             MethodInfo::BytecodeUnparsed(_) => unreachable!(),
             MethodInfo::Native(native_method) => native_method(context, &args)?,
@@ -227,7 +227,25 @@ struct BytecodeMethodInfo {
     max_stack: u16,
     max_locals: u16,
     code: Vec<Op>,
-    // TODO: Exceptions
+    exceptions: Vec<Exception>,
+}
+
+pub struct Exception {
+    // Inclusive
+    pub start: usize,
+
+    // Exclusive
+    pub end: usize,
+
+    pub target: usize,
+
+    pub catch_class: Class,
+}
+
+impl Trace for Exception {
+    fn trace(&self) {
+        self.catch_class.trace();
+    }
 }
 
 impl BytecodeMethodInfo {
@@ -247,12 +265,53 @@ impl BytecodeMethodInfo {
         let max_stack = reader.read_u16()?;
         let max_locals = reader.read_u16()?;
 
-        let code = Op::read_ops(context, class, return_type, constant_pool, &mut reader)?;
+        let (code, offset_to_idx_map) =
+            Op::read_ops(context, class, return_type, constant_pool, &mut reader)?;
+
+        let exception_count = reader.read_u16()?;
+        let mut exceptions = Vec::with_capacity(exception_count as usize);
+        for _ in 0..exception_count {
+            let start_offset = reader.read_u16()? as usize;
+            let end_offset = reader.read_u16()? as usize;
+            let target_offset = reader.read_u16()? as usize;
+
+            let start = offset_to_idx_map
+                .get(&start_offset)
+                .copied()
+                .ok_or(Error::Native(NativeError::ErrorClassNotThrowable))?;
+            let end = offset_to_idx_map
+                .get(&end_offset)
+                .copied()
+                .ok_or(Error::Native(NativeError::ErrorClassNotThrowable))?;
+            let target = offset_to_idx_map
+                .get(&target_offset)
+                .copied()
+                .ok_or(Error::Native(NativeError::ErrorClassNotThrowable))?;
+
+            let class_idx = reader.read_u16()?;
+            let class_name = constant_pool.get_class(class_idx)?;
+            let class = context.lookup_class(class_name)?;
+
+            let throwable_class = context
+                .lookup_class(context.common.java_lang_throwable)
+                .expect("Throwable class should exist");
+            if !class.matches_class(throwable_class) {
+                return Err(Error::Native(NativeError::ErrorClassNotThrowable));
+            }
+
+            exceptions.push(Exception {
+                start,
+                end,
+                target,
+                catch_class: class,
+            });
+        }
 
         Ok(Self {
             max_stack,
             max_locals,
             code,
+            exceptions,
         })
     }
 }
