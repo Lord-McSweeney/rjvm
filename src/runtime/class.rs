@@ -13,6 +13,7 @@ use crate::gc::{Gc, GcCtx, Trace};
 use crate::string::JvmString;
 
 use std::cell::{Ref, RefCell};
+use std::fmt;
 
 #[derive(Clone, Copy)]
 pub struct Class(Gc<ClassData>);
@@ -45,6 +46,12 @@ struct MethodData {
 
     instance_method_vtable: VTable<(JvmString, MethodDescriptor)>,
     instance_methods: Box<[Method]>,
+}
+
+impl fmt::Debug for Class {
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        f.debug_struct("Class").field("name", &self.name()).finish()
+    }
 }
 
 impl Class {

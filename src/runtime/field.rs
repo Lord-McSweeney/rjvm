@@ -7,9 +7,10 @@ use crate::gc::{Gc, GcCtx, Trace};
 
 use std::cell::Cell;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct Field(Gc<FieldData>);
 
+#[derive(Debug)]
 struct FieldData {
     descriptor: Descriptor,
     value: Cell<Value>,

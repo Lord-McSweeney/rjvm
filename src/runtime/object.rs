@@ -8,7 +8,7 @@ use super::value::{Value, ValueType};
 use crate::gc::{Gc, GcCtx, Trace};
 use crate::string::JvmString;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct Object(Gc<ObjectData>);
 
 impl Object {
@@ -118,6 +118,20 @@ impl Object {
         }
     }
 
+    pub fn get_object_at_index(self, idx: usize) -> Option<Object> {
+        match &self.0.data {
+            FieldOrArrayData::Fields(_) => panic!("Cannot get index of object"),
+            FieldOrArrayData::Array(data) => {
+                let value = data[idx];
+                let Value::Object(obj) = value else {
+                    unreachable!();
+                };
+
+                obj
+            }
+        }
+    }
+
     pub fn call_construct(
         self,
         context: Context,
@@ -145,6 +159,7 @@ impl Trace for Object {
     }
 }
 
+#[derive(Debug)]
 struct ObjectData {
     class: Class,
 
@@ -158,6 +173,7 @@ impl Trace for ObjectData {
     }
 }
 
+#[derive(Debug)]
 enum FieldOrArrayData {
     Fields(Box<[Field]>),
     Array(Box<[Value]>),

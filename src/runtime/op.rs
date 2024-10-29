@@ -18,6 +18,7 @@ pub enum Op {
     Ldc(ConstantPoolEntry),
     ILoad(usize),
     ALoad(usize),
+    AaLoad,
     BaLoad,
     IStore(usize),
     AStore(usize),
@@ -53,6 +54,7 @@ impl Trace for Op {
             }
             Op::ILoad(_) => {}
             Op::ALoad(_) => {}
+            Op::AaLoad => {}
             Op::BaLoad => {}
             Op::IStore(_) => {}
             Op::AStore(_) => {}
@@ -108,8 +110,10 @@ const I_LOAD_3: u8 = 0x1D;
 const A_LOAD_0: u8 = 0x2A;
 const A_LOAD_1: u8 = 0x2B;
 const A_LOAD_2: u8 = 0x2C;
+const AA_LOAD: u8 = 0x32;
 const BA_LOAD: u8 = 0x33;
 const I_STORE: u8 = 0x36;
+const A_STORE_0: u8 = 0x4B;
 const A_STORE_1: u8 = 0x4C;
 const A_STORE_2: u8 = 0x4D;
 const DUP: u8 = 0x59;
@@ -216,12 +220,14 @@ impl Op {
             A_LOAD_0 => Ok(Op::ALoad(0)),
             A_LOAD_1 => Ok(Op::ALoad(1)),
             A_LOAD_2 => Ok(Op::ALoad(2)),
+            AA_LOAD => Ok(Op::AaLoad),
             BA_LOAD => Ok(Op::BaLoad),
             I_STORE => {
                 let local_idx = data.read_u8()?;
 
                 Ok(Op::IStore(local_idx as usize))
             }
+            A_STORE_0 => Ok(Op::AStore(0)),
             A_STORE_1 => Ok(Op::AStore(1)),
             A_STORE_2 => Ok(Op::AStore(2)),
             DUP => Ok(Op::Dup),

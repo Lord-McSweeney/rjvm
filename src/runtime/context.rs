@@ -162,6 +162,7 @@ impl Trace for Context {
 pub struct CommonData {
     pub java_lang_object: JvmString,
     pub java_lang_string: JvmString,
+    pub java_lang_null_pointer_exception: JvmString,
     pub array_byte_desc: JvmString,
     pub array_char_desc: JvmString,
     pub init_name: JvmString,
@@ -186,6 +187,10 @@ impl CommonData {
         Self {
             java_lang_object: JvmString::new(gc_ctx, "java/lang/Object".to_string()),
             java_lang_string: JvmString::new(gc_ctx, "java/lang/String".to_string()),
+            java_lang_null_pointer_exception: JvmString::new(
+                gc_ctx,
+                "java/lang/NullPointerException".to_string(),
+            ),
             array_byte_desc: JvmString::new(gc_ctx, "[B".to_string()),
             array_char_desc: JvmString::new(gc_ctx, "[C".to_string()),
             init_name: JvmString::new(gc_ctx, "<init>".to_string()),
@@ -200,6 +205,8 @@ impl Trace for CommonData {
     fn trace(&self) {
         self.java_lang_object.trace();
         self.java_lang_string.trace();
+        self.java_lang_null_pointer_exception.trace();
+        self.array_byte_desc.trace();
         self.array_char_desc.trace();
         self.init_name.trace();
         self.clinit_name.trace();

@@ -48,6 +48,7 @@ impl Interpreter {
                 Op::Ldc(constant_pool_entry) => self.op_ldc(constant_pool_entry),
                 Op::ILoad(index) => self.op_i_load(index),
                 Op::ALoad(index) => self.op_a_load(index),
+                Op::AaLoad => self.op_aa_load()?,
                 Op::BaLoad => self.op_ba_load()?,
                 Op::IStore(index) => self.op_i_store(index),
                 Op::AStore(index) => self.op_a_store(index),
@@ -109,6 +110,24 @@ impl Interpreter {
 
     fn stack_pop(&mut self) -> Value {
         self.stack.pop().unwrap()
+    }
+
+    fn null_pointer_exception(&self) -> Error {
+        let exception_class = self
+            .context
+            .lookup_class(self.context.common.java_lang_null_pointer_exception)
+            .expect("NullPointerException class should exist");
+
+        let exception_instance = exception_class.new_instance(self.context.gc_ctx);
+        exception_instance
+            .call_construct(
+                self.context,
+                self.context.common.noargs_void_desc,
+                &[Value::Object(Some(exception_instance))],
+            )
+            .expect("Exception class should construct");
+
+        Error::Java(exception_instance)
     }
 
     fn op_a_const_null(&mut self) {
@@ -176,6 +195,30 @@ impl Interpreter {
         self.stack_push(loaded);
     }
 
+    fn op_aa_load(&mut self) -> Result<(), Error> {
+        let index = self.stack_pop();
+
+        let Value::Integer(index) = index else {
+            panic!("Stack value should be of integer type");
+        };
+
+        let array = self.stack_pop().expect_as_object();
+        if let Some(array) = array {
+            let length = array.array_length();
+            if index < 0 || index as usize >= length {
+                Err(Error::Native(NativeError::ArrayIndexOutOfBoundsException))
+            } else {
+                let result = array.get_object_at_index(index as usize);
+
+                self.stack_push(Value::Object(result));
+
+                Ok(())
+            }
+        } else {
+            Err(self.null_pointer_exception())
+        }
+    }
+
     fn op_ba_load(&mut self) -> Result<(), Error> {
         let index = self.stack_pop();
 
@@ -196,7 +239,7 @@ impl Interpreter {
                 Ok(())
             }
         } else {
-            Err(Error::Native(NativeError::NullPointerException))
+            Err(self.null_pointer_exception())
         }
     }
 
@@ -339,7 +382,7 @@ impl Interpreter {
 
             Ok(())
         } else {
-            Err(Error::Native(NativeError::NullPointerException))
+            Err(self.null_pointer_exception())
         }
     }
 
@@ -357,7 +400,7 @@ impl Interpreter {
 
             Ok(())
         } else {
-            Err(Error::Native(NativeError::NullPointerException))
+            Err(self.null_pointer_exception())
         }
     }
 
@@ -390,7 +433,7 @@ impl Interpreter {
             }
             Ok(())
         } else {
-            Err(Error::Native(NativeError::NullPointerException))
+            Err(self.null_pointer_exception())
         }
     }
 
@@ -407,7 +450,7 @@ impl Interpreter {
         }
 
         if matches!(receiver, Value::Object(None)) {
-            return Err(Error::Native(NativeError::NullPointerException));
+            return Err(self.null_pointer_exception());
         }
 
         args[0] = receiver;
@@ -451,7 +494,7 @@ impl Interpreter {
 
             Ok(())
         } else {
-            Err(Error::Native(NativeError::NullPointerException))
+            Err(self.null_pointer_exception())
         }
     }
 

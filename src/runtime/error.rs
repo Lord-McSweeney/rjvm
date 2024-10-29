@@ -1,8 +1,11 @@
+use super::object::Object;
+
 use crate::classfile::error::Error as ClassFileError;
 
 #[derive(Debug)]
 pub enum Error {
     Native(NativeError),
+    Java(Object),
 }
 
 #[derive(Debug)]
@@ -20,7 +23,6 @@ pub enum NativeError {
     WrongValueType,
 
     ArrayIndexOutOfBoundsException,
-    NullPointerException,
 }
 
 impl From<ClassFileError> for Error {

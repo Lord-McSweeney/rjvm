@@ -13,7 +13,7 @@ pub enum ValueType {
     Reference,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub enum Value {
     Integer(i32),
     Long(i64),
