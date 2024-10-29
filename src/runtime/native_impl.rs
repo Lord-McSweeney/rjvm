@@ -27,9 +27,10 @@ pub fn string_to_utf8(context: Context, args: &[Value]) -> Result<Option<Value>,
     Ok(Some(Value::Object(Some(byte_array))))
 }
 
+// java/lang/StdoutStream : void write(int)
 pub fn stdout_write(context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
-    // Expecting integer
-    let Value::Integer(byte) = args[0] else {
+    // Expecting integer in args[1]; args[0] is the reciever
+    let Value::Integer(byte) = args[1] else {
         unreachable!();
     };
 
