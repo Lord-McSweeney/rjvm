@@ -5,6 +5,7 @@ use crate::gc::{GcCtx, Trace};
 use crate::string::JvmString;
 
 const UTF8: u8 = 1;
+const INTEGER: u8 = 3;
 const CLASS: u8 = 7;
 const STRING: u8 = 8;
 const FIELD_REF: u8 = 9;
@@ -22,6 +23,9 @@ impl ConstantPool {
             match *entry {
                 // Utf8 has no checks on it
                 ConstantPoolEntry::Utf8 { .. } => {}
+
+                // Integer has no checks on it
+                ConstantPoolEntry::Integer { .. } => {}
 
                 // Class must point to a Utf8
                 ConstantPoolEntry::Class { name_idx } => {
@@ -156,6 +160,9 @@ pub enum ConstantPoolEntry {
     Utf8 {
         string: JvmString,
     },
+    Integer {
+        value: i32,
+    },
     Class {
         name_idx: u16,
     },
@@ -180,6 +187,7 @@ impl ConstantPoolEntry {
     fn tag(self) -> u8 {
         match self {
             ConstantPoolEntry::Utf8 { .. } => UTF8,
+            ConstantPoolEntry::Integer { .. } => INTEGER,
             ConstantPoolEntry::Class { .. } => CLASS,
             ConstantPoolEntry::String { .. } => STRING,
             ConstantPoolEntry::FieldRef { .. } => FIELD_REF,
@@ -211,6 +219,11 @@ fn read_constant_pool_entry(
             let string = JvmString::new(gc_ctx, string);
 
             Ok(ConstantPoolEntry::Utf8 { string })
+        }
+        INTEGER => {
+            let value = data.read_u32()? as i32;
+
+            Ok(ConstantPoolEntry::Integer { value })
         }
         CLASS => {
             let name_idx = data.read_u16()?;

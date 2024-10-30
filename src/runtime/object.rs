@@ -60,6 +60,23 @@ impl Object {
         ))
     }
 
+    pub fn int_array(context: Context, chars: &[i32]) -> Self {
+        let value_list = chars
+            .iter()
+            .map(|b| Cell::new(Value::Integer(*b)))
+            .collect::<Vec<_>>();
+
+        Self(Gc::new(
+            context.gc_ctx,
+            ObjectData {
+                class: context
+                    .lookup_class(context.common.array_int_desc)
+                    .expect("Should lookup"),
+                data: FieldOrArrayData::Array(value_list.into_boxed_slice()),
+            },
+        ))
+    }
+
     pub fn is_array(self) -> bool {
         match &self.0.data {
             FieldOrArrayData::Fields(_) => false,
@@ -123,6 +140,29 @@ impl Object {
                 };
 
                 character as u16
+            }
+        }
+    }
+
+    pub fn get_integer_at_index(self, idx: usize) -> i32 {
+        match &self.0.data {
+            FieldOrArrayData::Fields(_) => panic!("Cannot get index of object"),
+            FieldOrArrayData::Array(data) => {
+                let value = data[idx].get();
+                let Value::Integer(integer) = value else {
+                    unreachable!();
+                };
+
+                integer
+            }
+        }
+    }
+
+    pub fn set_char_at_index(self, idx: usize, value: u16) {
+        match &self.0.data {
+            FieldOrArrayData::Fields(_) => panic!("Cannot get index of object"),
+            FieldOrArrayData::Array(data) => {
+                data[idx].set(Value::Integer(value as i32));
             }
         }
     }

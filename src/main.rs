@@ -86,11 +86,13 @@ fn main() {
     let main_descriptor =
         MethodDescriptor::from_string(gc_ctx, main_descriptor_name).expect("Valid descriptor");
 
-    main_class
-        .call_static(
-            context,
-            &[Value::Object(None)],
-            (main_name, main_descriptor),
-        )
-        .expect("Failed to run main");
+    let result = main_class.call_static(
+        context,
+        &[Value::Object(None)],
+        (main_name, main_descriptor),
+    );
+
+    if let Err(error) = result {
+        eprintln!("Error while running main: {:?}", error);
+    }
 }

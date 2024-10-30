@@ -231,6 +231,7 @@ pub struct CommonData {
     pub java_lang_null_pointer_exception: JvmString,
     pub array_byte_desc: JvmString,
     pub array_char_desc: JvmString,
+    pub array_int_desc: JvmString,
     pub init_name: JvmString,
     pub clinit_name: JvmString,
     pub noargs_void_desc: MethodDescriptor,
@@ -264,6 +265,7 @@ impl CommonData {
             ),
             array_byte_desc: JvmString::new(gc_ctx, "[B".to_string()),
             array_char_desc: JvmString::new(gc_ctx, "[C".to_string()),
+            array_int_desc: JvmString::new(gc_ctx, "[I".to_string()),
             init_name: JvmString::new(gc_ctx, "<init>".to_string()),
             clinit_name: JvmString::new(gc_ctx, "<clinit>".to_string()),
             noargs_void_desc,
@@ -281,6 +283,7 @@ impl Trace for CommonData {
         self.java_lang_null_pointer_exception.trace();
         self.array_byte_desc.trace();
         self.array_char_desc.trace();
+        self.array_int_desc.trace();
         self.init_name.trace();
         self.clinit_name.trace();
         self.noargs_void_desc.trace();

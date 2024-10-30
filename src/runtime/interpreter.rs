@@ -80,16 +80,26 @@ impl Interpreter {
                 Op::Ldc(constant_pool_entry) => self.op_ldc(constant_pool_entry),
                 Op::ILoad(index) => self.op_i_load(index),
                 Op::ALoad(index) => self.op_a_load(index),
+                Op::IaLoad => self.op_ia_load(),
                 Op::AaLoad => self.op_aa_load(),
                 Op::BaLoad => self.op_ba_load(),
                 Op::IStore(index) => self.op_i_store(index),
                 Op::AStore(index) => self.op_a_store(index),
+                Op::CaStore => self.op_ca_store(),
                 Op::Dup => self.op_dup(),
                 Op::IAdd => self.op_i_add(),
                 Op::ISub => self.op_i_sub(),
+                Op::IDiv => self.op_i_div(),
+                Op::IRem => self.op_i_rem(),
+                Op::INeg => self.op_i_neg(),
                 Op::IInc(index, amount) => self.op_i_inc(index, amount),
+                Op::I2C => self.op_i2c(),
+                Op::IfEq(position) => self.op_if_eq(position),
+                Op::IfNe(position) => self.op_if_ne(position),
                 Op::IfLt(position) => self.op_if_lt(position),
                 Op::IfGe(position) => self.op_if_ge(position),
+                Op::IfLe(position) => self.op_if_le(position),
+                Op::IfICmpNe(position) => self.op_if_i_cmp_ne(position),
                 Op::IfICmpGe(position) => self.op_if_i_cmp_ge(position),
                 Op::IfICmpGt(position) => self.op_if_i_cmp_gt(position),
                 Op::IfICmpLe(position) => self.op_if_i_cmp_le(position),
@@ -179,6 +189,7 @@ impl Interpreter {
 
                 Value::Object(Some(string_instance))
             }
+            ConstantPoolEntry::Integer { value } => Value::Integer(value),
             _ => unimplemented!(),
         };
 
@@ -209,6 +220,30 @@ impl Interpreter {
         self.stack_push(loaded);
 
         Ok(ControlFlow::Continue)
+    }
+
+    fn op_ia_load(&mut self) -> Result<ControlFlow, Error> {
+        let index = self.stack_pop();
+
+        let Value::Integer(index) = index else {
+            panic!("Stack value should be of integer type");
+        };
+
+        let array = self.stack_pop().expect_as_object();
+        if let Some(array) = array {
+            let length = array.array_length();
+            if index < 0 || index as usize >= length {
+                Err(self.context.array_index_oob_exception())
+            } else {
+                let result = array.get_integer_at_index(index as usize);
+
+                self.stack_push(Value::Integer(result));
+
+                Ok(ControlFlow::Continue)
+            }
+        } else {
+            Err(self.context.null_pointer_exception())
+        }
     }
 
     fn op_aa_load(&mut self) -> Result<ControlFlow, Error> {
@@ -283,6 +318,34 @@ impl Interpreter {
         Ok(ControlFlow::Continue)
     }
 
+    fn op_ca_store(&mut self) -> Result<ControlFlow, Error> {
+        let value = self.stack_pop();
+
+        let Value::Integer(value) = value else {
+            panic!("Stack value should be of integer type");
+        };
+
+        let index = self.stack_pop();
+
+        let Value::Integer(index) = index else {
+            panic!("Stack value should be of integer type");
+        };
+
+        let array = self.stack_pop().expect_as_object();
+        if let Some(array) = array {
+            let length = array.array_length();
+            if index < 0 || index as usize >= length {
+                Err(self.context.array_index_oob_exception())
+            } else {
+                array.set_char_at_index(index as usize, value as u16);
+
+                Ok(ControlFlow::Continue)
+            }
+        } else {
+            Err(self.context.null_pointer_exception())
+        }
+    }
+
     fn op_dup(&mut self) -> Result<ControlFlow, Error> {
         let value = self.stack_pop();
         self.stack_push(value);
@@ -325,6 +388,56 @@ impl Interpreter {
         Ok(ControlFlow::Continue)
     }
 
+    fn op_i_div(&mut self) -> Result<ControlFlow, Error> {
+        let value1 = self.stack_pop();
+        let value2 = self.stack_pop();
+
+        let Value::Integer(int1) = value1 else {
+            panic!("Stack value should be of integer type");
+        };
+
+        let Value::Integer(int2) = value2 else {
+            panic!("Stack value should be of integer type");
+        };
+
+        self.stack_push(Value::Integer(int2 / int1));
+
+        Ok(ControlFlow::Continue)
+    }
+
+    fn op_i_rem(&mut self) -> Result<ControlFlow, Error> {
+        let value1 = self.stack_pop();
+        let value2 = self.stack_pop();
+
+        let Value::Integer(int1) = value1 else {
+            panic!("Stack value should be of integer type");
+        };
+
+        let Value::Integer(int2) = value2 else {
+            panic!("Stack value should be of integer type");
+        };
+
+        if int1 == 0 {
+            Err(Error::Native(NativeError::ArithmeticException))
+        } else {
+            self.stack_push(Value::Integer(int2 % int1));
+
+            Ok(ControlFlow::Continue)
+        }
+    }
+
+    fn op_i_neg(&mut self) -> Result<ControlFlow, Error> {
+        let value = self.stack_pop();
+
+        let Value::Integer(int) = value else {
+            panic!("Stack value should be of integer type");
+        };
+
+        self.stack_push(Value::Integer(-int));
+
+        Ok(ControlFlow::Continue)
+    }
+
     fn op_i_inc(&mut self, index: usize, amount: i32) -> Result<ControlFlow, Error> {
         let loaded = self.local_registers[index];
 
@@ -335,6 +448,48 @@ impl Interpreter {
         self.local_registers[index] = Value::Integer(loaded + amount);
 
         Ok(ControlFlow::Continue)
+    }
+
+    fn op_i2c(&mut self) -> Result<ControlFlow, Error> {
+        let value = self.stack_pop();
+
+        let Value::Integer(int) = value else {
+            panic!("Stack value should be of integer type");
+        };
+
+        self.stack_push(Value::Integer((int as u16) as i32));
+
+        Ok(ControlFlow::Continue)
+    }
+
+    fn op_if_eq(&mut self, position: usize) -> Result<ControlFlow, Error> {
+        let value = self.stack_pop();
+        let Value::Integer(int) = value else {
+            panic!("Stack value should be of integer type");
+        };
+
+        if int == 0 {
+            self.ip = position;
+        } else {
+            self.ip += 1;
+        }
+
+        Ok(ControlFlow::ManualContinue)
+    }
+
+    fn op_if_ne(&mut self, position: usize) -> Result<ControlFlow, Error> {
+        let value = self.stack_pop();
+        let Value::Integer(int) = value else {
+            panic!("Stack value should be of integer type");
+        };
+
+        if int != 0 {
+            self.ip = position;
+        } else {
+            self.ip += 1;
+        }
+
+        Ok(ControlFlow::ManualContinue)
     }
 
     fn op_if_lt(&mut self, position: usize) -> Result<ControlFlow, Error> {
@@ -359,6 +514,41 @@ impl Interpreter {
         };
 
         if int >= 0 {
+            self.ip = position;
+        } else {
+            self.ip += 1;
+        }
+
+        Ok(ControlFlow::ManualContinue)
+    }
+
+    fn op_if_le(&mut self, position: usize) -> Result<ControlFlow, Error> {
+        let value = self.stack_pop();
+        let Value::Integer(int) = value else {
+            panic!("Stack value should be of integer type");
+        };
+
+        if int <= 0 {
+            self.ip = position;
+        } else {
+            self.ip += 1;
+        }
+
+        Ok(ControlFlow::ManualContinue)
+    }
+
+    fn op_if_i_cmp_ne(&mut self, position: usize) -> Result<ControlFlow, Error> {
+        let value1 = self.stack_pop();
+        let Value::Integer(int1) = value1 else {
+            panic!("Stack value should be of integer type");
+        };
+
+        let value2 = self.stack_pop();
+        let Value::Integer(int2) = value2 else {
+            panic!("Stack value should be of integer type");
+        };
+
+        if int2 != int1 {
             self.ip = position;
         } else {
             self.ip += 1;
@@ -611,6 +801,11 @@ impl Interpreter {
                 let chars = vec![0; array_length];
 
                 Object::char_array(self.context, &chars)
+            }
+            ArrayType::Int => {
+                let ints = vec![0; array_length];
+
+                Object::int_array(self.context, &ints)
             }
             _ => unimplemented!("Array type unimplemented"),
         };
