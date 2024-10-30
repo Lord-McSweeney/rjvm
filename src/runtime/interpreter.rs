@@ -4,7 +4,7 @@ use super::descriptor::MethodDescriptor;
 use super::error::{Error, NativeError};
 use super::method::{Exception, Method};
 use super::object::Object;
-use super::op::Op;
+use super::op::{ArrayType, Op};
 use super::value::Value;
 
 use crate::classfile::constant_pool::{ConstantPool, ConstantPoolEntry};
@@ -86,12 +86,16 @@ impl Interpreter {
                 Op::AStore(index) => self.op_a_store(index),
                 Op::Dup => self.op_dup(),
                 Op::IAdd => self.op_i_add(),
+                Op::ISub => self.op_i_sub(),
                 Op::IInc(index, amount) => self.op_i_inc(index, amount),
                 Op::IfLt(position) => self.op_if_lt(position),
                 Op::IfGe(position) => self.op_if_ge(position),
                 Op::IfICmpGe(position) => self.op_if_i_cmp_ge(position),
                 Op::IfICmpGt(position) => self.op_if_i_cmp_gt(position),
+                Op::IfICmpLe(position) => self.op_if_i_cmp_le(position),
                 Op::Goto(position) => self.op_goto(position),
+                Op::IReturn => self.op_i_return(),
+                Op::AReturn => self.op_a_return(),
                 Op::Return => Ok(ControlFlow::Return(None)),
                 Op::GetStatic(class, static_field_idx) => {
                     self.op_get_static(class, static_field_idx)
@@ -107,6 +111,7 @@ impl Interpreter {
                 Op::InvokeSpecial(class, method) => self.op_invoke_special(class, method),
                 Op::InvokeStatic(method) => self.op_invoke_static(method),
                 Op::New(class) => self.op_new(class),
+                Op::NewArray(array_type) => self.op_new_array(array_type),
                 Op::ArrayLength => self.op_array_length(),
                 Op::AThrow => todo!(),
                 Op::IfNonNull(position) => self.op_if_non_null(position),
@@ -129,24 +134,6 @@ impl Interpreter {
 
     fn stack_pop(&mut self) -> Value {
         self.stack.pop().unwrap()
-    }
-
-    fn null_pointer_exception(&self) -> Error {
-        let exception_class = self
-            .context
-            .lookup_class(self.context.common.java_lang_null_pointer_exception)
-            .expect("NullPointerException class should exist");
-
-        let exception_instance = exception_class.new_instance(self.context.gc_ctx);
-        exception_instance
-            .call_construct(
-                self.context,
-                self.context.common.noargs_void_desc,
-                &[Value::Object(Some(exception_instance))],
-            )
-            .expect("Exception class should construct");
-
-        Error::Java(exception_instance)
     }
 
     fn op_a_const_null(&mut self) -> Result<ControlFlow, Error> {
@@ -235,7 +222,7 @@ impl Interpreter {
         if let Some(array) = array {
             let length = array.array_length();
             if index < 0 || index as usize >= length {
-                Err(Error::Native(NativeError::ArrayIndexOutOfBoundsException))
+                Err(self.context.array_index_oob_exception())
             } else {
                 let result = array.get_object_at_index(index as usize);
 
@@ -244,7 +231,7 @@ impl Interpreter {
                 Ok(ControlFlow::Continue)
             }
         } else {
-            Err(self.null_pointer_exception())
+            Err(self.context.null_pointer_exception())
         }
     }
 
@@ -259,7 +246,7 @@ impl Interpreter {
         if let Some(array) = array {
             let length = array.array_length();
             if index < 0 || index as usize >= length {
-                Err(Error::Native(NativeError::ArrayIndexOutOfBoundsException))
+                Err(self.context.array_index_oob_exception())
             } else {
                 let result = array.get_byte_at_index(index as usize);
 
@@ -268,7 +255,7 @@ impl Interpreter {
                 Ok(ControlFlow::Continue)
             }
         } else {
-            Err(self.null_pointer_exception())
+            Err(self.context.null_pointer_exception())
         }
     }
 
@@ -317,6 +304,23 @@ impl Interpreter {
         };
 
         self.stack_push(Value::Integer(int1 + int2));
+
+        Ok(ControlFlow::Continue)
+    }
+
+    fn op_i_sub(&mut self) -> Result<ControlFlow, Error> {
+        let value1 = self.stack_pop();
+        let value2 = self.stack_pop();
+
+        let Value::Integer(int1) = value1 else {
+            panic!("Stack value should be of integer type");
+        };
+
+        let Value::Integer(int2) = value2 else {
+            panic!("Stack value should be of integer type");
+        };
+
+        self.stack_push(Value::Integer(int2 - int1));
 
         Ok(ControlFlow::Continue)
     }
@@ -403,10 +407,48 @@ impl Interpreter {
         Ok(ControlFlow::ManualContinue)
     }
 
+    fn op_if_i_cmp_le(&mut self, position: usize) -> Result<ControlFlow, Error> {
+        let value1 = self.stack_pop();
+        let Value::Integer(int1) = value1 else {
+            panic!("Stack value should be of integer type");
+        };
+
+        let value2 = self.stack_pop();
+        let Value::Integer(int2) = value2 else {
+            panic!("Stack value should be of integer type");
+        };
+
+        if int2 <= int1 {
+            self.ip = position;
+        } else {
+            self.ip += 1;
+        }
+
+        Ok(ControlFlow::ManualContinue)
+    }
+
     fn op_goto(&mut self, position: usize) -> Result<ControlFlow, Error> {
         self.ip = position;
 
         Ok(ControlFlow::ManualContinue)
+    }
+
+    fn op_i_return(&mut self) -> Result<ControlFlow, Error> {
+        let value = self.stack_pop();
+        let Value::Integer(value) = value else {
+            panic!("Stack value should be of integer type");
+        };
+
+        Ok(ControlFlow::Return(Some(Value::Integer(value))))
+    }
+
+    fn op_a_return(&mut self) -> Result<ControlFlow, Error> {
+        let value = self.stack_pop();
+        let Value::Object(value) = value else {
+            panic!("Stack value should be of reference type");
+        };
+
+        Ok(ControlFlow::Return(Some(Value::Object(value))))
     }
 
     fn op_get_static(
@@ -447,7 +489,7 @@ impl Interpreter {
 
             Ok(ControlFlow::Continue)
         } else {
-            Err(self.null_pointer_exception())
+            Err(self.context.null_pointer_exception())
         }
     }
 
@@ -465,7 +507,7 @@ impl Interpreter {
 
             Ok(ControlFlow::Continue)
         } else {
-            Err(self.null_pointer_exception())
+            Err(self.context.null_pointer_exception())
         }
     }
 
@@ -499,7 +541,7 @@ impl Interpreter {
 
             Ok(ControlFlow::Continue)
         } else {
-            Err(self.null_pointer_exception())
+            Err(self.context.null_pointer_exception())
         }
     }
 
@@ -516,7 +558,7 @@ impl Interpreter {
         }
 
         if matches!(receiver, Value::Object(None)) {
-            return Err(self.null_pointer_exception());
+            return Err(self.context.null_pointer_exception());
         }
 
         args[0] = receiver;
@@ -552,6 +594,32 @@ impl Interpreter {
         Ok(ControlFlow::Continue)
     }
 
+    fn op_new_array(&mut self, array_type: ArrayType) -> Result<ControlFlow, Error> {
+        let array_length = self.stack_pop();
+        let Value::Integer(array_length) = array_length else {
+            panic!("Stack value should be of integer type");
+        };
+
+        if array_length < 0 {
+            return Err(Error::Native(NativeError::NegativeArraySizeException));
+        }
+
+        let array_length = array_length as usize;
+
+        let array_object = match array_type {
+            ArrayType::Char => {
+                let chars = vec![0; array_length];
+
+                Object::char_array(self.context, &chars)
+            }
+            _ => unimplemented!("Array type unimplemented"),
+        };
+
+        self.stack_push(Value::Object(Some(array_object)));
+
+        Ok(ControlFlow::Continue)
+    }
+
     fn op_array_length(&mut self) -> Result<ControlFlow, Error> {
         let object = self.stack_pop().expect_as_object();
 
@@ -562,7 +630,7 @@ impl Interpreter {
 
             Ok(ControlFlow::Continue)
         } else {
-            Err(self.null_pointer_exception())
+            Err(self.context.null_pointer_exception())
         }
     }
 

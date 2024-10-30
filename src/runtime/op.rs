@@ -24,12 +24,16 @@ pub enum Op {
     AStore(usize),
     Dup,
     IAdd,
+    ISub,
     IInc(usize, i32),
     IfLt(usize),
     IfGe(usize),
     IfICmpGe(usize),
     IfICmpGt(usize),
+    IfICmpLe(usize),
     Goto(usize),
+    IReturn,
+    AReturn,
     Return,
     GetStatic(Class, usize),
     PutStatic(Class, usize),
@@ -39,9 +43,22 @@ pub enum Op {
     InvokeSpecial(Class, Method),
     InvokeStatic(Method),
     New(Class),
+    NewArray(ArrayType),
     ArrayLength,
     AThrow,
     IfNonNull(usize),
+}
+
+#[derive(Clone, Copy)]
+pub enum ArrayType {
+    Boolean,
+    Char,
+    Float,
+    Double,
+    Byte,
+    Short,
+    Int,
+    Long,
 }
 
 impl Trace for Op {
@@ -60,12 +77,16 @@ impl Trace for Op {
             Op::AStore(_) => {}
             Op::Dup => {}
             Op::IAdd => {}
+            Op::ISub => {}
             Op::IInc(_, _) => {}
             Op::IfLt(_) => {}
             Op::IfGe(_) => {}
             Op::IfICmpGe(_) => {}
             Op::IfICmpGt(_) => {}
+            Op::IfICmpLe(_) => {}
             Op::Goto(_) => {}
+            Op::IReturn => {}
+            Op::AReturn => {}
             Op::Return => {}
             Op::GetStatic(class, _) => {
                 class.trace();
@@ -93,6 +114,7 @@ impl Trace for Op {
             Op::New(class) => {
                 class.trace();
             }
+            Op::NewArray(_) => {}
             Op::ArrayLength => {}
             Op::AThrow => {}
             Op::IfNonNull(_) => {}
@@ -110,20 +132,28 @@ const I_LOAD_3: u8 = 0x1D;
 const A_LOAD_0: u8 = 0x2A;
 const A_LOAD_1: u8 = 0x2B;
 const A_LOAD_2: u8 = 0x2C;
+const A_LOAD_3: u8 = 0x2D;
 const AA_LOAD: u8 = 0x32;
 const BA_LOAD: u8 = 0x33;
 const I_STORE: u8 = 0x36;
+const I_STORE_1: u8 = 0x3C;
+const I_STORE_2: u8 = 0x3D;
 const A_STORE_0: u8 = 0x4B;
 const A_STORE_1: u8 = 0x4C;
 const A_STORE_2: u8 = 0x4D;
+const A_STORE_3: u8 = 0x4E;
 const DUP: u8 = 0x59;
 const I_ADD: u8 = 0x60;
+const I_SUB: u8 = 0x64;
 const I_INC: u8 = 0x84;
 const IF_LT: u8 = 0x9B;
 const IF_GE: u8 = 0x9C;
 const IF_I_CMP_GE: u8 = 0xA2;
 const IF_I_CMP_GT: u8 = 0xA3;
+const IF_I_CMP_LE: u8 = 0xA4;
 const GOTO: u8 = 0xA7;
+const I_RETURN: u8 = 0xAC;
+const A_RETURN: u8 = 0xB0;
 const RETURN: u8 = 0xB1;
 const GET_STATIC: u8 = 0xB2;
 const PUT_STATIC: u8 = 0xB3;
@@ -133,6 +163,7 @@ const INVOKE_VIRTUAL: u8 = 0xB6;
 const INVOKE_SPECIAL: u8 = 0xB7;
 const INVOKE_STATIC: u8 = 0xB8;
 const NEW: u8 = 0xBB;
+const NEW_ARRAY: u8 = 0xBC;
 const ARRAY_LENGTH: u8 = 0xBE;
 const A_THROW: u8 = 0xBF;
 const IF_NON_NULL: u8 = 0xC7;
@@ -179,6 +210,7 @@ impl Op {
                 | Op::IfGe(position)
                 | Op::IfICmpGe(position)
                 | Op::IfICmpGt(position)
+                | Op::IfICmpLe(position)
                 | Op::Goto(position) => {
                     *position = *offset_to_idx_map
                         .get(position)
@@ -220,6 +252,7 @@ impl Op {
             A_LOAD_0 => Ok(Op::ALoad(0)),
             A_LOAD_1 => Ok(Op::ALoad(1)),
             A_LOAD_2 => Ok(Op::ALoad(2)),
+            A_LOAD_3 => Ok(Op::ALoad(3)),
             AA_LOAD => Ok(Op::AaLoad),
             BA_LOAD => Ok(Op::BaLoad),
             I_STORE => {
@@ -227,11 +260,15 @@ impl Op {
 
                 Ok(Op::IStore(local_idx as usize))
             }
+            I_STORE_1 => Ok(Op::IStore(1)),
+            I_STORE_2 => Ok(Op::IStore(2)),
             A_STORE_0 => Ok(Op::AStore(0)),
             A_STORE_1 => Ok(Op::AStore(1)),
             A_STORE_2 => Ok(Op::AStore(2)),
+            A_STORE_3 => Ok(Op::AStore(3)),
             DUP => Ok(Op::Dup),
             I_ADD => Ok(Op::IAdd),
+            I_SUB => Ok(Op::ISub),
             I_INC => {
                 let local_idx = data.read_u8()?;
                 let constant = data.read_u8()? as i8;
@@ -258,10 +295,39 @@ impl Op {
 
                 Ok(Op::IfICmpGt(((data_position as isize) + offset) as usize))
             }
+            IF_I_CMP_LE => {
+                let offset = data.read_u16()? as i16 as isize;
+
+                Ok(Op::IfICmpLe(((data_position as isize) + offset) as usize))
+            }
             GOTO => {
                 let offset = data.read_u16()? as i16 as isize;
 
                 Ok(Op::Goto(((data_position as isize) + offset) as usize))
+            }
+            I_RETURN => {
+                if !matches!(
+                    method_return_type,
+                    Descriptor::Boolean
+                        | Descriptor::Byte
+                        | Descriptor::Character
+                        | Descriptor::Integer
+                        | Descriptor::Short
+                ) {
+                    Err(Error::Native(NativeError::WrongReturnType))
+                } else {
+                    Ok(Op::IReturn)
+                }
+            }
+            A_RETURN => {
+                if !matches!(
+                    method_return_type,
+                    Descriptor::Class(_) | Descriptor::Array(_)
+                ) {
+                    Err(Error::Native(NativeError::WrongReturnType))
+                } else {
+                    Ok(Op::AReturn)
+                }
             }
             RETURN => {
                 if !matches!(method_return_type, Descriptor::Void) {
@@ -407,6 +473,21 @@ impl Op {
                 let class = context.lookup_class(class_name)?;
 
                 Ok(Op::New(class))
+            }
+            NEW_ARRAY => {
+                let array_type = match data.read_u8()? {
+                    4 => ArrayType::Boolean,
+                    5 => ArrayType::Char,
+                    6 => ArrayType::Float,
+                    7 => ArrayType::Double,
+                    8 => ArrayType::Byte,
+                    9 => ArrayType::Short,
+                    10 => ArrayType::Int,
+                    11 => ArrayType::Long,
+                    _ => return Err(Error::Native(NativeError::InvalidArrayType)),
+                };
+
+                Ok(Op::NewArray(array_type))
             }
             ARRAY_LENGTH => Ok(Op::ArrayLength),
             A_THROW => Ok(Op::AThrow),

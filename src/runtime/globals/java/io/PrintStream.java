@@ -27,5 +27,5 @@ public class PrintStream extends FilterOutputStream {
     }
 
     // TODO implement this with proper Charset decoding
-    private native static byte[] stringToUtf8(String string);
+    private static native byte[] stringToUtf8(String string);
 }

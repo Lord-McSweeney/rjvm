@@ -11,6 +11,8 @@ final class StdoutStream extends OutputStream {
 public final class System {
     public static PrintStream out = null;
 
+    public static native void arraycopy(Object src, int srcPos, Object dest, int destPos, int length);
+
     static {
         out = new PrintStream(new StdoutStream());
     }

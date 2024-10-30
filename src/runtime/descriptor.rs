@@ -1,5 +1,7 @@
 // TODO this assumes descriptors are ASCII, but that doesn't seem to be guaranteed
 
+use super::error::Error;
+use super::object::Object;
 use super::value::Value;
 
 use crate::gc::{Gc, GcCtx, Trace};
@@ -116,6 +118,22 @@ impl Descriptor {
         }
 
         result
+    }
+
+    pub fn is_primitive(self) -> bool {
+        match self {
+            Descriptor::Class(_) => false,
+            Descriptor::Array(_) => false,
+            Descriptor::Byte => true,
+            Descriptor::Character => true,
+            Descriptor::Double => true,
+            Descriptor::Float => true,
+            Descriptor::Integer => true,
+            Descriptor::Long => true,
+            Descriptor::Short => true,
+            Descriptor::Boolean => true,
+            Descriptor::Void => unreachable!(),
+        }
     }
 }
 

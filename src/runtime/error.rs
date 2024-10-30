@@ -21,19 +21,26 @@ impl fmt::Debug for Error {
 #[derive(Debug)]
 pub enum NativeError {
     ClassNotFound,
+
     ErrorClassNotThrowable,
+
+    InvalidArrayType,
     InvalidBranchPosition,
     InvalidDescriptor,
     InvalidJar,
+
     ReadError,
+
     VTableLookupFailed,
+
     WrongArgCount,
     WrongArgType,
     WrongObjectClass,
     WrongReturnType,
     WrongValueType,
 
-    ArrayIndexOutOfBoundsException,
+    ArrayStoreException,
+    NegativeArraySizeException,
 }
 
 impl From<ClassFileError> for Error {

@@ -275,6 +275,10 @@ impl Class {
         self.0.super_class
     }
 
+    pub fn array_value_type(self) -> Option<Descriptor> {
+        self.0.array_value_type
+    }
+
     pub fn static_method_vtable(&self) -> Ref<VTable<(JvmString, MethodDescriptor)>> {
         Ref::map(self.0.method_data.borrow(), |data| {
             &data.as_ref().unwrap().static_method_vtable
@@ -334,6 +338,30 @@ impl Class {
             true
         } else {
             self.has_super_class(checked_class)
+        }
+    }
+
+    /// Check if this class has a superclass with the given name (or if it has the given name).
+    pub fn matches_class_name(self, checked_class_name: JvmString) -> bool {
+        let mut current_class = Some(self);
+        while let Some(some_class) = current_class {
+            if some_class.name() == checked_class_name {
+                return true;
+            }
+
+            current_class = some_class.super_class();
+        }
+
+        return false;
+    }
+
+    pub fn matches_descriptor(self, descriptor: Descriptor) -> bool {
+        match descriptor {
+            Descriptor::Class(class_name) => self.matches_class_name(class_name),
+            Descriptor::Array(inner_descriptor) => {
+                self.array_value_type() == Some(*inner_descriptor)
+            }
+            _ => unreachable!(),
         }
     }
 

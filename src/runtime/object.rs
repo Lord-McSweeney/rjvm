@@ -8,6 +8,8 @@ use super::value::{Value, ValueType};
 use crate::gc::{Gc, GcCtx, Trace};
 use crate::string::JvmString;
 
+use std::cell::Cell;
+
 #[derive(Clone, Copy, Debug)]
 pub struct Object(Gc<ObjectData>);
 
@@ -27,7 +29,7 @@ impl Object {
     pub fn byte_array(context: Context, chars: &[u8]) -> Self {
         let value_list = chars
             .iter()
-            .map(|b| Value::Integer(*b as i32))
+            .map(|b| Cell::new(Value::Integer(*b as i32)))
             .collect::<Vec<_>>();
 
         Self(Gc::new(
@@ -44,7 +46,7 @@ impl Object {
     pub fn char_array(context: Context, chars: &[u16]) -> Self {
         let value_list = chars
             .iter()
-            .map(|b| Value::Integer(*b as i32))
+            .map(|b| Cell::new(Value::Integer(*b as i32)))
             .collect::<Vec<_>>();
 
         Self(Gc::new(
@@ -56,6 +58,13 @@ impl Object {
                 data: FieldOrArrayData::Array(value_list.into_boxed_slice()),
             },
         ))
+    }
+
+    pub fn is_array(self) -> bool {
+        match &self.0.data {
+            FieldOrArrayData::Fields(_) => false,
+            FieldOrArrayData::Array(_) => true,
+        }
     }
 
     pub fn class(self) -> Class {
@@ -94,7 +103,7 @@ impl Object {
         match &self.0.data {
             FieldOrArrayData::Fields(_) => panic!("Cannot get index of object"),
             FieldOrArrayData::Array(data) => {
-                let value = data[idx];
+                let value = data[idx].get();
                 let Value::Integer(byte) = value else {
                     unreachable!();
                 };
@@ -108,7 +117,7 @@ impl Object {
         match &self.0.data {
             FieldOrArrayData::Fields(_) => panic!("Cannot get index of object"),
             FieldOrArrayData::Array(data) => {
-                let value = data[idx];
+                let value = data[idx].get();
                 let Value::Integer(character) = value else {
                     unreachable!();
                 };
@@ -122,13 +131,20 @@ impl Object {
         match &self.0.data {
             FieldOrArrayData::Fields(_) => panic!("Cannot get index of object"),
             FieldOrArrayData::Array(data) => {
-                let value = data[idx];
+                let value = data[idx].get();
                 let Value::Object(obj) = value else {
                     unreachable!();
                 };
 
                 obj
             }
+        }
+    }
+
+    pub fn get_array_data(&self) -> &[Cell<Value>] {
+        match &self.0.data {
+            FieldOrArrayData::Fields(_) => panic!("Cannot get array data of object"),
+            FieldOrArrayData::Array(data) => &data,
         }
     }
 
@@ -176,7 +192,7 @@ impl Trace for ObjectData {
 #[derive(Debug)]
 enum FieldOrArrayData {
     Fields(Box<[Field]>),
-    Array(Box<[Value]>),
+    Array(Box<[Cell<Value>]>),
 }
 
 impl Trace for FieldOrArrayData {

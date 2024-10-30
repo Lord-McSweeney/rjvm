@@ -2,6 +2,7 @@ use super::class::Class;
 use super::descriptor::{Descriptor, MethodDescriptor};
 use super::error::{Error, NativeError};
 use super::native_impl::{self, NativeMethod};
+use super::value::Value;
 
 use crate::classfile::class::ClassFile;
 use crate::gc::{Gc, GcCtx, Trace};
@@ -86,6 +87,25 @@ impl Context {
                 native_impl::stdout_write,
             );
         }
+
+        // java/lang/System : static void arraycopy(Object, int, Object, int, int)
+        {
+            let system_name = JvmString::new(self.gc_ctx, "java/lang/System".to_string());
+
+            let method_name = JvmString::new(self.gc_ctx, "arraycopy".to_string());
+
+            let descriptor_name = JvmString::new(
+                self.gc_ctx,
+                "(Ljava/lang/Object;ILjava/lang/Object;II)V".to_string(),
+            );
+            let descriptor = MethodDescriptor::from_string(self.gc_ctx, descriptor_name)
+                .expect("Valid descriptor");
+
+            self.native_mapping.borrow_mut().insert(
+                (system_name, method_name, descriptor),
+                native_impl::array_copy,
+            );
+        }
     }
 
     pub fn get_native_method(
@@ -152,6 +172,40 @@ impl Context {
     pub fn add_linked_jar(self, jar: Jar) {
         self.jar_files.borrow_mut().push(jar);
     }
+
+    pub fn null_pointer_exception(&self) -> Error {
+        let exception_class = self
+            .lookup_class(self.common.java_lang_null_pointer_exception)
+            .expect("NullPointerException class should exist");
+
+        let exception_instance = exception_class.new_instance(self.gc_ctx);
+        exception_instance
+            .call_construct(
+                *self,
+                self.common.noargs_void_desc,
+                &[Value::Object(Some(exception_instance))],
+            )
+            .expect("Exception class should construct");
+
+        Error::Java(exception_instance)
+    }
+
+    pub fn array_index_oob_exception(&self) -> Error {
+        let exception_class = self
+            .lookup_class(self.common.java_lang_array_index_oob_exception)
+            .expect("ArrayIndexOutOfBoundsException class should exist");
+
+        let exception_instance = exception_class.new_instance(self.gc_ctx);
+        exception_instance
+            .call_construct(
+                *self,
+                self.common.noargs_void_desc,
+                &[Value::Object(Some(exception_instance))],
+            )
+            .expect("Exception class should construct");
+
+        Error::Java(exception_instance)
+    }
 }
 
 impl Trace for Context {
@@ -173,6 +227,7 @@ pub struct CommonData {
     pub java_lang_object: JvmString,
     pub java_lang_string: JvmString,
     pub java_lang_throwable: JvmString,
+    pub java_lang_array_index_oob_exception: JvmString,
     pub java_lang_null_pointer_exception: JvmString,
     pub array_byte_desc: JvmString,
     pub array_char_desc: JvmString,
@@ -199,6 +254,10 @@ impl CommonData {
             java_lang_object: JvmString::new(gc_ctx, "java/lang/Object".to_string()),
             java_lang_string: JvmString::new(gc_ctx, "java/lang/String".to_string()),
             java_lang_throwable: JvmString::new(gc_ctx, "java/lang/Throwable".to_string()),
+            java_lang_array_index_oob_exception: JvmString::new(
+                gc_ctx,
+                "java/lang/ArrayIndexOutOfBoundsException".to_string(),
+            ),
             java_lang_null_pointer_exception: JvmString::new(
                 gc_ctx,
                 "java/lang/NullPointerException".to_string(),
@@ -218,6 +277,7 @@ impl Trace for CommonData {
         self.java_lang_object.trace();
         self.java_lang_string.trace();
         self.java_lang_throwable.trace();
+        self.java_lang_array_index_oob_exception.trace();
         self.java_lang_null_pointer_exception.trace();
         self.array_byte_desc.trace();
         self.array_char_desc.trace();
