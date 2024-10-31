@@ -10,6 +10,7 @@ const CLASS: u8 = 7;
 const STRING: u8 = 8;
 const FIELD_REF: u8 = 9;
 const METHOD_REF: u8 = 10;
+const INTERFACE_METHOD_REF: u8 = 11;
 const NAME_AND_TYPE: u8 = 12;
 
 pub struct ConstantPool {
@@ -43,6 +44,10 @@ impl ConstantPool {
                     name_and_type_idx,
                 }
                 | ConstantPoolEntry::MethodRef {
+                    class_idx,
+                    name_and_type_idx,
+                }
+                | ConstantPoolEntry::InterfaceMethodRef {
                     class_idx,
                     name_and_type_idx,
                 } => {
@@ -177,6 +182,10 @@ pub enum ConstantPoolEntry {
         class_idx: u16,
         name_and_type_idx: u16,
     },
+    InterfaceMethodRef {
+        class_idx: u16,
+        name_and_type_idx: u16,
+    },
     NameAndType {
         name_idx: u16,
         descriptor_idx: u16,
@@ -192,6 +201,7 @@ impl ConstantPoolEntry {
             ConstantPoolEntry::String { .. } => STRING,
             ConstantPoolEntry::FieldRef { .. } => FIELD_REF,
             ConstantPoolEntry::MethodRef { .. } => METHOD_REF,
+            ConstantPoolEntry::InterfaceMethodRef { .. } => INTERFACE_METHOD_REF,
             ConstantPoolEntry::NameAndType { .. } => NAME_AND_TYPE,
         }
     }
@@ -249,6 +259,15 @@ fn read_constant_pool_entry(
             let name_and_type_idx = data.read_u16()?;
 
             Ok(ConstantPoolEntry::MethodRef {
+                class_idx,
+                name_and_type_idx,
+            })
+        }
+        INTERFACE_METHOD_REF => {
+            let class_idx = data.read_u16()?;
+            let name_and_type_idx = data.read_u16()?;
+
+            Ok(ConstantPoolEntry::InterfaceMethodRef {
                 class_idx,
                 name_and_type_idx,
             })
