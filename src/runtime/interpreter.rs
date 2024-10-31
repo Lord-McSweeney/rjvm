@@ -73,18 +73,18 @@ impl Interpreter {
         exceptions: &[Exception],
     ) -> Result<Option<Value>, Error> {
         while self.ip < ops.len() {
-            let op = ops[self.ip];
+            let op = &ops[self.ip];
             let control_flow = match op {
                 Op::AConstNull => self.op_a_const_null(),
-                Op::IConst(val) => self.op_i_const(val),
-                Op::Ldc(constant_pool_entry) => self.op_ldc(constant_pool_entry),
-                Op::ILoad(index) => self.op_i_load(index),
-                Op::ALoad(index) => self.op_a_load(index),
+                Op::IConst(val) => self.op_i_const(*val),
+                Op::Ldc(constant_pool_entry) => self.op_ldc(*constant_pool_entry),
+                Op::ILoad(index) => self.op_i_load(*index),
+                Op::ALoad(index) => self.op_a_load(*index),
                 Op::IaLoad => self.op_ia_load(),
                 Op::AaLoad => self.op_aa_load(),
                 Op::BaLoad => self.op_ba_load(),
-                Op::IStore(index) => self.op_i_store(index),
-                Op::AStore(index) => self.op_a_store(index),
+                Op::IStore(index) => self.op_i_store(*index),
+                Op::AStore(index) => self.op_a_store(*index),
                 Op::CaStore => self.op_ca_store(),
                 Op::Dup => self.op_dup(),
                 Op::IAdd => self.op_i_add(),
@@ -92,39 +92,42 @@ impl Interpreter {
                 Op::IDiv => self.op_i_div(),
                 Op::IRem => self.op_i_rem(),
                 Op::INeg => self.op_i_neg(),
-                Op::IInc(index, amount) => self.op_i_inc(index, amount),
+                Op::IInc(index, amount) => self.op_i_inc(*index, *amount),
                 Op::I2C => self.op_i2c(),
-                Op::IfEq(position) => self.op_if_eq(position),
-                Op::IfNe(position) => self.op_if_ne(position),
-                Op::IfLt(position) => self.op_if_lt(position),
-                Op::IfGe(position) => self.op_if_ge(position),
-                Op::IfLe(position) => self.op_if_le(position),
-                Op::IfICmpNe(position) => self.op_if_i_cmp_ne(position),
-                Op::IfICmpGe(position) => self.op_if_i_cmp_ge(position),
-                Op::IfICmpGt(position) => self.op_if_i_cmp_gt(position),
-                Op::IfICmpLe(position) => self.op_if_i_cmp_le(position),
-                Op::Goto(position) => self.op_goto(position),
+                Op::IfEq(position) => self.op_if_eq(*position),
+                Op::IfNe(position) => self.op_if_ne(*position),
+                Op::IfLt(position) => self.op_if_lt(*position),
+                Op::IfGe(position) => self.op_if_ge(*position),
+                Op::IfLe(position) => self.op_if_le(*position),
+                Op::IfICmpNe(position) => self.op_if_i_cmp_ne(*position),
+                Op::IfICmpGe(position) => self.op_if_i_cmp_ge(*position),
+                Op::IfICmpGt(position) => self.op_if_i_cmp_gt(*position),
+                Op::IfICmpLe(position) => self.op_if_i_cmp_le(*position),
+                Op::Goto(position) => self.op_goto(*position),
+                Op::LookupSwitch(matches, default_offset) => {
+                    self.op_lookup_switch(&**matches, *default_offset)
+                }
                 Op::IReturn => self.op_i_return(),
                 Op::AReturn => self.op_a_return(),
                 Op::Return => Ok(ControlFlow::Return(None)),
                 Op::GetStatic(class, static_field_idx) => {
-                    self.op_get_static(class, static_field_idx)
+                    self.op_get_static(*class, *static_field_idx)
                 }
                 Op::PutStatic(class, static_field_idx) => {
-                    self.op_put_static(class, static_field_idx)
+                    self.op_put_static(*class, *static_field_idx)
                 }
-                Op::GetField(class, field_idx) => self.op_get_field(class, field_idx),
-                Op::PutField(class, field_idx) => self.op_put_field(class, field_idx),
+                Op::GetField(class, field_idx) => self.op_get_field(*class, *field_idx),
+                Op::PutField(class, field_idx) => self.op_put_field(*class, *field_idx),
                 Op::InvokeVirtual((method_name, method_descriptor)) => {
-                    self.op_invoke_virtual(method_name, method_descriptor)
+                    self.op_invoke_virtual(*method_name, *method_descriptor)
                 }
-                Op::InvokeSpecial(class, method) => self.op_invoke_special(class, method),
-                Op::InvokeStatic(method) => self.op_invoke_static(method),
-                Op::New(class) => self.op_new(class),
-                Op::NewArray(array_type) => self.op_new_array(array_type),
+                Op::InvokeSpecial(class, method) => self.op_invoke_special(*class, *method),
+                Op::InvokeStatic(method) => self.op_invoke_static(*method),
+                Op::New(class) => self.op_new(*class),
+                Op::NewArray(array_type) => self.op_new_array(*array_type),
                 Op::ArrayLength => self.op_array_length(),
                 Op::AThrow => todo!(),
-                Op::IfNonNull(position) => self.op_if_non_null(position),
+                Op::IfNonNull(position) => self.op_if_non_null(*position),
             };
 
             match control_flow {
@@ -619,6 +622,29 @@ impl Interpreter {
 
     fn op_goto(&mut self, position: usize) -> Result<ControlFlow, Error> {
         self.ip = position;
+
+        Ok(ControlFlow::ManualContinue)
+    }
+
+    fn op_lookup_switch(
+        &mut self,
+        matches: &[(i32, usize)],
+        default_offset: usize,
+    ) -> Result<ControlFlow, Error> {
+        let value = self.stack_pop();
+        let Value::Integer(value) = value else {
+            panic!("Stack value should be of integer type");
+        };
+
+        for (matched_value, offset) in matches {
+            if value == *matched_value {
+                self.ip = *offset;
+
+                return Ok(ControlFlow::ManualContinue);
+            }
+        }
+
+        self.ip = default_offset;
 
         Ok(ControlFlow::ManualContinue)
     }

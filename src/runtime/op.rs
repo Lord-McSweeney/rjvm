@@ -11,7 +11,7 @@ use crate::string::JvmString;
 
 use std::collections::HashMap;
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub enum Op {
     AConstNull,
     IConst(i32),
@@ -42,6 +42,7 @@ pub enum Op {
     IfICmpGt(usize),
     IfICmpLe(usize),
     Goto(usize),
+    LookupSwitch(Box<[(i32, usize)]>, usize),
     IReturn,
     AReturn,
     Return,
@@ -105,6 +106,7 @@ impl Trace for Op {
             Op::IfICmpGt(_) => {}
             Op::IfICmpLe(_) => {}
             Op::Goto(_) => {}
+            Op::LookupSwitch(_, _) => {}
             Op::IReturn => {}
             Op::AReturn => {}
             Op::Return => {}
@@ -192,6 +194,7 @@ const IF_I_CMP_GE: u8 = 0xA2;
 const IF_I_CMP_GT: u8 = 0xA3;
 const IF_I_CMP_LE: u8 = 0xA4;
 const GOTO: u8 = 0xA7;
+const LOOKUP_SWITCH: u8 = 0xAB;
 const I_RETURN: u8 = 0xAC;
 const A_RETURN: u8 = 0xB0;
 const RETURN: u8 = 0xB1;
@@ -259,6 +262,17 @@ impl Op {
                     *position = *offset_to_idx_map
                         .get(position)
                         .ok_or(Error::Native(NativeError::InvalidBranchPosition))?;
+                }
+                Op::LookupSwitch(ref mut matches, default_offset) => {
+                    *default_offset = *offset_to_idx_map
+                        .get(default_offset)
+                        .ok_or(Error::Native(NativeError::InvalidBranchPosition))?;
+
+                    for (_, offset) in matches.iter_mut() {
+                        *offset = *offset_to_idx_map
+                            .get(offset)
+                            .ok_or(Error::Native(NativeError::InvalidBranchPosition))?;
+                    }
                 }
                 _ => {}
             }
@@ -400,6 +414,30 @@ impl Op {
                 let offset = data.read_u16()? as i16 as isize;
 
                 Ok(Op::Goto(((data_position as isize) + offset) as usize))
+            }
+            LOOKUP_SWITCH => {
+                let padding_bytes = (data_position + 1) % 4;
+                if padding_bytes != 0 {
+                    for _ in 0..(4 - padding_bytes) {
+                        data.read_u8()?;
+                    }
+                }
+
+                let default_offset = data.read_u32()? as i32 as isize;
+                let default_offset = ((data_position as isize) + default_offset) as usize;
+
+                let num_pairs = data.read_u32()?;
+                let mut pairs = Vec::with_capacity(num_pairs as usize);
+                for _ in 0..num_pairs {
+                    let matching_value = data.read_u32()? as i32;
+
+                    let offset = data.read_u32()? as i32 as isize;
+                    let offset = ((data_position as isize) + offset) as usize;
+
+                    pairs.push((matching_value, offset));
+                }
+
+                Ok(Op::LookupSwitch(pairs.into_boxed_slice(), default_offset))
             }
             I_RETURN => {
                 if !matches!(
