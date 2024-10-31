@@ -20,8 +20,6 @@ impl fmt::Debug for Error {
 
 #[derive(Debug)]
 pub enum NativeError {
-    ClassNotFound,
-
     ErrorClassNotThrowable,
 
     InvalidArrayType,

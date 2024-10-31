@@ -132,7 +132,7 @@ impl Context {
         } else if class_name.starts_with('[') {
             drop(class_registry);
             let array_descriptor = Descriptor::from_string(self.gc_ctx, class_name)
-                .ok_or(Error::Native(NativeError::ClassNotFound))?;
+                .ok_or(self.no_class_def_found_error())?;
 
             let created_class = Class::for_array(self, array_descriptor);
             self.register_class(created_class);
@@ -154,7 +154,7 @@ impl Context {
                 }
             }
 
-            Err(Error::Native(NativeError::ClassNotFound))
+            Err(self.no_class_def_found_error())
         }
     }
 
@@ -206,6 +206,23 @@ impl Context {
 
         Error::Java(exception_instance)
     }
+
+    pub fn no_class_def_found_error(&self) -> Error {
+        let error_class = self
+            .lookup_class(self.common.java_lang_no_class_def_found_error)
+            .expect("NoClassDefFoundError class should exist");
+
+        let error_instance = error_class.new_instance(self.gc_ctx);
+        error_instance
+            .call_construct(
+                *self,
+                self.common.noargs_void_desc,
+                &[Value::Object(Some(error_instance))],
+            )
+            .expect("Error class should construct");
+
+        Error::Java(error_instance)
+    }
 }
 
 impl Trace for Context {
@@ -227,13 +244,18 @@ pub struct CommonData {
     pub java_lang_object: JvmString,
     pub java_lang_string: JvmString,
     pub java_lang_throwable: JvmString,
+
     pub java_lang_array_index_oob_exception: JvmString,
+    pub java_lang_no_class_def_found_error: JvmString,
     pub java_lang_null_pointer_exception: JvmString,
+
     pub array_byte_desc: JvmString,
     pub array_char_desc: JvmString,
     pub array_int_desc: JvmString,
+
     pub init_name: JvmString,
     pub clinit_name: JvmString,
+
     pub noargs_void_desc: MethodDescriptor,
     pub arg_char_array_void_desc: MethodDescriptor,
 }
@@ -263,6 +285,10 @@ impl CommonData {
                 gc_ctx,
                 "java/lang/NullPointerException".to_string(),
             ),
+            java_lang_no_class_def_found_error: JvmString::new(
+                gc_ctx,
+                "java/lang/NoClassDefFoundError".to_string(),
+            ),
             array_byte_desc: JvmString::new(gc_ctx, "[B".to_string()),
             array_char_desc: JvmString::new(gc_ctx, "[C".to_string()),
             array_int_desc: JvmString::new(gc_ctx, "[I".to_string()),
@@ -279,13 +305,18 @@ impl Trace for CommonData {
         self.java_lang_object.trace();
         self.java_lang_string.trace();
         self.java_lang_throwable.trace();
+
         self.java_lang_array_index_oob_exception.trace();
+        self.java_lang_no_class_def_found_error.trace();
         self.java_lang_null_pointer_exception.trace();
+
         self.array_byte_desc.trace();
         self.array_char_desc.trace();
         self.array_int_desc.trace();
+
         self.init_name.trace();
         self.clinit_name.trace();
+
         self.noargs_void_desc.trace();
         self.arg_char_array_void_desc.trace();
     }
