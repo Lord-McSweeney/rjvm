@@ -74,6 +74,8 @@ public final class StringBuilder {
             numChars += 1;
         }
 
+        // TODO we can directly copy the chars into the data buffer without
+        // doing (1) this allocation and (2) the allocation in append(char[])
         char[] charArray = new char[numChars];
 
         while (integer > 0) {
