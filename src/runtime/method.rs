@@ -107,7 +107,7 @@ impl Method {
                 // Clone again...
                 let bytecode_method_info = BytecodeMethodInfo::from_code_data(
                     context,
-                    self.descriptor(),
+                    self,
                     self.class().unwrap(),
                     code_data.clone(),
                 )?;
@@ -265,13 +265,13 @@ impl Trace for Exception {
 impl BytecodeMethodInfo {
     pub fn from_code_data(
         context: Context,
-        descriptor: MethodDescriptor,
+        method: Method,
         class: Class,
         data: Vec<u8>,
     ) -> Result<Self, Error> {
         let mut reader = FileData::new(data);
 
-        let return_type = descriptor.return_type();
+        let return_type = method.descriptor().return_type();
 
         let class_file = class.class_file().unwrap();
         let constant_pool = class_file.constant_pool();
@@ -321,7 +321,7 @@ impl BytecodeMethodInfo {
             });
         }
 
-        verify_ops(context, &code, &exceptions)?;
+        verify_ops(context, method, &code, &exceptions)?;
 
         Ok(Self {
             max_stack,

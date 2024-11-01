@@ -1,6 +1,6 @@
 use super::context::Context;
 use super::error::{Error, NativeError};
-use super::method::Exception;
+use super::method::{Exception, Method};
 use super::op::Op;
 
 use std::collections::{HashMap, HashSet};
@@ -13,11 +13,18 @@ enum ValueType {
     Reference,
 }
 
+// The possible ways a block can be exited.
 #[derive(Debug)]
 enum BlockExits {
     // Such as for LookupSwitch. When execution is finished, the next block is
     // any of the blocks with its first op any of the given indices.
     BranchMultiple(Vec<usize>),
+
+    // Such as for exceptions. When execution is finished, the next block is any
+    // of the blocks with its first op any of the given indices or the next
+    // block in the block list, and a Reference will be pushed on the abstract
+    // interpreter's stack.
+    BranchMultipleException(Vec<usize>),
 
     // Such as for IfEq. When execution is finished, the next block is either
     // the block with its first op at the index specified or the next block in the
@@ -48,12 +55,14 @@ struct BasicBlock<'a> {
 
 pub fn verify_ops<'a>(
     context: Context,
+    method: Method,
     ops: &'a [Op],
     exceptions: &[Exception],
 ) -> Result<(), Error> {
     let blocks = collect_basic_blocks(ops, exceptions)?;
 
     // TODO: Abstract interpreter
+    validate_blocks(context, method, blocks)?;
 
     Ok(())
 }
@@ -206,30 +215,32 @@ fn collect_basic_blocks<'a>(
                 current_block_start = i + 1;
             }
             _ => {
-                let mut was_exception_branch = false;
+                let mut could_exception_branch = false;
+                let mut exception_branches = Vec::new();
                 if op.can_throw_error() {
                     for exception in exceptions {
                         if i >= exception.start && i < exception.end {
                             // This op is a branch to the exception target block.
-                            was_exception_branch = true;
+                            could_exception_branch = true;
 
-                            let block = BasicBlock {
-                                start_index: current_block_start,
-                                ops: &ops[current_block_start..i + 1],
-                                exits: BlockExits::Branch(exception.target),
-                            };
-
-                            block_list.push(block);
-
-                            current_block_start = i + 1;
-                            break;
+                            exception_branches.push(exception.target);
                         }
                     }
                 }
 
-                // If the next op is a jump target, this block ends here.
-                // This includes exception targets.
-                if !was_exception_branch {
+                if could_exception_branch {
+                    let block = BasicBlock {
+                        start_index: current_block_start,
+                        ops: &ops[current_block_start..i + 1],
+                        exits: BlockExits::BranchMultipleException(exception_branches),
+                    };
+
+                    block_list.push(block);
+
+                    current_block_start = i + 1;
+                } else {
+                    // If the next op is a jump target, this block ends here.
+                    // This includes exception targets.
                     if visited_locations.contains(&(i + 1)) {
                         let block = BasicBlock {
                             start_index: current_block_start,
@@ -255,21 +266,30 @@ fn collect_basic_blocks<'a>(
     // Now convert the op indices mentioned in BlockExits to BB indices.
     for block in block_list.iter_mut() {
         match block.exits {
-            BlockExits::BranchMultiple(ref mut branches) => {
+            BlockExits::BranchMultiple(ref mut branches)
+            | BlockExits::BranchMultipleException(ref mut branches) => {
                 for branch in branches {
                     *branch = *op_index_to_block_index_table
                         .get(branch)
-                        .expect("Op indices should map to block indices");
+                        .expect("Op index should map to valid block index");
                 }
             }
             BlockExits::Branch(ref mut branch) | BlockExits::Goto(ref mut branch) => {
                 *branch = *op_index_to_block_index_table
                     .get(branch)
-                    .expect("Op indices should map to block indices");
+                    .expect("Op index should map to valid block index");
             }
             _ => {}
         }
     }
 
     Ok(block_list)
+}
+
+fn validate_blocks<'a>(
+    context: Context,
+    method: Method,
+    blocks: Vec<BasicBlock<'a>>,
+) -> Result<(), Error> {
+    Ok(())
 }
