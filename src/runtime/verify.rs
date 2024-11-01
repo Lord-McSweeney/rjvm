@@ -1,3 +1,4 @@
+use super::context::Context;
 use super::error::{Error, NativeError};
 use super::method::Exception;
 use super::op::Op;
@@ -45,8 +46,14 @@ struct BasicBlock<'a> {
     exits: BlockExits,
 }
 
-pub fn verify_ops<'a>(ops: &'a [Op], exceptions: &[Exception]) -> Result<(), Error> {
+pub fn verify_ops<'a>(
+    context: Context,
+    ops: &'a [Op],
+    exceptions: &[Exception],
+) -> Result<(), Error> {
     let blocks = collect_basic_blocks(ops, exceptions)?;
+
+    // TODO: Abstract interpreter
 
     Ok(())
 }
@@ -134,6 +141,9 @@ fn collect_basic_blocks<'a>(
     }
 
     // Next, actually assemble the basic block list.
+    // TODO this assumes none of the branch/goto ops will be able to throw an error, is that true?
+    // Seems like the return ops can throw IllegalMonitorStateException in a compliant
+    // JVM implementation, but we don't support threading
     for (i, op) in ops.iter().enumerate() {
         match op {
             Op::IfEq(position)
@@ -196,16 +206,41 @@ fn collect_basic_blocks<'a>(
                 current_block_start = i + 1;
             }
             _ => {
-                if visited_locations.contains(&(i + 1)) {
-                    let block = BasicBlock {
-                        start_index: current_block_start,
-                        ops: &ops[current_block_start..i + 1],
-                        exits: BlockExits::NextBlock,
-                    };
+                let mut was_exception_branch = false;
+                if op.can_throw_error() {
+                    for exception in exceptions {
+                        if i >= exception.start && i < exception.end {
+                            // This op is a branch to the exception target block.
+                            was_exception_branch = true;
 
-                    block_list.push(block);
+                            let block = BasicBlock {
+                                start_index: current_block_start,
+                                ops: &ops[current_block_start..i + 1],
+                                exits: BlockExits::Branch(exception.target),
+                            };
 
-                    current_block_start = i + 1;
+                            block_list.push(block);
+
+                            current_block_start = i + 1;
+                            break;
+                        }
+                    }
+                }
+
+                // If the next op is a jump target, this block ends here.
+                // This includes exception targets.
+                if !was_exception_branch {
+                    if visited_locations.contains(&(i + 1)) {
+                        let block = BasicBlock {
+                            start_index: current_block_start,
+                            ops: &ops[current_block_start..i + 1],
+                            exits: BlockExits::NextBlock,
+                        };
+
+                        block_list.push(block);
+
+                        current_block_start = i + 1;
+                    }
                 }
             }
         }
@@ -218,7 +253,7 @@ fn collect_basic_blocks<'a>(
     }
 
     // Now convert the op indices mentioned in BlockExits to BB indices.
-    for mut block in block_list.iter_mut() {
+    for block in block_list.iter_mut() {
         match block.exits {
             BlockExits::BranchMultiple(ref mut branches) => {
                 for branch in branches {
@@ -235,8 +270,6 @@ fn collect_basic_blocks<'a>(
             _ => {}
         }
     }
-
-    // TODO: Abstract interpreter
 
     Ok(block_list)
 }

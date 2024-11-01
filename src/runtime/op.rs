@@ -648,6 +648,7 @@ impl Op {
                 | Op::InvokeVirtual(_)
                 | Op::InvokeSpecial(_, _)
                 | Op::InvokeStatic(_)
+                | Op::NewArray(_)
                 | Op::ArrayLength
                 | Op::AThrow
         )

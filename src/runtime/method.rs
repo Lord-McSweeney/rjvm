@@ -321,7 +321,7 @@ impl BytecodeMethodInfo {
             });
         }
 
-        verify_ops(&code, &exceptions)?;
+        verify_ops(context, &code, &exceptions)?;
 
         Ok(Self {
             max_stack,
