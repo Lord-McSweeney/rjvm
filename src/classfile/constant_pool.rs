@@ -160,7 +160,7 @@ impl Trace for ConstantPool {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub enum ConstantPoolEntry {
     Utf8 {
         string: JvmString,

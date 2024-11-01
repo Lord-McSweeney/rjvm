@@ -9,4 +9,5 @@ pub(crate) mod native_impl;
 pub(crate) mod object;
 pub(crate) mod op;
 pub(crate) mod value;
+pub(crate) mod verify;
 pub(crate) mod vtable;

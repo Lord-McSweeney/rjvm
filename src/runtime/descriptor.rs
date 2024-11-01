@@ -148,7 +148,7 @@ impl Trace for Descriptor {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct MethodDescriptor(Gc<MethodDescriptorData>);
 
 impl PartialEq for MethodDescriptor {
@@ -165,7 +165,7 @@ impl Hash for MethodDescriptor {
     }
 }
 
-#[derive(Eq, Hash, PartialEq)]
+#[derive(Debug, Eq, Hash, PartialEq)]
 struct MethodDescriptorData {
     args: Box<[Descriptor]>,
     return_type: Descriptor,

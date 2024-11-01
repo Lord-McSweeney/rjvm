@@ -11,7 +11,7 @@ use crate::string::JvmString;
 
 use std::collections::HashMap;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum Op {
     AConstNull,
     IConst(i32),
@@ -60,7 +60,7 @@ pub enum Op {
     IfNonNull(usize),
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub enum ArrayType {
     Boolean,
     Char,
@@ -632,5 +632,24 @@ impl Op {
             }
             other => unimplemented!("Unimplemented opcode {}", other),
         }
+    }
+
+    pub fn can_throw_error(&self) -> bool {
+        matches!(
+            self,
+            Op::IaLoad
+                | Op::AaLoad
+                | Op::BaLoad
+                | Op::CaStore
+                | Op::IDiv
+                | Op::IRem
+                | Op::GetField(_, _)
+                | Op::PutField(_, _)
+                | Op::InvokeVirtual(_)
+                | Op::InvokeSpecial(_, _)
+                | Op::InvokeStatic(_)
+                | Op::ArrayLength
+                | Op::AThrow
+        )
     }
 }

@@ -403,9 +403,13 @@ impl Interpreter {
             panic!("Stack value should be of integer type");
         };
 
-        self.stack_push(Value::Integer(int2 / int1));
+        if int1 == 0 {
+            Err(Error::Native(NativeError::ArithmeticException))
+        } else {
+            self.stack_push(Value::Integer(int2 / int1));
 
-        Ok(ControlFlow::Continue)
+            Ok(ControlFlow::Continue)
+        }
     }
 
     fn op_i_rem(&mut self) -> Result<ControlFlow, Error> {

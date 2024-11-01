@@ -6,6 +6,7 @@ use super::interpreter::Interpreter;
 use super::native_impl::NativeMethod;
 use super::op::Op;
 use super::value::Value;
+use super::verify::verify_ops;
 
 use crate::classfile::attribute::Attribute;
 use crate::classfile::flags::MethodFlags;
@@ -15,6 +16,7 @@ use crate::gc::{Gc, GcCtx, Trace};
 use crate::string::JvmString;
 
 use std::cell::{Cell, Ref, RefCell};
+use std::fmt;
 
 #[derive(Clone, Copy)]
 pub struct Method(Gc<MethodData>);
@@ -22,6 +24,14 @@ pub struct Method(Gc<MethodData>);
 impl Trace for Method {
     fn trace(&self) {
         self.0.trace();
+    }
+}
+
+impl fmt::Debug for Method {
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        f.debug_struct("Method")
+            .field("name", &self.name())
+            .finish()
     }
 }
 
@@ -180,6 +190,10 @@ impl Method {
         self.0.flags
     }
 
+    pub fn name(self) -> Option<JvmString> {
+        self.0.name
+    }
+
     pub fn class(self) -> Option<Class> {
         self.0.class
     }
@@ -306,6 +320,8 @@ impl BytecodeMethodInfo {
                 catch_class: class,
             });
         }
+
+        verify_ops(&code, &exceptions)?;
 
         Ok(Self {
             max_stack,
