@@ -4,7 +4,7 @@ use super::error::{Error, NativeError};
 use super::field::Field;
 use super::method::Method;
 use super::object::Object;
-use super::value::{Value, ValueType};
+use super::value::Value;
 use super::vtable::VTable;
 
 use crate::classfile::class::ClassFile;

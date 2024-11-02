@@ -35,11 +35,7 @@ pub enum NativeError {
     VerifyCountWrong,
     VerifyTypeWrong,
 
-    WrongArgCount,
-    WrongArgType,
-    WrongObjectClass,
     WrongReturnType,
-    WrongValueType,
 
     ArithmeticException,
     ArrayStoreException,

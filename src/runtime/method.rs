@@ -126,37 +126,9 @@ impl Method {
     }
 
     pub fn exec(self, context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
-        let descriptor = self.descriptor();
-        let descriptor_types = descriptor.args();
-        let return_type = descriptor.return_type();
+        // All checks are performed in the verifier
 
-        let maybe_receiver_included = if self.flags().contains(MethodFlags::STATIC) {
-            0
-        } else {
-            1
-        };
-
-        // Typecheck args
-        let mut args = args.to_vec();
-        if args.len() != descriptor_types.len() + maybe_receiver_included {
-            return Err(Error::Native(NativeError::WrongArgCount));
-        }
-
-        if !self.flags().contains(MethodFlags::STATIC) {
-            if !matches!(args[0], Value::Object(_)) {
-                panic!("Instance methods should have arg #0 be an object");
-            }
-        }
-
-        for (arg, descriptor_type) in args
-            .iter_mut()
-            .skip(maybe_receiver_included)
-            .zip(descriptor_types.iter())
-        {
-            *arg = arg.type_check(*descriptor_type)?;
-        }
-
-        let mut result = match &*self.0.method_info.borrow() {
+        let result = match &*self.0.method_info.borrow() {
             MethodInfo::Bytecode(bytecode_info) => {
                 let mut interpreter = Interpreter::new(context, self, args);
 
@@ -166,14 +138,6 @@ impl Method {
             MethodInfo::Native(native_method) => native_method(context, &args)?,
             MethodInfo::Empty => None,
         };
-
-        if let Some(some_result) = result {
-            result = Some(some_result.type_check(return_type)?);
-        } else {
-            if !matches!(return_type, Descriptor::Void) {
-                return Err(Error::Native(NativeError::WrongReturnType));
-            }
-        }
 
         Ok(result)
     }

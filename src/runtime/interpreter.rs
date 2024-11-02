@@ -27,7 +27,7 @@ enum ControlFlow {
 }
 
 impl Interpreter {
-    pub fn new(context: Context, method: Method, args: Vec<Value>) -> Self {
+    pub fn new(context: Context, method: Method, args: &[Value]) -> Self {
         let stack = Vec::with_capacity(method.max_stack());
         let mut local_registers = vec![Value::Object(None); method.max_locals()];
         for (i, arg) in args.iter().enumerate() {
@@ -204,10 +204,6 @@ impl Interpreter {
     fn op_i_load(&mut self, index: usize) -> Result<ControlFlow, Error> {
         let loaded = self.local_registers[index];
 
-        if !matches!(loaded, Value::Integer(_)) {
-            panic!("Local should be of integer type");
-        }
-
         self.stack_push(loaded);
 
         Ok(ControlFlow::Continue)
@@ -216,23 +212,15 @@ impl Interpreter {
     fn op_a_load(&mut self, index: usize) -> Result<ControlFlow, Error> {
         let loaded = self.local_registers[index];
 
-        if !matches!(loaded, Value::Object(_)) {
-            panic!("Local should be of reference type");
-        }
-
         self.stack_push(loaded);
 
         Ok(ControlFlow::Continue)
     }
 
     fn op_ia_load(&mut self) -> Result<ControlFlow, Error> {
-        let index = self.stack_pop();
+        let index = self.stack_pop().int();
 
-        let Value::Integer(index) = index else {
-            panic!("Stack value should be of integer type");
-        };
-
-        let array = self.stack_pop().expect_as_object();
+        let array = self.stack_pop().object();
         if let Some(array) = array {
             let length = array.array_length();
             if index < 0 || index as usize >= length {
@@ -250,13 +238,9 @@ impl Interpreter {
     }
 
     fn op_aa_load(&mut self) -> Result<ControlFlow, Error> {
-        let index = self.stack_pop();
+        let index = self.stack_pop().int();
 
-        let Value::Integer(index) = index else {
-            panic!("Stack value should be of integer type");
-        };
-
-        let array = self.stack_pop().expect_as_object();
+        let array = self.stack_pop().object();
         if let Some(array) = array {
             let length = array.array_length();
             if index < 0 || index as usize >= length {
@@ -274,13 +258,9 @@ impl Interpreter {
     }
 
     fn op_ba_load(&mut self) -> Result<ControlFlow, Error> {
-        let index = self.stack_pop();
+        let index = self.stack_pop().int();
 
-        let Value::Integer(index) = index else {
-            panic!("Stack value should be of integer type");
-        };
-
-        let array = self.stack_pop().expect_as_object();
+        let array = self.stack_pop().object();
         if let Some(array) = array {
             let length = array.array_length();
             if index < 0 || index as usize >= length {
@@ -300,10 +280,6 @@ impl Interpreter {
     fn op_i_store(&mut self, index: usize) -> Result<ControlFlow, Error> {
         let value = self.stack_pop();
 
-        if !matches!(value, Value::Integer(_)) {
-            panic!("Stack value should be of integer type");
-        }
-
         self.local_registers[index] = value;
 
         Ok(ControlFlow::Continue)
@@ -312,29 +288,16 @@ impl Interpreter {
     fn op_a_store(&mut self, index: usize) -> Result<ControlFlow, Error> {
         let value = self.stack_pop();
 
-        if !matches!(value, Value::Object(_)) {
-            panic!("Stack value should be of reference type");
-        }
-
         self.local_registers[index] = value;
 
         Ok(ControlFlow::Continue)
     }
 
     fn op_ca_store(&mut self) -> Result<ControlFlow, Error> {
-        let value = self.stack_pop();
+        let value = self.stack_pop().int();
+        let index = self.stack_pop().int();
+        let array = self.stack_pop().object();
 
-        let Value::Integer(value) = value else {
-            panic!("Stack value should be of integer type");
-        };
-
-        let index = self.stack_pop();
-
-        let Value::Integer(index) = index else {
-            panic!("Stack value should be of integer type");
-        };
-
-        let array = self.stack_pop().expect_as_object();
         if let Some(array) = array {
             let length = array.array_length();
             if index < 0 || index as usize >= length {
@@ -358,16 +321,8 @@ impl Interpreter {
     }
 
     fn op_i_add(&mut self) -> Result<ControlFlow, Error> {
-        let value1 = self.stack_pop();
-        let value2 = self.stack_pop();
-
-        let Value::Integer(int1) = value1 else {
-            panic!("Stack value should be of integer type");
-        };
-
-        let Value::Integer(int2) = value2 else {
-            panic!("Stack value should be of integer type");
-        };
+        let int1 = self.stack_pop().int();
+        let int2 = self.stack_pop().int();
 
         self.stack_push(Value::Integer(int1 + int2));
 
@@ -375,16 +330,8 @@ impl Interpreter {
     }
 
     fn op_i_sub(&mut self) -> Result<ControlFlow, Error> {
-        let value1 = self.stack_pop();
-        let value2 = self.stack_pop();
-
-        let Value::Integer(int1) = value1 else {
-            panic!("Stack value should be of integer type");
-        };
-
-        let Value::Integer(int2) = value2 else {
-            panic!("Stack value should be of integer type");
-        };
+        let int1 = self.stack_pop().int();
+        let int2 = self.stack_pop().int();
 
         self.stack_push(Value::Integer(int2 - int1));
 
@@ -392,16 +339,8 @@ impl Interpreter {
     }
 
     fn op_i_div(&mut self) -> Result<ControlFlow, Error> {
-        let value1 = self.stack_pop();
-        let value2 = self.stack_pop();
-
-        let Value::Integer(int1) = value1 else {
-            panic!("Stack value should be of integer type");
-        };
-
-        let Value::Integer(int2) = value2 else {
-            panic!("Stack value should be of integer type");
-        };
+        let int1 = self.stack_pop().int();
+        let int2 = self.stack_pop().int();
 
         if int1 == 0 {
             Err(Error::Native(NativeError::ArithmeticException))
@@ -413,16 +352,8 @@ impl Interpreter {
     }
 
     fn op_i_rem(&mut self) -> Result<ControlFlow, Error> {
-        let value1 = self.stack_pop();
-        let value2 = self.stack_pop();
-
-        let Value::Integer(int1) = value1 else {
-            panic!("Stack value should be of integer type");
-        };
-
-        let Value::Integer(int2) = value2 else {
-            panic!("Stack value should be of integer type");
-        };
+        let int1 = self.stack_pop().int();
+        let int2 = self.stack_pop().int();
 
         if int1 == 0 {
             Err(Error::Native(NativeError::ArithmeticException))
@@ -434,11 +365,7 @@ impl Interpreter {
     }
 
     fn op_i_neg(&mut self) -> Result<ControlFlow, Error> {
-        let value = self.stack_pop();
-
-        let Value::Integer(int) = value else {
-            panic!("Stack value should be of integer type");
-        };
+        let int = self.stack_pop().int();
 
         self.stack_push(Value::Integer(-int));
 
@@ -446,11 +373,7 @@ impl Interpreter {
     }
 
     fn op_i_inc(&mut self, index: usize, amount: i32) -> Result<ControlFlow, Error> {
-        let loaded = self.local_registers[index];
-
-        let Value::Integer(loaded) = loaded else {
-            panic!("Local should be of integer type");
-        };
+        let loaded = self.local_registers[index].int();
 
         self.local_registers[index] = Value::Integer(loaded + amount);
 
@@ -458,11 +381,7 @@ impl Interpreter {
     }
 
     fn op_i2c(&mut self) -> Result<ControlFlow, Error> {
-        let value = self.stack_pop();
-
-        let Value::Integer(int) = value else {
-            panic!("Stack value should be of integer type");
-        };
+        let int = self.stack_pop().int();
 
         self.stack_push(Value::Integer((int as u16) as i32));
 
@@ -470,12 +389,9 @@ impl Interpreter {
     }
 
     fn op_if_eq(&mut self, position: usize) -> Result<ControlFlow, Error> {
-        let value = self.stack_pop();
-        let Value::Integer(int) = value else {
-            panic!("Stack value should be of integer type");
-        };
+        let value = self.stack_pop().int();
 
-        if int == 0 {
+        if value == 0 {
             self.ip = position;
         } else {
             self.ip += 1;
@@ -485,12 +401,9 @@ impl Interpreter {
     }
 
     fn op_if_ne(&mut self, position: usize) -> Result<ControlFlow, Error> {
-        let value = self.stack_pop();
-        let Value::Integer(int) = value else {
-            panic!("Stack value should be of integer type");
-        };
+        let value = self.stack_pop().int();
 
-        if int != 0 {
+        if value != 0 {
             self.ip = position;
         } else {
             self.ip += 1;
@@ -500,12 +413,9 @@ impl Interpreter {
     }
 
     fn op_if_lt(&mut self, position: usize) -> Result<ControlFlow, Error> {
-        let value = self.stack_pop();
-        let Value::Integer(int) = value else {
-            panic!("Stack value should be of integer type");
-        };
+        let value = self.stack_pop().int();
 
-        if int < 0 {
+        if value < 0 {
             self.ip = position;
         } else {
             self.ip += 1;
@@ -515,12 +425,9 @@ impl Interpreter {
     }
 
     fn op_if_ge(&mut self, position: usize) -> Result<ControlFlow, Error> {
-        let value = self.stack_pop();
-        let Value::Integer(int) = value else {
-            panic!("Stack value should be of integer type");
-        };
+        let value = self.stack_pop().int();
 
-        if int >= 0 {
+        if value >= 0 {
             self.ip = position;
         } else {
             self.ip += 1;
@@ -530,12 +437,9 @@ impl Interpreter {
     }
 
     fn op_if_le(&mut self, position: usize) -> Result<ControlFlow, Error> {
-        let value = self.stack_pop();
-        let Value::Integer(int) = value else {
-            panic!("Stack value should be of integer type");
-        };
+        let value = self.stack_pop().int();
 
-        if int <= 0 {
+        if value <= 0 {
             self.ip = position;
         } else {
             self.ip += 1;
@@ -545,15 +449,8 @@ impl Interpreter {
     }
 
     fn op_if_i_cmp_ne(&mut self, position: usize) -> Result<ControlFlow, Error> {
-        let value1 = self.stack_pop();
-        let Value::Integer(int1) = value1 else {
-            panic!("Stack value should be of integer type");
-        };
-
-        let value2 = self.stack_pop();
-        let Value::Integer(int2) = value2 else {
-            panic!("Stack value should be of integer type");
-        };
+        let int1 = self.stack_pop().int();
+        let int2 = self.stack_pop().int();
 
         if int2 != int1 {
             self.ip = position;
@@ -565,15 +462,8 @@ impl Interpreter {
     }
 
     fn op_if_i_cmp_ge(&mut self, position: usize) -> Result<ControlFlow, Error> {
-        let value1 = self.stack_pop();
-        let Value::Integer(int1) = value1 else {
-            panic!("Stack value should be of integer type");
-        };
-
-        let value2 = self.stack_pop();
-        let Value::Integer(int2) = value2 else {
-            panic!("Stack value should be of integer type");
-        };
+        let int1 = self.stack_pop().int();
+        let int2 = self.stack_pop().int();
 
         if int2 >= int1 {
             self.ip = position;
@@ -585,15 +475,8 @@ impl Interpreter {
     }
 
     fn op_if_i_cmp_gt(&mut self, position: usize) -> Result<ControlFlow, Error> {
-        let value1 = self.stack_pop();
-        let Value::Integer(int1) = value1 else {
-            panic!("Stack value should be of integer type");
-        };
-
-        let value2 = self.stack_pop();
-        let Value::Integer(int2) = value2 else {
-            panic!("Stack value should be of integer type");
-        };
+        let int1 = self.stack_pop().int();
+        let int2 = self.stack_pop().int();
 
         if int2 > int1 {
             self.ip = position;
@@ -605,15 +488,8 @@ impl Interpreter {
     }
 
     fn op_if_i_cmp_le(&mut self, position: usize) -> Result<ControlFlow, Error> {
-        let value1 = self.stack_pop();
-        let Value::Integer(int1) = value1 else {
-            panic!("Stack value should be of integer type");
-        };
-
-        let value2 = self.stack_pop();
-        let Value::Integer(int2) = value2 else {
-            panic!("Stack value should be of integer type");
-        };
+        let int1 = self.stack_pop().int();
+        let int2 = self.stack_pop().int();
 
         if int2 <= int1 {
             self.ip = position;
@@ -635,10 +511,7 @@ impl Interpreter {
         matches: &[(i32, usize)],
         default_offset: usize,
     ) -> Result<ControlFlow, Error> {
-        let value = self.stack_pop();
-        let Value::Integer(value) = value else {
-            panic!("Stack value should be of integer type");
-        };
+        let value = self.stack_pop().int();
 
         for (matched_value, offset) in matches {
             if value == *matched_value {
@@ -655,20 +528,14 @@ impl Interpreter {
 
     fn op_i_return(&mut self) -> Result<ControlFlow, Error> {
         let value = self.stack_pop();
-        let Value::Integer(value) = value else {
-            panic!("Stack value should be of integer type");
-        };
 
-        Ok(ControlFlow::Return(Some(Value::Integer(value))))
+        Ok(ControlFlow::Return(Some(value)))
     }
 
     fn op_a_return(&mut self) -> Result<ControlFlow, Error> {
         let value = self.stack_pop();
-        let Value::Object(value) = value else {
-            panic!("Stack value should be of reference type");
-        };
 
-        Ok(ControlFlow::Return(Some(Value::Object(value))))
+        Ok(ControlFlow::Return(Some(value)))
     }
 
     fn op_get_static(
@@ -698,14 +565,14 @@ impl Interpreter {
     }
 
     fn op_get_field(&mut self, class: Class, field_idx: usize) -> Result<ControlFlow, Error> {
-        let object = self.stack_pop();
-        if !object.is_of_class(class) {
-            // TODO verify this in verifier
-            panic!("Object on stack was of wrong Class");
-        }
+        let object = self.stack_pop().object();
 
-        let object = object.expect_as_object();
         if let Some(object) = object {
+            if !object.is_of_class(class) {
+                // TODO verify this in verifier
+                panic!("Object on stack was of wrong Class");
+            }
+
             self.stack_push(object.get_field(field_idx));
 
             Ok(ControlFlow::Continue)
@@ -717,14 +584,14 @@ impl Interpreter {
     fn op_put_field(&mut self, class: Class, field_idx: usize) -> Result<ControlFlow, Error> {
         let value = self.stack_pop();
 
-        let object = self.stack_pop();
-        if !object.is_of_class(class) {
-            // TODO verify this in verifier
-            panic!("Object on stack was of wrong Class");
-        }
+        let object = self.stack_pop().object();
 
-        let object = object.expect_as_object();
         if let Some(object) = object {
+            if !object.is_of_class(class) {
+                // TODO verify this in verifier
+                panic!("Object on stack was of wrong Class");
+            }
+
             object.set_field(field_idx, value);
 
             Ok(ControlFlow::Continue)
@@ -740,11 +607,10 @@ impl Interpreter {
     ) -> Result<ControlFlow, Error> {
         let mut args = vec![Value::Object(None); method_descriptor.args().len() + 1];
         for arg in args.iter_mut().skip(1).rev() {
-            // TODO: Long and Double arguments require two pops
             *arg = self.stack_pop();
         }
 
-        let receiver = self.stack_pop().expect_as_object();
+        let receiver = self.stack_pop().object();
 
         if let Some(receiver) = receiver {
             let receiver_class = receiver.class();
@@ -770,28 +636,27 @@ impl Interpreter {
     fn op_invoke_special(&mut self, class: Class, method: Method) -> Result<ControlFlow, Error> {
         let mut args = vec![Value::Object(None); method.arg_count() + 1];
         for arg in args.iter_mut().skip(1).rev() {
-            // TODO: Long and Double arguments require two pops
             *arg = self.stack_pop();
         }
 
-        let receiver = self.stack_pop();
-        if !receiver.is_of_class(class) {
-            // TODO verify this in verifier
-            panic!("Object on stack was of wrong Class");
+        let receiver = self.stack_pop().object();
+        if let Some(receiver) = receiver {
+            if !receiver.is_of_class(class) {
+                // TODO verify this in verifier
+                panic!("Object on stack was of wrong Class");
+            }
+
+            args[0] = Value::Object(Some(receiver));
+
+            let result = method.exec(self.context, &args)?;
+            if let Some(result) = result {
+                self.stack_push(result);
+            }
+
+            Ok(ControlFlow::Continue)
+        } else {
+            Err(self.context.null_pointer_exception())
         }
-
-        if matches!(receiver, Value::Object(None)) {
-            return Err(self.context.null_pointer_exception());
-        }
-
-        args[0] = receiver;
-
-        let result = method.exec(self.context, &args)?;
-        if let Some(result) = result {
-            self.stack_push(result);
-        }
-
-        Ok(ControlFlow::Continue)
     }
 
     fn op_invoke_static(&mut self, method: Method) -> Result<ControlFlow, Error> {
@@ -818,10 +683,7 @@ impl Interpreter {
     }
 
     fn op_new_array(&mut self, array_type: ArrayType) -> Result<ControlFlow, Error> {
-        let array_length = self.stack_pop();
-        let Value::Integer(array_length) = array_length else {
-            panic!("Stack value should be of integer type");
-        };
+        let array_length = self.stack_pop().int();
 
         if array_length < 0 {
             return Err(Error::Native(NativeError::NegativeArraySizeException));
@@ -849,7 +711,7 @@ impl Interpreter {
     }
 
     fn op_array_length(&mut self) -> Result<ControlFlow, Error> {
-        let object = self.stack_pop().expect_as_object();
+        let object = self.stack_pop().object();
 
         if let Some(object) = object {
             let length = object.array_length();
@@ -863,10 +725,7 @@ impl Interpreter {
     }
 
     fn op_if_non_null(&mut self, position: usize) -> Result<ControlFlow, Error> {
-        let value = self.stack_pop();
-        let Value::Object(obj) = value else {
-            panic!("Stack value should be of reference type");
-        };
+        let obj = self.stack_pop().object();
 
         if obj.is_some() {
             self.ip = position;

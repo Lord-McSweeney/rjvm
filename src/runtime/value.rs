@@ -5,14 +5,6 @@ use super::object::Object;
 
 use crate::gc::Trace;
 
-pub enum ValueType {
-    Integer,
-    Long,
-    Float,
-    Double,
-    Reference,
-}
-
 #[derive(Clone, Copy, Debug)]
 pub enum Value {
     Integer(i32),
@@ -23,57 +15,17 @@ pub enum Value {
 }
 
 impl Value {
-    pub fn type_check(self, descriptor: Descriptor) -> Result<Self, Error> {
+    pub fn int(self) -> i32 {
         match self {
-            Value::Integer(_) => {
-                // TODO: ...these are probably supposed to result in wrapping, aren't they
-                if !matches!(
-                    descriptor,
-                    Descriptor::Boolean
-                        | Descriptor::Byte
-                        | Descriptor::Character
-                        | Descriptor::Short
-                        | Descriptor::Integer
-                ) {
-                    return Err(Error::Native(NativeError::WrongArgType));
-                }
-            }
-            Value::Long(_) => {
-                if !matches!(descriptor, Descriptor::Long) {
-                    return Err(Error::Native(NativeError::WrongArgType));
-                }
-            }
-            Value::Float(_) => {
-                if !matches!(descriptor, Descriptor::Float) {
-                    return Err(Error::Native(NativeError::WrongArgType));
-                }
-            }
-            Value::Double(_) => {
-                if !matches!(descriptor, Descriptor::Double) {
-                    return Err(Error::Native(NativeError::WrongArgType));
-                }
-            }
-            Value::Object(_) => {
-                if !matches!(descriptor, Descriptor::Class(_) | Descriptor::Array(_)) {
-                    return Err(Error::Native(NativeError::WrongArgType));
-                }
-            }
+            Value::Integer(int) => int,
+            _ => panic!("Expected value to be integer"),
         }
-
-        Ok(self)
     }
 
-    pub fn expect_as_object(self) -> Option<Object> {
+    pub fn object(self) -> Option<Object> {
         match self {
             Value::Object(object) => object,
             _ => panic!("Expected value to be object"),
-        }
-    }
-
-    pub fn is_of_class(self, class: Class) -> bool {
-        match self {
-            Value::Object(object) => object.map_or(true, |obj| obj.class().matches_class(class)),
-            _ => false,
         }
     }
 }

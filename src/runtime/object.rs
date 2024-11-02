@@ -3,7 +3,7 @@ use super::context::Context;
 use super::descriptor::MethodDescriptor;
 use super::error::{Error, NativeError};
 use super::field::Field;
-use super::value::{Value, ValueType};
+use super::value::Value;
 
 use crate::gc::{Gc, GcCtx, Trace};
 use crate::string::JvmString;
@@ -75,6 +75,10 @@ impl Object {
                 data: FieldOrArrayData::Array(value_list.into_boxed_slice()),
             },
         ))
+    }
+
+    pub fn is_of_class(self, class: Class) -> bool {
+        self.class().matches_class(class)
     }
 
     pub fn is_array(self) -> bool {

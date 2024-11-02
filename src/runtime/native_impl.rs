@@ -10,8 +10,8 @@ pub type NativeMethod = for<'a> fn(Context, &[Value]) -> Result<Option<Value>, E
 // java/lang/PrintStream : static byte[] stringToUtf8(String)
 pub fn string_to_utf8(context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
     // Expecting non-null object
-    let string_object = args[0].expect_as_object().unwrap();
-    let char_array = string_object.get_field(0).expect_as_object().unwrap();
+    let string_object = args[0].object().unwrap();
+    let char_array = string_object.get_field(0).object().unwrap();
 
     let length = char_array.array_length();
     let mut chars_vec = Vec::with_capacity(length);
@@ -30,11 +30,7 @@ pub fn string_to_utf8(context: Context, args: &[Value]) -> Result<Option<Value>,
 // java/lang/StdoutStream : void write(int)
 pub fn stdout_write(context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
     // Expecting integer in args[1]; args[0] is the reciever
-    let Value::Integer(byte) = args[1] else {
-        unreachable!();
-    };
-
-    let byte = byte as u8;
+    let byte = args[1].int() as u8;
 
     io::stdout().write(&[byte]).unwrap();
 
@@ -43,27 +39,21 @@ pub fn stdout_write(context: Context, args: &[Value]) -> Result<Option<Value>, E
 
 // java/lang/System: static void arraycopy(Object, int, Object, int, int)
 pub fn array_copy(context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
-    let source_arr = args[0].expect_as_object();
+    let source_arr = args[0].object();
     let Some(source_arr) = source_arr else {
         return Err(context.null_pointer_exception());
     };
 
-    let Value::Integer(source_start) = args[1] else {
-        unreachable!();
-    };
+    let source_start = args[1].int();
 
-    let dest_arr = args[2].expect_as_object();
+    let dest_arr = args[2].object();
     let Some(dest_arr) = dest_arr else {
         return Err(context.null_pointer_exception());
     };
 
-    let Value::Integer(dest_start) = args[3] else {
-        unreachable!();
-    };
+    let dest_start = args[3].int();
 
-    let Value::Integer(length) = args[4] else {
-        unreachable!();
-    };
+    let length = args[4].int();
 
     if source_start < 0 || dest_start < 0 || length < 0 {
         return Err(context.array_index_oob_exception());
