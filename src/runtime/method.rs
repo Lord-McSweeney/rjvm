@@ -201,14 +201,14 @@ impl Method {
     pub fn max_stack(self) -> usize {
         match &*self.0.method_info.borrow() {
             MethodInfo::Bytecode(bytecode_info) => bytecode_info.max_stack as usize,
-            _ => 0,
+            _ => panic!("Should not call max_stack for non-Bytecode method info"),
         }
     }
 
     pub fn max_locals(self) -> usize {
         match &*self.0.method_info.borrow() {
             MethodInfo::Bytecode(bytecode_info) => bytecode_info.max_locals as usize,
-            _ => 0,
+            _ => panic!("Should not call max_locals for non-Bytecode method info"),
         }
     }
 }
@@ -321,7 +321,14 @@ impl BytecodeMethodInfo {
             });
         }
 
-        verify_ops(context, method, &code, &exceptions)?;
+        verify_ops(
+            context,
+            method,
+            max_stack as usize,
+            max_locals as usize,
+            &code,
+            &exceptions,
+        )?;
 
         Ok(Self {
             max_stack,

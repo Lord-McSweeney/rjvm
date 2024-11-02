@@ -32,6 +32,8 @@ pub enum NativeError {
     VTableLookupFailed,
 
     CodeFellOffMethod,
+    VerifyCountWrong,
+    VerifyTypeWrong,
 
     WrongArgCount,
     WrongArgType,

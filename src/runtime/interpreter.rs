@@ -700,6 +700,7 @@ impl Interpreter {
     fn op_get_field(&mut self, class: Class, field_idx: usize) -> Result<ControlFlow, Error> {
         let object = self.stack_pop();
         if !object.is_of_class(class) {
+            // TODO verify this in verifier
             panic!("Object on stack was of wrong Class");
         }
 
@@ -718,6 +719,7 @@ impl Interpreter {
 
         let object = self.stack_pop();
         if !object.is_of_class(class) {
+            // TODO verify this in verifier
             panic!("Object on stack was of wrong Class");
         }
 
@@ -774,6 +776,7 @@ impl Interpreter {
 
         let receiver = self.stack_pop();
         if !receiver.is_of_class(class) {
+            // TODO verify this in verifier
             panic!("Object on stack was of wrong Class");
         }
 
