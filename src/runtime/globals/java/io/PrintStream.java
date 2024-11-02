@@ -9,6 +9,11 @@ public class PrintStream extends FilterOutputStream {
         this.out = out;
     }
 
+    public void print(int integer) {
+        String stringified = Integer.toString(integer);
+        this.print(stringified);
+    }
+
     public void print(String string) {
         try {
             if (string == null) {
@@ -21,9 +26,20 @@ public class PrintStream extends FilterOutputStream {
         } catch (IOException e) { }
     }
 
+    void printNewline() {
+        try {
+            this.out.write((byte) '\n');
+        } catch (IOException e) { }
+    }
+
+    public void println(int i) {
+        this.print(i);
+        this.printNewline();
+    }
+
     public void println(String string) {
         this.print(string);
-        this.print("\n");
+        this.printNewline();
     }
 
     // TODO implement this with proper Charset decoding

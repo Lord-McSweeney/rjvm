@@ -156,6 +156,7 @@ const S_I_PUSH: u8 = 0x11;
 const LDC: u8 = 0x12;
 const I_LOAD: u8 = 0x15;
 const A_LOAD: u8 = 0x19;
+const I_LOAD_0: u8 = 0x1A;
 const I_LOAD_1: u8 = 0x1B;
 const I_LOAD_2: u8 = 0x1C;
 const I_LOAD_3: u8 = 0x1D;
@@ -168,6 +169,7 @@ const AA_LOAD: u8 = 0x32;
 const BA_LOAD: u8 = 0x33;
 const I_STORE: u8 = 0x36;
 const A_STORE: u8 = 0x3A;
+const I_STORE_0: u8 = 0x3B;
 const I_STORE_1: u8 = 0x3C;
 const I_STORE_2: u8 = 0x3D;
 const I_STORE_3: u8 = 0x3E;
@@ -324,6 +326,7 @@ impl Op {
 
                 Ok(Op::ALoad(local_idx as usize))
             }
+            I_LOAD_0 => Ok(Op::ILoad(0)),
             I_LOAD_1 => Ok(Op::ILoad(1)),
             I_LOAD_2 => Ok(Op::ILoad(2)),
             I_LOAD_3 => Ok(Op::ILoad(3)),
@@ -344,6 +347,7 @@ impl Op {
 
                 Ok(Op::AStore(local_idx as usize))
             }
+            I_STORE_0 => Ok(Op::IStore(0)),
             I_STORE_1 => Ok(Op::IStore(1)),
             I_STORE_2 => Ok(Op::IStore(2)),
             I_STORE_3 => Ok(Op::IStore(3)),

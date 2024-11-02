@@ -30,66 +30,8 @@ public final class StringBuilder {
     }
 
     public StringBuilder append(int integer) {
-        if (integer == -2147483648) {
-            return this.append("-2147483648");
-        }
-
-        if (integer == 0) {
-            // TODO append a char instead of string when it gets implemented
-            return this.append("0");
-        }
-
-        boolean isNegative;
-        if (integer < 0) {
-            isNegative = true;
-            integer = -integer;
-        } else {
-            isNegative = false;
-        }
-
-        int numChars;
-        if (integer < 10) {
-            numChars = 1;
-        } else if (integer < 100) {
-            numChars = 2;
-        } else if (integer < 1000) {
-            numChars = 3;
-        } else if (integer < 10000) {
-            numChars = 4;
-        } else if (integer < 100000) {
-            numChars = 5;
-        } else if (integer < 1000000) {
-            numChars = 6;
-        } else if (integer < 10000000) {
-            numChars = 7;
-        } else if (integer < 100000000) {
-            numChars = 8;
-        } else if (integer < 1000000000) {
-            numChars = 9;
-        } else {
-            numChars = 10;
-        }
-
-        if (isNegative) {
-            numChars += 1;
-        }
-
-        // TODO we can directly copy the chars into the data buffer without
-        // doing (1) this allocation and (2) the allocation in append(char[])
-        char[] charArray = new char[numChars];
-
-        while (integer > 0) {
-            char digit = (char) (integer % 10);
-            charArray[-- numChars] = (char) (digit + 0x30);
-
-            integer /= 10;
-        }
-
-        if (isNegative) {
-            charArray[0] = '-';
-        }
-
-        return this.append(charArray);
+        String stringified = Integer.toString(integer);
+        return this.append(stringified);
     }
 
     public String toString() {
