@@ -1,3 +1,3 @@
 package java.util;
 
-public class AbstractCollection<E> { }
+public class AbstractCollection<E> implements Collection<E> { }

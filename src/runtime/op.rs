@@ -24,6 +24,7 @@ pub enum Op {
     IStore(usize),
     AStore(usize),
     CaStore,
+    Pop,
     Dup,
     IAdd,
     ISub,
@@ -41,6 +42,7 @@ pub enum Op {
     IfICmpGe(usize),
     IfICmpGt(usize),
     IfICmpLe(usize),
+    IfACmpNe(usize),
     Goto(usize),
     LookupSwitch(Box<[(i32, usize)]>, usize),
     IReturn,
@@ -88,6 +90,7 @@ impl Trace for Op {
             Op::IStore(_) => {}
             Op::AStore(_) => {}
             Op::CaStore => {}
+            Op::Pop => {}
             Op::Dup => {}
             Op::IAdd => {}
             Op::ISub => {}
@@ -105,6 +108,7 @@ impl Trace for Op {
             Op::IfICmpGe(_) => {}
             Op::IfICmpGt(_) => {}
             Op::IfICmpLe(_) => {}
+            Op::IfACmpNe(_) => {}
             Op::Goto(_) => {}
             Op::LookupSwitch(_, _) => {}
             Op::IReturn => {}
@@ -178,6 +182,7 @@ const A_STORE_1: u8 = 0x4C;
 const A_STORE_2: u8 = 0x4D;
 const A_STORE_3: u8 = 0x4E;
 const CA_STORE: u8 = 0x55;
+const POP: u8 = 0x57;
 const DUP: u8 = 0x59;
 const I_ADD: u8 = 0x60;
 const I_SUB: u8 = 0x64;
@@ -195,6 +200,7 @@ const IF_I_CMP_NE: u8 = 0xA0;
 const IF_I_CMP_GE: u8 = 0xA2;
 const IF_I_CMP_GT: u8 = 0xA3;
 const IF_I_CMP_LE: u8 = 0xA4;
+const IF_A_CMP_NE: u8 = 0xA6;
 const GOTO: u8 = 0xA7;
 const LOOKUP_SWITCH: u8 = 0xAB;
 const I_RETURN: u8 = 0xAC;
@@ -259,6 +265,7 @@ impl Op {
                 | Op::IfICmpGe(position)
                 | Op::IfICmpGt(position)
                 | Op::IfICmpLe(position)
+                | Op::IfACmpNe(position)
                 | Op::Goto(position)
                 | Op::IfNonNull(position) => {
                     *position = *offset_to_idx_map
@@ -356,6 +363,7 @@ impl Op {
             A_STORE_2 => Ok(Op::AStore(2)),
             A_STORE_3 => Ok(Op::AStore(3)),
             CA_STORE => Ok(Op::CaStore),
+            POP => Ok(Op::Pop),
             DUP => Ok(Op::Dup),
             I_ADD => Ok(Op::IAdd),
             I_SUB => Ok(Op::ISub),
@@ -413,6 +421,11 @@ impl Op {
                 let offset = data.read_u16()? as i16 as isize;
 
                 Ok(Op::IfICmpLe(((data_position as isize) + offset) as usize))
+            }
+            IF_A_CMP_NE => {
+                let offset = data.read_u16()? as i16 as isize;
+
+                Ok(Op::IfACmpNe(((data_position as isize) + offset) as usize))
             }
             GOTO => {
                 let offset = data.read_u16()? as i16 as isize;

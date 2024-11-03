@@ -77,6 +77,10 @@ impl Object {
         ))
     }
 
+    pub fn ptr_eq(self, other: Self) -> bool {
+        Gc::ptr_eq(self.0, other.0)
+    }
+
     pub fn is_of_class(self, class: Class) -> bool {
         self.class().matches_class(class)
     }

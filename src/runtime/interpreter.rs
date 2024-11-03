@@ -86,6 +86,7 @@ impl Interpreter {
                 Op::IStore(index) => self.op_i_store(*index),
                 Op::AStore(index) => self.op_a_store(*index),
                 Op::CaStore => self.op_ca_store(),
+                Op::Pop => self.op_pop(),
                 Op::Dup => self.op_dup(),
                 Op::IAdd => self.op_i_add(),
                 Op::ISub => self.op_i_sub(),
@@ -103,6 +104,7 @@ impl Interpreter {
                 Op::IfICmpGe(position) => self.op_if_i_cmp_ge(*position),
                 Op::IfICmpGt(position) => self.op_if_i_cmp_gt(*position),
                 Op::IfICmpLe(position) => self.op_if_i_cmp_le(*position),
+                Op::IfACmpNe(position) => self.op_if_a_cmp_ne(*position),
                 Op::Goto(position) => self.op_goto(*position),
                 Op::LookupSwitch(matches, default_offset) => {
                     self.op_lookup_switch(&**matches, *default_offset)
@@ -312,6 +314,12 @@ impl Interpreter {
         }
     }
 
+    fn op_pop(&mut self) -> Result<ControlFlow, Error> {
+        self.stack_pop();
+
+        Ok(ControlFlow::Continue)
+    }
+
     fn op_dup(&mut self) -> Result<ControlFlow, Error> {
         let value = self.stack_pop();
         self.stack_push(value);
@@ -495,6 +503,19 @@ impl Interpreter {
             self.ip = position;
         } else {
             self.ip += 1;
+        }
+
+        Ok(ControlFlow::ManualContinue)
+    }
+
+    fn op_if_a_cmp_ne(&mut self, position: usize) -> Result<ControlFlow, Error> {
+        let obj1 = self.stack_pop().object();
+        let obj2 = self.stack_pop().object();
+
+        match (obj1, obj2) {
+            (None, None) => self.ip = position,
+            (Some(obj1), Some(obj2)) if obj1.ptr_eq(obj2) => self.ip = position,
+            _ => self.ip += 1,
         }
 
         Ok(ControlFlow::ManualContinue)
