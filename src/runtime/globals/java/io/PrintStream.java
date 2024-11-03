@@ -9,6 +9,14 @@ public class PrintStream extends FilterOutputStream {
         this.out = out;
     }
 
+    public void print(boolean b) {
+        if (b) {
+            this.print("true");
+        } else {
+            this.print("false");
+        }
+    }
+
     public void print(int integer) {
         String stringified = Integer.toString(integer);
         this.print(stringified);
@@ -30,6 +38,11 @@ public class PrintStream extends FilterOutputStream {
         try {
             this.out.write((byte) '\n');
         } catch (IOException e) { }
+    }
+
+    public void println(boolean b) {
+        this.print(b);
+        this.printNewline();
     }
 
     public void println(int i) {
