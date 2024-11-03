@@ -128,7 +128,7 @@ impl Interpreter {
                 Op::New(class) => self.op_new(*class),
                 Op::NewArray(array_type) => self.op_new_array(*array_type),
                 Op::ArrayLength => self.op_array_length(),
-                Op::AThrow => todo!(),
+                Op::AThrow => self.op_a_throw(),
                 Op::CheckCast(class) => self.op_check_cast(*class),
                 Op::InstanceOf(class) => self.op_instance_of(*class),
                 Op::IfNonNull(position) => self.op_if_non_null(*position),
@@ -742,6 +742,27 @@ impl Interpreter {
             self.stack_push(Value::Integer(length as i32));
 
             Ok(ControlFlow::Continue)
+        } else {
+            Err(self.context.null_pointer_exception())
+        }
+    }
+
+    fn op_a_throw(&mut self) -> Result<ControlFlow, Error> {
+        let object = self.stack_pop().object();
+
+        if let Some(object) = object {
+            let throwable_class_name = self.context.common.java_lang_throwable;
+            let throwable_class = self
+                .context
+                .lookup_class(throwable_class_name)
+                .expect("Throwable class should exist");
+
+            // TODO do this verification in the verifier
+            if !object.is_of_class(throwable_class) {
+                panic!("Class of object on stack should extend or be Throwable");
+            }
+
+            Err(Error::Java(object))
         } else {
             Err(self.context.null_pointer_exception())
         }

@@ -303,13 +303,13 @@ impl CommonData {
                 gc_ctx,
                 "java/lang/ClassCastException".to_string(),
             ),
-            java_lang_null_pointer_exception: JvmString::new(
-                gc_ctx,
-                "java/lang/NullPointerException".to_string(),
-            ),
             java_lang_no_class_def_found_error: JvmString::new(
                 gc_ctx,
                 "java/lang/NoClassDefFoundError".to_string(),
+            ),
+            java_lang_null_pointer_exception: JvmString::new(
+                gc_ctx,
+                "java/lang/NullPointerException".to_string(),
             ),
             array_byte_desc: JvmString::new(gc_ctx, "[B".to_string()),
             array_char_desc: JvmString::new(gc_ctx, "[C".to_string()),
