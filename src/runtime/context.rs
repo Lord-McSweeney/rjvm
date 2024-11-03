@@ -173,10 +173,10 @@ impl Context {
         self.jar_files.borrow_mut().push(jar);
     }
 
-    pub fn null_pointer_exception(&self) -> Error {
+    pub fn array_index_oob_exception(&self) -> Error {
         let exception_class = self
-            .lookup_class(self.common.java_lang_null_pointer_exception)
-            .expect("NullPointerException class should exist");
+            .lookup_class(self.common.java_lang_array_index_oob_exception)
+            .expect("ArrayIndexOutOfBoundsException class should exist");
 
         let exception_instance = exception_class.new_instance(self.gc_ctx);
         exception_instance
@@ -190,10 +190,10 @@ impl Context {
         Error::Java(exception_instance)
     }
 
-    pub fn array_index_oob_exception(&self) -> Error {
+    pub fn class_cast_exception(&self) -> Error {
         let exception_class = self
-            .lookup_class(self.common.java_lang_array_index_oob_exception)
-            .expect("ArrayIndexOutOfBoundsException class should exist");
+            .lookup_class(self.common.java_lang_class_cast_exception)
+            .expect("ClassCastException class should exist");
 
         let exception_instance = exception_class.new_instance(self.gc_ctx);
         exception_instance
@@ -223,6 +223,23 @@ impl Context {
 
         Error::Java(error_instance)
     }
+
+    pub fn null_pointer_exception(&self) -> Error {
+        let exception_class = self
+            .lookup_class(self.common.java_lang_null_pointer_exception)
+            .expect("NullPointerException class should exist");
+
+        let exception_instance = exception_class.new_instance(self.gc_ctx);
+        exception_instance
+            .call_construct(
+                *self,
+                self.common.noargs_void_desc,
+                &[Value::Object(Some(exception_instance))],
+            )
+            .expect("Exception class should construct");
+
+        Error::Java(exception_instance)
+    }
 }
 
 impl Trace for Context {
@@ -246,6 +263,7 @@ pub struct CommonData {
     pub java_lang_throwable: JvmString,
 
     pub java_lang_array_index_oob_exception: JvmString,
+    pub java_lang_class_cast_exception: JvmString,
     pub java_lang_no_class_def_found_error: JvmString,
     pub java_lang_null_pointer_exception: JvmString,
 
@@ -281,6 +299,10 @@ impl CommonData {
                 gc_ctx,
                 "java/lang/ArrayIndexOutOfBoundsException".to_string(),
             ),
+            java_lang_class_cast_exception: JvmString::new(
+                gc_ctx,
+                "java/lang/ClassCastException".to_string(),
+            ),
             java_lang_null_pointer_exception: JvmString::new(
                 gc_ctx,
                 "java/lang/NullPointerException".to_string(),
@@ -307,6 +329,7 @@ impl Trace for CommonData {
         self.java_lang_throwable.trace();
 
         self.java_lang_array_index_oob_exception.trace();
+        self.java_lang_class_cast_exception.trace();
         self.java_lang_no_class_def_found_error.trace();
         self.java_lang_null_pointer_exception.trace();
 

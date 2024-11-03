@@ -397,7 +397,10 @@ impl Class {
     }
 
     pub fn implements_interface(self, checked_interface: Class) -> bool {
-        self.0.all_interfaces.iter().any(|i| *i == checked_interface)
+        self.0
+            .all_interfaces
+            .iter()
+            .any(|i| *i == checked_interface)
     }
 
     /// Check if this class has a superclass with the given name (or if it has the given name).

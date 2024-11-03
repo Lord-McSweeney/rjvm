@@ -59,6 +59,7 @@ pub enum Op {
     NewArray(ArrayType),
     ArrayLength,
     AThrow,
+    CheckCast(Class),
     InstanceOf(Class),
     IfNonNull(usize),
 }
@@ -144,6 +145,9 @@ impl Trace for Op {
             Op::NewArray(_) => {}
             Op::ArrayLength => {}
             Op::AThrow => {}
+            Op::CheckCast(class) => {
+                class.trace();
+            }
             Op::InstanceOf(class) => {
                 class.trace();
             }
@@ -221,6 +225,7 @@ const NEW: u8 = 0xBB;
 const NEW_ARRAY: u8 = 0xBC;
 const ARRAY_LENGTH: u8 = 0xBE;
 const A_THROW: u8 = 0xBF;
+const CHECK_CAST: u8 = 0xC0;
 const INSTANCE_OF: u8 = 0xC1;
 const IF_NON_NULL: u8 = 0xC7;
 
@@ -647,6 +652,14 @@ impl Op {
             }
             ARRAY_LENGTH => Ok(Op::ArrayLength),
             A_THROW => Ok(Op::AThrow),
+            CHECK_CAST => {
+                let class_idx = data.read_u16()?;
+                let class_name = constant_pool.get_class(class_idx)?;
+
+                let class = context.lookup_class(class_name)?;
+
+                Ok(Op::CheckCast(class))
+            }
             INSTANCE_OF => {
                 let class_idx = data.read_u16()?;
                 let class_name = constant_pool.get_class(class_idx)?;
@@ -681,6 +694,7 @@ impl Op {
                 | Op::NewArray(_)
                 | Op::ArrayLength
                 | Op::AThrow
+                | Op::CheckCast(_)
         )
     }
 }

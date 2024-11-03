@@ -824,6 +824,10 @@ fn verify_block<'a>(
             Op::AThrow => {
                 expect_pop_stack!(Reference);
             }
+            Op::CheckCast(_) => {
+                expect_pop_stack!(Reference);
+                push_stack!(Reference);
+            }
             Op::InstanceOf(_) => {
                 expect_pop_stack!(Reference);
                 push_stack!(Integer);
