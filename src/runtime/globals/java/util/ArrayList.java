@@ -1,6 +1,6 @@
 package java.util;
 
-public class ArrayList<E> extends AbstractList<E> {
+public class ArrayList<E> extends AbstractList<E> implements List<E> {
     public ArrayList() {
         super();
     }
