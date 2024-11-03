@@ -114,6 +114,10 @@ impl ClassFile {
         self.0.super_class
     }
 
+    pub fn interfaces(&self) -> &[JvmString] {
+        &self.0.interfaces
+    }
+
     pub fn fields(&self) -> &[Field] {
         &self.0.fields
     }

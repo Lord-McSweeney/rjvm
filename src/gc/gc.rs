@@ -139,6 +139,10 @@ impl<T> Gc<T> {
         this.ptr.as_ptr() == other.ptr.as_ptr()
     }
 
+    pub fn as_ptr(this: Self) -> *const T {
+        unsafe { this.ptr.as_ref().value.as_ptr() }
+    }
+
     fn erased(&self) -> Gc<()> {
         let ptr = self.ptr.as_ptr() as *mut GcBox<()>;
 

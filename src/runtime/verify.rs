@@ -494,7 +494,9 @@ fn verify_block<'a>(
                 expect_pop_stack!(Reference);
             }
             Op::Pop => {
-                stack.pop().ok_or(Error::Native(NativeError::VerifyCountWrong))?;
+                stack
+                    .pop()
+                    .ok_or(Error::Native(NativeError::VerifyCountWrong))?;
             }
             Op::Dup => {
                 let value = stack

@@ -13,7 +13,9 @@ use crate::gc::{Gc, GcCtx, Trace};
 use crate::string::JvmString;
 
 use std::cell::{Ref, RefCell};
+use std::collections::HashSet;
 use std::fmt;
+use std::hash::{Hash, Hasher};
 
 #[derive(Clone, Copy)]
 pub struct Class(Gc<ClassData>);
@@ -25,6 +27,13 @@ struct ClassData {
     name: JvmString,
 
     super_class: Option<Class>,
+
+    // The interfaces that this class directly implements.
+    own_interfaces: Box<[Class]>,
+
+    // All the interfaces that this class implements, including those implemented
+    // by subclasses.
+    all_interfaces: Box<[Class]>,
 
     // If this class represents an array (T[]), the descriptor of the value type of the array.
     array_value_type: Option<Descriptor>,
@@ -63,6 +72,39 @@ impl Class {
             .map(|name| context.lookup_class(name))
             .transpose()?;
 
+        let mut own_interfaces = Vec::new();
+        for interface in class_file.interfaces() {
+            // Hopefully we won't get a class that tries to implement itself as an interface
+            let class = context.lookup_class(*interface)?;
+            if !class.is_interface() {
+                return Err(Error::Native(NativeError::ClassNotInterface));
+            }
+
+            own_interfaces.push(class);
+        }
+
+        let mut all_interfaces = HashSet::new();
+        let mut class_queue: Vec<Class> = Vec::with_capacity(own_interfaces.len() + 2);
+
+        for interface in &own_interfaces {
+            class_queue.push(*interface);
+        }
+        if let Some(super_class) = super_class {
+            class_queue.push(super_class);
+        }
+
+        while let Some(class) = class_queue.pop() {
+            for interface in class.own_interfaces() {
+                if all_interfaces.insert(*interface) {
+                    class_queue.push(*interface);
+                }
+            }
+
+            if let Some(super_class) = class.super_class() {
+                class_queue.push(super_class);
+            }
+        }
+
         let fields = class_file.fields();
 
         let mut static_field_names = Vec::with_capacity(fields.len());
@@ -100,6 +142,9 @@ impl Class {
                 flags: class_file.flags(),
                 name,
                 super_class,
+
+                own_interfaces: own_interfaces.into_boxed_slice(),
+                all_interfaces: all_interfaces.iter().map(|c| *c).collect::<Box<[_]>>(),
 
                 array_value_type: None,
 
@@ -211,6 +256,9 @@ impl Class {
                 name: object_class_name,
                 super_class: None,
 
+                own_interfaces: Box::new([]),
+                all_interfaces: Box::new([]),
+
                 array_value_type: None,
 
                 static_field_vtable: VTable::empty(context.gc_ctx),
@@ -247,6 +295,9 @@ impl Class {
                 name: JvmString::new(context.gc_ctx, array_descriptor.to_string()),
                 super_class: Some(object_class),
 
+                own_interfaces: Box::new([]),
+                all_interfaces: Box::new([]),
+
                 array_value_type: Some(array_descriptor.array_inner_descriptor().unwrap()),
 
                 static_field_vtable: VTable::empty(context.gc_ctx),
@@ -273,6 +324,10 @@ impl Class {
 
     pub fn super_class(self) -> Option<Class> {
         self.0.super_class
+    }
+
+    pub fn own_interfaces(&self) -> &[Class] {
+        &self.0.own_interfaces
     }
 
     pub fn array_value_type(self) -> Option<Descriptor> {
@@ -387,6 +442,20 @@ impl Class {
         let method = self.static_methods()[method_idx];
 
         method.exec(context, args)
+    }
+}
+
+impl PartialEq for Class {
+    fn eq(&self, other: &Self) -> bool {
+        Gc::as_ptr(self.0) == Gc::as_ptr(other.0)
+    }
+}
+
+impl Eq for Class {}
+
+impl Hash for Class {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        Gc::as_ptr(self.0).hash(state);
     }
 }
 
