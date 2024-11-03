@@ -129,6 +129,7 @@ impl Interpreter {
                 Op::NewArray(array_type) => self.op_new_array(*array_type),
                 Op::ArrayLength => self.op_array_length(),
                 Op::AThrow => todo!(),
+                Op::InstanceOf(class) => self.op_instance_of(*class),
                 Op::IfNonNull(position) => self.op_if_non_null(*position),
             };
 
@@ -743,6 +744,26 @@ impl Interpreter {
         } else {
             Err(self.context.null_pointer_exception())
         }
+    }
+
+    fn op_instance_of(&mut self, class: Class) -> Result<ControlFlow, Error> {
+        let obj = self.stack_pop().object();
+
+        // TODO: Special rules around handling arrays; currently, we have all
+        // arrays extend Object, so only Object and the array class itself
+        // will pass these tests. See JVMS 6.5.
+
+        if let Some(obj) = obj {
+            if obj.is_of_class(class) || obj.implements_interface(class) {
+                self.stack_push(Value::Integer(1));
+            } else {
+                self.stack_push(Value::Integer(0));
+            }
+        } else {
+            self.stack_push(Value::Integer(0));
+        }
+
+        Ok(ControlFlow::Continue)
     }
 
     fn op_if_non_null(&mut self, position: usize) -> Result<ControlFlow, Error> {

@@ -85,6 +85,10 @@ impl Object {
         self.class().matches_class(class)
     }
 
+    pub fn implements_interface(self, interface: Class) -> bool {
+        self.class().implements_interface(interface)
+    }
+
     pub fn is_array(self) -> bool {
         match &self.0.data {
             FieldOrArrayData::Fields(_) => false,
