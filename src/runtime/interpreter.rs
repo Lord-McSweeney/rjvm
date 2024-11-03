@@ -353,7 +353,7 @@ impl Interpreter {
         let int2 = self.stack_pop().int();
 
         if int1 == 0 {
-            Err(Error::Native(NativeError::ArithmeticException))
+            Err(self.context.arithmetic_exception())
         } else {
             self.stack_push(Value::Integer(int2 / int1));
 
@@ -366,7 +366,7 @@ impl Interpreter {
         let int2 = self.stack_pop().int();
 
         if int1 == 0 {
-            Err(Error::Native(NativeError::ArithmeticException))
+            Err(self.context.arithmetic_exception())
         } else {
             self.stack_push(Value::Integer(int2 % int1));
 

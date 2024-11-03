@@ -38,7 +38,6 @@ pub enum NativeError {
 
     WrongReturnType,
 
-    ArithmeticException,
     ArrayStoreException,
     NegativeArraySizeException,
 }
