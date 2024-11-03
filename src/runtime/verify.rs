@@ -239,6 +239,17 @@ fn collect_basic_blocks<'a>(
                     block_list.push(block);
 
                     current_block_start = i + 1;
+                } else if matches!(op, Op::AThrow) {
+                    // AThrow without an exception around it must return.
+                    let block = BasicBlock {
+                        start_index: current_block_start,
+                        ops: &ops[current_block_start..i + 1],
+                        exits: BlockExits::Return,
+                    };
+
+                    block_list.push(block);
+
+                    current_block_start = i + 1;
                 } else {
                     // If the next op is a jump target, this block ends here.
                     // This includes exception targets.
