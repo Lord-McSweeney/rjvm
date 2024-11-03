@@ -144,7 +144,7 @@ impl Class {
                 super_class,
 
                 own_interfaces: own_interfaces.into_boxed_slice(),
-                all_interfaces: all_interfaces.iter().map(|c| *c).collect::<Box<[_]>>(),
+                all_interfaces: all_interfaces.iter().copied().collect::<Box<[_]>>(),
 
                 array_value_type: None,
 

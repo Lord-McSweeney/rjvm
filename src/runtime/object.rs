@@ -192,7 +192,7 @@ impl Object {
     pub fn get_array_data(&self) -> &[Cell<Value>] {
         match &self.0.data {
             FieldOrArrayData::Fields(_) => panic!("Cannot get array data of object"),
-            FieldOrArrayData::Array(data) => &data,
+            FieldOrArrayData::Array(data) => data,
         }
     }
 

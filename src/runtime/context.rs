@@ -231,7 +231,7 @@ impl Trace for Context {
         self.jar_files.trace();
         self.class_registry.borrow().trace();
 
-        for (k, _) in &*self.native_mapping.borrow() {
+        for k in self.native_mapping.borrow().keys() {
             k.0.trace();
             k.1.trace();
             k.2.trace();

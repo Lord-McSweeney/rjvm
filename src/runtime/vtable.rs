@@ -10,7 +10,7 @@ pub struct VTable<T>(Gc<VTableData<T>>);
 // Clone and Copy can't be #[derive]d here, see https://github.com/rust-lang/rust/issues/26925
 impl<T> Clone for VTable<T> {
     fn clone(&self) -> Self {
-        Self(self.0)
+        *self
     }
 }
 
