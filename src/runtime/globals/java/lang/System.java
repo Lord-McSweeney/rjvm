@@ -13,6 +13,11 @@ public final class System {
 
     public static native void arraycopy(Object src, int srcPos, Object dest, int destPos, int length);
 
+    public static String getProperty(String propName) {
+        // TODO implement
+        return null;
+    }
+
     static {
         out = new PrintStream(new StdoutStream());
     }

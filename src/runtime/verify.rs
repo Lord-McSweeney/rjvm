@@ -104,6 +104,7 @@ fn collect_basic_blocks<'a>(
                 | Op::IfICmpGt(position)
                 | Op::IfICmpLe(position)
                 | Op::IfACmpNe(position)
+                | Op::IfNull(position)
                 | Op::IfNonNull(position) => {
                     if !visited_locations.contains(position) {
                         visited_locations.insert(*position);
@@ -163,6 +164,7 @@ fn collect_basic_blocks<'a>(
             | Op::IfICmpGt(position)
             | Op::IfICmpLe(position)
             | Op::IfACmpNe(position)
+            | Op::IfNull(position)
             | Op::IfNonNull(position) => {
                 let block = BasicBlock {
                     start_index: current_block_start,
@@ -900,6 +902,9 @@ fn verify_block<'a>(
             Op::InstanceOf(_) => {
                 expect_pop_stack!(Reference);
                 push_stack!(Integer);
+            }
+            Op::IfNull(_) => {
+                expect_pop_stack!(Reference);
             }
             Op::IfNonNull(_) => {
                 expect_pop_stack!(Reference);

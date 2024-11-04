@@ -60,4 +60,9 @@ public class Integer extends Number {
 
         return new String(charArray);
     }
+
+    public static int parseInt(String string) {
+        // TODO implement
+        return 0;
+    }
 }

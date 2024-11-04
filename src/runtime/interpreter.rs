@@ -135,6 +135,7 @@ impl Interpreter {
                 Op::AThrow => self.op_a_throw(),
                 Op::CheckCast(class) => self.op_check_cast(*class),
                 Op::InstanceOf(class) => self.op_instance_of(*class),
+                Op::IfNull(position) => self.op_if_null(*position),
                 Op::IfNonNull(position) => self.op_if_non_null(*position),
             };
 
@@ -854,6 +855,18 @@ impl Interpreter {
         }
 
         Ok(ControlFlow::Continue)
+    }
+
+    fn op_if_null(&mut self, position: usize) -> Result<ControlFlow, Error> {
+        let obj = self.stack_pop().object();
+
+        if obj.is_none() {
+            self.ip = position;
+        } else {
+            self.ip += 1;
+        }
+
+        Ok(ControlFlow::ManualContinue)
     }
 
     fn op_if_non_null(&mut self, position: usize) -> Result<ControlFlow, Error> {

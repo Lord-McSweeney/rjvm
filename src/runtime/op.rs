@@ -63,6 +63,7 @@ pub enum Op {
     AThrow,
     CheckCast(Class),
     InstanceOf(Class),
+    IfNull(usize),
     IfNonNull(usize),
 }
 
@@ -159,12 +160,14 @@ impl Trace for Op {
             Op::InstanceOf(class) => {
                 class.trace();
             }
+            Op::IfNull(_) => {}
             Op::IfNonNull(_) => {}
         }
     }
 }
 
 const A_CONST_NULL: u8 = 0x01;
+const I_CONST_M1: u8 = 0x02;
 const I_CONST_0: u8 = 0x03;
 const I_CONST_1: u8 = 0x04;
 const I_CONST_2: u8 = 0x05;
@@ -237,6 +240,7 @@ const ARRAY_LENGTH: u8 = 0xBE;
 const A_THROW: u8 = 0xBF;
 const CHECK_CAST: u8 = 0xC0;
 const INSTANCE_OF: u8 = 0xC1;
+const IF_NULL: u8 = 0xC6;
 const IF_NON_NULL: u8 = 0xC7;
 
 impl Op {
@@ -288,6 +292,7 @@ impl Op {
                 | Op::IfICmpLe(position)
                 | Op::IfACmpNe(position)
                 | Op::Goto(position)
+                | Op::IfNull(position)
                 | Op::IfNonNull(position) => {
                     *position = *offset_to_idx_map
                         .get(position)
@@ -322,6 +327,7 @@ impl Op {
         let opcode = data.read_u8()?;
         match opcode {
             A_CONST_NULL => Ok(Op::AConstNull),
+            I_CONST_M1 => Ok(Op::IConst(-1)),
             I_CONST_0 => Ok(Op::IConst(0)),
             I_CONST_1 => Ok(Op::IConst(1)),
             I_CONST_2 => Ok(Op::IConst(2)),
@@ -704,6 +710,11 @@ impl Op {
                 let class = context.lookup_class(class_name)?;
 
                 Ok(Op::InstanceOf(class))
+            }
+            IF_NULL => {
+                let offset = data.read_u16()? as i16 as isize;
+
+                Ok(Op::IfNull(((data_position as isize) + offset) as usize))
             }
             IF_NON_NULL => {
                 let offset = data.read_u16()? as i16 as isize;

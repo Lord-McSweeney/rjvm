@@ -3,6 +3,7 @@ use super::descriptor::Descriptor;
 use crate::gc::{Gc, GcCtx, Trace};
 
 use std::collections::HashMap;
+use std::fmt::Debug;
 use std::hash::Hash;
 
 pub struct VTable<T>(Gc<VTableData<T>>);
@@ -16,7 +17,7 @@ impl<T> Clone for VTable<T> {
 
 impl<T> Copy for VTable<T> {}
 
-impl<T: Copy + Eq + Hash> VTable<T> {
+impl<T: Copy + Debug + Eq + Hash> VTable<T> {
     pub fn empty(gc_ctx: GcCtx) -> Self {
         Self(Gc::new(
             gc_ctx,
