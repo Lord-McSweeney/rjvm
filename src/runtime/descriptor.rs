@@ -83,8 +83,9 @@ impl Descriptor {
     pub fn default_value(self) -> Value {
         match self {
             Descriptor::Class(_) | Descriptor::Array(_) => Value::Object(None),
-            Descriptor::Boolean => Value::Integer(0),
+            Descriptor::Byte => Value::Integer(0),
             Descriptor::Integer => Value::Integer(0),
+            Descriptor::Boolean => Value::Integer(0),
             _ => unimplemented!(),
         }
     }
