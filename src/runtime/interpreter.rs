@@ -91,6 +91,7 @@ impl Interpreter {
                 Op::Dup => self.op_dup(),
                 Op::IAdd => self.op_i_add(),
                 Op::ISub => self.op_i_sub(),
+                Op::IMul => self.op_i_mul(),
                 Op::IDiv => self.op_i_div(),
                 Op::IRem => self.op_i_rem(),
                 Op::INeg => self.op_i_neg(),
@@ -103,6 +104,7 @@ impl Interpreter {
                 Op::IfLe(position) => self.op_if_le(*position),
                 Op::IfICmpEq(position) => self.op_if_i_cmp_eq(*position),
                 Op::IfICmpNe(position) => self.op_if_i_cmp_ne(*position),
+                Op::IfICmpLt(position) => self.op_if_i_cmp_lt(*position),
                 Op::IfICmpGe(position) => self.op_if_i_cmp_ge(*position),
                 Op::IfICmpGt(position) => self.op_if_i_cmp_gt(*position),
                 Op::IfICmpLe(position) => self.op_if_i_cmp_le(*position),
@@ -374,6 +376,15 @@ impl Interpreter {
         Ok(ControlFlow::Continue)
     }
 
+    fn op_i_mul(&mut self) -> Result<ControlFlow, Error> {
+        let int1 = self.stack_pop().int();
+        let int2 = self.stack_pop().int();
+
+        self.stack_push(Value::Integer(int1 * int2));
+
+        Ok(ControlFlow::Continue)
+    }
+
     fn op_i_div(&mut self) -> Result<ControlFlow, Error> {
         let int1 = self.stack_pop().int();
         let int2 = self.stack_pop().int();
@@ -502,6 +513,19 @@ impl Interpreter {
         let int2 = self.stack_pop().int();
 
         if int2 != int1 {
+            self.ip = position;
+        } else {
+            self.ip += 1;
+        }
+
+        Ok(ControlFlow::ManualContinue)
+    }
+
+    fn op_if_i_cmp_lt(&mut self, position: usize) -> Result<ControlFlow, Error> {
+        let int1 = self.stack_pop().int();
+        let int2 = self.stack_pop().int();
+
+        if int2 < int1 {
             self.ip = position;
         } else {
             self.ip += 1;

@@ -100,6 +100,7 @@ fn collect_basic_blocks<'a>(
                 | Op::IfLe(position)
                 | Op::IfICmpEq(position)
                 | Op::IfICmpNe(position)
+                | Op::IfICmpLt(position)
                 | Op::IfICmpGe(position)
                 | Op::IfICmpGt(position)
                 | Op::IfICmpLe(position)
@@ -160,6 +161,7 @@ fn collect_basic_blocks<'a>(
             | Op::IfLe(position)
             | Op::IfICmpEq(position)
             | Op::IfICmpNe(position)
+            | Op::IfICmpLt(position)
             | Op::IfICmpGe(position)
             | Op::IfICmpGt(position)
             | Op::IfICmpLe(position)
@@ -528,7 +530,7 @@ fn verify_block<'a>(
                     return Err(Error::Native(NativeError::VerifyCountWrong));
                 }
             }
-            Op::IAdd | Op::ISub | Op::IDiv | Op::IRem => {
+            Op::IAdd | Op::ISub | Op::IMul | Op::IDiv | Op::IRem => {
                 expect_pop_stack!(Integer);
                 expect_pop_stack!(Integer);
                 push_stack!(Integer);
@@ -549,6 +551,7 @@ fn verify_block<'a>(
             }
             Op::IfICmpEq(_)
             | Op::IfICmpNe(_)
+            | Op::IfICmpLt(_)
             | Op::IfICmpGe(_)
             | Op::IfICmpGt(_)
             | Op::IfICmpLe(_) => {
