@@ -24,6 +24,11 @@ public final class String {
         System.arraycopy(this.data, srcBegin, dst, dstBegin, srcEnd - srcBegin);
     }
 
+    public static String format(String self, Object... args) {
+        // TODO implement
+        return self;
+    }
+
     public int length() {
         return this.data.length;
     }
