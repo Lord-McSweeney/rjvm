@@ -1,5 +1,5 @@
 use super::context::Context;
-use super::descriptor::{Descriptor, MethodDescriptor};
+use super::descriptor::{Descriptor, MethodDescriptor, ResolvedDescriptor};
 use super::error::{Error, NativeError};
 use super::field::Field;
 use super::method::Method;
@@ -36,7 +36,7 @@ struct ClassData {
     all_interfaces: Box<[Class]>,
 
     // If this class represents an array (T[]), the descriptor of the value type of the array.
-    array_value_type: Option<Descriptor>,
+    array_value_type: Option<ResolvedDescriptor>,
 
     static_field_vtable: VTable<(JvmString, Descriptor)>,
     static_fields: Box<[Field]>,
@@ -271,7 +271,7 @@ impl Class {
         ))
     }
 
-    pub fn for_array(context: Context, array_descriptor: Descriptor) -> Self {
+    pub fn for_array(context: Context, array_type: ResolvedDescriptor) -> Self {
         let object_class_name = context.common.java_lang_object;
         let object_class = context
             .lookup_class(object_class_name)
@@ -287,18 +287,22 @@ impl Class {
             instance_methods: instance_methods.clone(),
         };
 
+        let mut name = String::with_capacity(8);
+        name.push('[');
+        name.push_str(&array_type.to_string());
+
         Self(Gc::new(
             context.gc_ctx,
             ClassData {
                 class_file: None,
                 flags: ClassFlags::PUBLIC,
-                name: JvmString::new(context.gc_ctx, array_descriptor.to_string()),
+                name: JvmString::new(context.gc_ctx, name),
                 super_class: Some(object_class),
 
                 own_interfaces: Box::new([]),
                 all_interfaces: Box::new([]),
 
-                array_value_type: Some(array_descriptor.array_inner_descriptor().unwrap()),
+                array_value_type: Some(array_type),
 
                 static_field_vtable: VTable::empty(context.gc_ctx),
                 static_fields: Box::new([]),
@@ -330,7 +334,7 @@ impl Class {
         &self.0.own_interfaces
     }
 
-    pub fn array_value_type(self) -> Option<Descriptor> {
+    pub fn array_value_type(self) -> Option<ResolvedDescriptor> {
         self.0.array_value_type
     }
 
@@ -403,26 +407,10 @@ impl Class {
             .any(|i| *i == checked_interface)
     }
 
-    /// Check if this class has a superclass with the given name (or if it has the given name).
-    pub fn matches_class_name(self, checked_class_name: JvmString) -> bool {
-        let mut current_class = Some(self);
-        while let Some(some_class) = current_class {
-            if some_class.name() == checked_class_name {
-                return true;
-            }
-
-            current_class = some_class.super_class();
-        }
-
-        return false;
-    }
-
-    pub fn matches_descriptor(self, descriptor: Descriptor) -> bool {
+    pub fn matches_descriptor(self, descriptor: ResolvedDescriptor) -> bool {
         match descriptor {
-            Descriptor::Class(class_name) => self.matches_class_name(class_name),
-            Descriptor::Array(inner_descriptor) => {
-                self.array_value_type() == Some(*inner_descriptor)
-            }
+            ResolvedDescriptor::Class(class) => self.matches_class(class),
+            ResolvedDescriptor::Array(array_class) => array_class == self,
             _ => unreachable!(),
         }
     }
@@ -469,6 +457,12 @@ impl Hash for Class {
 impl Trace for Class {
     fn trace(&self) {
         self.0.trace();
+
+        self.static_method_vtable().trace();
+        self.static_methods().trace();
+
+        self.instance_method_vtable().trace();
+        self.instance_methods().trace();
     }
 }
 
@@ -477,5 +471,13 @@ impl Trace for ClassData {
         self.class_file.trace();
         self.name.trace();
         self.super_class.trace();
+        self.own_interfaces.trace();
+        self.all_interfaces.trace();
+        self.array_value_type.trace();
+
+        self.static_field_vtable.trace();
+        self.static_fields.trace();
+        self.instance_field_vtable.trace();
+        self.instance_fields.trace();
     }
 }

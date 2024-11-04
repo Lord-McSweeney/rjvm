@@ -59,6 +59,7 @@ pub enum Op {
     InvokeInterface(Class, (JvmString, MethodDescriptor)),
     New(Class),
     NewArray(ArrayType),
+    ANewArray(Class),
     ArrayLength,
     AThrow,
     CheckCast(Class),
@@ -152,6 +153,9 @@ impl Trace for Op {
                 class.trace();
             }
             Op::NewArray(_) => {}
+            Op::ANewArray(class) => {
+                class.trace();
+            }
             Op::ArrayLength => {}
             Op::AThrow => {}
             Op::CheckCast(class) => {
@@ -236,6 +240,7 @@ const INVOKE_STATIC: u8 = 0xB8;
 const INVOKE_INTERFACE: u8 = 0xB9;
 const NEW: u8 = 0xBB;
 const NEW_ARRAY: u8 = 0xBC;
+const A_NEW_ARRAY: u8 = 0xBD;
 const ARRAY_LENGTH: u8 = 0xBE;
 const A_THROW: u8 = 0xBF;
 const CHECK_CAST: u8 = 0xC0;
@@ -692,6 +697,14 @@ impl Op {
                 };
 
                 Ok(Op::NewArray(array_type))
+            }
+            A_NEW_ARRAY => {
+                let class_idx = data.read_u16()?;
+                let class_name = constant_pool.get_class(class_idx)?;
+
+                let class = context.lookup_class(class_name)?;
+
+                Ok(Op::ANewArray(class))
             }
             ARRAY_LENGTH => Ok(Op::ArrayLength),
             A_THROW => Ok(Op::AThrow),

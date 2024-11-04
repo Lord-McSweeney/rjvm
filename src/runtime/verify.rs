@@ -888,6 +888,10 @@ fn verify_block<'a>(
                 expect_pop_stack!(Integer);
                 push_stack!(Reference);
             }
+            Op::ANewArray(_) => {
+                expect_pop_stack!(Integer);
+                push_stack!(Reference);
+            }
             Op::ArrayLength => {
                 expect_pop_stack!(Reference);
                 push_stack!(Integer);

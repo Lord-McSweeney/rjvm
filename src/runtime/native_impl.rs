@@ -69,19 +69,17 @@ pub fn array_copy(context: Context, args: &[Value]) -> Result<Option<Value>, Err
         return Err(context.array_index_oob_exception());
     }
 
-    if !dest_arr.is_array() || !source_arr.is_array() {
+    let (Some(source_value_type), Some(dest_value_type)) = (
+        source_arr.class().array_value_type(),
+        dest_arr.class().array_value_type(),
+    ) else {
         return Err(Error::Native(NativeError::ArrayStoreException));
-    }
-
-    let source_value_type = source_arr.class().array_value_type();
-    let dest_value_type = dest_arr.class().array_value_type();
-
-    assert!(source_value_type.is_some() && dest_value_type.is_some());
+    };
 
     if source_value_type != dest_value_type {
-        // Only throw if one of them is a primitive type; if both are object types,
+        // Only throw if either of them is a primitive type; if both are object types,
         // the type-checking will be in the actual copy loop.
-        if source_value_type.unwrap().is_primitive() || dest_value_type.unwrap().is_primitive() {
+        if source_value_type.is_primitive() || dest_value_type.is_primitive() {
             return Err(Error::Native(NativeError::ArrayStoreException));
         }
     }
@@ -100,7 +98,7 @@ pub fn array_copy(context: Context, args: &[Value]) -> Result<Option<Value>, Err
         let value = temp_arr[i];
         if let Value::Object(obj) = value {
             if let Some(obj) = obj {
-                if !obj.class().matches_descriptor(dest_value_type.unwrap()) {
+                if !obj.class().matches_descriptor(dest_value_type) {
                     return Err(Error::Native(NativeError::ArrayStoreException));
                 }
             }

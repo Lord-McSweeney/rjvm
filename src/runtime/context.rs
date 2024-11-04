@@ -1,5 +1,5 @@
 use super::class::Class;
-use super::descriptor::{Descriptor, MethodDescriptor};
+use super::descriptor::{Descriptor, MethodDescriptor, ResolvedDescriptor};
 use super::error::{Error, NativeError};
 use super::native_impl::{self, NativeMethod};
 use super::value::Value;
@@ -134,7 +134,10 @@ impl Context {
             let array_descriptor = Descriptor::from_string(self.gc_ctx, class_name)
                 .ok_or(self.no_class_def_found_error())?;
 
-            let created_class = Class::for_array(self, array_descriptor);
+            let inner_descriptor = array_descriptor.array_inner_descriptor().unwrap();
+            let resolved_descriptor = ResolvedDescriptor::from_descriptor(self, inner_descriptor)?;
+
+            let created_class = Class::for_array(self, resolved_descriptor);
             self.register_class(created_class);
 
             Ok(created_class)

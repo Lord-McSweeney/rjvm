@@ -1,5 +1,7 @@
 // TODO this assumes descriptors are ASCII, but that doesn't seem to be guaranteed
 
+use super::class::Class;
+use super::context::Context;
 use super::error::Error;
 use super::object::Object;
 use super::value::Value;
@@ -120,22 +122,6 @@ impl Descriptor {
 
         result
     }
-
-    pub fn is_primitive(self) -> bool {
-        match self {
-            Descriptor::Class(_) => false,
-            Descriptor::Array(_) => false,
-            Descriptor::Byte => true,
-            Descriptor::Character => true,
-            Descriptor::Double => true,
-            Descriptor::Float => true,
-            Descriptor::Integer => true,
-            Descriptor::Long => true,
-            Descriptor::Short => true,
-            Descriptor::Boolean => true,
-            Descriptor::Void => unreachable!(),
-        }
-    }
 }
 
 impl Trace for Descriptor {
@@ -143,6 +129,100 @@ impl Trace for Descriptor {
         match self {
             Descriptor::Class(name) => name.trace(),
             Descriptor::Array(inner_desc) => inner_desc.trace(),
+            _ => {}
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub enum ResolvedDescriptor {
+    Class(Class),
+    Array(Class),
+    Boolean,
+    Byte,
+    Character,
+    Double,
+    Float,
+    Integer,
+    Long,
+    Short,
+    Void,
+}
+
+impl ResolvedDescriptor {
+    pub fn from_descriptor(context: Context, descriptor: Descriptor) -> Result<Self, Error> {
+        Ok(match descriptor {
+            Descriptor::Class(class_name) => {
+                let class = context.lookup_class(class_name)?;
+
+                ResolvedDescriptor::Class(class)
+            }
+            Descriptor::Array(inner_descriptor) => {
+                let inner_resolved =
+                    ResolvedDescriptor::from_descriptor(context, *inner_descriptor)?;
+                let class = Class::for_array(context, inner_resolved);
+
+                ResolvedDescriptor::Array(class)
+            }
+            Descriptor::Boolean => ResolvedDescriptor::Boolean,
+            Descriptor::Byte => ResolvedDescriptor::Byte,
+            Descriptor::Character => ResolvedDescriptor::Character,
+            Descriptor::Double => ResolvedDescriptor::Double,
+            Descriptor::Float => ResolvedDescriptor::Float,
+            Descriptor::Integer => ResolvedDescriptor::Integer,
+            Descriptor::Long => ResolvedDescriptor::Long,
+            Descriptor::Short => ResolvedDescriptor::Short,
+            Descriptor::Void => ResolvedDescriptor::Void,
+        })
+    }
+
+    pub fn is_primitive(self) -> bool {
+        match self {
+            ResolvedDescriptor::Class(_) => false,
+            ResolvedDescriptor::Array(_) => false,
+            ResolvedDescriptor::Byte => true,
+            ResolvedDescriptor::Character => true,
+            ResolvedDescriptor::Double => true,
+            ResolvedDescriptor::Float => true,
+            ResolvedDescriptor::Integer => true,
+            ResolvedDescriptor::Long => true,
+            ResolvedDescriptor::Short => true,
+            ResolvedDescriptor::Boolean => true,
+            ResolvedDescriptor::Void => unreachable!(),
+        }
+    }
+
+    pub fn to_string(self) -> String {
+        let mut result = String::with_capacity(8);
+
+        match self {
+            ResolvedDescriptor::Class(class) => {
+                result.push('L');
+                result.push_str(&class.name());
+                result.push(';');
+            }
+            ResolvedDescriptor::Array(class) => {
+                result.push_str(&class.name());
+            }
+            ResolvedDescriptor::Byte => result.push('B'),
+            ResolvedDescriptor::Character => result.push('C'),
+            ResolvedDescriptor::Double => result.push('D'),
+            ResolvedDescriptor::Float => result.push('F'),
+            ResolvedDescriptor::Integer => result.push('I'),
+            ResolvedDescriptor::Long => result.push('J'),
+            ResolvedDescriptor::Short => result.push('S'),
+            ResolvedDescriptor::Boolean => result.push('Z'),
+            ResolvedDescriptor::Void => result.push('V'),
+        }
+
+        result
+    }
+}
+
+impl Trace for ResolvedDescriptor {
+    fn trace(&self) {
+        match self {
+            ResolvedDescriptor::Class(class) | ResolvedDescriptor::Array(class) => class.trace(),
             _ => {}
         }
     }

@@ -1,6 +1,6 @@
 use super::class::Class;
 use super::context::Context;
-use super::descriptor::MethodDescriptor;
+use super::descriptor::{MethodDescriptor, ResolvedDescriptor};
 use super::error::{Error, NativeError};
 use super::field::Field;
 use super::value::Value;
@@ -72,6 +72,23 @@ impl Object {
                 class: context
                     .lookup_class(context.common.array_int_desc)
                     .expect("Should lookup"),
+                data: FieldOrArrayData::Array(value_list.into_boxed_slice()),
+            },
+        ))
+    }
+
+    pub fn obj_array(context: Context, class: Class, objs: &[Option<Object>]) -> Self {
+        let value_list = objs
+            .iter()
+            .map(|b| Cell::new(Value::Object(*b)))
+            .collect::<Vec<_>>();
+
+        let descriptor = ResolvedDescriptor::Class(class);
+
+        Self(Gc::new(
+            context.gc_ctx,
+            ObjectData {
+                class: Class::for_array(context, descriptor),
                 data: FieldOrArrayData::Array(value_list.into_boxed_slice()),
             },
         ))

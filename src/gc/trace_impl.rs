@@ -106,3 +106,14 @@ where
         }
     }
 }
+
+impl<A, B> Trace for (A, B)
+where
+    A: Trace,
+    B: Trace,
+{
+    fn trace(&self) {
+        self.0.trace();
+        self.1.trace();
+    }
+}

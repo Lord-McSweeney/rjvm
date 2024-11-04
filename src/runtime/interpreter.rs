@@ -131,6 +131,7 @@ impl Interpreter {
                 }
                 Op::New(class) => self.op_new(*class),
                 Op::NewArray(array_type) => self.op_new_array(*array_type),
+                Op::ANewArray(class) => self.op_a_new_array(*class),
                 Op::ArrayLength => self.op_array_length(),
                 Op::AThrow => self.op_a_throw(),
                 Op::CheckCast(class) => self.op_check_cast(*class),
@@ -781,6 +782,23 @@ impl Interpreter {
             _ => unimplemented!("Array type unimplemented"),
         };
 
+        self.stack_push(Value::Object(Some(array_object)));
+
+        Ok(ControlFlow::Continue)
+    }
+
+    fn op_a_new_array(&mut self, class: Class) -> Result<ControlFlow, Error> {
+        let array_length = self.stack_pop().int();
+
+        if array_length < 0 {
+            return Err(Error::Native(NativeError::NegativeArraySizeException));
+        }
+
+        let array_length = array_length as usize;
+
+        let nulls = vec![None; array_length];
+
+        let array_object = Object::obj_array(self.context, class, &nulls);
         self.stack_push(Value::Object(Some(array_object)));
 
         Ok(ControlFlow::Continue)
