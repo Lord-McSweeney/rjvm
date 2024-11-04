@@ -23,6 +23,7 @@ pub enum Op {
     BaLoad,
     IStore(usize),
     AStore(usize),
+    AaStore,
     CaStore,
     Pop,
     Dup,
@@ -95,6 +96,7 @@ impl Trace for Op {
             Op::BaLoad => {}
             Op::IStore(_) => {}
             Op::AStore(_) => {}
+            Op::AaStore => {}
             Op::CaStore => {}
             Op::Pop => {}
             Op::Dup => {}
@@ -204,6 +206,7 @@ const A_STORE_0: u8 = 0x4B;
 const A_STORE_1: u8 = 0x4C;
 const A_STORE_2: u8 = 0x4D;
 const A_STORE_3: u8 = 0x4E;
+const AA_STORE: u8 = 0x53;
 const CA_STORE: u8 = 0x55;
 const POP: u8 = 0x57;
 const DUP: u8 = 0x59;
@@ -394,6 +397,7 @@ impl Op {
             A_STORE_1 => Ok(Op::AStore(1)),
             A_STORE_2 => Ok(Op::AStore(2)),
             A_STORE_3 => Ok(Op::AStore(3)),
+            AA_STORE => Ok(Op::AaStore),
             CA_STORE => Ok(Op::CaStore),
             POP => Ok(Op::Pop),
             DUP => Ok(Op::Dup),

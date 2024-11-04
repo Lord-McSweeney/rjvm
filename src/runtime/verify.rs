@@ -503,6 +503,11 @@ fn verify_block<'a>(
                 expect_pop_stack!(Reference);
                 set_local!(*index, Reference);
             }
+            Op::AaStore => {
+                expect_pop_stack!(Reference);
+                expect_pop_stack!(Integer);
+                expect_pop_stack!(Reference);
+            }
             Op::CaStore => {
                 expect_pop_stack!(Integer);
                 expect_pop_stack!(Integer);

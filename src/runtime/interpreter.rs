@@ -85,6 +85,7 @@ impl Interpreter {
                 Op::BaLoad => self.op_ba_load(),
                 Op::IStore(index) => self.op_i_store(*index),
                 Op::AStore(index) => self.op_a_store(*index),
+                Op::AaStore => self.op_aa_store(),
                 Op::CaStore => self.op_ca_store(),
                 Op::Pop => self.op_pop(),
                 Op::Dup => self.op_dup(),
@@ -301,6 +302,25 @@ impl Interpreter {
         self.local_registers[index] = value;
 
         Ok(ControlFlow::Continue)
+    }
+
+    fn op_aa_store(&mut self) -> Result<ControlFlow, Error> {
+        let value = self.stack_pop().object();
+        let index = self.stack_pop().int();
+        let array = self.stack_pop().object();
+
+        if let Some(array) = array {
+            let length = array.array_length();
+            if index < 0 || index as usize >= length {
+                Err(self.context.array_index_oob_exception())
+            } else {
+                array.set_object_at_index(index as usize, value);
+
+                Ok(ControlFlow::Continue)
+            }
+        } else {
+            Err(self.context.null_pointer_exception())
+        }
     }
 
     fn op_ca_store(&mut self) -> Result<ControlFlow, Error> {
