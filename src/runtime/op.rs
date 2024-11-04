@@ -38,6 +38,7 @@ pub enum Op {
     IfLt(usize),
     IfGe(usize),
     IfLe(usize),
+    IfICmpEq(usize),
     IfICmpNe(usize),
     IfICmpGe(usize),
     IfICmpGt(usize),
@@ -107,6 +108,7 @@ impl Trace for Op {
             Op::IfLt(_) => {}
             Op::IfGe(_) => {}
             Op::IfLe(_) => {}
+            Op::IfICmpEq(_) => {}
             Op::IfICmpNe(_) => {}
             Op::IfICmpGe(_) => {}
             Op::IfICmpGt(_) => {}
@@ -210,6 +212,7 @@ const IF_NE: u8 = 0x9A;
 const IF_LT: u8 = 0x9B;
 const IF_GE: u8 = 0x9C;
 const IF_LE: u8 = 0x9E;
+const IF_I_CMP_EQ: u8 = 0x9F;
 const IF_I_CMP_NE: u8 = 0xA0;
 const IF_I_CMP_GE: u8 = 0xA2;
 const IF_I_CMP_GT: u8 = 0xA3;
@@ -278,6 +281,7 @@ impl Op {
                 | Op::IfLt(position)
                 | Op::IfGe(position)
                 | Op::IfLe(position)
+                | Op::IfICmpEq(position)
                 | Op::IfICmpNe(position)
                 | Op::IfICmpGe(position)
                 | Op::IfICmpGt(position)
@@ -418,6 +422,11 @@ impl Op {
                 let offset = data.read_u16()? as i16 as isize;
 
                 Ok(Op::IfLe(((data_position as isize) + offset) as usize))
+            }
+            IF_I_CMP_EQ => {
+                let offset = data.read_u16()? as i16 as isize;
+
+                Ok(Op::IfICmpEq(((data_position as isize) + offset) as usize))
             }
             IF_I_CMP_NE => {
                 let offset = data.read_u16()? as i16 as isize;

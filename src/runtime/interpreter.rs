@@ -100,6 +100,7 @@ impl Interpreter {
                 Op::IfLt(position) => self.op_if_lt(*position),
                 Op::IfGe(position) => self.op_if_ge(*position),
                 Op::IfLe(position) => self.op_if_le(*position),
+                Op::IfICmpEq(position) => self.op_if_i_cmp_eq(*position),
                 Op::IfICmpNe(position) => self.op_if_i_cmp_ne(*position),
                 Op::IfICmpGe(position) => self.op_if_i_cmp_ge(*position),
                 Op::IfICmpGt(position) => self.op_if_i_cmp_gt(*position),
@@ -453,6 +454,19 @@ impl Interpreter {
         let value = self.stack_pop().int();
 
         if value <= 0 {
+            self.ip = position;
+        } else {
+            self.ip += 1;
+        }
+
+        Ok(ControlFlow::ManualContinue)
+    }
+
+    fn op_if_i_cmp_eq(&mut self, position: usize) -> Result<ControlFlow, Error> {
+        let int1 = self.stack_pop().int();
+        let int2 = self.stack_pop().int();
+
+        if int2 == int1 {
             self.ip = position;
         } else {
             self.ip += 1;

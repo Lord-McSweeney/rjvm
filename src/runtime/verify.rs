@@ -98,6 +98,7 @@ fn collect_basic_blocks<'a>(
                 | Op::IfLt(position)
                 | Op::IfGe(position)
                 | Op::IfLe(position)
+                | Op::IfICmpEq(position)
                 | Op::IfICmpNe(position)
                 | Op::IfICmpGe(position)
                 | Op::IfICmpGt(position)
@@ -156,6 +157,7 @@ fn collect_basic_blocks<'a>(
             | Op::IfLt(position)
             | Op::IfGe(position)
             | Op::IfLe(position)
+            | Op::IfICmpEq(position)
             | Op::IfICmpNe(position)
             | Op::IfICmpGe(position)
             | Op::IfICmpGt(position)
@@ -538,7 +540,11 @@ fn verify_block<'a>(
             Op::IfEq(_) | Op::IfNe(_) | Op::IfLt(_) | Op::IfGe(_) | Op::IfLe(_) => {
                 expect_pop_stack!(Integer);
             }
-            Op::IfICmpNe(_) | Op::IfICmpGe(_) | Op::IfICmpGt(_) | Op::IfICmpLe(_) => {
+            Op::IfICmpEq(_)
+            | Op::IfICmpNe(_)
+            | Op::IfICmpGe(_)
+            | Op::IfICmpGt(_)
+            | Op::IfICmpLe(_) => {
                 expect_pop_stack!(Integer);
                 expect_pop_stack!(Integer);
             }
