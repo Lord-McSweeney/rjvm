@@ -306,6 +306,6 @@ impl BytecodeMethodInfo {
 impl Trace for BytecodeMethodInfo {
     fn trace(&self) {
         self.code.trace();
-        // TODO: exceptions
+        self.exceptions.trace();
     }
 }

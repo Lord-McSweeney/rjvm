@@ -55,6 +55,7 @@ pub enum Op {
     InvokeVirtual((JvmString, MethodDescriptor)),
     InvokeSpecial(Class, Method),
     InvokeStatic(Method),
+    InvokeInterface(Class, (JvmString, MethodDescriptor)),
     New(Class),
     NewArray(ArrayType),
     ArrayLength,
@@ -139,6 +140,11 @@ impl Trace for Op {
             Op::InvokeStatic(method) => {
                 method.trace();
             }
+            Op::InvokeInterface(class, (method_name, method_descriptor)) => {
+                class.trace();
+                method_name.trace();
+                method_descriptor.trace();
+            }
             Op::New(class) => {
                 class.trace();
             }
@@ -221,6 +227,7 @@ const PUT_FIELD: u8 = 0xB5;
 const INVOKE_VIRTUAL: u8 = 0xB6;
 const INVOKE_SPECIAL: u8 = 0xB7;
 const INVOKE_STATIC: u8 = 0xB8;
+const INVOKE_INTERFACE: u8 = 0xB9;
 const NEW: u8 = 0xBB;
 const NEW_ARRAY: u8 = 0xBC;
 const ARRAY_LENGTH: u8 = 0xBE;
@@ -626,6 +633,27 @@ impl Op {
                 let method = class.static_methods()[method_slot];
 
                 Ok(Op::InvokeStatic(method))
+            }
+            INVOKE_INTERFACE => {
+                let method_ref_idx = data.read_u16()?;
+                let method_ref = constant_pool.get_interface_method_ref(method_ref_idx)?;
+
+                let (class_name, method_name, descriptor_name) = method_ref;
+
+                // Method is called based on class of object on stack
+                let class = context.lookup_class(class_name)?;
+                let descriptor = MethodDescriptor::from_string(context.gc_ctx, descriptor_name)
+                    .ok_or(Error::Native(NativeError::InvalidDescriptor))?;
+
+                // According to the JVMS, this byte states the argument count
+                // of the method (despite that also being defined in the
+                // descriptor) for "historical" reasons.
+                let _arg_count = data.read_u8()?;
+
+                // This should always be zero.
+                let _ = data.read_u8()?;
+
+                Ok(Op::InvokeInterface(class, (method_name, descriptor)))
             }
             NEW => {
                 let class_idx = data.read_u16()?;

@@ -821,6 +821,58 @@ fn verify_block<'a>(
                     Descriptor::Void => {}
                 }
             }
+            Op::InvokeInterface(_, (_, descriptor)) => {
+                for arg in descriptor.args().iter().rev() {
+                    match arg {
+                        Descriptor::Class(_) | Descriptor::Array(_) => {
+                            expect_pop_stack!(Reference);
+                        }
+                        Descriptor::Boolean
+                        | Descriptor::Byte
+                        | Descriptor::Character
+                        | Descriptor::Short
+                        | Descriptor::Integer => {
+                            expect_pop_stack!(Integer);
+                        }
+                        Descriptor::Float => {
+                            expect_pop_stack!(Float);
+                        }
+                        Descriptor::Double => {
+                            expect_pop_stack!(Double);
+                        }
+                        Descriptor::Long => {
+                            expect_pop_stack!(Long);
+                        }
+                        Descriptor::Void => unreachable!(),
+                    }
+                }
+
+                // Receiver
+                expect_pop_stack!(Reference);
+
+                match descriptor.return_type() {
+                    Descriptor::Class(_) | Descriptor::Array(_) => {
+                        push_stack!(Reference);
+                    }
+                    Descriptor::Boolean
+                    | Descriptor::Byte
+                    | Descriptor::Character
+                    | Descriptor::Short
+                    | Descriptor::Integer => {
+                        push_stack!(Integer);
+                    }
+                    Descriptor::Float => {
+                        push_stack!(Float);
+                    }
+                    Descriptor::Double => {
+                        push_stack!(Double);
+                    }
+                    Descriptor::Long => {
+                        push_stack!(Long);
+                    }
+                    Descriptor::Void => {}
+                }
+            }
             Op::New(_) => {
                 push_stack!(Reference);
             }

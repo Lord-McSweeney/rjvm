@@ -125,6 +125,9 @@ impl Interpreter {
                 }
                 Op::InvokeSpecial(class, method) => self.op_invoke_special(*class, *method),
                 Op::InvokeStatic(method) => self.op_invoke_static(*method),
+                Op::InvokeInterface(class, (method_name, method_descriptor)) => {
+                    self.op_invoke_interface(*class, *method_name, *method_descriptor)
+                }
                 Op::New(class) => self.op_new(*class),
                 Op::NewArray(array_type) => self.op_new_array(*array_type),
                 Op::ArrayLength => self.op_array_length(),
@@ -695,6 +698,41 @@ impl Interpreter {
         }
 
         Ok(ControlFlow::Continue)
+    }
+
+    fn op_invoke_interface(
+        &mut self,
+        _class: Class,
+        method_name: JvmString,
+        method_descriptor: MethodDescriptor,
+    ) -> Result<ControlFlow, Error> {
+        let mut args = vec![Value::Object(None); method_descriptor.args().len() + 1];
+        for arg in args.iter_mut().skip(1).rev() {
+            *arg = self.stack_pop();
+        }
+
+        let receiver = self.stack_pop().object();
+
+        if let Some(receiver) = receiver {
+            // Should we check that the receiver is of the class?
+            let receiver_class = receiver.class();
+            let method_idx = receiver_class
+                .instance_method_vtable()
+                .lookup((method_name, method_descriptor))
+                .ok_or(Error::Native(NativeError::VTableLookupFailed))?;
+            let method = receiver_class.instance_methods()[method_idx];
+
+            args[0] = Value::Object(Some(receiver));
+
+            let result = method.exec(self.context, &args)?;
+            if let Some(result) = result {
+                self.stack_push(result);
+            }
+
+            Ok(ControlFlow::Continue)
+        } else {
+            Err(self.context.null_pointer_exception())
+        }
     }
 
     fn op_new(&mut self, class: Class) -> Result<ControlFlow, Error> {

@@ -138,6 +138,24 @@ impl ConstantPool {
         }
     }
 
+    pub fn get_interface_method_ref(
+        &self,
+        index: u16,
+    ) -> Result<(JvmString, JvmString, JvmString), Error> {
+        match self.entry(index)? {
+            ConstantPoolEntry::InterfaceMethodRef {
+                class_idx,
+                name_and_type_idx,
+            } => {
+                let class = self.get_class(class_idx)?;
+                let name_and_type = self.get_name_and_type(name_and_type_idx)?;
+
+                Ok((class, name_and_type.0, name_and_type.1))
+            }
+            _ => Err(Error::ConstantPoolTypeMismatch),
+        }
+    }
+
     pub fn get_name_and_type(&self, index: u16) -> Result<(JvmString, JvmString), Error> {
         match self.entry(index)? {
             ConstantPoolEntry::NameAndType {
