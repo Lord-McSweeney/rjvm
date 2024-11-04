@@ -187,6 +187,7 @@ const I_CONST_5: u8 = 0x08;
 const B_I_PUSH: u8 = 0x10;
 const S_I_PUSH: u8 = 0x11;
 const LDC: u8 = 0x12;
+const LDC_W: u8 = 0x13;
 const I_LOAD: u8 = 0x15;
 const A_LOAD: u8 = 0x19;
 const I_LOAD_0: u8 = 0x1A;
@@ -362,6 +363,12 @@ impl Op {
             LDC => {
                 let constant_pool_idx = data.read_u8()?;
                 let entry = constant_pool.entry(constant_pool_idx as u16)?;
+
+                Ok(Op::Ldc(entry))
+            }
+            LDC_W => {
+                let constant_pool_idx = data.read_u16()?;
+                let entry = constant_pool.entry(constant_pool_idx)?;
 
                 Ok(Op::Ldc(entry))
             }
