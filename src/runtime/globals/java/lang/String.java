@@ -3,6 +3,16 @@ package java.lang;
 public final class String {
     private char[] data;
 
+    public String(String originalString) {
+        char[] data = originalString.data;
+        int length = originalString.length();
+
+        char[] copyData = new char[length];
+        System.arraycopy(data, 0, copyData, 0, length);
+
+        this.data = copyData;
+    }
+
     public String(char[] data) {
         int length = data.length;
         char[] copyData = new char[length];
