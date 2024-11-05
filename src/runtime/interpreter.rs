@@ -89,6 +89,7 @@ impl Interpreter {
                 Op::CaStore => self.op_ca_store(),
                 Op::Pop => self.op_pop(),
                 Op::Dup => self.op_dup(),
+                Op::DupX1 => self.op_dup_x1(),
                 Op::IAdd => self.op_i_add(),
                 Op::ISub => self.op_i_sub(),
                 Op::IMul => self.op_i_mul(),
@@ -108,6 +109,7 @@ impl Interpreter {
                 Op::IfICmpGe(position) => self.op_if_i_cmp_ge(*position),
                 Op::IfICmpGt(position) => self.op_if_i_cmp_gt(*position),
                 Op::IfICmpLe(position) => self.op_if_i_cmp_le(*position),
+                Op::IfACmpEq(position) => self.op_if_a_cmp_eq(*position),
                 Op::IfACmpNe(position) => self.op_if_a_cmp_ne(*position),
                 Op::Goto(position) => self.op_goto(*position),
                 Op::LookupSwitch(matches, default_offset) => {
@@ -358,6 +360,17 @@ impl Interpreter {
         Ok(ControlFlow::Continue)
     }
 
+    fn op_dup_x1(&mut self) -> Result<ControlFlow, Error> {
+        let top_value = self.stack_pop();
+        let under_value = self.stack_pop();
+
+        self.stack_push(top_value);
+        self.stack_push(under_value);
+        self.stack_push(top_value);
+
+        Ok(ControlFlow::Continue)
+    }
+
     fn op_i_add(&mut self) -> Result<ControlFlow, Error> {
         let int1 = self.stack_pop().int();
         let int2 = self.stack_pop().int();
@@ -573,13 +586,27 @@ impl Interpreter {
         Ok(ControlFlow::ManualContinue)
     }
 
-    fn op_if_a_cmp_ne(&mut self, position: usize) -> Result<ControlFlow, Error> {
+    fn op_if_a_cmp_eq(&mut self, position: usize) -> Result<ControlFlow, Error> {
         let obj1 = self.stack_pop().object();
         let obj2 = self.stack_pop().object();
 
         match (obj1, obj2) {
             (None, None) => self.ip = position,
             (Some(obj1), Some(obj2)) if obj1.ptr_eq(obj2) => self.ip = position,
+            _ => self.ip += 1,
+        }
+
+        Ok(ControlFlow::ManualContinue)
+    }
+
+    fn op_if_a_cmp_ne(&mut self, position: usize) -> Result<ControlFlow, Error> {
+        let obj1 = self.stack_pop().object();
+        let obj2 = self.stack_pop().object();
+
+        match (obj1, obj2) {
+            (Some(obj1), Some(obj2)) if !obj1.ptr_eq(obj2) => self.ip = position,
+            (Some(obj1), None) => self.ip = position,
+            (None, Some(obj2)) => self.ip = position,
             _ => self.ip += 1,
         }
 

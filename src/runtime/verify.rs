@@ -104,6 +104,7 @@ fn collect_basic_blocks<'a>(
                 | Op::IfICmpGe(position)
                 | Op::IfICmpGt(position)
                 | Op::IfICmpLe(position)
+                | Op::IfACmpEq(position)
                 | Op::IfACmpNe(position)
                 | Op::IfNull(position)
                 | Op::IfNonNull(position) => {
@@ -165,6 +166,7 @@ fn collect_basic_blocks<'a>(
             | Op::IfICmpGe(position)
             | Op::IfICmpGt(position)
             | Op::IfICmpLe(position)
+            | Op::IfACmpEq(position)
             | Op::IfACmpNe(position)
             | Op::IfNull(position)
             | Op::IfNonNull(position) => {
@@ -530,6 +532,22 @@ fn verify_block<'a>(
                     return Err(Error::Native(NativeError::VerifyCountWrong));
                 }
             }
+            Op::DupX1 => {
+                let top_value = stack
+                    .pop()
+                    .ok_or(Error::Native(NativeError::VerifyCountWrong))?;
+
+                let under_value = stack
+                    .pop()
+                    .ok_or(Error::Native(NativeError::VerifyCountWrong))?;
+
+                stack.push(top_value);
+                stack.push(under_value);
+                stack.push(top_value);
+                if stack.len() > max_stack {
+                    return Err(Error::Native(NativeError::VerifyCountWrong));
+                }
+            }
             Op::IAdd | Op::ISub | Op::IMul | Op::IDiv | Op::IRem => {
                 expect_pop_stack!(Integer);
                 expect_pop_stack!(Integer);
@@ -558,7 +576,7 @@ fn verify_block<'a>(
                 expect_pop_stack!(Integer);
                 expect_pop_stack!(Integer);
             }
-            Op::IfACmpNe(_) => {
+            Op::IfACmpEq(_) | Op::IfACmpNe(_) => {
                 expect_pop_stack!(Reference);
                 expect_pop_stack!(Reference);
             }
