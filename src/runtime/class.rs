@@ -225,52 +225,6 @@ impl Class {
         Ok(())
     }
 
-    pub fn create_object_class(context: Context) -> Self {
-        let object_class_name = context.common.java_lang_object;
-        let init_name = context.common.init_name;
-        let void_descriptor = context.common.noargs_void_desc;
-
-        let instance_method_names = vec![(init_name, void_descriptor)];
-
-        let instance_methods = vec![Method::empty(
-            context.gc_ctx,
-            void_descriptor,
-            MethodFlags::PUBLIC,
-        )];
-
-        let instance_method_vtable =
-            VTable::from_parent_and_keys(context.gc_ctx, None, instance_method_names);
-
-        let method_data = MethodData {
-            static_method_vtable: VTable::empty(context.gc_ctx),
-            static_methods: Box::new([]),
-            instance_method_vtable,
-            instance_methods: instance_methods.into_boxed_slice(),
-        };
-
-        Self(Gc::new(
-            context.gc_ctx,
-            ClassData {
-                class_file: None,
-                flags: ClassFlags::PUBLIC,
-                name: object_class_name,
-                super_class: None,
-
-                own_interfaces: Box::new([]),
-                all_interfaces: Box::new([]),
-
-                array_value_type: None,
-
-                static_field_vtable: VTable::empty(context.gc_ctx),
-                static_fields: Box::new([]),
-                instance_field_vtable: VTable::empty(context.gc_ctx),
-                instance_fields: Box::new([]),
-
-                method_data: RefCell::new(Some(method_data)),
-            },
-        ))
-    }
-
     pub fn for_array(context: Context, array_type: ResolvedDescriptor) -> Self {
         let object_class_name = context.common.java_lang_object;
         let object_class = context

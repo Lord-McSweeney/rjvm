@@ -37,8 +37,6 @@ impl Context {
             gc_ctx,
         };
 
-        created_self.init_object_class();
-
         let globals_jar =
             Jar::from_bytes(gc_ctx, GLOBALS_JAR.to_vec()).expect("Builtin globals should be valid");
         created_self.add_jar(globals_jar);
@@ -46,12 +44,6 @@ impl Context {
         created_self.register_native_mapping();
 
         created_self
-    }
-
-    fn init_object_class(self) {
-        let object_class = Class::create_object_class(self);
-
-        self.register_class(object_class);
     }
 
     fn register_native_mapping(self) {
