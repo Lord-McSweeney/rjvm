@@ -270,6 +270,7 @@ impl Trace for Context {
 
 #[derive(Clone, Copy)]
 pub struct CommonData {
+    pub java_lang_class: JvmString,
     pub java_lang_object: JvmString,
     pub java_lang_string: JvmString,
     pub java_lang_throwable: JvmString,
@@ -305,6 +306,7 @@ impl CommonData {
                 .expect("Valid descriptor");
 
         Self {
+            java_lang_class: JvmString::new(gc_ctx, "java/lang/Class".to_string()),
             java_lang_object: JvmString::new(gc_ctx, "java/lang/Object".to_string()),
             java_lang_string: JvmString::new(gc_ctx, "java/lang/String".to_string()),
             java_lang_throwable: JvmString::new(gc_ctx, "java/lang/Throwable".to_string()),
@@ -341,6 +343,7 @@ impl CommonData {
 
 impl Trace for CommonData {
     fn trace(&self) {
+        self.java_lang_class.trace();
         self.java_lang_object.trace();
         self.java_lang_string.trace();
         self.java_lang_throwable.trace();

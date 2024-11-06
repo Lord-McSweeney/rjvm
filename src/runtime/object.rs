@@ -21,6 +21,25 @@ impl Object {
             gc_ctx,
             ObjectData {
                 class,
+                native_data: NativeData::None,
+                data: FieldOrArrayData::Fields(fields),
+            },
+        ))
+    }
+
+    // Creates a new instance of java.lang.Class referencing the given class.
+    pub fn class_object(context: Context, class: Class) -> Self {
+        let class_class = context
+            .lookup_class(context.common.java_lang_class)
+            .expect("Class class should exist");
+
+        let fields = class.instance_fields().to_vec().into_boxed_slice();
+
+        Self(Gc::new(
+            context.gc_ctx,
+            ObjectData {
+                class: class_class,
+                native_data: NativeData::Class(class),
                 data: FieldOrArrayData::Fields(fields),
             },
         ))
@@ -38,6 +57,7 @@ impl Object {
                 class: context
                     .lookup_class(context.common.array_byte_desc)
                     .expect("Should lookup"),
+                native_data: NativeData::None,
                 data: FieldOrArrayData::Array(value_list.into_boxed_slice()),
             },
         ))
@@ -55,6 +75,7 @@ impl Object {
                 class: context
                     .lookup_class(context.common.array_char_desc)
                     .expect("Should lookup"),
+                native_data: NativeData::None,
                 data: FieldOrArrayData::Array(value_list.into_boxed_slice()),
             },
         ))
@@ -72,6 +93,7 @@ impl Object {
                 class: context
                     .lookup_class(context.common.array_int_desc)
                     .expect("Should lookup"),
+                native_data: NativeData::None,
                 data: FieldOrArrayData::Array(value_list.into_boxed_slice()),
             },
         ))
@@ -89,6 +111,7 @@ impl Object {
             context.gc_ctx,
             ObjectData {
                 class: Class::for_array(context, descriptor),
+                native_data: NativeData::None,
                 data: FieldOrArrayData::Array(value_list.into_boxed_slice()),
             },
         ))
@@ -244,6 +267,13 @@ impl Object {
         }
     }
 
+    pub fn get_stored_class(&self) -> Class {
+        match self.0.native_data {
+            NativeData::Class(class) => class,
+            NativeData::None => unreachable!(),
+        }
+    }
+
     pub fn call_construct(
         self,
         context: Context,
@@ -275,6 +305,8 @@ impl Trace for Object {
 struct ObjectData {
     class: Class,
 
+    native_data: NativeData,
+
     data: FieldOrArrayData,
 }
 
@@ -296,6 +328,23 @@ impl Trace for FieldOrArrayData {
         match self {
             FieldOrArrayData::Fields(data) => data.trace(),
             FieldOrArrayData::Array(data) => data.trace(),
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+enum NativeData {
+    None,
+    Class(Class),
+}
+
+impl Trace for NativeData {
+    fn trace(&self) {
+        match self {
+            NativeData::None => {}
+            NativeData::Class(class) => {
+                class.trace();
+            }
         }
     }
 }

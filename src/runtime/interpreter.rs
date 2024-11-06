@@ -212,6 +212,20 @@ impl Interpreter {
                 Value::Object(Some(string_instance))
             }
             ConstantPoolEntry::Integer { value } => Value::Integer(value),
+            ConstantPoolEntry::Class { name_idx } => {
+                let class_name = constant_pool
+                    .get_utf8(name_idx)
+                    .expect("Should refer to valid entry");
+
+                let class = self
+                    .context
+                    .lookup_class(class_name)
+                    .expect("Class should exist");
+
+                let object = Object::class_object(self.context, class);
+
+                Value::Object(Some(object))
+            }
             _ => unimplemented!(),
         };
 
