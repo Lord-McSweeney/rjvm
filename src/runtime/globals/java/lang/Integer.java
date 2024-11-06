@@ -1,6 +1,16 @@
 package java.lang;
 
-public class Integer extends Number {
+public final class Integer extends Number implements Comparable<Integer> {
+    private int value;
+
+    public Integer(int value) {
+        this.value = value;
+    }
+
+    public static Integer valueOf(int integer) {
+        return new Integer(integer);
+    }
+
     public static String toString(int integer) {
         if (integer == -2147483648) {
             return "-2147483648";
