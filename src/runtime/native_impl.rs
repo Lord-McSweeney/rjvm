@@ -122,3 +122,40 @@ pub fn is_interface(context: Context, args: &[Value]) -> Result<Option<Value>, E
         Ok(Some(Value::Integer(0)))
     }
 }
+
+// java/lang/Object : Class getClass()
+pub fn get_class(context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
+    // Receiver should never be null
+    let class = args[0].object().unwrap().class();
+
+    let class_object = context.class_object_for_class(class);
+
+    Ok(Some(Value::Object(Some(class_object))))
+}
+
+// java/lang/Class : String getNameInternal()
+pub fn get_name_native(context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
+    // Receiver should never be null
+    let class = args[0].object().unwrap().get_stored_class();
+
+    let string_chars = class.dot_name().encode_utf16().collect::<Vec<_>>();
+    let chars_array_object = Object::char_array(context, &string_chars);
+
+    let string_class = context
+        .lookup_class(context.common.java_lang_string)
+        .expect("String class should exist");
+
+    let string_instance = string_class.new_instance(context.gc_ctx);
+    string_instance
+        .call_construct(
+            context,
+            context.common.arg_char_array_void_desc,
+            &[
+                Value::Object(Some(string_instance)),
+                Value::Object(Some(chars_array_object)),
+            ],
+        )
+        .expect("String class should construct");
+
+    Ok(Some(Value::Object(Some(string_instance))))
+}

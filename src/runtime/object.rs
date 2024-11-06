@@ -33,7 +33,7 @@ impl Object {
             .lookup_class(context.common.java_lang_class)
             .expect("Class class should exist");
 
-        let fields = class.instance_fields().to_vec().into_boxed_slice();
+        let fields = class_class.instance_fields().to_vec().into_boxed_slice();
 
         Self(Gc::new(
             context.gc_ctx,

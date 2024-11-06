@@ -203,7 +203,7 @@ impl Class {
             instance_methods: instance_methods.into_boxed_slice(),
         });
 
-        // Now parse the actual ops, to ensure that the vtables have already been filled out
+        // Only parse the actual ops now, to ensure that the method vtables have already been filled out
         for method in &*self.static_methods() {
             method.parse_info(context)?;
         }
@@ -278,6 +278,10 @@ impl Class {
 
     pub fn name(self) -> JvmString {
         self.0.name
+    }
+
+    pub fn dot_name(self) -> String {
+        self.0.name.replace('/', ".")
     }
 
     pub fn super_class(self) -> Option<Class> {

@@ -222,9 +222,7 @@ impl Interpreter {
                     .lookup_class(class_name)
                     .expect("Class should exist");
 
-                let object = Object::class_object(self.context, class);
-
-                Value::Object(Some(object))
+                Value::Object(Some(self.context.class_object_for_class(class)))
             }
             _ => unimplemented!(),
         };

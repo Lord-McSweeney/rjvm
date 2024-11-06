@@ -102,20 +102,28 @@ impl Method {
     }
 
     pub fn parse_info(self, context: Context) -> Result<(), Error> {
-        let new_method_info = match &*self.0.method_info.borrow() {
+        let method_info_borrow = self.0.method_info.borrow();
+        let new_method_info = match &*method_info_borrow {
             MethodInfo::BytecodeUnparsed(code_data) => {
+                let cloned_data = code_data.clone();
+                drop(method_info_borrow);
+
                 // Clone again...
                 let bytecode_method_info = BytecodeMethodInfo::from_code_data(
                     context,
                     self,
                     self.class().unwrap(),
-                    code_data.clone(),
+                    cloned_data,
                 )?;
 
                 Some(MethodInfo::Bytecode(bytecode_method_info))
             }
             // None of the other method info types need (re-)parsing
-            _ => None,
+            _ => {
+                drop(method_info_borrow);
+
+                None
+            }
         };
 
         if let Some(new_method_info) = new_method_info {

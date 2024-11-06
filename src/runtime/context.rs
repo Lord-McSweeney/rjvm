@@ -2,6 +2,7 @@ use super::class::Class;
 use super::descriptor::{Descriptor, MethodDescriptor, ResolvedDescriptor};
 use super::error::{Error, NativeError};
 use super::native_impl::{self, NativeMethod};
+use super::object::Object;
 use super::value::Value;
 
 use crate::classfile::class::ClassFile;
@@ -15,6 +16,8 @@ use std::collections::HashMap;
 #[derive(Clone, Copy)]
 pub struct Context {
     class_registry: Gc<RefCell<HashMap<JvmString, Class>>>,
+
+    class_to_object_map: Gc<RefCell<HashMap<Class, Object>>>,
 
     jar_files: Gc<RefCell<Vec<Jar>>>,
 
@@ -31,6 +34,7 @@ impl Context {
     pub fn new(gc_ctx: GcCtx) -> Self {
         let created_self = Self {
             class_registry: Gc::new(gc_ctx, RefCell::new(HashMap::new())),
+            class_to_object_map: Gc::new(gc_ctx, RefCell::new(HashMap::new())),
             jar_files: Gc::new(gc_ctx, RefCell::new(Vec::new())),
             native_mapping: Gc::new(gc_ctx, RefCell::new(HashMap::new())),
             common: CommonData::new(gc_ctx),
@@ -114,6 +118,38 @@ impl Context {
                 native_impl::is_interface,
             );
         }
+
+        // java/lang/Object : Class getClass()
+        {
+            let system_name = JvmString::new(self.gc_ctx, "java/lang/Object".to_string());
+
+            let method_name = JvmString::new(self.gc_ctx, "getClass".to_string());
+
+            let descriptor_name = JvmString::new(self.gc_ctx, "()Ljava/lang/Class;".to_string());
+            let descriptor = MethodDescriptor::from_string(self.gc_ctx, descriptor_name)
+                .expect("Valid descriptor");
+
+            self.native_mapping.borrow_mut().insert(
+                (system_name, method_name, descriptor),
+                native_impl::get_class,
+            );
+        }
+
+        // java/lang/Class : String getNameNative()
+        {
+            let system_name = JvmString::new(self.gc_ctx, "java/lang/Class".to_string());
+
+            let method_name = JvmString::new(self.gc_ctx, "getNameNative".to_string());
+
+            let descriptor_name = JvmString::new(self.gc_ctx, "()Ljava/lang/String;".to_string());
+            let descriptor = MethodDescriptor::from_string(self.gc_ctx, descriptor_name)
+                .expect("Valid descriptor");
+
+            self.native_mapping.borrow_mut().insert(
+                (system_name, method_name, descriptor),
+                native_impl::get_name_native,
+            );
+        }
     }
 
     pub fn get_native_method(
@@ -182,6 +218,20 @@ impl Context {
 
     pub fn add_linked_jar(self, jar: Jar) {
         self.jar_files.borrow_mut().push(jar);
+    }
+
+    pub fn class_object_for_class(self, class: Class) -> Object {
+        let mut class_objects = self.class_to_object_map.borrow_mut();
+
+        if let Some(class_object) = class_objects.get(&class) {
+            *class_object
+        } else {
+            let object = Object::class_object(self, class);
+
+            class_objects.insert(class, object);
+
+            object
+        }
     }
 
     pub fn arithmetic_exception(&self) -> Error {
@@ -273,6 +323,7 @@ impl Context {
 impl Trace for Context {
     fn trace(&self) {
         self.class_registry.trace();
+        self.class_to_object_map.trace();
         self.jar_files.trace();
         self.class_registry.borrow().trace();
 

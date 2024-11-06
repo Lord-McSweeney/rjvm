@@ -3,8 +3,10 @@ package java.lang;
 public class Object {
     public Object() { }
 
+    public final native Class<?> getClass();
+
     public String toString() {
         // TODO implement
-        return "java.lang.Object@0";
+        return this.getClass().getName() + "@0";
     }
 }
