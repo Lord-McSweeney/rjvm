@@ -85,7 +85,9 @@ impl Interpreter {
                 Op::BaLoad => self.op_ba_load(),
                 Op::IStore(index) => self.op_i_store(*index),
                 Op::AStore(index) => self.op_a_store(*index),
+                Op::IaStore => self.op_ia_store(),
                 Op::AaStore => self.op_aa_store(),
+                Op::BaStore => self.op_ba_store(),
                 Op::CaStore => self.op_ca_store(),
                 Op::Pop => self.op_pop(),
                 Op::Dup => self.op_dup(),
@@ -96,7 +98,9 @@ impl Interpreter {
                 Op::IDiv => self.op_i_div(),
                 Op::IRem => self.op_i_rem(),
                 Op::INeg => self.op_i_neg(),
+                Op::IAnd => self.op_i_and(),
                 Op::IInc(index, amount) => self.op_i_inc(*index, *amount),
+                Op::I2B => self.op_i2b(),
                 Op::I2C => self.op_i2c(),
                 Op::IfEq(position) => self.op_if_eq(*position),
                 Op::IfNe(position) => self.op_if_ne(*position),
@@ -308,6 +312,25 @@ impl Interpreter {
         Ok(ControlFlow::Continue)
     }
 
+    fn op_ia_store(&mut self) -> Result<ControlFlow, Error> {
+        let value = self.stack_pop().int();
+        let index = self.stack_pop().int();
+        let array = self.stack_pop().object();
+
+        if let Some(array) = array {
+            let length = array.array_length();
+            if index < 0 || index as usize >= length {
+                Err(self.context.array_index_oob_exception())
+            } else {
+                array.set_integer_at_index(index as usize, value);
+
+                Ok(ControlFlow::Continue)
+            }
+        } else {
+            Err(self.context.null_pointer_exception())
+        }
+    }
+
     fn op_aa_store(&mut self) -> Result<ControlFlow, Error> {
         let value = self.stack_pop().object();
         let index = self.stack_pop().int();
@@ -319,6 +342,25 @@ impl Interpreter {
                 Err(self.context.array_index_oob_exception())
             } else {
                 array.set_object_at_index(index as usize, value);
+
+                Ok(ControlFlow::Continue)
+            }
+        } else {
+            Err(self.context.null_pointer_exception())
+        }
+    }
+
+    fn op_ba_store(&mut self) -> Result<ControlFlow, Error> {
+        let value = self.stack_pop().int();
+        let index = self.stack_pop().int();
+        let array = self.stack_pop().object();
+
+        if let Some(array) = array {
+            let length = array.array_length();
+            if index < 0 || index as usize >= length {
+                Err(self.context.array_index_oob_exception())
+            } else {
+                array.set_byte_at_index(index as usize, value as u8);
 
                 Ok(ControlFlow::Continue)
             }
@@ -432,10 +474,27 @@ impl Interpreter {
         Ok(ControlFlow::Continue)
     }
 
+    fn op_i_and(&mut self) -> Result<ControlFlow, Error> {
+        let int1 = self.stack_pop().int();
+        let int2 = self.stack_pop().int();
+
+        self.stack_push(Value::Integer(int1 & int2));
+
+        Ok(ControlFlow::Continue)
+    }
+
     fn op_i_inc(&mut self, index: usize, amount: i32) -> Result<ControlFlow, Error> {
         let loaded = self.local_registers[index].int();
 
         self.local_registers[index] = Value::Integer(loaded + amount);
+
+        Ok(ControlFlow::Continue)
+    }
+
+    fn op_i2b(&mut self) -> Result<ControlFlow, Error> {
+        let int = self.stack_pop().int();
+
+        self.stack_push(Value::Integer((int as u8) as i32));
 
         Ok(ControlFlow::Continue)
     }

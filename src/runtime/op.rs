@@ -23,7 +23,9 @@ pub enum Op {
     BaLoad,
     IStore(usize),
     AStore(usize),
+    IaStore,
     AaStore,
+    BaStore,
     CaStore,
     Pop,
     Dup,
@@ -34,7 +36,9 @@ pub enum Op {
     IDiv,
     IRem,
     INeg,
+    IAnd,
     IInc(usize, i32),
+    I2B,
     I2C,
     IfEq(usize),
     IfNe(usize),
@@ -100,7 +104,9 @@ impl Trace for Op {
             Op::BaLoad => {}
             Op::IStore(_) => {}
             Op::AStore(_) => {}
+            Op::IaStore => {}
             Op::AaStore => {}
+            Op::BaStore => {}
             Op::CaStore => {}
             Op::Pop => {}
             Op::Dup => {}
@@ -111,7 +117,9 @@ impl Trace for Op {
             Op::IDiv => {}
             Op::IRem => {}
             Op::INeg => {}
+            Op::IAnd => {}
             Op::IInc(_, _) => {}
+            Op::I2B => {}
             Op::I2C => {}
             Op::IfEq(_) => {}
             Op::IfNe(_) => {}
@@ -215,7 +223,9 @@ const A_STORE_0: u8 = 0x4B;
 const A_STORE_1: u8 = 0x4C;
 const A_STORE_2: u8 = 0x4D;
 const A_STORE_3: u8 = 0x4E;
+const IA_STORE: u8 = 0x4F;
 const AA_STORE: u8 = 0x53;
+const BA_STORE: u8 = 0x54;
 const CA_STORE: u8 = 0x55;
 const POP: u8 = 0x57;
 const DUP: u8 = 0x59;
@@ -226,7 +236,9 @@ const I_MUL: u8 = 0x68;
 const I_DIV: u8 = 0x6C;
 const I_REM: u8 = 0x70;
 const I_NEG: u8 = 0x74;
+const I_AND: u8 = 0x7E;
 const I_INC: u8 = 0x84;
+const I2B: u8 = 0x91;
 const I2C: u8 = 0x92;
 const IF_EQ: u8 = 0x99;
 const IF_NE: u8 = 0x9A;
@@ -418,7 +430,9 @@ impl Op {
             A_STORE_1 => Ok(Op::AStore(1)),
             A_STORE_2 => Ok(Op::AStore(2)),
             A_STORE_3 => Ok(Op::AStore(3)),
+            IA_STORE => Ok(Op::IaStore),
             AA_STORE => Ok(Op::AaStore),
+            BA_STORE => Ok(Op::BaStore),
             CA_STORE => Ok(Op::CaStore),
             POP => Ok(Op::Pop),
             DUP => Ok(Op::Dup),
@@ -429,12 +443,14 @@ impl Op {
             I_DIV => Ok(Op::IDiv),
             I_REM => Ok(Op::IRem),
             I_NEG => Ok(Op::INeg),
+            I_AND => Ok(Op::IAnd),
             I_INC => {
                 let local_idx = data.read_u8()?;
                 let constant = data.read_u8()? as i8;
 
                 Ok(Op::IInc(local_idx as usize, constant as i32))
             }
+            I2B => Ok(Op::I2B),
             I2C => Ok(Op::I2C),
             IF_EQ => {
                 let offset = data.read_u16()? as i16 as isize;

@@ -201,18 +201,36 @@ impl Object {
         }
     }
 
-    pub fn set_char_at_index(self, idx: usize, value: u16) {
+    pub fn set_byte_at_index(self, idx: usize, value: u8) {
         match &self.0.data {
-            FieldOrArrayData::Fields(_) => panic!("Cannot get index of object"),
+            FieldOrArrayData::Fields(_) => panic!("Cannot set index of object"),
             FieldOrArrayData::Array(data) => {
                 data[idx].set(Value::Integer(value as i32));
             }
         }
     }
 
+    pub fn set_char_at_index(self, idx: usize, value: u16) {
+        match &self.0.data {
+            FieldOrArrayData::Fields(_) => panic!("Cannot set index of object"),
+            FieldOrArrayData::Array(data) => {
+                data[idx].set(Value::Integer(value as i32));
+            }
+        }
+    }
+
+    pub fn set_integer_at_index(self, idx: usize, value: i32) {
+        match &self.0.data {
+            FieldOrArrayData::Fields(_) => panic!("Cannot set index of object"),
+            FieldOrArrayData::Array(data) => {
+                data[idx].set(Value::Integer(value));
+            }
+        }
+    }
+
     pub fn set_object_at_index(self, idx: usize, value: Option<Object>) {
         match &self.0.data {
-            FieldOrArrayData::Fields(_) => panic!("Cannot get index of object"),
+            FieldOrArrayData::Fields(_) => panic!("Cannot set index of object"),
             FieldOrArrayData::Array(data) => {
                 data[idx].set(Value::Object(value));
             }

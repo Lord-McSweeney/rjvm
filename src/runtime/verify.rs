@@ -474,6 +474,9 @@ fn verify_block<'a>(
                 ConstantPoolEntry::Integer { .. } => {
                     push_stack!(Integer);
                 }
+                ConstantPoolEntry::Class { .. } => {
+                    push_stack!(Reference);
+                }
                 _ => unimplemented!(),
             },
             Op::ILoad(index) => {
@@ -507,8 +510,18 @@ fn verify_block<'a>(
                 expect_pop_stack!(Reference);
                 set_local!(*index, Reference);
             }
+            Op::IaStore => {
+                expect_pop_stack!(Integer);
+                expect_pop_stack!(Integer);
+                expect_pop_stack!(Reference);
+            }
             Op::AaStore => {
                 expect_pop_stack!(Reference);
+                expect_pop_stack!(Integer);
+                expect_pop_stack!(Reference);
+            }
+            Op::BaStore => {
+                expect_pop_stack!(Integer);
                 expect_pop_stack!(Integer);
                 expect_pop_stack!(Reference);
             }
@@ -557,10 +570,15 @@ fn verify_block<'a>(
                 expect_pop_stack!(Integer);
                 push_stack!(Integer);
             }
+            Op::IAnd => {
+                expect_pop_stack!(Integer);
+                expect_pop_stack!(Integer);
+                push_stack!(Integer);
+            }
             Op::IInc(index, _) => {
                 expect_local!(*index, Integer);
             }
-            Op::I2C => {
+            Op::I2B | Op::I2C => {
                 expect_pop_stack!(Integer);
                 push_stack!(Integer);
             }
