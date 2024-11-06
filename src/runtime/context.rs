@@ -98,6 +98,22 @@ impl Context {
                 native_impl::array_copy,
             );
         }
+
+        // java/lang/Class : boolean isInterface()
+        {
+            let system_name = JvmString::new(self.gc_ctx, "java/lang/Class".to_string());
+
+            let method_name = JvmString::new(self.gc_ctx, "isInterface".to_string());
+
+            let descriptor_name = JvmString::new(self.gc_ctx, "()Z".to_string());
+            let descriptor = MethodDescriptor::from_string(self.gc_ctx, descriptor_name)
+                .expect("Valid descriptor");
+
+            self.native_mapping.borrow_mut().insert(
+                (system_name, method_name, descriptor),
+                native_impl::is_interface,
+            );
+        }
     }
 
     pub fn get_native_method(

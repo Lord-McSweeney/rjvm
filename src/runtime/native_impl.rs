@@ -110,3 +110,15 @@ pub fn array_copy(context: Context, args: &[Value]) -> Result<Option<Value>, Err
 
     Ok(None)
 }
+
+// java/lang/Class : boolean isInterface()
+pub fn is_interface(context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
+    // Receiver should never be null
+    let class = args[0].object().unwrap().get_stored_class();
+
+    if class.is_interface() {
+        Ok(Some(Value::Integer(1)))
+    } else {
+        Ok(Some(Value::Integer(0)))
+    }
+}
