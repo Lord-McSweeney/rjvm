@@ -4,8 +4,10 @@ use super::reader::{FileData, Reader};
 use crate::gc::{GcCtx, Trace};
 use crate::string::JvmString;
 
+const PLACEHOLDER: u8 = 0;
 const UTF8: u8 = 1;
 const INTEGER: u8 = 3;
+const LONG: u8 = 5;
 const CLASS: u8 = 7;
 const STRING: u8 = 8;
 const FIELD_REF: u8 = 9;
@@ -22,11 +24,17 @@ impl ConstantPool {
     fn validate(&self) -> Result<(), Error> {
         for entry in &self.entries {
             match *entry {
+                // Placeholders have no checks on them
+                ConstantPoolEntry::Placeholder => {}
+
                 // Utf8 has no checks on it
                 ConstantPoolEntry::Utf8 { .. } => {}
 
                 // Integer has no checks on it
                 ConstantPoolEntry::Integer { .. } => {}
+
+                // Long has no checks on it
+                ConstantPoolEntry::Long { .. } => {}
 
                 // Class must point to a Utf8
                 ConstantPoolEntry::Class { name_idx } => {
@@ -180,11 +188,15 @@ impl Trace for ConstantPool {
 
 #[derive(Clone, Copy, Debug)]
 pub enum ConstantPoolEntry {
+    Placeholder,
     Utf8 {
         string: JvmString,
     },
     Integer {
         value: i32,
+    },
+    Long {
+        value: i64,
     },
     Class {
         name_idx: u16,
@@ -213,8 +225,10 @@ pub enum ConstantPoolEntry {
 impl ConstantPoolEntry {
     fn tag(self) -> u8 {
         match self {
+            ConstantPoolEntry::Placeholder { .. } => PLACEHOLDER,
             ConstantPoolEntry::Utf8 { .. } => UTF8,
             ConstantPoolEntry::Integer { .. } => INTEGER,
+            ConstantPoolEntry::Long { .. } => LONG,
             ConstantPoolEntry::Class { .. } => CLASS,
             ConstantPoolEntry::String { .. } => STRING,
             ConstantPoolEntry::FieldRef { .. } => FIELD_REF,
@@ -252,6 +266,16 @@ fn read_constant_pool_entry(
             let value = data.read_u32()? as i32;
 
             Ok(ConstantPoolEntry::Integer { value })
+        }
+        LONG => {
+            let high_value = data.read_u32()? as u64;
+            let low_value = data.read_u32()? as u64;
+
+            let value = (high_value << 32) + low_value;
+
+            Ok(ConstantPoolEntry::Long {
+                value: value as i64,
+            })
         }
         CLASS => {
             let name_idx = data.read_u16()?;
@@ -311,8 +335,13 @@ pub fn read_constant_pool(gc_ctx: GcCtx, data: &mut FileData) -> Result<Constant
 
     let mut entries = Vec::with_capacity(entry_count as usize);
 
-    for _ in 0..entry_count {
+    while entries.len() < entry_count as usize {
         let entry = read_constant_pool_entry(gc_ctx, data)?;
+
+        if matches!(entry, ConstantPoolEntry::Long { .. }) {
+            // Longs "take up" two cpool entries
+            entries.push(ConstantPoolEntry::Placeholder);
+        }
 
         entries.push(entry);
     }
