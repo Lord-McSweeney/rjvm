@@ -120,6 +120,21 @@ fn collect_basic_blocks<'a>(
                     }
                     break;
                 }
+                Op::TableSwitch(_, _, matches, default_offset) => {
+                    if !visited_locations.contains(default_offset) {
+                        visited_locations.insert(*default_offset);
+                        worklist.push(*default_offset);
+                    }
+
+                    for offset in matches {
+                        if !visited_locations.contains(offset) {
+                            visited_locations.insert(*offset);
+                            worklist.push(*offset);
+                        }
+                    }
+
+                    break;
+                }
                 Op::LookupSwitch(matches, default_offset) => {
                     if !visited_locations.contains(default_offset) {
                         visited_locations.insert(*default_offset);
@@ -185,6 +200,23 @@ fn collect_basic_blocks<'a>(
                     start_index: current_block_start,
                     ops: &ops[current_block_start..i + 1],
                     exits: BlockExits::Goto(*position),
+                };
+
+                block_list.push(block);
+
+                current_block_start = i + 1;
+            }
+            Op::TableSwitch(_, _, matches, default_offset) => {
+                let mut possible_target_list = vec![*default_offset];
+
+                for offset in matches {
+                    possible_target_list.push(*offset);
+                }
+
+                let block = BasicBlock {
+                    start_index: current_block_start,
+                    ops: &ops[current_block_start..i + 1],
+                    exits: BlockExits::BranchMultiple(possible_target_list.into_boxed_slice()),
                 };
 
                 block_list.push(block);
@@ -600,6 +632,9 @@ fn verify_block<'a>(
             }
             Op::Goto(_) => {
                 // This does nothing
+            }
+            Op::TableSwitch(_, _, _, _) => {
+                expect_pop_stack!(Integer);
             }
             Op::LookupSwitch(_, _) => {
                 expect_pop_stack!(Integer);

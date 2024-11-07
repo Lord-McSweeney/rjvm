@@ -54,6 +54,7 @@ pub enum Op {
     IfACmpEq(usize),
     IfACmpNe(usize),
     Goto(usize),
+    TableSwitch(i32, i32, Box<[usize]>, usize),
     LookupSwitch(Box<[(i32, usize)]>, usize),
     IReturn,
     AReturn,
@@ -135,6 +136,7 @@ impl Trace for Op {
             Op::IfACmpEq(_) => {}
             Op::IfACmpNe(_) => {}
             Op::Goto(_) => {}
+            Op::TableSwitch(_, _, _, _) => {}
             Op::LookupSwitch(_, _) => {}
             Op::IReturn => {}
             Op::AReturn => {}
@@ -254,6 +256,7 @@ const IF_I_CMP_LE: u8 = 0xA4;
 const IF_A_CMP_EQ: u8 = 0xA5;
 const IF_A_CMP_NE: u8 = 0xA6;
 const GOTO: u8 = 0xA7;
+const TABLE_SWITCH: u8 = 0xAA;
 const LOOKUP_SWITCH: u8 = 0xAB;
 const I_RETURN: u8 = 0xAC;
 const A_RETURN: u8 = 0xB0;
@@ -332,6 +335,17 @@ impl Op {
                     *position = *offset_to_idx_map
                         .get(position)
                         .ok_or(Error::Native(NativeError::InvalidBranchPosition))?;
+                }
+                Op::TableSwitch(_, _, ref mut matches, default_offset) => {
+                    *default_offset = *offset_to_idx_map
+                        .get(default_offset)
+                        .ok_or(Error::Native(NativeError::InvalidBranchPosition))?;
+
+                    for offset in matches.iter_mut() {
+                        *offset = *offset_to_idx_map
+                            .get(offset)
+                            .ok_or(Error::Native(NativeError::InvalidBranchPosition))?;
+                    }
                 }
                 Op::LookupSwitch(ref mut matches, default_offset) => {
                     *default_offset = *offset_to_idx_map
@@ -521,6 +535,36 @@ impl Op {
                 let offset = data.read_u16()? as i16 as isize;
 
                 Ok(Op::Goto(((data_position as isize) + offset) as usize))
+            }
+            TABLE_SWITCH => {
+                let padding_bytes = (data_position + 1) % 4;
+                if padding_bytes != 0 {
+                    for _ in 0..(4 - padding_bytes) {
+                        data.read_u8()?;
+                    }
+                }
+
+                let default_offset = data.read_u32()? as i32 as isize;
+                let default_offset = ((data_position as isize) + default_offset) as usize;
+
+                let low_int = data.read_u32()? as i32;
+                let high_int = data.read_u32()? as i32;
+
+                let num_offsets = (high_int - low_int) as usize + 1;
+                let mut offsets = Vec::with_capacity(num_offsets);
+                for _ in 0..num_offsets {
+                    let offset = data.read_u32()? as i32 as isize;
+                    let offset = ((data_position as isize) + offset) as usize;
+
+                    offsets.push(offset);
+                }
+
+                Ok(Op::TableSwitch(
+                    low_int,
+                    high_int,
+                    offsets.into_boxed_slice(),
+                    default_offset,
+                ))
             }
             LOOKUP_SWITCH => {
                 let padding_bytes = (data_position + 1) % 4;
@@ -797,6 +841,9 @@ impl Op {
             Op::IaLoad
                 | Op::AaLoad
                 | Op::BaLoad
+                | Op::IaStore
+                | Op::AaStore
+                | Op::BaStore
                 | Op::CaStore
                 | Op::IDiv
                 | Op::IRem
@@ -806,6 +853,7 @@ impl Op {
                 | Op::InvokeSpecial(_, _)
                 | Op::InvokeStatic(_)
                 | Op::NewArray(_)
+                | Op::ANewArray(_)
                 | Op::ArrayLength
                 | Op::AThrow
                 | Op::CheckCast(_)

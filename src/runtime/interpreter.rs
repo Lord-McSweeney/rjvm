@@ -116,6 +116,9 @@ impl Interpreter {
                 Op::IfACmpEq(position) => self.op_if_a_cmp_eq(*position),
                 Op::IfACmpNe(position) => self.op_if_a_cmp_ne(*position),
                 Op::Goto(position) => self.op_goto(*position),
+                Op::TableSwitch(low_int, high_int, matches, default_offset) => {
+                    self.op_table_switch(*low_int, *high_int, &**matches, *default_offset)
+                }
                 Op::LookupSwitch(matches, default_offset) => {
                     self.op_lookup_switch(&**matches, *default_offset)
                 }
@@ -686,6 +689,23 @@ impl Interpreter {
 
     fn op_goto(&mut self, position: usize) -> Result<ControlFlow, Error> {
         self.ip = position;
+
+        Ok(ControlFlow::ManualContinue)
+    }
+
+    fn op_table_switch(
+        &mut self,
+        low_int: i32,
+        high_int: i32,
+        matches: &[usize],
+        default_offset: usize,
+    ) -> Result<ControlFlow, Error> {
+        let value = self.stack_pop().int();
+        if value < low_int || value > high_int {
+            self.ip = default_offset;
+        } else {
+            self.ip = matches[(value - low_int) as usize];
+        }
 
         Ok(ControlFlow::ManualContinue)
     }
