@@ -338,12 +338,12 @@ pub fn read_constant_pool(gc_ctx: GcCtx, data: &mut FileData) -> Result<Constant
     while entries.len() < entry_count as usize {
         let entry = read_constant_pool_entry(gc_ctx, data)?;
 
+        entries.push(entry);
+
         if matches!(entry, ConstantPoolEntry::Long { .. }) {
             // Longs "take up" two cpool entries
             entries.push(ConstantPoolEntry::Placeholder);
         }
-
-        entries.push(entry);
     }
 
     let constant_pool = ConstantPool { entries };
