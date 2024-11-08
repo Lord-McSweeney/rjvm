@@ -38,9 +38,12 @@ pub enum Op {
     IDiv,
     IRem,
     INeg,
+    IShl,
     IShr,
     IAnd,
     LAnd,
+    LOr,
+    LXor,
     IInc(usize, i32),
     I2B,
     I2C,
@@ -124,9 +127,12 @@ impl Trace for Op {
             Op::IDiv => {}
             Op::IRem => {}
             Op::INeg => {}
+            Op::IShl => {}
             Op::IShr => {}
             Op::IAnd => {}
             Op::LAnd => {}
+            Op::LOr => {}
+            Op::LXor => {}
             Op::IInc(_, _) => {}
             Op::I2B => {}
             Op::I2C => {}
@@ -248,9 +254,12 @@ const I_MUL: u8 = 0x68;
 const I_DIV: u8 = 0x6C;
 const I_REM: u8 = 0x70;
 const I_NEG: u8 = 0x74;
+const I_SHL: u8 = 0x78;
 const I_SHR: u8 = 0x7A;
 const I_AND: u8 = 0x7E;
 const L_AND: u8 = 0x7F;
+const L_OR: u8 = 0x81;
+const L_XOR: u8 = 0x83;
 const I_INC: u8 = 0x84;
 const I2B: u8 = 0x91;
 const I2C: u8 = 0x92;
@@ -471,9 +480,12 @@ impl Op {
             I_DIV => Ok(Op::IDiv),
             I_REM => Ok(Op::IRem),
             I_NEG => Ok(Op::INeg),
+            I_SHL => Ok(Op::IShl),
             I_SHR => Ok(Op::IShr),
             I_AND => Ok(Op::IAnd),
             L_AND => Ok(Op::LAnd),
+            L_OR => Ok(Op::LOr),
+            L_XOR => Ok(Op::LXor),
             I_INC => {
                 let local_idx = data.read_u8()?;
                 let constant = data.read_u8()? as i8;

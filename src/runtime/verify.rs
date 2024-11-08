@@ -612,12 +612,12 @@ fn verify_block<'a>(
                 expect_pop_stack!(Integer);
                 push_stack!(Integer);
             }
-            Op::IShr | Op::IAnd => {
+            Op::IShl | Op::IShr | Op::IAnd => {
                 expect_pop_stack!(Integer);
                 expect_pop_stack!(Integer);
                 push_stack!(Integer);
             }
-            Op::LAnd => {
+            Op::LAnd | Op::LOr | Op::LXor => {
                 expect_pop_stack!(Long);
                 expect_pop_stack!(Long);
                 push_stack!(Long);

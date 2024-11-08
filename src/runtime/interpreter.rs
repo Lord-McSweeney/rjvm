@@ -100,9 +100,12 @@ impl Interpreter {
                 Op::IDiv => self.op_i_div(),
                 Op::IRem => self.op_i_rem(),
                 Op::INeg => self.op_i_neg(),
+                Op::IShl => self.op_i_shl(),
                 Op::IShr => self.op_i_shr(),
                 Op::IAnd => self.op_i_and(),
                 Op::LAnd => self.op_l_and(),
+                Op::LOr => self.op_l_or(),
+                Op::LXor => self.op_l_xor(),
                 Op::IInc(index, amount) => self.op_i_inc(*index, *amount),
                 Op::I2B => self.op_i2b(),
                 Op::I2C => self.op_i2c(),
@@ -532,6 +535,15 @@ impl Interpreter {
         Ok(ControlFlow::Continue)
     }
 
+    fn op_i_shl(&mut self) -> Result<ControlFlow, Error> {
+        let int1 = self.stack_pop().int();
+        let int2 = self.stack_pop().int();
+
+        self.stack_push(Value::Integer(int2 << (int1 & 0x1F)));
+
+        Ok(ControlFlow::Continue)
+    }
+
     fn op_i_shr(&mut self) -> Result<ControlFlow, Error> {
         let int1 = self.stack_pop().int();
         let int2 = self.stack_pop().int();
@@ -555,6 +567,24 @@ impl Interpreter {
         let int2 = self.stack_pop().long();
 
         self.stack_push(Value::Long(int1 & int2));
+
+        Ok(ControlFlow::Continue)
+    }
+
+    fn op_l_or(&mut self) -> Result<ControlFlow, Error> {
+        let int1 = self.stack_pop().long();
+        let int2 = self.stack_pop().long();
+
+        self.stack_push(Value::Long(int1 | int2));
+
+        Ok(ControlFlow::Continue)
+    }
+
+    fn op_l_xor(&mut self) -> Result<ControlFlow, Error> {
+        let int1 = self.stack_pop().long();
+        let int2 = self.stack_pop().long();
+
+        self.stack_push(Value::Long(int1 ^ int2));
 
         Ok(ControlFlow::Continue)
     }
