@@ -210,6 +210,20 @@ impl Object {
         }
     }
 
+    pub fn get_long_at_index(self, idx: usize) -> i64 {
+        match &self.0.data {
+            FieldOrArrayData::Fields(_) => panic!("Cannot get index of object"),
+            FieldOrArrayData::Array(data) => {
+                let value = data[idx].get();
+                let Value::Long(integer) = value else {
+                    unreachable!();
+                };
+
+                integer
+            }
+        }
+    }
+
     pub fn get_object_at_index(self, idx: usize) -> Option<Object> {
         match &self.0.data {
             FieldOrArrayData::Fields(_) => panic!("Cannot get index of object"),
@@ -247,6 +261,15 @@ impl Object {
             FieldOrArrayData::Fields(_) => panic!("Cannot set index of object"),
             FieldOrArrayData::Array(data) => {
                 data[idx].set(Value::Integer(value));
+            }
+        }
+    }
+
+    pub fn set_long_at_index(self, idx: usize, value: i64) {
+        match &self.0.data {
+            FieldOrArrayData::Fields(_) => panic!("Cannot set index of object"),
+            FieldOrArrayData::Array(data) => {
+                data[idx].set(Value::Long(value));
             }
         }
     }

@@ -22,6 +22,13 @@ impl Value {
         }
     }
 
+    pub fn long(self) -> i64 {
+        match self {
+            Value::Long(long) => long,
+            _ => panic!("Expected value to be long"),
+        }
+    }
+
     pub fn object(self) -> Option<Object> {
         match self {
             Value::Object(object) => object,

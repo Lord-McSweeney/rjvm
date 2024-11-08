@@ -81,11 +81,13 @@ impl Interpreter {
                 Op::ILoad(index) => self.op_i_load(*index),
                 Op::ALoad(index) => self.op_a_load(*index),
                 Op::IaLoad => self.op_ia_load(),
+                Op::LaLoad => self.op_la_load(),
                 Op::AaLoad => self.op_aa_load(),
                 Op::BaLoad => self.op_ba_load(),
                 Op::IStore(index) => self.op_i_store(*index),
                 Op::AStore(index) => self.op_a_store(*index),
                 Op::IaStore => self.op_ia_store(),
+                Op::LaStore => self.op_la_store(),
                 Op::AaStore => self.op_aa_store(),
                 Op::BaStore => self.op_ba_store(),
                 Op::CaStore => self.op_ca_store(),
@@ -100,6 +102,7 @@ impl Interpreter {
                 Op::INeg => self.op_i_neg(),
                 Op::IShr => self.op_i_shr(),
                 Op::IAnd => self.op_i_and(),
+                Op::LAnd => self.op_l_and(),
                 Op::IInc(index, amount) => self.op_i_inc(*index, *amount),
                 Op::I2B => self.op_i2b(),
                 Op::I2C => self.op_i2c(),
@@ -272,6 +275,26 @@ impl Interpreter {
         }
     }
 
+    fn op_la_load(&mut self) -> Result<ControlFlow, Error> {
+        let index = self.stack_pop().int();
+
+        let array = self.stack_pop().object();
+        if let Some(array) = array {
+            let length = array.array_length();
+            if index < 0 || index as usize >= length {
+                Err(self.context.array_index_oob_exception())
+            } else {
+                let result = array.get_long_at_index(index as usize);
+
+                self.stack_push(Value::Long(result));
+
+                Ok(ControlFlow::Continue)
+            }
+        } else {
+            Err(self.context.null_pointer_exception())
+        }
+    }
+
     fn op_aa_load(&mut self) -> Result<ControlFlow, Error> {
         let index = self.stack_pop().int();
 
@@ -339,6 +362,25 @@ impl Interpreter {
                 Err(self.context.array_index_oob_exception())
             } else {
                 array.set_integer_at_index(index as usize, value);
+
+                Ok(ControlFlow::Continue)
+            }
+        } else {
+            Err(self.context.null_pointer_exception())
+        }
+    }
+
+    fn op_la_store(&mut self) -> Result<ControlFlow, Error> {
+        let value = self.stack_pop().long();
+        let index = self.stack_pop().int();
+        let array = self.stack_pop().object();
+
+        if let Some(array) = array {
+            let length = array.array_length();
+            if index < 0 || index as usize >= length {
+                Err(self.context.array_index_oob_exception())
+            } else {
+                array.set_long_at_index(index as usize, value);
 
                 Ok(ControlFlow::Continue)
             }
@@ -504,6 +546,15 @@ impl Interpreter {
         let int2 = self.stack_pop().int();
 
         self.stack_push(Value::Integer(int1 & int2));
+
+        Ok(ControlFlow::Continue)
+    }
+
+    fn op_l_and(&mut self) -> Result<ControlFlow, Error> {
+        let int1 = self.stack_pop().long();
+        let int2 = self.stack_pop().long();
+
+        self.stack_push(Value::Long(int1 & int2));
 
         Ok(ControlFlow::Continue)
     }

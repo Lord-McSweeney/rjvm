@@ -19,11 +19,13 @@ pub enum Op {
     ILoad(usize),
     ALoad(usize),
     IaLoad,
+    LaLoad,
     AaLoad,
     BaLoad,
     IStore(usize),
     AStore(usize),
     IaStore,
+    LaStore,
     AaStore,
     BaStore,
     CaStore,
@@ -38,6 +40,7 @@ pub enum Op {
     INeg,
     IShr,
     IAnd,
+    LAnd,
     IInc(usize, i32),
     I2B,
     I2C,
@@ -102,11 +105,13 @@ impl Trace for Op {
             Op::ILoad(_) => {}
             Op::ALoad(_) => {}
             Op::IaLoad => {}
+            Op::LaLoad => {}
             Op::AaLoad => {}
             Op::BaLoad => {}
             Op::IStore(_) => {}
             Op::AStore(_) => {}
             Op::IaStore => {}
+            Op::LaStore => {}
             Op::AaStore => {}
             Op::BaStore => {}
             Op::CaStore => {}
@@ -121,6 +126,7 @@ impl Trace for Op {
             Op::INeg => {}
             Op::IShr => {}
             Op::IAnd => {}
+            Op::LAnd => {}
             Op::IInc(_, _) => {}
             Op::I2B => {}
             Op::I2C => {}
@@ -215,6 +221,7 @@ const A_LOAD_1: u8 = 0x2B;
 const A_LOAD_2: u8 = 0x2C;
 const A_LOAD_3: u8 = 0x2D;
 const IA_LOAD: u8 = 0x2E;
+const LA_LOAD: u8 = 0x2F;
 const AA_LOAD: u8 = 0x32;
 const BA_LOAD: u8 = 0x33;
 const I_STORE: u8 = 0x36;
@@ -228,6 +235,7 @@ const A_STORE_1: u8 = 0x4C;
 const A_STORE_2: u8 = 0x4D;
 const A_STORE_3: u8 = 0x4E;
 const IA_STORE: u8 = 0x4F;
+const LA_STORE: u8 = 0x50;
 const AA_STORE: u8 = 0x53;
 const BA_STORE: u8 = 0x54;
 const CA_STORE: u8 = 0x55;
@@ -242,6 +250,7 @@ const I_REM: u8 = 0x70;
 const I_NEG: u8 = 0x74;
 const I_SHR: u8 = 0x7A;
 const I_AND: u8 = 0x7E;
+const L_AND: u8 = 0x7F;
 const I_INC: u8 = 0x84;
 const I2B: u8 = 0x91;
 const I2C: u8 = 0x92;
@@ -427,6 +436,7 @@ impl Op {
             A_LOAD_2 => Ok(Op::ALoad(2)),
             A_LOAD_3 => Ok(Op::ALoad(3)),
             IA_LOAD => Ok(Op::IaLoad),
+            LA_LOAD => Ok(Op::LaLoad),
             AA_LOAD => Ok(Op::AaLoad),
             BA_LOAD => Ok(Op::BaLoad),
             I_STORE => {
@@ -448,6 +458,7 @@ impl Op {
             A_STORE_2 => Ok(Op::AStore(2)),
             A_STORE_3 => Ok(Op::AStore(3)),
             IA_STORE => Ok(Op::IaStore),
+            LA_STORE => Ok(Op::LaStore),
             AA_STORE => Ok(Op::AaStore),
             BA_STORE => Ok(Op::BaStore),
             CA_STORE => Ok(Op::CaStore),
@@ -462,6 +473,7 @@ impl Op {
             I_NEG => Ok(Op::INeg),
             I_SHR => Ok(Op::IShr),
             I_AND => Ok(Op::IAnd),
+            L_AND => Ok(Op::LAnd),
             I_INC => {
                 let local_idx = data.read_u8()?;
                 let constant = data.read_u8()? as i8;
@@ -843,9 +855,11 @@ impl Op {
         matches!(
             self,
             Op::IaLoad
+                | Op::LaLoad
                 | Op::AaLoad
                 | Op::BaLoad
                 | Op::IaStore
+                | Op::LaStore
                 | Op::AaStore
                 | Op::BaStore
                 | Op::CaStore

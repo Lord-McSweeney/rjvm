@@ -524,6 +524,11 @@ fn verify_block<'a>(
                 expect_pop_stack!(Reference);
                 push_stack!(Integer);
             }
+            Op::LaLoad => {
+                expect_pop_stack!(Integer);
+                expect_pop_stack!(Reference);
+                push_stack!(Long);
+            }
             Op::AaLoad => {
                 expect_pop_stack!(Integer);
                 expect_pop_stack!(Reference);
@@ -544,6 +549,11 @@ fn verify_block<'a>(
             }
             Op::IaStore => {
                 expect_pop_stack!(Integer);
+                expect_pop_stack!(Integer);
+                expect_pop_stack!(Reference);
+            }
+            Op::LaStore => {
+                expect_pop_stack!(Long);
                 expect_pop_stack!(Integer);
                 expect_pop_stack!(Reference);
             }
@@ -606,6 +616,11 @@ fn verify_block<'a>(
                 expect_pop_stack!(Integer);
                 expect_pop_stack!(Integer);
                 push_stack!(Integer);
+            }
+            Op::LAnd => {
+                expect_pop_stack!(Long);
+                expect_pop_stack!(Long);
+                push_stack!(Long);
             }
             Op::IInc(index, _) => {
                 expect_local!(*index, Integer);
