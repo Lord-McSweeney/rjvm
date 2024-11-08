@@ -15,14 +15,18 @@ use std::collections::HashMap;
 pub enum Op {
     AConstNull,
     IConst(i32),
+    LConst(i8),
     Ldc(ConstantPoolEntry),
+    Ldc2(ConstantPoolEntry),
     ILoad(usize),
+    LLoad(usize),
     ALoad(usize),
     IaLoad,
     LaLoad,
     AaLoad,
     BaLoad,
     IStore(usize),
+    LStore(usize),
     AStore(usize),
     IaStore,
     LaStore,
@@ -32,21 +36,30 @@ pub enum Op {
     Pop,
     Dup,
     DupX1,
+    Dup2,
     IAdd,
+    LAdd,
     ISub,
+    LSub,
     IMul,
     IDiv,
     IRem,
     INeg,
     IShl,
+    LShl,
     IShr,
+    LShr,
+    LUshr,
     IAnd,
     LAnd,
     LOr,
     LXor,
     IInc(usize, i32),
+    I2L,
+    L2I,
     I2B,
     I2C,
+    LCmp,
     IfEq(usize),
     IfNe(usize),
     IfLt(usize),
@@ -102,16 +115,19 @@ impl Trace for Op {
         match self {
             Op::AConstNull => {}
             Op::IConst(_) => {}
-            Op::Ldc(entry) => {
+            Op::LConst(_) => {}
+            Op::Ldc(entry) | Op::Ldc2(entry) => {
                 entry.trace();
             }
             Op::ILoad(_) => {}
+            Op::LLoad(_) => {}
             Op::ALoad(_) => {}
             Op::IaLoad => {}
             Op::LaLoad => {}
             Op::AaLoad => {}
             Op::BaLoad => {}
             Op::IStore(_) => {}
+            Op::LStore(_) => {}
             Op::AStore(_) => {}
             Op::IaStore => {}
             Op::LaStore => {}
@@ -121,21 +137,30 @@ impl Trace for Op {
             Op::Pop => {}
             Op::Dup => {}
             Op::DupX1 => {}
+            Op::Dup2 => {}
             Op::IAdd => {}
+            Op::LAdd => {}
             Op::ISub => {}
+            Op::LSub => {}
             Op::IMul => {}
             Op::IDiv => {}
             Op::IRem => {}
             Op::INeg => {}
             Op::IShl => {}
+            Op::LShl => {}
             Op::IShr => {}
+            Op::LShr => {}
+            Op::LUshr => {}
             Op::IAnd => {}
             Op::LAnd => {}
             Op::LOr => {}
             Op::LXor => {}
             Op::IInc(_, _) => {}
+            Op::I2L => {}
+            Op::L2I => {}
             Op::I2B => {}
             Op::I2C => {}
+            Op::LCmp => {}
             Op::IfEq(_) => {}
             Op::IfNe(_) => {}
             Op::IfLt(_) => {}
@@ -212,16 +237,21 @@ const I_CONST_2: u8 = 0x05;
 const I_CONST_3: u8 = 0x06;
 const I_CONST_4: u8 = 0x07;
 const I_CONST_5: u8 = 0x08;
+const L_CONST_0: u8 = 0x09;
+const L_CONST_1: u8 = 0x0A;
 const B_I_PUSH: u8 = 0x10;
 const S_I_PUSH: u8 = 0x11;
 const LDC: u8 = 0x12;
 const LDC_W: u8 = 0x13;
+const LDC_2_W: u8 = 0x14;
 const I_LOAD: u8 = 0x15;
+const L_LOAD: u8 = 0x16;
 const A_LOAD: u8 = 0x19;
 const I_LOAD_0: u8 = 0x1A;
 const I_LOAD_1: u8 = 0x1B;
 const I_LOAD_2: u8 = 0x1C;
 const I_LOAD_3: u8 = 0x1D;
+const L_LOAD_0: u8 = 0x1E;
 const A_LOAD_0: u8 = 0x2A;
 const A_LOAD_1: u8 = 0x2B;
 const A_LOAD_2: u8 = 0x2C;
@@ -231,11 +261,13 @@ const LA_LOAD: u8 = 0x2F;
 const AA_LOAD: u8 = 0x32;
 const BA_LOAD: u8 = 0x33;
 const I_STORE: u8 = 0x36;
+const L_STORE: u8 = 0x37;
 const A_STORE: u8 = 0x3A;
 const I_STORE_0: u8 = 0x3B;
 const I_STORE_1: u8 = 0x3C;
 const I_STORE_2: u8 = 0x3D;
 const I_STORE_3: u8 = 0x3E;
+const L_STORE_0: u8 = 0x3F;
 const A_STORE_0: u8 = 0x4B;
 const A_STORE_1: u8 = 0x4C;
 const A_STORE_2: u8 = 0x4D;
@@ -248,21 +280,30 @@ const CA_STORE: u8 = 0x55;
 const POP: u8 = 0x57;
 const DUP: u8 = 0x59;
 const DUP_X1: u8 = 0x5A;
+const DUP_2: u8 = 0x5C;
 const I_ADD: u8 = 0x60;
+const L_ADD: u8 = 0x61;
 const I_SUB: u8 = 0x64;
+const L_SUB: u8 = 0x65;
 const I_MUL: u8 = 0x68;
 const I_DIV: u8 = 0x6C;
 const I_REM: u8 = 0x70;
 const I_NEG: u8 = 0x74;
 const I_SHL: u8 = 0x78;
+const L_SHL: u8 = 0x79;
 const I_SHR: u8 = 0x7A;
+const L_SHR: u8 = 0x7B;
+const L_USHR: u8 = 0x7D;
 const I_AND: u8 = 0x7E;
 const L_AND: u8 = 0x7F;
 const L_OR: u8 = 0x81;
 const L_XOR: u8 = 0x83;
 const I_INC: u8 = 0x84;
+const I2L: u8 = 0x85;
+const L2I: u8 = 0x88;
 const I2B: u8 = 0x91;
 const I2C: u8 = 0x92;
+const L_CMP: u8 = 0x94;
 const IF_EQ: u8 = 0x99;
 const IF_NE: u8 = 0x9A;
 const IF_LT: u8 = 0x9B;
@@ -404,6 +445,8 @@ impl Op {
             I_CONST_3 => Ok(Op::IConst(3)),
             I_CONST_4 => Ok(Op::IConst(4)),
             I_CONST_5 => Ok(Op::IConst(5)),
+            L_CONST_0 => Ok(Op::LConst(0)),
+            L_CONST_1 => Ok(Op::LConst(1)),
             B_I_PUSH => {
                 let byte = data.read_u8()? as i32;
 
@@ -426,10 +469,21 @@ impl Op {
 
                 Ok(Op::Ldc(entry))
             }
+            LDC_2_W => {
+                let constant_pool_idx = data.read_u16()?;
+                let entry = constant_pool.entry(constant_pool_idx)?;
+
+                Ok(Op::Ldc2(entry))
+            }
             I_LOAD => {
                 let local_idx = data.read_u8()?;
 
                 Ok(Op::ILoad(local_idx as usize))
+            }
+            L_LOAD => {
+                let local_idx = data.read_u8()?;
+
+                Ok(Op::LLoad(local_idx as usize))
             }
             A_LOAD => {
                 let local_idx = data.read_u8()?;
@@ -440,6 +494,7 @@ impl Op {
             I_LOAD_1 => Ok(Op::ILoad(1)),
             I_LOAD_2 => Ok(Op::ILoad(2)),
             I_LOAD_3 => Ok(Op::ILoad(3)),
+            L_LOAD_0 => Ok(Op::LLoad(0)),
             A_LOAD_0 => Ok(Op::ALoad(0)),
             A_LOAD_1 => Ok(Op::ALoad(1)),
             A_LOAD_2 => Ok(Op::ALoad(2)),
@@ -453,6 +508,11 @@ impl Op {
 
                 Ok(Op::IStore(local_idx as usize))
             }
+            L_STORE => {
+                let local_idx = data.read_u8()?;
+
+                Ok(Op::LStore(local_idx as usize))
+            }
             A_STORE => {
                 let local_idx = data.read_u8()?;
 
@@ -462,6 +522,7 @@ impl Op {
             I_STORE_1 => Ok(Op::IStore(1)),
             I_STORE_2 => Ok(Op::IStore(2)),
             I_STORE_3 => Ok(Op::IStore(3)),
+            L_STORE_0 => Ok(Op::LStore(0)),
             A_STORE_0 => Ok(Op::AStore(0)),
             A_STORE_1 => Ok(Op::AStore(1)),
             A_STORE_2 => Ok(Op::AStore(2)),
@@ -474,14 +535,20 @@ impl Op {
             POP => Ok(Op::Pop),
             DUP => Ok(Op::Dup),
             DUP_X1 => Ok(Op::DupX1),
+            DUP_2 => Ok(Op::Dup2),
             I_ADD => Ok(Op::IAdd),
+            L_ADD => Ok(Op::LAdd),
             I_SUB => Ok(Op::ISub),
+            L_SUB => Ok(Op::LSub),
             I_MUL => Ok(Op::IMul),
             I_DIV => Ok(Op::IDiv),
             I_REM => Ok(Op::IRem),
             I_NEG => Ok(Op::INeg),
             I_SHL => Ok(Op::IShl),
+            L_SHL => Ok(Op::LShl),
             I_SHR => Ok(Op::IShr),
+            L_SHR => Ok(Op::LShr),
+            L_USHR => Ok(Op::LUshr),
             I_AND => Ok(Op::IAnd),
             L_AND => Ok(Op::LAnd),
             L_OR => Ok(Op::LOr),
@@ -492,8 +559,11 @@ impl Op {
 
                 Ok(Op::IInc(local_idx as usize, constant as i32))
             }
+            I2L => Ok(Op::I2L),
+            L2I => Ok(Op::L2I),
             I2B => Ok(Op::I2B),
             I2C => Ok(Op::I2C),
+            L_CMP => Ok(Op::LCmp),
             IF_EQ => {
                 let offset = data.read_u16()? as i16 as isize;
 
@@ -882,6 +952,7 @@ impl Op {
                 | Op::InvokeVirtual(_)
                 | Op::InvokeSpecial(_, _)
                 | Op::InvokeStatic(_)
+                | Op::InvokeInterface(_, _)
                 | Op::NewArray(_)
                 | Op::ANewArray(_)
                 | Op::ArrayLength

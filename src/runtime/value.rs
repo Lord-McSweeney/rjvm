@@ -15,6 +15,13 @@ pub enum Value {
 }
 
 impl Value {
+    pub fn is_wide(self) -> bool {
+        match self {
+            Value::Integer(_) | Value::Float(_) | Value::Object(_) => false,
+            Value::Long(_) | Value::Double(_) => true,
+        }
+    }
+
     pub fn int(self) -> i32 {
         match self {
             Value::Integer(int) => int,

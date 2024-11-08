@@ -10,6 +10,8 @@ use super::value::Value;
 use crate::classfile::constant_pool::{ConstantPool, ConstantPoolEntry};
 use crate::string::JvmString;
 
+use std::cmp::Ordering;
+
 pub struct Interpreter {
     method: Method,
     stack: Vec<Value>,
@@ -77,14 +79,19 @@ impl Interpreter {
             let control_flow = match op {
                 Op::AConstNull => self.op_a_const_null(),
                 Op::IConst(val) => self.op_i_const(*val),
-                Op::Ldc(constant_pool_entry) => self.op_ldc(*constant_pool_entry),
+                Op::LConst(val) => self.op_l_const(*val),
+                Op::Ldc(constant_pool_entry) | Op::Ldc2(constant_pool_entry) => {
+                    self.op_ldc(*constant_pool_entry)
+                }
                 Op::ILoad(index) => self.op_i_load(*index),
+                Op::LLoad(index) => self.op_l_load(*index),
                 Op::ALoad(index) => self.op_a_load(*index),
                 Op::IaLoad => self.op_ia_load(),
                 Op::LaLoad => self.op_la_load(),
                 Op::AaLoad => self.op_aa_load(),
                 Op::BaLoad => self.op_ba_load(),
                 Op::IStore(index) => self.op_i_store(*index),
+                Op::LStore(index) => self.op_l_store(*index),
                 Op::AStore(index) => self.op_a_store(*index),
                 Op::IaStore => self.op_ia_store(),
                 Op::LaStore => self.op_la_store(),
@@ -94,21 +101,30 @@ impl Interpreter {
                 Op::Pop => self.op_pop(),
                 Op::Dup => self.op_dup(),
                 Op::DupX1 => self.op_dup_x1(),
+                Op::Dup2 => self.op_dup_2(),
                 Op::IAdd => self.op_i_add(),
+                Op::LAdd => self.op_l_add(),
                 Op::ISub => self.op_i_sub(),
+                Op::LSub => self.op_l_sub(),
                 Op::IMul => self.op_i_mul(),
                 Op::IDiv => self.op_i_div(),
                 Op::IRem => self.op_i_rem(),
                 Op::INeg => self.op_i_neg(),
                 Op::IShl => self.op_i_shl(),
+                Op::LShl => self.op_l_shl(),
                 Op::IShr => self.op_i_shr(),
+                Op::LShr => self.op_l_shr(),
+                Op::LUshr => self.op_l_ushr(),
                 Op::IAnd => self.op_i_and(),
                 Op::LAnd => self.op_l_and(),
                 Op::LOr => self.op_l_or(),
                 Op::LXor => self.op_l_xor(),
                 Op::IInc(index, amount) => self.op_i_inc(*index, *amount),
+                Op::I2L => self.op_i2l(),
+                Op::L2I => self.op_l2i(),
                 Op::I2B => self.op_i2b(),
                 Op::I2C => self.op_i2c(),
+                Op::LCmp => self.op_l_cmp(),
                 Op::IfEq(position) => self.op_if_eq(*position),
                 Op::IfNe(position) => self.op_if_ne(*position),
                 Op::IfLt(position) => self.op_if_lt(*position),
@@ -190,6 +206,12 @@ impl Interpreter {
         Ok(ControlFlow::Continue)
     }
 
+    fn op_l_const(&mut self, value: i8) -> Result<ControlFlow, Error> {
+        self.stack_push(Value::Long(value as i64));
+
+        Ok(ControlFlow::Continue)
+    }
+
     fn op_ldc(&mut self, constant_pool_entry: ConstantPoolEntry) -> Result<ControlFlow, Error> {
         let class_file = self.method.class().unwrap().class_file().unwrap();
         let constant_pool = class_file.constant_pool();
@@ -243,6 +265,14 @@ impl Interpreter {
     }
 
     fn op_i_load(&mut self, index: usize) -> Result<ControlFlow, Error> {
+        let loaded = self.local_registers[index];
+
+        self.stack_push(loaded);
+
+        Ok(ControlFlow::Continue)
+    }
+
+    fn op_l_load(&mut self, index: usize) -> Result<ControlFlow, Error> {
         let loaded = self.local_registers[index];
 
         self.stack_push(loaded);
@@ -339,6 +369,14 @@ impl Interpreter {
     }
 
     fn op_i_store(&mut self, index: usize) -> Result<ControlFlow, Error> {
+        let value = self.stack_pop();
+
+        self.local_registers[index] = value;
+
+        Ok(ControlFlow::Continue)
+    }
+
+    fn op_l_store(&mut self, index: usize) -> Result<ControlFlow, Error> {
         let value = self.stack_pop();
 
         self.local_registers[index] = value;
@@ -474,6 +512,22 @@ impl Interpreter {
         Ok(ControlFlow::Continue)
     }
 
+    fn op_dup_2(&mut self) -> Result<ControlFlow, Error> {
+        let value = self.stack_pop();
+        if value.is_wide() {
+            self.stack_push(value);
+            self.stack_push(value);
+        } else {
+            let value2 = self.stack_pop();
+            self.stack_push(value2);
+            self.stack_push(value);
+            self.stack_push(value2);
+            self.stack_push(value);
+        }
+
+        Ok(ControlFlow::Continue)
+    }
+
     fn op_i_add(&mut self) -> Result<ControlFlow, Error> {
         let int1 = self.stack_pop().int();
         let int2 = self.stack_pop().int();
@@ -483,11 +537,29 @@ impl Interpreter {
         Ok(ControlFlow::Continue)
     }
 
+    fn op_l_add(&mut self) -> Result<ControlFlow, Error> {
+        let int1 = self.stack_pop().long();
+        let int2 = self.stack_pop().long();
+
+        self.stack_push(Value::Long(int1 + int2));
+
+        Ok(ControlFlow::Continue)
+    }
+
     fn op_i_sub(&mut self) -> Result<ControlFlow, Error> {
         let int1 = self.stack_pop().int();
         let int2 = self.stack_pop().int();
 
         self.stack_push(Value::Integer(int2 - int1));
+
+        Ok(ControlFlow::Continue)
+    }
+
+    fn op_l_sub(&mut self) -> Result<ControlFlow, Error> {
+        let int1 = self.stack_pop().long();
+        let int2 = self.stack_pop().long();
+
+        self.stack_push(Value::Long(int2 - int1));
 
         Ok(ControlFlow::Continue)
     }
@@ -544,11 +616,38 @@ impl Interpreter {
         Ok(ControlFlow::Continue)
     }
 
+    fn op_l_shl(&mut self) -> Result<ControlFlow, Error> {
+        let int1 = self.stack_pop().int();
+        let int2 = self.stack_pop().long();
+
+        self.stack_push(Value::Long(int2 << (int1 & 0x3F)));
+
+        Ok(ControlFlow::Continue)
+    }
+
     fn op_i_shr(&mut self) -> Result<ControlFlow, Error> {
         let int1 = self.stack_pop().int();
         let int2 = self.stack_pop().int();
 
         self.stack_push(Value::Integer(int2 >> (int1 & 0x1F)));
+
+        Ok(ControlFlow::Continue)
+    }
+
+    fn op_l_shr(&mut self) -> Result<ControlFlow, Error> {
+        let int1 = self.stack_pop().int();
+        let int2 = self.stack_pop().long();
+
+        self.stack_push(Value::Long(int2 >> (int1 & 0x1F)));
+
+        Ok(ControlFlow::Continue)
+    }
+
+    fn op_l_ushr(&mut self) -> Result<ControlFlow, Error> {
+        let int1 = self.stack_pop().int();
+        let int2 = self.stack_pop().long() as u64;
+
+        self.stack_push(Value::Long((int2 >> (int1 & 0x3F)) as i64));
 
         Ok(ControlFlow::Continue)
     }
@@ -597,6 +696,22 @@ impl Interpreter {
         Ok(ControlFlow::Continue)
     }
 
+    fn op_i2l(&mut self) -> Result<ControlFlow, Error> {
+        let int = self.stack_pop().int();
+
+        self.stack_push(Value::Long(int as i64));
+
+        Ok(ControlFlow::Continue)
+    }
+
+    fn op_l2i(&mut self) -> Result<ControlFlow, Error> {
+        let long = self.stack_pop().long();
+
+        self.stack_push(Value::Integer(long as i32));
+
+        Ok(ControlFlow::Continue)
+    }
+
     fn op_i2b(&mut self) -> Result<ControlFlow, Error> {
         let int = self.stack_pop().int();
 
@@ -609,6 +724,25 @@ impl Interpreter {
         let int = self.stack_pop().int();
 
         self.stack_push(Value::Integer((int as u16) as i32));
+
+        Ok(ControlFlow::Continue)
+    }
+
+    fn op_l_cmp(&mut self) -> Result<ControlFlow, Error> {
+        let long2 = self.stack_pop().long();
+        let long1 = self.stack_pop().long();
+
+        match long1.cmp(&long2) {
+            Ordering::Greater => {
+                self.stack_push(Value::Integer(1));
+            }
+            Ordering::Equal => {
+                self.stack_push(Value::Integer(0));
+            }
+            Ordering::Less => {
+                self.stack_push(Value::Integer(-1));
+            }
+        }
 
         Ok(ControlFlow::Continue)
     }

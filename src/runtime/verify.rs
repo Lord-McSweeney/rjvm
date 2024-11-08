@@ -348,6 +348,16 @@ enum ValueType {
     Reference,
 }
 
+impl ValueType {
+    fn is_wide(self) -> bool {
+        match self {
+            ValueType::Invalid => unreachable!(),
+            ValueType::Integer | ValueType::Float | ValueType::Reference => false,
+            ValueType::Long | ValueType::Double => true,
+        }
+    }
+}
+
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 struct FrameState {
     locals: Box<[ValueType]>,
@@ -499,6 +509,9 @@ fn verify_block<'a>(
             Op::IConst(_) => {
                 push_stack!(Integer);
             }
+            Op::LConst(_) => {
+                push_stack!(Long);
+            }
             Op::Ldc(constant_pool_entry) => match constant_pool_entry {
                 ConstantPoolEntry::String { .. } => {
                     push_stack!(Reference);
@@ -511,9 +524,23 @@ fn verify_block<'a>(
                 }
                 _ => unimplemented!(),
             },
+            Op::Ldc2(constant_pool_entry) => match constant_pool_entry {
+                ConstantPoolEntry::Long { .. } => {
+                    push_stack!(Long);
+                }
+                _ => unimplemented!(),
+            },
             Op::ILoad(index) => {
                 expect_local!(*index, Integer);
                 push_stack!(Integer);
+            }
+            Op::LLoad(index) => {
+                expect_local!(*index, Long);
+                if index + 1 >= locals.len() {
+                    return Err(Error::Native(NativeError::VerifyCountWrong));
+                }
+
+                push_stack!(Long);
             }
             Op::ALoad(index) => {
                 expect_local!(*index, Reference);
@@ -542,6 +569,13 @@ fn verify_block<'a>(
             Op::IStore(index) => {
                 expect_pop_stack!(Integer);
                 set_local!(*index, Integer);
+            }
+            Op::LStore(index) => {
+                expect_pop_stack!(Long);
+                set_local!(*index, Long);
+
+                // The docs aren't clear on this, but this is expected
+                set_local!(*index + 1, Invalid);
             }
             Op::AStore(index) => {
                 expect_pop_stack!(Reference);
@@ -573,18 +607,28 @@ fn verify_block<'a>(
                 expect_pop_stack!(Reference);
             }
             Op::Pop => {
-                stack
+                let value = stack
                     .pop()
                     .ok_or(Error::Native(NativeError::VerifyCountWrong))?;
+
+                if value.is_wide() {
+                    return Err(Error::Native(NativeError::VerifyTypeWrong));
+                }
             }
             Op::Dup => {
                 let value = stack
                     .pop()
                     .ok_or(Error::Native(NativeError::VerifyCountWrong))?;
-                stack.push(value);
-                stack.push(value);
-                if stack.len() > max_stack {
-                    return Err(Error::Native(NativeError::VerifyCountWrong));
+
+                if value.is_wide() {
+                    return Err(Error::Native(NativeError::VerifyTypeWrong));
+                } else {
+                    stack.push(value);
+                    stack.push(value);
+
+                    if stack.len() > max_stack {
+                        return Err(Error::Native(NativeError::VerifyCountWrong));
+                    }
                 }
             }
             Op::DupX1 => {
@@ -596,9 +640,41 @@ fn verify_block<'a>(
                     .pop()
                     .ok_or(Error::Native(NativeError::VerifyCountWrong))?;
 
-                stack.push(top_value);
-                stack.push(under_value);
-                stack.push(top_value);
+                if top_value.is_wide() || under_value.is_wide() {
+                    return Err(Error::Native(NativeError::VerifyTypeWrong));
+                } else {
+                    stack.push(top_value);
+                    stack.push(under_value);
+                    stack.push(top_value);
+
+                    if stack.len() > max_stack {
+                        return Err(Error::Native(NativeError::VerifyCountWrong));
+                    }
+                }
+            }
+            Op::Dup2 => {
+                let value = stack
+                    .pop()
+                    .ok_or(Error::Native(NativeError::VerifyCountWrong))?;
+
+                if value.is_wide() {
+                    stack.push(value);
+                    stack.push(value);
+                } else {
+                    let second_value = stack
+                        .pop()
+                        .ok_or(Error::Native(NativeError::VerifyCountWrong))?;
+
+                    if second_value.is_wide() {
+                        return Err(Error::Native(NativeError::VerifyTypeWrong));
+                    } else {
+                        stack.push(second_value);
+                        stack.push(value);
+                        stack.push(second_value);
+                        stack.push(value);
+                    }
+                }
+
                 if stack.len() > max_stack {
                     return Err(Error::Native(NativeError::VerifyCountWrong));
                 }
@@ -608,14 +684,34 @@ fn verify_block<'a>(
                 expect_pop_stack!(Integer);
                 push_stack!(Integer);
             }
+            Op::LAdd | Op::LSub => {
+                expect_pop_stack!(Long);
+                expect_pop_stack!(Long);
+                push_stack!(Long);
+            }
             Op::INeg => {
                 expect_pop_stack!(Integer);
                 push_stack!(Integer);
             }
-            Op::IShl | Op::IShr | Op::IAnd => {
+            Op::IShl | Op::IShr => {
                 expect_pop_stack!(Integer);
                 expect_pop_stack!(Integer);
                 push_stack!(Integer);
+            }
+            Op::LShr | Op::LUshr => {
+                expect_pop_stack!(Integer);
+                expect_pop_stack!(Long);
+                push_stack!(Long);
+            }
+            Op::IAnd => {
+                expect_pop_stack!(Integer);
+                expect_pop_stack!(Integer);
+                push_stack!(Integer);
+            }
+            Op::LShl => {
+                expect_pop_stack!(Integer);
+                expect_pop_stack!(Long);
+                push_stack!(Long);
             }
             Op::LAnd | Op::LOr | Op::LXor => {
                 expect_pop_stack!(Long);
@@ -625,8 +721,21 @@ fn verify_block<'a>(
             Op::IInc(index, _) => {
                 expect_local!(*index, Integer);
             }
+            Op::I2L => {
+                expect_pop_stack!(Integer);
+                push_stack!(Long);
+            }
+            Op::L2I => {
+                expect_pop_stack!(Long);
+                push_stack!(Integer);
+            }
             Op::I2B | Op::I2C => {
                 expect_pop_stack!(Integer);
+                push_stack!(Integer);
+            }
+            Op::LCmp => {
+                expect_pop_stack!(Long);
+                expect_pop_stack!(Long);
                 push_stack!(Integer);
             }
             Op::IfEq(_) | Op::IfNe(_) | Op::IfLt(_) | Op::IfGe(_) | Op::IfLe(_) => {
