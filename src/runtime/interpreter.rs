@@ -98,6 +98,7 @@ impl Interpreter {
                 Op::IDiv => self.op_i_div(),
                 Op::IRem => self.op_i_rem(),
                 Op::INeg => self.op_i_neg(),
+                Op::IShr => self.op_i_shr(),
                 Op::IAnd => self.op_i_and(),
                 Op::IInc(index, amount) => self.op_i_inc(*index, *amount),
                 Op::I2B => self.op_i2b(),
@@ -485,6 +486,15 @@ impl Interpreter {
         let int = self.stack_pop().int();
 
         self.stack_push(Value::Integer(-int));
+
+        Ok(ControlFlow::Continue)
+    }
+
+    fn op_i_shr(&mut self) -> Result<ControlFlow, Error> {
+        let int1 = self.stack_pop().int();
+        let int2 = self.stack_pop().int();
+
+        self.stack_push(Value::Integer(int2 >> (int1 & 0x1F)));
 
         Ok(ControlFlow::Continue)
     }

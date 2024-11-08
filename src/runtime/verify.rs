@@ -602,7 +602,7 @@ fn verify_block<'a>(
                 expect_pop_stack!(Integer);
                 push_stack!(Integer);
             }
-            Op::IAnd => {
+            Op::IShr | Op::IAnd => {
                 expect_pop_stack!(Integer);
                 expect_pop_stack!(Integer);
                 push_stack!(Integer);

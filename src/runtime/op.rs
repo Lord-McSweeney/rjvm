@@ -36,6 +36,7 @@ pub enum Op {
     IDiv,
     IRem,
     INeg,
+    IShr,
     IAnd,
     IInc(usize, i32),
     I2B,
@@ -118,6 +119,7 @@ impl Trace for Op {
             Op::IDiv => {}
             Op::IRem => {}
             Op::INeg => {}
+            Op::IShr => {}
             Op::IAnd => {}
             Op::IInc(_, _) => {}
             Op::I2B => {}
@@ -238,6 +240,7 @@ const I_MUL: u8 = 0x68;
 const I_DIV: u8 = 0x6C;
 const I_REM: u8 = 0x70;
 const I_NEG: u8 = 0x74;
+const I_SHR: u8 = 0x7A;
 const I_AND: u8 = 0x7E;
 const I_INC: u8 = 0x84;
 const I2B: u8 = 0x91;
@@ -457,6 +460,7 @@ impl Op {
             I_DIV => Ok(Op::IDiv),
             I_REM => Ok(Op::IRem),
             I_NEG => Ok(Op::INeg),
+            I_SHR => Ok(Op::IShr),
             I_AND => Ok(Op::IAnd),
             I_INC => {
                 let local_idx = data.read_u8()?;
