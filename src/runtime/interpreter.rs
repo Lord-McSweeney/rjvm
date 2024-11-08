@@ -1161,12 +1161,22 @@ impl Interpreter {
 
                 Object::char_array(self.context, &chars)
             }
+            ArrayType::Byte => {
+                let bytes = vec![0; array_length];
+
+                Object::byte_array(self.context, &bytes)
+            }
             ArrayType::Int => {
                 let ints = vec![0; array_length];
 
                 Object::int_array(self.context, &ints)
             }
-            _ => unimplemented!("Array type unimplemented"),
+            ArrayType::Long => {
+                let longs = vec![0; array_length];
+
+                Object::long_array(self.context, &longs)
+            }
+            _ => unimplemented!("Array type {:?} unimplemented", array_type),
         };
 
         self.stack_push(Value::Object(Some(array_object)));

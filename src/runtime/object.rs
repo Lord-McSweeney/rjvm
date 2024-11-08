@@ -81,8 +81,8 @@ impl Object {
         ))
     }
 
-    pub fn int_array(context: Context, chars: &[i32]) -> Self {
-        let value_list = chars
+    pub fn int_array(context: Context, ints: &[i32]) -> Self {
+        let value_list = ints
             .iter()
             .map(|b| Cell::new(Value::Integer(*b)))
             .collect::<Vec<_>>();
@@ -92,6 +92,24 @@ impl Object {
             ObjectData {
                 class: context
                     .lookup_class(context.common.array_int_desc)
+                    .expect("Should lookup"),
+                native_data: NativeData::None,
+                data: FieldOrArrayData::Array(value_list.into_boxed_slice()),
+            },
+        ))
+    }
+
+    pub fn long_array(context: Context, longs: &[i64]) -> Self {
+        let value_list = longs
+            .iter()
+            .map(|b| Cell::new(Value::Long(*b)))
+            .collect::<Vec<_>>();
+
+        Self(Gc::new(
+            context.gc_ctx,
+            ObjectData {
+                class: context
+                    .lookup_class(context.common.array_long_desc)
                     .expect("Should lookup"),
                 native_data: NativeData::None,
                 data: FieldOrArrayData::Array(value_list.into_boxed_slice()),
