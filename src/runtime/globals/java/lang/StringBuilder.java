@@ -7,6 +7,15 @@ public final class StringBuilder {
         this.data = new char[0];
     }
 
+    public StringBuilder(String initial) {
+        int length = initial.length();
+
+        char[] copyData = new char[length];
+        initial.getChars(0, length, copyData, 0);
+
+        this.data = copyData;
+    }
+
     public StringBuilder append(char[] chars) {
         char[] newData = new char[this.data.length + chars.length];
         System.arraycopy(this.data, 0, newData, 0, this.data.length);
