@@ -7,6 +7,10 @@ public final class StringBuilder {
         this.data = new char[0];
     }
 
+    public StringBuilder(int capacity) {
+        this.data = new char[0];
+    }
+
     public StringBuilder(String initial) {
         int length = initial.length();
 
