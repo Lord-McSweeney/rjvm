@@ -60,6 +60,7 @@ pub enum Op {
     L2I,
     I2B,
     I2C,
+    I2S,
     LCmp,
     IfEq(usize),
     IfNe(usize),
@@ -163,6 +164,7 @@ impl Trace for Op {
             Op::L2I => {}
             Op::I2B => {}
             Op::I2C => {}
+            Op::I2S => {}
             Op::LCmp => {}
             Op::IfEq(_) => {}
             Op::IfNe(_) => {}
@@ -308,6 +310,7 @@ const I2L: u8 = 0x85;
 const L2I: u8 = 0x88;
 const I2B: u8 = 0x91;
 const I2C: u8 = 0x92;
+const I2S: u8 = 0x93;
 const L_CMP: u8 = 0x94;
 const IF_EQ: u8 = 0x99;
 const IF_NE: u8 = 0x9A;
@@ -571,6 +574,7 @@ impl Op {
             L2I => Ok(Op::L2I),
             I2B => Ok(Op::I2B),
             I2C => Ok(Op::I2C),
+            I2S => Ok(Op::I2S),
             L_CMP => Ok(Op::LCmp),
             IF_EQ => {
                 let offset = data.read_u16()? as i16 as isize;

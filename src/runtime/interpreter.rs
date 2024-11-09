@@ -125,6 +125,7 @@ impl Interpreter {
                 Op::L2I => self.op_l2i(),
                 Op::I2B => self.op_i2b(),
                 Op::I2C => self.op_i2c(),
+                Op::I2S => self.op_i2s(),
                 Op::LCmp => self.op_l_cmp(),
                 Op::IfEq(position) => self.op_if_eq(*position),
                 Op::IfNe(position) => self.op_if_ne(*position),
@@ -735,6 +736,14 @@ impl Interpreter {
         let int = self.stack_pop().int();
 
         self.stack_push(Value::Integer((int as u16) as i32));
+
+        Ok(ControlFlow::Continue)
+    }
+
+    fn op_i2s(&mut self) -> Result<ControlFlow, Error> {
+        let int = self.stack_pop().int();
+
+        self.stack_push(Value::Integer((int as i16) as i32));
 
         Ok(ControlFlow::Continue)
     }
