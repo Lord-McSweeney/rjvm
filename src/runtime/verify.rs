@@ -705,7 +705,7 @@ fn verify_block<'a>(
                 expect_pop_stack!(Long);
                 push_stack!(Long);
             }
-            Op::IAnd => {
+            Op::IAnd | Op::IOr => {
                 expect_pop_stack!(Integer);
                 expect_pop_stack!(Integer);
                 push_stack!(Integer);
