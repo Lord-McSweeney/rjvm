@@ -1,4 +1,4 @@
-use super::descriptor::Descriptor;
+use super::class::Class;
 
 use crate::gc::{Gc, GcCtx, Trace};
 
@@ -23,13 +23,19 @@ impl<T: Copy + Debug + Eq + Hash> VTable<T> {
             gc_ctx,
             VTableData {
                 parent: None,
+                class: None,
                 mapping: HashMap::new(),
                 first_unused: 0,
             },
         ))
     }
 
-    pub fn from_parent_and_keys(gc_ctx: GcCtx, parent: Option<VTable<T>>, keys: Vec<T>) -> Self {
+    pub fn from_parent_and_keys(
+        gc_ctx: GcCtx,
+        class: Option<Class>,
+        parent: Option<VTable<T>>,
+        keys: Vec<T>,
+    ) -> Self {
         let mut first_unused = if let Some(parent) = parent {
             parent.first_unused()
         } else {
@@ -47,6 +53,7 @@ impl<T: Copy + Debug + Eq + Hash> VTable<T> {
             gc_ctx,
             VTableData {
                 parent,
+                class,
                 mapping,
                 first_unused,
             },
@@ -80,6 +87,10 @@ struct VTableData<T> {
     /// The parent vtable. Any lookup on a vtable that fails should defer to
     /// this parent recursively.
     parent: Option<VTable<T>>,
+
+    /// The class that created this vtable. This is entirely optional and
+    /// only used for debugging.
+    class: Option<Class>,
 
     /// A mapping of T (a tuple (name, descriptor) ) to slot index.
     mapping: HashMap<T, usize>,
