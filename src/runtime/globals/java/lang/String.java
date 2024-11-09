@@ -21,6 +21,10 @@ public final class String {
         this.data = copyData;
     }
 
+    public static String valueOf(int integer) {
+        return Integer.toString(integer);
+    }
+
     public void getChars(int srcBegin, int srcEnd, char[] dst, int dstBegin) {
        if (
             srcBegin < 0 ||
@@ -32,6 +36,11 @@ public final class String {
         }
 
         System.arraycopy(this.data, srcBegin, dst, dstBegin, srcEnd - srcBegin);
+    }
+
+    public String intern() {
+        // TODO implement
+        return this;
     }
 
     public static String format(String self, Object... args) {
