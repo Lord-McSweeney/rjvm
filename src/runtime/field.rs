@@ -7,11 +7,10 @@ use crate::gc::{Gc, GcCtx, Trace};
 
 use std::cell::Cell;
 
-#[derive(Clone, Copy, Debug)]
-pub struct Field(Gc<FieldData>);
-
-#[derive(Debug)]
-struct FieldData {
+// IMPORTANT NOTE: DON'T MAKE THIS Copy, WE NEED TO CREATE AN ACTUAL CLONE OF
+// THE FIELD FOR OBJECT CREATION
+#[derive(Clone, Debug)]
+pub struct Field {
     descriptor: Descriptor,
     value: Cell<Value>,
 }
@@ -25,36 +24,27 @@ impl Field {
 
         let value = descriptor.default_value();
 
-        Ok(Self(Gc::new(
-            gc_ctx,
-            FieldData {
-                descriptor,
-                value: Cell::new(value),
-            },
-        )))
+        Ok(Self {
+            descriptor,
+            value: Cell::new(value),
+        })
     }
 
-    pub fn descriptor(self) -> Descriptor {
-        self.0.descriptor
+    pub fn descriptor(&self) -> Descriptor {
+        self.descriptor
     }
 
-    pub fn value(self) -> Value {
-        self.0.value.get()
+    pub fn value(&self) -> Value {
+        self.value.get()
     }
 
-    pub fn set_value(self, value: Value) {
+    pub fn set_value(&self, value: Value) {
         // TODO check that value is of descriptor type
-        self.0.value.set(value);
+        self.value.set(value);
     }
 }
 
 impl Trace for Field {
-    fn trace(&self) {
-        self.0.trace();
-    }
-}
-
-impl Trace for FieldData {
     fn trace(&self) {
         self.descriptor.trace();
         self.value.trace();

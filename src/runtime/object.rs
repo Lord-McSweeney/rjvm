@@ -147,13 +147,6 @@ impl Object {
         self.class().implements_interface(interface)
     }
 
-    pub fn is_array(self) -> bool {
-        match &self.0.data {
-            FieldOrArrayData::Fields(_) => false,
-            FieldOrArrayData::Array(_) => true,
-        }
-    }
-
     pub fn class(self) -> Class {
         self.0.class
     }
@@ -161,7 +154,7 @@ impl Object {
     pub fn get_field(self, field_idx: usize) -> Value {
         match &self.0.data {
             FieldOrArrayData::Fields(fields) => {
-                let field = fields[field_idx];
+                let field = &fields[field_idx];
 
                 field.value()
             }
@@ -172,7 +165,7 @@ impl Object {
     pub fn set_field(self, field_idx: usize, value: Value) {
         match &self.0.data {
             FieldOrArrayData::Fields(fields) => {
-                let field = fields[field_idx];
+                let field = &fields[field_idx];
                 field.set_value(value);
             }
             FieldOrArrayData::Array(_) => panic!("Cannot set field on array"),

@@ -236,17 +236,10 @@ impl Interpreter {
                     .lookup_class(self.context.common.java_lang_string)
                     .expect("String class should exist");
 
+                // Manually construct the String instance for performance
                 let string_instance = string_class.new_instance(self.context.gc_ctx);
-                string_instance
-                    .call_construct(
-                        self.context,
-                        self.context.common.arg_char_array_void_desc,
-                        &[
-                            Value::Object(Some(string_instance)),
-                            Value::Object(Some(chars_array_object)),
-                        ],
-                    )
-                    .expect("String class should construct");
+
+                string_instance.set_field(0, Value::Object(Some(chars_array_object)));
 
                 Value::Object(Some(string_instance))
             }
@@ -1008,7 +1001,7 @@ impl Interpreter {
         class: Class,
         static_field_idx: usize,
     ) -> Result<ControlFlow, Error> {
-        let static_field = class.static_fields()[static_field_idx];
+        let static_field = &class.static_fields()[static_field_idx];
 
         self.stack_push(static_field.value());
 
@@ -1022,7 +1015,7 @@ impl Interpreter {
     ) -> Result<ControlFlow, Error> {
         let value = self.stack_pop();
 
-        let static_field = class.static_fields()[static_field_idx];
+        let static_field = &class.static_fields()[static_field_idx];
 
         static_field.set_value(value);
 
