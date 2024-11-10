@@ -210,7 +210,7 @@ pub struct Exception {
 
     pub target: usize,
 
-    pub catch_class: Class,
+    pub catch_class: Option<Class>,
 }
 
 impl Trace for Exception {
@@ -260,15 +260,21 @@ impl BytecodeMethodInfo {
                 .ok_or(Error::Native(NativeError::ErrorClassNotThrowable))?;
 
             let class_idx = reader.read_u16()?;
-            let class_name = constant_pool.get_class(class_idx)?;
-            let class = context.lookup_class(class_name)?;
+            let class = if class_idx != 0 {
+                let class_name = constant_pool.get_class(class_idx)?;
+                let class = context.lookup_class(class_name)?;
 
-            let throwable_class = context
-                .lookup_class(context.common.java_lang_throwable)
-                .expect("Throwable class should exist");
-            if !class.matches_class(throwable_class) {
-                return Err(Error::Native(NativeError::ErrorClassNotThrowable));
-            }
+                let throwable_class = context
+                    .lookup_class(context.common.java_lang_throwable)
+                    .expect("Throwable class should exist");
+                if !class.matches_class(throwable_class) {
+                    return Err(Error::Native(NativeError::ErrorClassNotThrowable));
+                }
+
+                Some(class)
+            } else {
+                None
+            };
 
             exceptions.push(Exception {
                 start,

@@ -53,7 +53,11 @@ impl Interpreter {
             Error::Java(error_object) => {
                 for exception in exceptions {
                     if self.ip >= exception.start && self.ip < exception.end {
-                        if error_object.class().matches_class(exception.catch_class) {
+                        // If the catch_class is None, this catch() { } matches any exception
+                        if exception
+                            .catch_class
+                            .map_or(true, |c| error_object.class().matches_class(c))
+                        {
                             self.ip = exception.target;
 
                             self.stack.clear();
