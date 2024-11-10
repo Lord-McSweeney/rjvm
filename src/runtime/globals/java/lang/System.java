@@ -16,7 +16,13 @@ public final class System {
     public static PrintStream out = null;
     public static PrintStream err = null;
 
-    public static native void exit(int status);
+    public static void setOut(PrintStream out) {
+        System.out = out;
+    }
+
+    public static void setErr(PrintStream err) {
+        System.err = err;
+    }
 
     public static native void arraycopy(Object src, int srcPos, Object dest, int destPos, int length);
 
@@ -24,6 +30,8 @@ public final class System {
         // TODO implement
         return null;
     }
+
+    public static native void exit(int status);
 
     static {
         out = new PrintStream(new StdoutStream());
