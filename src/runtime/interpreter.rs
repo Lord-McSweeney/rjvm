@@ -216,7 +216,7 @@ impl Interpreter {
     }
 
     fn op_ldc(&mut self, constant_pool_entry: ConstantPoolEntry) -> Result<ControlFlow, Error> {
-        let class_file = self.method.class().unwrap().class_file().unwrap();
+        let class_file = self.method.class().class_file().unwrap();
         let constant_pool = class_file.constant_pool();
 
         let pushed_value = match constant_pool_entry {

@@ -84,6 +84,7 @@ impl Descriptor {
         match self {
             Descriptor::Class(_) | Descriptor::Array(_) => Value::Object(None),
             Descriptor::Byte => Value::Integer(0),
+            Descriptor::Character => Value::Integer(0),
             Descriptor::Integer => Value::Integer(0),
             Descriptor::Boolean => Value::Integer(0),
             _ => unimplemented!(),

@@ -43,7 +43,7 @@ struct MethodData {
     // This should only be used for debugging.
     name: Option<JvmString>,
 
-    class: Option<Class>,
+    class: Class,
 
     method_info: RefCell<MethodInfo>,
 }
@@ -80,25 +80,12 @@ impl Method {
             context.gc_ctx,
             MethodData {
                 descriptor,
-                class: Some(class),
+                class,
                 flags: method.flags(),
                 name: Some(method.name()),
                 method_info: RefCell::new(method_info),
             },
         )))
-    }
-
-    pub fn empty(gc_ctx: GcCtx, descriptor: MethodDescriptor, flags: MethodFlags) -> Self {
-        Self(Gc::new(
-            gc_ctx,
-            MethodData {
-                descriptor,
-                class: None,
-                flags,
-                name: None,
-                method_info: RefCell::new(MethodInfo::Empty),
-            },
-        ))
     }
 
     pub fn parse_info(self, context: Context) -> Result<(), Error> {
@@ -109,12 +96,8 @@ impl Method {
                 drop(method_info_borrow);
 
                 // Clone again...
-                let bytecode_method_info = BytecodeMethodInfo::from_code_data(
-                    context,
-                    self,
-                    self.class().unwrap(),
-                    cloned_data,
-                )?;
+                let bytecode_method_info =
+                    BytecodeMethodInfo::from_code_data(context, self, self.class(), cloned_data)?;
 
                 Some(MethodInfo::Bytecode(bytecode_method_info))
             }
@@ -166,7 +149,7 @@ impl Method {
         self.0.name
     }
 
-    pub fn class(self) -> Option<Class> {
+    pub fn class(self) -> Class {
         self.0.class
     }
 

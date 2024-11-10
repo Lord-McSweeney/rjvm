@@ -210,7 +210,7 @@ impl Context {
         let mut registry = self.class_registry.borrow_mut();
 
         if registry.contains_key(&class_name) {
-            panic!("Attempted to register class under name that other class was already registered under");
+            panic!("Attempted to register class {} twice", class_name);
         } else {
             registry.insert(class_name, class);
         }

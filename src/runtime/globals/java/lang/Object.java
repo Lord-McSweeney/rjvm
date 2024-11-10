@@ -9,4 +9,8 @@ public class Object {
         // TODO implement
         return this.getClass().getName() + "@0";
     }
+
+    protected Object clone() throws CloneNotSupportedException {
+        throw new CloneNotSupportedException();
+    }
 }

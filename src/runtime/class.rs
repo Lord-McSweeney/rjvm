@@ -211,7 +211,11 @@ impl Class {
         }
 
         for method in &*self.instance_methods() {
-            method.parse_info(context)?;
+            // To avoid duplication, only parse methods belonging to us-
+            // superclass methods will be parsed in their own code
+            if method.class() == self {
+                method.parse_info(context)?;
+            }
         }
 
         let clinit_string = context.common.clinit_name;
