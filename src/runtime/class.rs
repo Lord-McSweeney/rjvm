@@ -162,7 +162,7 @@ impl Class {
     }
 
     // This must be called after the Class is registered.
-    pub fn load_method_data(self, context: Context) -> Result<(), Error> {
+    pub fn load_methods(self, context: Context) -> Result<(), Error> {
         let class_file = self.class_file().unwrap();
         let super_class = self.super_class();
 
@@ -204,19 +204,6 @@ impl Class {
             instance_method_vtable,
             instance_methods: instance_methods.into_boxed_slice(),
         });
-
-        // Only parse the actual ops now, to ensure that the method vtables have already been filled out
-        for method in &*self.static_methods() {
-            method.parse_info(context)?;
-        }
-
-        for method in &*self.instance_methods() {
-            // To avoid duplication, only parse methods belonging to us-
-            // superclass methods will be parsed in their own code
-            if method.class() == self {
-                method.parse_info(context)?;
-            }
-        }
 
         let clinit_string = context.common.clinit_name;
         let void_descriptor = context.common.noargs_void_desc;

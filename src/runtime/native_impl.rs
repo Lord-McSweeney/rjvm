@@ -37,6 +37,16 @@ pub fn stdout_write(context: Context, args: &[Value]) -> Result<Option<Value>, E
     Ok(None)
 }
 
+// java/lang/StderrStream : void write(int)
+pub fn stderr_write(context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
+    // Expecting integer in args[1]; args[0] is the reciever
+    let byte = args[1].int() as u8;
+
+    io::stderr().write(&[byte]).unwrap();
+
+    Ok(None)
+}
+
 // java/lang/System: static void arraycopy(Object, int, Object, int, int)
 pub fn array_copy(context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
     let source_arr = args[0].object();
@@ -158,4 +168,10 @@ pub fn get_name_native(context: Context, args: &[Value]) -> Result<Option<Value>
         .expect("String class should construct");
 
     Ok(Some(Value::Object(Some(string_instance))))
+}
+
+pub fn system_exit(context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
+    let exit_code = args[0].int();
+
+    std::process::exit(exit_code)
 }

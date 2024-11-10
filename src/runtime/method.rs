@@ -40,8 +40,8 @@ struct MethodData {
 
     flags: MethodFlags,
 
-    // This should only be used for debugging.
-    name: Option<JvmString>,
+    // This should only be used for debugging
+    name: JvmString,
 
     class: Class,
 
@@ -82,41 +82,21 @@ impl Method {
                 descriptor,
                 class,
                 flags: method.flags(),
-                name: Some(method.name()),
+                name: method.name(),
                 method_info: RefCell::new(method_info),
             },
         )))
     }
 
-    pub fn parse_info(self, context: Context) -> Result<(), Error> {
-        let method_info_borrow = self.0.method_info.borrow();
-        let new_method_info = match &*method_info_borrow {
-            MethodInfo::BytecodeUnparsed(code_data) => {
-                let cloned_data = code_data.clone();
-                drop(method_info_borrow);
-
-                // Clone again...
-                let bytecode_method_info =
-                    BytecodeMethodInfo::from_code_data(context, self, self.class(), cloned_data)?;
-
-                Some(MethodInfo::Bytecode(bytecode_method_info))
-            }
-            // None of the other method info types need (re-)parsing
-            _ => {
-                drop(method_info_borrow);
-
-                None
-            }
-        };
-
-        if let Some(new_method_info) = new_method_info {
-            *self.0.method_info.borrow_mut() = new_method_info;
+    pub fn exec(self, context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
+        // Parse bytecode if it hasn't been already
+        if matches!(
+            &*self.0.method_info.borrow(),
+            MethodInfo::BytecodeUnparsed(_)
+        ) {
+            self.parse_info(context)?;
         }
 
-        Ok(())
-    }
-
-    pub fn exec(self, context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
         // All checks are performed in the verifier
 
         let result = match &*self.0.method_info.borrow() {
@@ -133,6 +113,28 @@ impl Method {
         Ok(result)
     }
 
+    fn parse_info(self, context: Context) -> Result<(), Error> {
+        let new_method_info = match &*self.0.method_info.borrow() {
+            MethodInfo::BytecodeUnparsed(code_data) => {
+                let cloned_data = code_data.clone();
+
+                // Clone again...
+                let bytecode_method_info =
+                    BytecodeMethodInfo::from_code_data(context, self, self.class(), cloned_data)?;
+
+                Some(MethodInfo::Bytecode(bytecode_method_info))
+            }
+            // None of the other method info types need (re-)parsing
+            _ => None,
+        };
+
+        if let Some(new_method_info) = new_method_info {
+            *self.0.method_info.borrow_mut() = new_method_info;
+        }
+
+        Ok(())
+    }
+
     pub fn descriptor(self) -> MethodDescriptor {
         self.0.descriptor
     }
@@ -145,7 +147,7 @@ impl Method {
         self.0.flags
     }
 
-    pub fn name(self) -> Option<JvmString> {
+    pub fn name(self) -> JvmString {
         self.0.name
     }
 

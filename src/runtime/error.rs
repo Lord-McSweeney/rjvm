@@ -22,6 +22,7 @@ impl fmt::Debug for Error {
 pub enum NativeError {
     ErrorClassNotThrowable,
     ClassNotInterface,
+    MethodMustHaveCode,
 
     InvalidArrayType,
     InvalidBranchPosition,

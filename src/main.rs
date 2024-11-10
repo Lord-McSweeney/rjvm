@@ -84,7 +84,7 @@ fn main() {
             context.register_class(main_class);
 
             main_class
-                .load_method_data(context)
+                .load_methods(context)
                 .expect("Failed to load main class method data");
 
             main_class
@@ -124,7 +124,7 @@ fn main() {
                 context.register_class(main_class);
 
                 main_class
-                    .load_method_data(context)
+                    .load_methods(context)
                     .expect("Failed to load main class method data");
 
                 main_class

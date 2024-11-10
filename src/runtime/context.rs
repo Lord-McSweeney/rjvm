@@ -51,104 +51,33 @@ impl Context {
     }
 
     fn register_native_mapping(self) {
-        // java/io/PrintStream : static byte[] stringToUtf8(String)
-        {
-            let printstream_name = JvmString::new(self.gc_ctx, "java/io/PrintStream".to_string());
+        #[rustfmt::skip]
+        let mappings: &[(&str, NativeMethod)] = &[
+            ("java/io/PrintStream.stringToUtf8.(Ljava/lang/String;)[B", native_impl::string_to_utf8),
+            ("java/lang/StdoutStream.write.(I)V", native_impl::stdout_write),
+            ("java/lang/StderrStream.write.(I)V", native_impl::stderr_write),
+            ("java/lang/System.arraycopy.(Ljava/lang/Object;ILjava/lang/Object;II)V", native_impl::array_copy),
+            ("java/lang/Class.isInterface.()Z", native_impl::is_interface),
+            ("java/lang/Object.getClass.()Ljava/lang/Class;", native_impl::get_class),
+            ("java/lang/Class.getNameNative.()Ljava/lang/String;", native_impl::get_name_native),
+            ("java/lang/System.exit.(I)V;", native_impl::system_exit),
+        ];
 
-            let method_name = JvmString::new(self.gc_ctx, "stringToUtf8".to_string());
+        for mapping in mappings {
+            let name = mapping.0.split(".").collect::<Vec<_>>();
 
-            let descriptor_name = JvmString::new(self.gc_ctx, "(Ljava/lang/String;)[B".to_string());
+            let class_name = JvmString::new(self.gc_ctx, name[0].to_string());
+            let method_name = JvmString::new(self.gc_ctx, name[1].to_string());
+            let descriptor_name = JvmString::new(self.gc_ctx, name[2].to_string());
+
             let descriptor = MethodDescriptor::from_string(self.gc_ctx, descriptor_name)
                 .expect("Valid descriptor");
 
-            self.native_mapping.borrow_mut().insert(
-                (printstream_name, method_name, descriptor),
-                native_impl::string_to_utf8,
-            );
-        }
+            let method = mapping.1;
 
-        // java/lang/StdoutStream : void write(int)
-        {
-            let stdoutstream_name =
-                JvmString::new(self.gc_ctx, "java/lang/StdoutStream".to_string());
-
-            let method_name = JvmString::new(self.gc_ctx, "write".to_string());
-
-            let descriptor_name = JvmString::new(self.gc_ctx, "(I)V".to_string());
-            let descriptor = MethodDescriptor::from_string(self.gc_ctx, descriptor_name)
-                .expect("Valid descriptor");
-
-            self.native_mapping.borrow_mut().insert(
-                (stdoutstream_name, method_name, descriptor),
-                native_impl::stdout_write,
-            );
-        }
-
-        // java/lang/System : static void arraycopy(Object, int, Object, int, int)
-        {
-            let system_name = JvmString::new(self.gc_ctx, "java/lang/System".to_string());
-
-            let method_name = JvmString::new(self.gc_ctx, "arraycopy".to_string());
-
-            let descriptor_name = JvmString::new(
-                self.gc_ctx,
-                "(Ljava/lang/Object;ILjava/lang/Object;II)V".to_string(),
-            );
-            let descriptor = MethodDescriptor::from_string(self.gc_ctx, descriptor_name)
-                .expect("Valid descriptor");
-
-            self.native_mapping.borrow_mut().insert(
-                (system_name, method_name, descriptor),
-                native_impl::array_copy,
-            );
-        }
-
-        // java/lang/Class : boolean isInterface()
-        {
-            let system_name = JvmString::new(self.gc_ctx, "java/lang/Class".to_string());
-
-            let method_name = JvmString::new(self.gc_ctx, "isInterface".to_string());
-
-            let descriptor_name = JvmString::new(self.gc_ctx, "()Z".to_string());
-            let descriptor = MethodDescriptor::from_string(self.gc_ctx, descriptor_name)
-                .expect("Valid descriptor");
-
-            self.native_mapping.borrow_mut().insert(
-                (system_name, method_name, descriptor),
-                native_impl::is_interface,
-            );
-        }
-
-        // java/lang/Object : Class getClass()
-        {
-            let system_name = JvmString::new(self.gc_ctx, "java/lang/Object".to_string());
-
-            let method_name = JvmString::new(self.gc_ctx, "getClass".to_string());
-
-            let descriptor_name = JvmString::new(self.gc_ctx, "()Ljava/lang/Class;".to_string());
-            let descriptor = MethodDescriptor::from_string(self.gc_ctx, descriptor_name)
-                .expect("Valid descriptor");
-
-            self.native_mapping.borrow_mut().insert(
-                (system_name, method_name, descriptor),
-                native_impl::get_class,
-            );
-        }
-
-        // java/lang/Class : String getNameNative()
-        {
-            let system_name = JvmString::new(self.gc_ctx, "java/lang/Class".to_string());
-
-            let method_name = JvmString::new(self.gc_ctx, "getNameNative".to_string());
-
-            let descriptor_name = JvmString::new(self.gc_ctx, "()Ljava/lang/String;".to_string());
-            let descriptor = MethodDescriptor::from_string(self.gc_ctx, descriptor_name)
-                .expect("Valid descriptor");
-
-            self.native_mapping.borrow_mut().insert(
-                (system_name, method_name, descriptor),
-                native_impl::get_name_native,
-            );
+            self.native_mapping
+                .borrow_mut()
+                .insert((class_name, method_name, descriptor), method);
         }
     }
 
@@ -195,7 +124,7 @@ impl Context {
 
                     let class = Class::from_class_file(self, class_file)?;
                     self.register_class(class);
-                    class.load_method_data(self)?;
+                    class.load_methods(self)?;
 
                     return Ok(class);
                 }
