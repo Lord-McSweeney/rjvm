@@ -10,6 +10,7 @@ use crate::jar::Jar;
 use crate::runtime::class::Class;
 use crate::runtime::context::Context;
 use crate::runtime::descriptor::MethodDescriptor;
+use crate::runtime::object::Object;
 use crate::runtime::value::Value;
 use crate::string::JvmString;
 
@@ -135,6 +136,13 @@ fn main() {
         }
     };
 
+    let string_class = context
+        .lookup_class(context.common.java_lang_string)
+        .expect("String class should exist");
+
+    // TODO actually pass args
+    let args_array = Object::obj_array(context, string_class, &[]);
+
     let main_name = JvmString::new(gc_ctx, "main".to_string());
     let main_descriptor_name = JvmString::new(gc_ctx, "([Ljava/lang/String;)V".to_string());
 
@@ -143,7 +151,7 @@ fn main() {
 
     let result = main_class.call_static(
         context,
-        &[Value::Object(None)],
+        &[Value::Object(Some(args_array))],
         (main_name, main_descriptor),
     );
 
