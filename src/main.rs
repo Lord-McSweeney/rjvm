@@ -64,10 +64,13 @@ impl ResourceLoader for DesktopResourceLoader {
                 fs::read(path_buf).ok()
             }
             ResourceLoadType::Jar(jar) => {
+                // TODO make this an actual path referencing the JAR file contents
+                // (should be relative to the class, and an absolute path should
+                // be relative to the root of the JAR)
                 if jar.has_file(&resource_name) {
-                    None
-                } else {
                     jar.read_file(&resource_name).ok()
+                } else {
+                    None
                 }
             }
         }
