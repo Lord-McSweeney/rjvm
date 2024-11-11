@@ -568,6 +568,11 @@ fn verify_block<'a>(
                 expect_pop_stack!(Reference);
                 push_stack!(Integer);
             }
+            Op::CaLoad => {
+                expect_pop_stack!(Integer);
+                expect_pop_stack!(Reference);
+                push_stack!(Integer);
+            }
             Op::IStore(index) => {
                 expect_pop_stack!(Integer);
                 set_local!(*index, Integer);

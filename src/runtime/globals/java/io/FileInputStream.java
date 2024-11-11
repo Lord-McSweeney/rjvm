@@ -5,4 +5,9 @@ public class FileInputStream extends InputStream {
         // TODO implement
         super();
     }
+
+    public int read() throws IOException {
+        // TODO implement
+        return -1;
+    }
 }

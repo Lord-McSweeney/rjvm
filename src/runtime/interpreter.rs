@@ -94,6 +94,7 @@ impl Interpreter {
                 Op::LaLoad => self.op_la_load(),
                 Op::AaLoad => self.op_aa_load(),
                 Op::BaLoad => self.op_ba_load(),
+                Op::CaLoad => self.op_ca_load(),
                 Op::IStore(index) => self.op_i_store(*index),
                 Op::LStore(index) => self.op_l_store(*index),
                 Op::AStore(index) => self.op_a_store(*index),
@@ -358,6 +359,26 @@ impl Interpreter {
                 Err(self.context.array_index_oob_exception())
             } else {
                 let result = array.get_byte_at_index(index as usize);
+
+                self.stack_push(Value::Integer(result as i32));
+
+                Ok(ControlFlow::Continue)
+            }
+        } else {
+            Err(self.context.null_pointer_exception())
+        }
+    }
+
+    fn op_ca_load(&mut self) -> Result<ControlFlow, Error> {
+        let index = self.stack_pop().int();
+
+        let array = self.stack_pop().object();
+        if let Some(array) = array {
+            let length = array.array_length();
+            if index < 0 || index as usize >= length {
+                Err(self.context.array_index_oob_exception())
+            } else {
+                let result = array.get_char_at_index(index as usize);
 
                 self.stack_push(Value::Integer(result as i32));
 

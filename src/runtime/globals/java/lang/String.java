@@ -38,6 +38,32 @@ public final class String {
         System.arraycopy(this.data, srcBegin, dst, dstBegin, srcEnd - srcBegin);
     }
 
+    public boolean equals(Object other) {
+        if (this == other) {
+            return true;
+        } else if (other instanceof String) {
+            String otherString = (String) other;
+
+            if (this.length() == otherString.length()) {
+                for (int i = 0; i < this.data.length; i ++) {
+                    if (this.data[i] != otherString.data[i]) {
+                        return false;
+                    }
+                }
+
+                return true;
+            } else {
+                return false;
+            }
+        } else {
+            return false;
+        }
+    }
+
+    public int length() {
+        return this.data.length;
+    }
+
     public String intern() {
         // TODO implement
         return this;
@@ -46,9 +72,5 @@ public final class String {
     public static String format(String self, Object... args) {
         // TODO implement
         return self;
-    }
-
-    public int length() {
-        return this.data.length;
     }
 }

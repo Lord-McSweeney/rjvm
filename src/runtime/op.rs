@@ -25,6 +25,7 @@ pub enum Op {
     LaLoad,
     AaLoad,
     BaLoad,
+    CaLoad,
     IStore(usize),
     LStore(usize),
     AStore(usize),
@@ -129,6 +130,7 @@ impl Trace for Op {
             Op::LaLoad => {}
             Op::AaLoad => {}
             Op::BaLoad => {}
+            Op::CaLoad => {}
             Op::IStore(_) => {}
             Op::LStore(_) => {}
             Op::AStore(_) => {}
@@ -266,6 +268,7 @@ const IA_LOAD: u8 = 0x2E;
 const LA_LOAD: u8 = 0x2F;
 const AA_LOAD: u8 = 0x32;
 const BA_LOAD: u8 = 0x33;
+const CA_LOAD: u8 = 0x34;
 const I_STORE: u8 = 0x36;
 const L_STORE: u8 = 0x37;
 const A_STORE: u8 = 0x3A;
@@ -513,6 +516,7 @@ impl Op {
             LA_LOAD => Ok(Op::LaLoad),
             AA_LOAD => Ok(Op::AaLoad),
             BA_LOAD => Ok(Op::BaLoad),
+            CA_LOAD => Ok(Op::CaLoad),
             I_STORE => {
                 let local_idx = data.read_u8()?;
 
@@ -957,6 +961,7 @@ impl Op {
                 | Op::LaLoad
                 | Op::AaLoad
                 | Op::BaLoad
+                | Op::CaLoad
                 | Op::IaStore
                 | Op::LaStore
                 | Op::AaStore

@@ -7,6 +7,10 @@ public final class Integer extends Number implements Comparable<Integer> {
         this.value = value;
     }
 
+    public String toString() {
+        return Integer.toString(this.value);
+    }
+
     public static Integer valueOf(int integer) {
         return new Integer(integer);
     }

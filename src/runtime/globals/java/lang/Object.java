@@ -10,6 +10,10 @@ public class Object {
         return this.getClass().getName() + "@0";
     }
 
+    public boolean equals(Object other) {
+        return this == other;
+    }
+
     protected Object clone() throws CloneNotSupportedException {
         throw new CloneNotSupportedException();
     }
