@@ -193,7 +193,7 @@ pub fn get_resource_data(context: Context, args: &[Value]) -> Result<Option<Valu
 
     let resource_name = String::from_utf16_lossy(&chars_vec);
 
-    if let Some(resource_data) = class.load_resource(context, resource_name) {
+    if let Some(resource_data) = class.load_resource(context, &resource_name) {
         let resource_bytes = Object::byte_array(context, &resource_data);
 
         Ok(Some(Value::Object(Some(resource_bytes))))

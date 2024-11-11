@@ -402,11 +402,10 @@ impl Class {
         method.exec(context, args)
     }
 
-    pub fn load_resource(self, context: Context, resource_name: String) -> Option<Vec<u8>> {
-        self.0
-            .load_source
-            .as_ref()
-            .and_then(|load_source| context.load_resource(load_source, resource_name))
+    pub fn load_resource(self, context: Context, resource_name: &String) -> Option<Vec<u8>> {
+        self.0.load_source.as_ref().and_then(|load_source| {
+            context.load_resource(load_source, self.name().to_string(), resource_name)
+        })
     }
 }
 

@@ -164,9 +164,11 @@ impl Context {
     pub fn load_resource(
         self,
         load_type: &ResourceLoadType,
-        resource_name: String,
+        class_name: &String,
+        resource_name: &String,
     ) -> Option<Vec<u8>> {
-        self.loader_backend.load_resource(load_type, resource_name)
+        self.loader_backend
+            .load_resource(load_type, class_name, resource_name)
     }
 
     pub fn class_object_for_class(self, class: Class) -> Object {
@@ -387,16 +389,20 @@ impl Trace for CommonData {
 
 #[derive(Clone)]
 pub enum ResourceLoadType {
-    // This class was loaded directly from a class. When searching
-    // for resources, look at the files in this directory.
-    Class(String),
+    // This class was loaded directly from the filesystem. When searching
+    // for resources, look at the files in the directory of this class.
+    FileSystem,
 
-    // This class was loaded from a JAR file. When searching for
-    // resources, look at the files in this JAR.
+    // This class was loaded from a JAR file. When searching for resources,
+    // look at the files in the directory of this class in the JAR.
     Jar(Jar),
 }
 
 pub trait ResourceLoader {
-    fn load_resource(&self, load_type: &ResourceLoadType, resource_name: String)
-        -> Option<Vec<u8>>;
+    fn load_resource(
+        &self,
+        load_type: &ResourceLoadType,
+        class_name: &String,
+        resource_name: &String,
+    ) -> Option<Vec<u8>>;
 }

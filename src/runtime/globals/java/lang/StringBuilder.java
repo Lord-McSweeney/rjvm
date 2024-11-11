@@ -32,6 +32,10 @@ public final class StringBuilder {
     }
 
     public StringBuilder append(String string) {
+        if (string == null) {
+            return this.append("null");
+        }
+
         char[] newData = new char[this.data.length + string.length()];
         System.arraycopy(this.data, 0, newData, 0, this.data.length);
 
