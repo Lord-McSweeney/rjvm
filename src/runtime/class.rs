@@ -1,4 +1,4 @@
-use super::context::Context;
+use super::context::{Context, ResourceLoadType};
 use super::descriptor::{Descriptor, MethodDescriptor, ResolvedDescriptor};
 use super::error::{Error, NativeError};
 use super::field::Field;
@@ -22,6 +22,8 @@ pub struct Class(Gc<ClassData>);
 
 struct ClassData {
     class_file: Option<ClassFile>,
+    load_source: Option<ResourceLoadType>,
+
     flags: ClassFlags,
 
     name: JvmString,
@@ -64,7 +66,11 @@ impl fmt::Debug for Class {
 }
 
 impl Class {
-    pub fn from_class_file(context: Context, class_file: ClassFile) -> Result<Self, Error> {
+    pub fn from_class_file(
+        context: Context,
+        load_source: ResourceLoadType,
+        class_file: ClassFile,
+    ) -> Result<Self, Error> {
         let name = class_file.this_class();
         let super_class_name = class_file.super_class();
 
@@ -140,7 +146,10 @@ impl Class {
             context.gc_ctx,
             ClassData {
                 class_file: Some(class_file),
+                load_source: Some(load_source),
+
                 flags: class_file.flags(),
+
                 name,
                 super_class,
 
@@ -242,7 +251,10 @@ impl Class {
             context.gc_ctx,
             ClassData {
                 class_file: None,
+                load_source: None,
+
                 flags: ClassFlags::PUBLIC,
+
                 name: JvmString::new(context.gc_ctx, name),
                 super_class: Some(object_class),
 
@@ -388,6 +400,13 @@ impl Class {
         let method = self.static_methods()[method_idx];
 
         method.exec(context, args)
+    }
+
+    pub fn load_resource(self, context: Context, resource_name: String) -> Option<Vec<u8>> {
+        self.0
+            .load_source
+            .as_ref()
+            .and_then(|load_source| context.load_resource(load_source, resource_name))
     }
 }
 

@@ -8,7 +8,7 @@ use crate::classfile::class::ClassFile;
 use crate::gc::{Gc, GcCtx, Trace};
 use crate::jar::Jar;
 use crate::runtime::class::Class;
-use crate::runtime::context::Context;
+use crate::runtime::context::{Context, ResourceLoadType, ResourceLoader};
 use crate::runtime::descriptor::MethodDescriptor;
 use crate::runtime::object::Object;
 use crate::runtime::value::Value;
@@ -16,6 +16,7 @@ use crate::string::JvmString;
 
 use std::env;
 use std::fs;
+use std::path::PathBuf;
 
 struct Root {}
 
@@ -46,6 +47,33 @@ fn get_main_class_from_manifest(manifest_data: Vec<u8>) -> Option<String> {
     main_class.map(|c| c.replace('.', "/").to_string())
 }
 
+struct DesktopResourceLoader {}
+
+impl ResourceLoader for DesktopResourceLoader {
+    fn load_resource(
+        &self,
+        load_type: &ResourceLoadType,
+        resource_name: String,
+    ) -> Option<Vec<u8>> {
+        match load_type {
+            ResourceLoadType::Class(path) => {
+                let mut path_buf = PathBuf::from(path);
+                path_buf.pop();
+                path_buf.push(resource_name);
+
+                fs::read(path_buf).ok()
+            }
+            ResourceLoadType::Jar(jar) => {
+                if jar.has_file(&resource_name) {
+                    None
+                } else {
+                    jar.read_file(&resource_name).ok()
+                }
+            }
+        }
+    }
+}
+
 fn main() {
     let gc_ctx = GcCtx::new();
 
@@ -74,13 +102,16 @@ fn main() {
         }
     };
 
-    let context = Context::new(gc_ctx);
+    let loader = DesktopResourceLoader {};
+
+    let context = Context::new(gc_ctx, Box::new(loader));
 
     let main_class = match file_info.0 {
         FileType::Class => {
             let class_file = ClassFile::from_data(context.gc_ctx, read_file).unwrap();
             let main_class =
-                Class::from_class_file(context, class_file).expect("Failed to load main class");
+                Class::from_class_file(context, ResourceLoadType::Class(file_info.1), class_file)
+                    .expect("Failed to load main class");
 
             context.register_class(main_class);
 
@@ -91,17 +122,19 @@ fn main() {
             main_class
         }
         FileType::Jar => {
+            let manifest_name = "META-INF/MANIFEST.MF".to_string();
+
             let jar_data = Jar::from_bytes(gc_ctx, read_file).expect("Invalid jar file passed");
             context.add_jar(jar_data);
 
-            let has_manifest = jar_data.has_file("META-INF/MANIFEST.MF".to_string());
+            let has_manifest = jar_data.has_file(&manifest_name);
             if !has_manifest {
                 eprintln!("Cannot execute JAR file without MANIFEST.MF file");
                 return;
             }
 
             let manifest_data = jar_data
-                .read_file("META-INF/MANIFEST.MF".to_string())
+                .read_file(&manifest_name)
                 .expect("MANIFEST should read");
 
             let main_class_name = get_main_class_from_manifest(manifest_data);
@@ -120,7 +153,8 @@ fn main() {
 
                 let class_file = ClassFile::from_data(context.gc_ctx, main_class_data).unwrap();
                 let main_class =
-                    Class::from_class_file(context, class_file).expect("Failed to load main class");
+                    Class::from_class_file(context, ResourceLoadType::Jar(jar_data), class_file)
+                        .expect("Failed to load main class");
 
                 context.register_class(main_class);
 

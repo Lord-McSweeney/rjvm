@@ -170,8 +170,34 @@ pub fn get_name_native(context: Context, args: &[Value]) -> Result<Option<Value>
     Ok(Some(Value::Object(Some(string_instance))))
 }
 
+// java/lang/System : static void exit(int)
 pub fn system_exit(context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
     let exit_code = args[0].int();
 
     std::process::exit(exit_code)
+}
+
+// java/lang/Class : byte[] getResourceData(String)
+pub fn get_resource_data(context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
+    // Receiver should never be null
+    let class = args[0].object().unwrap().get_stored_class();
+
+    // First argument should never be null
+    let resource_name_data = args[1].object().unwrap().get_field(0).object().unwrap();
+
+    let length = resource_name_data.array_length();
+    let mut chars_vec = Vec::with_capacity(length);
+    for i in 0..length {
+        chars_vec.push(resource_name_data.get_char_at_index(i));
+    }
+
+    let resource_name = String::from_utf16_lossy(&chars_vec);
+
+    if let Some(resource_data) = class.load_resource(context, resource_name) {
+        let resource_bytes = Object::byte_array(context, &resource_data);
+
+        Ok(Some(Value::Object(Some(resource_bytes))))
+    } else {
+        Ok(Some(Value::Object(None)))
+    }
 }

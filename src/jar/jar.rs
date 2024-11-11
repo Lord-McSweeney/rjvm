@@ -27,27 +27,27 @@ impl Jar {
         let mut modified_name = class_name.to_string().clone();
         modified_name.push_str(".class");
 
-        self.has_file(modified_name)
+        self.has_file(&modified_name)
     }
 
     pub fn read_class(self, class_name: JvmString) -> Result<Vec<u8>, Error> {
         let mut modified_name = class_name.to_string().clone();
         modified_name.push_str(".class");
 
-        self.read_file(modified_name)
+        self.read_file(&modified_name)
     }
 
-    pub fn has_file(self, file_name: String) -> bool {
+    pub fn has_file(self, file_name: &String) -> bool {
         let zip_file = self.0.zip_file.borrow();
 
-        zip_file.index_for_name(&file_name).is_some()
+        zip_file.index_for_name(file_name).is_some()
     }
 
-    pub fn read_file(self, file_name: String) -> Result<Vec<u8>, Error> {
+    pub fn read_file(self, file_name: &String) -> Result<Vec<u8>, Error> {
         let mut zip_file = self.0.zip_file.borrow_mut();
 
         let result = zip_file
-            .by_name(&file_name)
+            .by_name(file_name)
             .map_err(|_| Error::Native(NativeError::InvalidJar))?;
 
         Ok(result

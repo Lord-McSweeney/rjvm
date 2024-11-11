@@ -15,24 +15,34 @@ use std::collections::HashMap;
 
 #[derive(Clone, Copy)]
 pub struct Context {
+    // The function to call into to load resources.
+    loader_backend: Gc<Box<dyn ResourceLoader>>,
+
+    // The global class registry.
     class_registry: Gc<RefCell<HashMap<JvmString, Class>>>,
 
+    // A map of class T to the object of type Class<T>.
     class_to_object_map: Gc<RefCell<HashMap<Class, Object>>>,
 
+    // A list of JAR files to check for classes.
     jar_files: Gc<RefCell<Vec<Jar>>>,
 
+    // Native method mappings
     native_mapping: Gc<RefCell<HashMap<(JvmString, JvmString, MethodDescriptor), NativeMethod>>>,
 
+    // Common strings and descriptors.
     pub common: CommonData,
 
+    // The GC context.
     pub gc_ctx: GcCtx,
 }
 
 const GLOBALS_JAR: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/classes.jar"));
 
 impl Context {
-    pub fn new(gc_ctx: GcCtx) -> Self {
+    pub fn new(gc_ctx: GcCtx, loader_backend: Box<dyn ResourceLoader>) -> Self {
         let created_self = Self {
+            loader_backend: Gc::new(gc_ctx, loader_backend),
             class_registry: Gc::new(gc_ctx, RefCell::new(HashMap::new())),
             class_to_object_map: Gc::new(gc_ctx, RefCell::new(HashMap::new())),
             jar_files: Gc::new(gc_ctx, RefCell::new(Vec::new())),
@@ -61,6 +71,7 @@ impl Context {
             ("java/lang/Object.getClass.()Ljava/lang/Class;", native_impl::get_class),
             ("java/lang/Class.getNameNative.()Ljava/lang/String;", native_impl::get_name_native),
             ("java/lang/System.exit.(I)V;", native_impl::system_exit),
+            ("java/lang/Class.getResourceData.(Ljava/lang/String;)[B", native_impl::get_resource_data),
         ];
 
         for mapping in mappings {
@@ -122,7 +133,8 @@ impl Context {
                     let read_data = jar_file.read_class(class_name)?;
                     let class_file = ClassFile::from_data(self.gc_ctx, read_data)?;
 
-                    let class = Class::from_class_file(self, class_file)?;
+                    let class =
+                        Class::from_class_file(self, ResourceLoadType::Jar(*jar_file), class_file)?;
                     self.register_class(class);
                     class.load_methods(self)?;
 
@@ -147,6 +159,14 @@ impl Context {
 
     pub fn add_linked_jar(self, jar: Jar) {
         self.jar_files.borrow_mut().push(jar);
+    }
+
+    pub fn load_resource(
+        self,
+        load_type: &ResourceLoadType,
+        resource_name: String,
+    ) -> Option<Vec<u8>> {
+        self.loader_backend.load_resource(load_type, resource_name)
     }
 
     pub fn class_object_for_class(self, class: Class) -> Object {
@@ -363,4 +383,20 @@ impl Trace for CommonData {
         self.noargs_void_desc.trace();
         self.arg_char_array_void_desc.trace();
     }
+}
+
+#[derive(Clone)]
+pub enum ResourceLoadType {
+    // This class was loaded directly from a class. When searching
+    // for resources, look at the files in this directory.
+    Class(String),
+
+    // This class was loaded from a JAR file. When searching for
+    // resources, look at the files in this JAR.
+    Jar(Jar),
+}
+
+pub trait ResourceLoader {
+    fn load_resource(&self, load_type: &ResourceLoadType, resource_name: String)
+        -> Option<Vec<u8>>;
 }
