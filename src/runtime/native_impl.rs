@@ -143,7 +143,7 @@ pub fn get_class(context: Context, args: &[Value]) -> Result<Option<Value>, Erro
     Ok(Some(Value::Object(Some(class_object))))
 }
 
-// java/lang/Class : String getNameInternal()
+// java/lang/Class : String getNameNative()
 pub fn get_name_native(context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
     // Receiver should never be null
     let class = args[0].object().unwrap().get_stored_class();

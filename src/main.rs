@@ -188,7 +188,7 @@ fn main() {
         .expect("String class should exist");
 
     // TODO actually pass args
-    let args_array = Object::obj_array(context, string_class, &[]);
+    let args_array = Value::Object(Some(Object::obj_array(context, string_class, &[])));
 
     let main_name = JvmString::new(gc_ctx, "main".to_string());
     let main_descriptor_name = JvmString::new(gc_ctx, "([Ljava/lang/String;)V".to_string());
@@ -196,13 +196,21 @@ fn main() {
     let main_descriptor =
         MethodDescriptor::from_string(gc_ctx, main_descriptor_name).expect("Valid descriptor");
 
-    let result = main_class.call_static(
-        context,
-        &[Value::Object(Some(args_array))],
-        (main_name, main_descriptor),
-    );
+    let method_idx = main_class
+        .static_method_vtable()
+        .lookup((main_name, main_descriptor));
 
-    if let Err(error) = result {
-        eprintln!("Error while running main: {:?}", error);
+    if let Some(method_idx) = method_idx {
+        let method = main_class.static_methods()[method_idx];
+        let result = method.exec(context, &[args_array]);
+
+        if let Err(error) = result {
+            eprintln!("Error while running main: {:?}", error);
+        }
+    } else {
+        eprintln!(
+            "Class {} has no `void main(String[] args)` method",
+            main_class.dot_name()
+        );
     }
 }

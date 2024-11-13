@@ -386,22 +386,6 @@ impl Class {
         Object::from_class(gc_ctx, self)
     }
 
-    pub fn call_static(
-        self,
-        context: Context,
-        args: &[Value],
-        name_and_descriptor: (JvmString, MethodDescriptor),
-    ) -> Result<Option<Value>, Error> {
-        let method_idx = self
-            .static_method_vtable()
-            .lookup(name_and_descriptor)
-            .ok_or(Error::Native(NativeError::VTableLookupFailed))?;
-
-        let method = self.static_methods()[method_idx];
-
-        method.exec(context, args)
-    }
-
     pub fn load_resource(self, context: Context, resource_name: &String) -> Option<Vec<u8>> {
         self.0.load_source.as_ref().and_then(|load_source| {
             context.load_resource(load_source, self.name().to_string(), resource_name)
