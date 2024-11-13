@@ -283,6 +283,8 @@ impl Trace for Context {
             k.1.trace();
             k.2.trace();
         }
+
+        self.common.trace();
     }
 }
 

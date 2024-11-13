@@ -14,8 +14,8 @@ use std::cmp::Ordering;
 
 pub struct Interpreter {
     method: Method,
-    stack: Vec<Value>,
-    local_registers: Vec<Value>,
+    frame_values: Vec<Value>,
+    local_count: usize,
 
     ip: usize,
 
@@ -30,16 +30,15 @@ enum ControlFlow {
 
 impl Interpreter {
     pub fn new(context: Context, method: Method, args: &[Value]) -> Self {
-        let stack = Vec::with_capacity(method.max_stack());
-        let mut local_registers = vec![Value::Object(None); method.max_locals()];
+        let mut local_registers = vec![Value::Integer(0); method.max_locals()];
         for (i, arg) in args.iter().enumerate() {
             local_registers[i] = *arg;
         }
 
         Self {
             method,
-            stack,
-            local_registers,
+            frame_values: local_registers,
+            local_count: method.max_locals(),
 
             ip: 0,
 
@@ -60,8 +59,8 @@ impl Interpreter {
                         {
                             self.ip = exception.target;
 
-                            self.stack.clear();
-                            self.stack.push(Value::Object(Some(error_object)));
+                            self.stack_clear();
+                            self.stack_push(Value::Object(Some(error_object)));
 
                             return Ok(());
                         }
@@ -195,11 +194,15 @@ impl Interpreter {
     }
 
     fn stack_push(&mut self, value: Value) {
-        self.stack.push(value);
+        self.frame_values.push(value);
     }
 
     fn stack_pop(&mut self) -> Value {
-        self.stack.pop().unwrap()
+        self.frame_values.pop().unwrap()
+    }
+
+    fn stack_clear(&mut self) {
+        self.frame_values.truncate(self.local_count)
     }
 
     fn op_a_const_null(&mut self) -> Result<ControlFlow, Error> {
@@ -266,7 +269,7 @@ impl Interpreter {
     }
 
     fn op_i_load(&mut self, index: usize) -> Result<ControlFlow, Error> {
-        let loaded = self.local_registers[index];
+        let loaded = self.frame_values[index];
 
         self.stack_push(loaded);
 
@@ -274,7 +277,7 @@ impl Interpreter {
     }
 
     fn op_l_load(&mut self, index: usize) -> Result<ControlFlow, Error> {
-        let loaded = self.local_registers[index];
+        let loaded = self.frame_values[index];
 
         self.stack_push(loaded);
 
@@ -282,7 +285,7 @@ impl Interpreter {
     }
 
     fn op_a_load(&mut self, index: usize) -> Result<ControlFlow, Error> {
-        let loaded = self.local_registers[index];
+        let loaded = self.frame_values[index];
 
         self.stack_push(loaded);
 
@@ -392,7 +395,7 @@ impl Interpreter {
     fn op_i_store(&mut self, index: usize) -> Result<ControlFlow, Error> {
         let value = self.stack_pop();
 
-        self.local_registers[index] = value;
+        self.frame_values[index] = value;
 
         Ok(ControlFlow::Continue)
     }
@@ -400,7 +403,7 @@ impl Interpreter {
     fn op_l_store(&mut self, index: usize) -> Result<ControlFlow, Error> {
         let value = self.stack_pop();
 
-        self.local_registers[index] = value;
+        self.frame_values[index] = value;
 
         Ok(ControlFlow::Continue)
     }
@@ -408,7 +411,7 @@ impl Interpreter {
     fn op_a_store(&mut self, index: usize) -> Result<ControlFlow, Error> {
         let value = self.stack_pop();
 
-        self.local_registers[index] = value;
+        self.frame_values[index] = value;
 
         Ok(ControlFlow::Continue)
     }
@@ -719,9 +722,9 @@ impl Interpreter {
     }
 
     fn op_i_inc(&mut self, index: usize, amount: i32) -> Result<ControlFlow, Error> {
-        let loaded = self.local_registers[index].int();
+        let loaded = self.frame_values[index].int();
 
-        self.local_registers[index] = Value::Integer(loaded + amount);
+        self.frame_values[index] = Value::Integer(loaded + amount);
 
         Ok(ControlFlow::Continue)
     }
