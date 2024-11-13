@@ -213,4 +213,10 @@ fn main() {
             main_class.dot_name()
         );
     }
+
+    unsafe {
+        gc_ctx.collect(&context);
+
+        gc_ctx.drop();
+    }
 }

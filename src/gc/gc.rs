@@ -158,7 +158,9 @@ impl Gc<()> {
             status: Cell::new(CollectionStatus::NotMarked),
             prev: Cell::new(None),
             next: Cell::new(None),
-            drop: |_| {},
+            drop: |_| {
+                // Should be dropped manually
+            },
             value: leaked_non_null(()),
         };
 
@@ -232,6 +234,10 @@ impl GcCtx {
                             prev.ptr.as_ref().next.set(next);
                         }
 
+                        if let Some(next) = next {
+                            next.ptr.as_ref().prev.set(prev);
+                        }
+
                         // Drop it.
                         (gc_box.drop)(gc);
                     }
@@ -240,6 +246,14 @@ impl GcCtx {
                 current = next;
             }
         }
+    }
+
+    pub unsafe fn drop(self) {
+        // The inner allocation, the empty tuple, is a ZST and doesn't
+        // actually allocate; we don't need to dealloc it.
+        let created_box = unsafe { Box::from_raw(self.first_gc.ptr.as_ptr()) };
+
+        drop(created_box);
     }
 }
 
@@ -255,9 +269,11 @@ where
         unsafe {
             let gc_box = self.ptr.as_ref();
 
-            gc_box.value.as_ref().trace();
-
-            gc_box.status.set(CollectionStatus::Marked);
+            // If this GC is already marked, don't trace its contents again
+            if matches!(gc_box.status.get(), CollectionStatus::NotMarked) {
+                gc_box.status.set(CollectionStatus::Marked);
+                gc_box.value.as_ref().trace();
+            }
         }
     }
 }
