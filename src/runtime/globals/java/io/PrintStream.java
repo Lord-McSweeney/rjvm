@@ -1,12 +1,8 @@
 package java.io;
 
 public class PrintStream extends FilterOutputStream {
-    public OutputStream out;
-
     public PrintStream(OutputStream out) {
         super(out);
-
-        this.out = out;
     }
 
     public void print(boolean b) {
@@ -39,7 +35,7 @@ public class PrintStream extends FilterOutputStream {
 
             byte[] bytes = stringToUtf8(string);
 
-            this.out.write(bytes);
+            this.write(bytes);
         } catch (IOException e) { }
     }
 

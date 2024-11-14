@@ -1,14 +1,14 @@
 package java.io;
 
 public class FilterOutputStream extends OutputStream {
-    private OutputStream stream;
+    protected OutputStream out;
 
     public FilterOutputStream(OutputStream filteredStream) {
-        this.stream = filteredStream;
+        this.out = filteredStream;
     }
 
     public void write(int b) throws IOException {
-        this.stream.write(b);
+        this.out.write(b);
     }
 
     public void write(byte buffer[], int ofs, int len) throws IOException {
@@ -26,10 +26,10 @@ public class FilterOutputStream extends OutputStream {
     }
 
     public void write(byte buffer[]) throws IOException {
-        this.stream.write(buffer);
+        this.out.write(buffer);
     }
 
     public void flush() throws IOException {
-        this.stream.flush();
+        this.out.flush();
     }
 }
