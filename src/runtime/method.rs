@@ -101,7 +101,8 @@ impl Method {
 
         let result = match &*self.0.method_info.borrow() {
             MethodInfo::Bytecode(bytecode_info) => {
-                let mut interpreter = Interpreter::new(context, self, args);
+                let frame_reference = context.frame_data.borrow();
+                let mut interpreter = Interpreter::new(context, frame_reference, self, args);
 
                 interpreter.interpret_ops(&bytecode_info.code, &bytecode_info.exceptions)?
             }

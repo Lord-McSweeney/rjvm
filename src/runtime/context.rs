@@ -10,7 +10,7 @@ use crate::gc::{Gc, GcCtx, Trace};
 use crate::jar::Jar;
 use crate::string::JvmString;
 
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 
 #[derive(Clone, Copy)]
@@ -30,6 +30,12 @@ pub struct Context {
     // Native method mappings
     native_mapping: Gc<RefCell<HashMap<(JvmString, JvmString, MethodDescriptor), NativeMethod>>>,
 
+    // Values currently in locals or stacks of interpreter frames
+    pub frame_data: Gc<RefCell<Box<[Cell<Value>]>>>,
+
+    // The first unoccupied frame data index
+    pub frame_index: Gc<Cell<usize>>,
+
     // Common strings and descriptors.
     pub common: CommonData,
 
@@ -41,12 +47,16 @@ const GLOBALS_JAR: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/classes.jar
 
 impl Context {
     pub fn new(gc_ctx: GcCtx, loader_backend: Box<dyn ResourceLoader>) -> Self {
+        let empty_frame_data = vec![Cell::new(Value::Integer(0)); 80000].into_boxed_slice();
+
         let created_self = Self {
             loader_backend: Gc::new(gc_ctx, loader_backend),
             class_registry: Gc::new(gc_ctx, RefCell::new(HashMap::new())),
             class_to_object_map: Gc::new(gc_ctx, RefCell::new(HashMap::new())),
             jar_files: Gc::new(gc_ctx, RefCell::new(Vec::new())),
             native_mapping: Gc::new(gc_ctx, RefCell::new(HashMap::new())),
+            frame_data: Gc::new(gc_ctx, RefCell::new(empty_frame_data)),
+            frame_index: Gc::new(gc_ctx, Cell::new(0)),
             common: CommonData::new(gc_ctx),
             gc_ctx,
         };
@@ -116,7 +126,7 @@ impl Context {
         } else if class_name.starts_with('[') {
             drop(class_registry);
             let array_descriptor = Descriptor::from_string(self.gc_ctx, class_name)
-                .ok_or(self.no_class_def_found_error())?;
+                .ok_or_else(|| self.no_class_def_found_error())?;
 
             let inner_descriptor = array_descriptor.array_inner_descriptor().unwrap();
             let resolved_descriptor = ResolvedDescriptor::from_descriptor(self, inner_descriptor)?;
@@ -283,6 +293,18 @@ impl Trace for Context {
             k.1.trace();
             k.2.trace();
         }
+
+        // We want to do a custom tracing over frame data to avoid tracing values
+        // above frame_index. This approach isn't too hacky and works well.
+        self.frame_data.trace_self();
+        let data = self.frame_data.borrow();
+        let mut i = 0;
+        while i < self.frame_index.get() {
+            data[i].trace();
+            i += 1;
+        }
+
+        self.frame_index.trace();
 
         self.common.trace();
     }

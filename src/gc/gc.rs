@@ -143,6 +143,15 @@ impl<T> Gc<T> {
         unsafe { this.ptr.as_ref().value.as_ptr() }
     }
 
+    // Mark this GC without calling Trace on its inner value.
+    pub fn trace_self(&self) {
+        unsafe {
+            let gc_box = self.ptr.as_ref();
+
+            gc_box.status.set(CollectionStatus::Marked);
+        }
+    }
+
     fn erased(&self) -> Gc<()> {
         let ptr = self.ptr.as_ptr() as *mut GcBox<()>;
 

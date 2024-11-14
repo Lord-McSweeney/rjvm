@@ -10,12 +10,14 @@ use super::value::Value;
 use crate::classfile::constant_pool::{ConstantPool, ConstantPoolEntry};
 use crate::string::JvmString;
 
+use std::cell::{Cell, Ref};
 use std::cmp::Ordering;
 
-pub struct Interpreter {
+pub struct Interpreter<'a> {
     method: Method,
-    frame_values: Vec<Value>,
+    frame_reference: Ref<'a, Box<[Cell<Value>]>>,
     local_count: usize,
+    local_base: usize,
 
     ip: usize,
 
@@ -28,17 +30,33 @@ enum ControlFlow {
     Return(Option<Value>),
 }
 
-impl Interpreter {
-    pub fn new(context: Context, method: Method, args: &[Value]) -> Self {
-        let mut local_registers = vec![Value::Integer(0); method.max_locals()];
-        for (i, arg) in args.iter().enumerate() {
-            local_registers[i] = *arg;
+impl<'a> Interpreter<'a> {
+    pub fn new(
+        context: Context,
+        frame_reference: Ref<'a, Box<[Cell<Value>]>>,
+        method: Method,
+        args: &[Value],
+    ) -> Self {
+        let prev_index = context.frame_index.get();
+
+        let mut i = 0;
+        while i < method.max_locals() {
+            if i < args.len() {
+                frame_reference[prev_index + i].set(args[i]);
+            } else {
+                frame_reference[prev_index + i].set(Value::Integer(0));
+            }
+
+            i += 1;
         }
+
+        context.frame_index.set(prev_index + method.max_locals());
 
         Self {
             method,
-            frame_values: local_registers,
+            frame_reference,
             local_count: method.max_locals(),
+            local_base: prev_index,
 
             ip: 0,
 
@@ -185,24 +203,54 @@ impl Interpreter {
             match control_flow {
                 Ok(ControlFlow::Continue) => self.ip += 1,
                 Ok(ControlFlow::ManualContinue) => {}
-                Ok(ControlFlow::Return(value)) => return Ok(value),
-                Err(error) => self.handle_err(error, exceptions)?,
+                Ok(ControlFlow::Return(value)) => {
+                    // Reset frame index before returning
+                    self.context.frame_index.set(self.local_base);
+
+                    return Ok(value);
+                }
+                Err(error) => {
+                    let result = self.handle_err(error, exceptions);
+
+                    if let Err(error) = result {
+                        // Reset frame index before returning
+                        self.context.frame_index.set(self.local_base);
+
+                        return Err(error);
+                    }
+                }
             }
         }
 
         panic!("Execution should never fall off function")
     }
 
-    fn stack_push(&mut self, value: Value) {
-        self.frame_values.push(value);
+    fn stack_push(&self, value: Value) {
+        let prev = self.context.frame_index.get();
+        self.frame_reference[prev].set(value);
+        self.context.frame_index.set(prev + 1);
     }
 
-    fn stack_pop(&mut self) -> Value {
-        self.frame_values.pop().unwrap()
+    fn stack_pop(&self) -> Value {
+        let new = self.context.frame_index.get() - 1;
+        let result = self.frame_reference[new].get();
+        self.context.frame_index.set(new);
+
+        result
     }
 
-    fn stack_clear(&mut self) {
-        self.frame_values.truncate(self.local_count)
+    fn stack_clear(&self) {
+        self.context
+            .frame_index
+            .set(self.local_base + self.local_count);
+    }
+
+    fn local_reg(&self, index: usize) -> Value {
+        self.frame_reference[self.local_base + index].get()
+    }
+
+    fn set_local_reg(&self, index: usize, value: Value) {
+        self.frame_reference[self.local_base + index].set(value);
     }
 
     fn op_a_const_null(&mut self) -> Result<ControlFlow, Error> {
@@ -269,7 +317,7 @@ impl Interpreter {
     }
 
     fn op_i_load(&mut self, index: usize) -> Result<ControlFlow, Error> {
-        let loaded = self.frame_values[index];
+        let loaded = self.local_reg(index);
 
         self.stack_push(loaded);
 
@@ -277,7 +325,7 @@ impl Interpreter {
     }
 
     fn op_l_load(&mut self, index: usize) -> Result<ControlFlow, Error> {
-        let loaded = self.frame_values[index];
+        let loaded = self.local_reg(index);
 
         self.stack_push(loaded);
 
@@ -285,7 +333,7 @@ impl Interpreter {
     }
 
     fn op_a_load(&mut self, index: usize) -> Result<ControlFlow, Error> {
-        let loaded = self.frame_values[index];
+        let loaded = self.local_reg(index);
 
         self.stack_push(loaded);
 
@@ -395,7 +443,7 @@ impl Interpreter {
     fn op_i_store(&mut self, index: usize) -> Result<ControlFlow, Error> {
         let value = self.stack_pop();
 
-        self.frame_values[index] = value;
+        self.set_local_reg(index, value);
 
         Ok(ControlFlow::Continue)
     }
@@ -403,7 +451,7 @@ impl Interpreter {
     fn op_l_store(&mut self, index: usize) -> Result<ControlFlow, Error> {
         let value = self.stack_pop();
 
-        self.frame_values[index] = value;
+        self.set_local_reg(index, value);
 
         Ok(ControlFlow::Continue)
     }
@@ -411,7 +459,7 @@ impl Interpreter {
     fn op_a_store(&mut self, index: usize) -> Result<ControlFlow, Error> {
         let value = self.stack_pop();
 
-        self.frame_values[index] = value;
+        self.set_local_reg(index, value);
 
         Ok(ControlFlow::Continue)
     }
@@ -722,9 +770,9 @@ impl Interpreter {
     }
 
     fn op_i_inc(&mut self, index: usize, amount: i32) -> Result<ControlFlow, Error> {
-        let loaded = self.frame_values[index].int();
+        let loaded = self.local_reg(index).int();
 
-        self.frame_values[index] = Value::Integer(loaded + amount);
+        self.set_local_reg(index, Value::Integer(loaded + amount));
 
         Ok(ControlFlow::Continue)
     }
@@ -1116,7 +1164,7 @@ impl Interpreter {
     }
 
     fn op_invoke_special(&mut self, class: Class, method: Method) -> Result<ControlFlow, Error> {
-        let mut args = vec![Value::Object(None); method.arg_count() + 1];
+        let mut args = vec![Value::Integer(0); method.arg_count() + 1];
         for arg in args.iter_mut().skip(1).rev() {
             *arg = self.stack_pop();
         }
@@ -1142,7 +1190,7 @@ impl Interpreter {
     }
 
     fn op_invoke_static(&mut self, method: Method) -> Result<ControlFlow, Error> {
-        let mut args = vec![Value::Object(None); method.arg_count()];
+        let mut args = vec![Value::Integer(0); method.arg_count()];
         for arg in args.iter_mut().rev() {
             // TODO: Long and Double arguments require two pops
             *arg = self.stack_pop();
@@ -1162,7 +1210,7 @@ impl Interpreter {
         method_name: JvmString,
         method_descriptor: MethodDescriptor,
     ) -> Result<ControlFlow, Error> {
-        let mut args = vec![Value::Object(None); method_descriptor.args().len() + 1];
+        let mut args = vec![Value::Integer(0); method_descriptor.args().len() + 1];
         for arg in args.iter_mut().skip(1).rev() {
             *arg = self.stack_pop();
         }
