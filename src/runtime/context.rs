@@ -1,6 +1,7 @@
 use super::class::Class;
 use super::descriptor::{Descriptor, MethodDescriptor, ResolvedDescriptor};
 use super::error::{Error, NativeError};
+use super::method::Method;
 use super::native_impl::{self, NativeMethod};
 use super::object::Object;
 use super::value::Value;
@@ -11,7 +12,9 @@ use crate::jar::Jar;
 use crate::string::JvmString;
 
 use std::cell::{Cell, RefCell};
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
+
+const GC_THRESHOLD: u32 = 4096;
 
 #[derive(Clone, Copy)]
 pub struct Context {
@@ -20,6 +23,11 @@ pub struct Context {
 
     // The global class registry.
     class_registry: Gc<RefCell<HashMap<JvmString, Class>>>,
+
+    // Clinits, queued. These cannot be run when loading a class; they will
+    // all be run in order every time an Interpreter is started. Yes, this is
+    // actually correct, it doesn't matter how wrong it sounds.
+    queued_clinits: Gc<RefCell<VecDeque<Method>>>,
 
     // A map of class T to the object of type Class<T>.
     class_to_object_map: Gc<RefCell<HashMap<Class, Object>>>,
@@ -35,6 +43,10 @@ pub struct Context {
 
     // The first unoccupied frame data index
     pub frame_index: Gc<Cell<usize>>,
+
+    // The GC counter. This is incremented when any op that could allocate is run,
+    // and when it reaches GC_THRESHOLD, a collection is called.
+    gc_counter: Gc<Cell<u32>>,
 
     // Common strings and descriptors.
     pub common: CommonData,
@@ -52,11 +64,13 @@ impl Context {
         let created_self = Self {
             loader_backend: Gc::new(gc_ctx, loader_backend),
             class_registry: Gc::new(gc_ctx, RefCell::new(HashMap::new())),
+            queued_clinits: Gc::new(gc_ctx, RefCell::new(VecDeque::new())),
             class_to_object_map: Gc::new(gc_ctx, RefCell::new(HashMap::new())),
             jar_files: Gc::new(gc_ctx, RefCell::new(Vec::new())),
             native_mapping: Gc::new(gc_ctx, RefCell::new(HashMap::new())),
             frame_data: Gc::new(gc_ctx, RefCell::new(empty_frame_data)),
             frame_index: Gc::new(gc_ctx, Cell::new(0)),
+            gc_counter: Gc::new(gc_ctx, Cell::new(0)),
             common: CommonData::new(gc_ctx),
             gc_ctx,
         };
@@ -141,11 +155,14 @@ impl Context {
             for jar_file in &*self.jar_files.borrow() {
                 if jar_file.has_class(class_name) {
                     let read_data = jar_file.read_class(class_name)?;
+
                     let class_file = ClassFile::from_data(self.gc_ctx, read_data)?;
 
                     let class =
                         Class::from_class_file(self, ResourceLoadType::Jar(*jar_file), class_file)?;
+
                     self.register_class(class);
+
                     class.load_methods(self)?;
 
                     return Ok(class);
@@ -165,6 +182,23 @@ impl Context {
         } else {
             registry.insert(class_name, class);
         }
+    }
+
+    pub fn queue_clinit(self, clinit: Method) {
+        self.queued_clinits.borrow_mut().push_back(clinit);
+    }
+
+    // Should only be run from Interpreter::interpret_ops
+    pub fn run_clinits(self) -> Result<(), Error> {
+        // Note that running a clinit can queue more clinits
+        let mut clinits_copy = self.queued_clinits.borrow_mut().clone();
+        self.queued_clinits.borrow_mut().clear();
+
+        while let Some(clinit) = clinits_copy.pop_front() {
+            clinit.exec(self, &[])?;
+        }
+
+        Ok(())
     }
 
     pub fn add_linked_jar(self, jar: Jar) {
@@ -192,6 +226,20 @@ impl Context {
             class_objects.insert(class, object);
 
             object
+        }
+    }
+
+    pub fn increment_gc_counter(self) {
+        let new_value = self.gc_counter.get() + 1;
+
+        if new_value == GC_THRESHOLD {
+            unsafe {
+                self.gc_ctx.collect(&self);
+            }
+
+            self.gc_counter.set(0);
+        } else {
+            self.gc_counter.set(new_value);
         }
     }
 
@@ -283,16 +331,12 @@ impl Context {
 
 impl Trace for Context {
     fn trace(&self) {
+        self.loader_backend.trace_self();
         self.class_registry.trace();
+        self.queued_clinits.trace();
         self.class_to_object_map.trace();
         self.jar_files.trace();
-        self.class_registry.borrow().trace();
-
-        for k in self.native_mapping.borrow().keys() {
-            k.0.trace();
-            k.1.trace();
-            k.2.trace();
-        }
+        self.native_mapping.trace();
 
         // We want to do a custom tracing over frame data to avoid tracing values
         // above frame_index. This approach isn't too hacky and works well.
@@ -305,6 +349,8 @@ impl Trace for Context {
         }
 
         self.frame_index.trace();
+
+        self.gc_counter.trace();
 
         self.common.trace();
     }
@@ -420,6 +466,15 @@ pub enum ResourceLoadType {
     // This class was loaded from a JAR file. When searching for resources,
     // look at the files in the directory of this class in the JAR.
     Jar(Jar),
+}
+
+impl Trace for ResourceLoadType {
+    fn trace(&self) {
+        match self {
+            ResourceLoadType::Jar(jar) => jar.trace(),
+            _ => {}
+        }
+    }
 }
 
 pub trait ResourceLoader {

@@ -22,6 +22,7 @@ use std::fmt;
 pub struct Method(Gc<MethodData>);
 
 impl Trace for Method {
+    #[inline(always)]
     fn trace(&self) {
         self.0.trace();
     }
@@ -102,7 +103,7 @@ impl Method {
         let result = match &*self.0.method_info.borrow() {
             MethodInfo::Bytecode(bytecode_info) => {
                 let frame_reference = context.frame_data.borrow();
-                let mut interpreter = Interpreter::new(context, frame_reference, self, args);
+                let mut interpreter = Interpreter::new(context, frame_reference, self, args)?;
 
                 interpreter.interpret_ops(&bytecode_info.code, &bytecode_info.exceptions)?
             }
@@ -172,8 +173,10 @@ impl Method {
 }
 
 impl Trace for MethodData {
+    #[inline(always)]
     fn trace(&self) {
         self.descriptor.trace();
+        self.name.trace();
         self.class.trace();
         self.method_info.trace();
     }
@@ -187,9 +190,11 @@ enum MethodInfo {
 }
 
 impl Trace for MethodInfo {
+    #[inline(always)]
     fn trace(&self) {
         match self {
             MethodInfo::Bytecode(bytecode_info) => bytecode_info.trace(),
+            MethodInfo::Native(native_method) => native_method.trace(),
             _ => {}
         }
     }
@@ -215,6 +220,7 @@ pub struct Exception {
 }
 
 impl Trace for Exception {
+    #[inline(always)]
     fn trace(&self) {
         self.catch_class.trace();
     }
@@ -304,6 +310,7 @@ impl BytecodeMethodInfo {
 }
 
 impl Trace for BytecodeMethodInfo {
+    #[inline(always)]
     fn trace(&self) {
         self.code.trace();
         self.exceptions.trace();

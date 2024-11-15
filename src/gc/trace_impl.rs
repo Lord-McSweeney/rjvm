@@ -1,6 +1,5 @@
-use std::cell::Cell;
-use std::cell::RefCell;
-use std::collections::HashMap;
+use std::cell::{Cell, RefCell};
+use std::collections::{HashMap, VecDeque};
 
 use super::gc::Trace;
 
@@ -36,6 +35,7 @@ impl<T> Trace for Option<T>
 where
     T: Trace,
 {
+    #[inline(always)]
     fn trace(&self) {
         if let Some(value) = self {
             value.trace();
@@ -48,7 +48,7 @@ where
     T: Trace,
     T: Copy,
 {
-    #[inline]
+    #[inline(always)]
     fn trace(&self) {
         self.get().trace();
     }
@@ -58,6 +58,19 @@ impl<T> Trace for Vec<T>
 where
     T: Trace,
 {
+    #[inline(always)]
+    fn trace(&self) {
+        for value in self {
+            value.trace();
+        }
+    }
+}
+
+impl<T> Trace for VecDeque<T>
+where
+    T: Trace,
+{
+    #[inline(always)]
     fn trace(&self) {
         for value in self {
             value.trace();
@@ -69,6 +82,7 @@ impl<T> Trace for Box<T>
 where
     T: Trace,
 {
+    #[inline(always)]
     fn trace(&self) {
         self.as_ref().trace();
     }
@@ -78,6 +92,7 @@ impl<T> Trace for Box<[T]>
 where
     T: Trace,
 {
+    #[inline(always)]
     fn trace(&self) {
         for value in self.as_ref() {
             value.trace();
@@ -89,6 +104,7 @@ impl<T> Trace for RefCell<T>
 where
     T: Trace,
 {
+    #[inline(always)]
     fn trace(&self) {
         self.borrow().trace();
     }
@@ -99,6 +115,7 @@ where
     K: Trace,
     V: Trace,
 {
+    #[inline]
     fn trace(&self) {
         for (k, v) in self {
             k.trace();
@@ -112,8 +129,23 @@ where
     A: Trace,
     B: Trace,
 {
+    #[inline(always)]
     fn trace(&self) {
         self.0.trace();
         self.1.trace();
+    }
+}
+
+impl<A, B, C> Trace for (A, B, C)
+where
+    A: Trace,
+    B: Trace,
+    C: Trace,
+{
+    #[inline(always)]
+    fn trace(&self) {
+        self.0.trace();
+        self.1.trace();
+        self.2.trace();
     }
 }

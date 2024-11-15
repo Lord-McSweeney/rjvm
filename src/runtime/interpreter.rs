@@ -36,7 +36,14 @@ impl<'a> Interpreter<'a> {
         frame_reference: Ref<'a, Box<[Cell<Value>]>>,
         method: Method,
         args: &[Value],
-    ) -> Self {
+    ) -> Result<Self, Error> {
+        // First, run clinits, to make sure code doesn't observe their lazy
+        // execution
+
+        // TODO when we implement stack traces we'll need to reset the stack
+        // trace to pretend this is a toplevel call
+        context.run_clinits()?;
+
         let prev_index = context.frame_index.get();
 
         let mut i = 0;
@@ -52,7 +59,7 @@ impl<'a> Interpreter<'a> {
 
         context.frame_index.set(prev_index + method.max_locals());
 
-        Self {
+        Ok(Self {
             method,
             frame_reference,
             local_count: method.max_locals(),
@@ -61,7 +68,7 @@ impl<'a> Interpreter<'a> {
             ip: 0,
 
             context,
-        }
+        })
     }
 
     fn handle_err(&mut self, error: Error, exceptions: &[Exception]) -> Result<(), Error> {
@@ -1135,6 +1142,9 @@ impl<'a> Interpreter<'a> {
         method_name: JvmString,
         method_descriptor: MethodDescriptor,
     ) -> Result<ControlFlow, Error> {
+        // Increment the gc counter (can this even do an allocation?)
+        self.context.increment_gc_counter();
+
         let mut args = vec![Value::Object(None); method_descriptor.args().len() + 1];
         for arg in args.iter_mut().skip(1).rev() {
             *arg = self.stack_pop();
@@ -1164,6 +1174,9 @@ impl<'a> Interpreter<'a> {
     }
 
     fn op_invoke_special(&mut self, class: Class, method: Method) -> Result<ControlFlow, Error> {
+        // Increment the gc counter (can this even do an allocation?)
+        self.context.increment_gc_counter();
+
         let mut args = vec![Value::Integer(0); method.arg_count() + 1];
         for arg in args.iter_mut().skip(1).rev() {
             *arg = self.stack_pop();
@@ -1190,6 +1203,9 @@ impl<'a> Interpreter<'a> {
     }
 
     fn op_invoke_static(&mut self, method: Method) -> Result<ControlFlow, Error> {
+        // Increment the gc counter (can this even do an allocation?)
+        self.context.increment_gc_counter();
+
         let mut args = vec![Value::Integer(0); method.arg_count()];
         for arg in args.iter_mut().rev() {
             // TODO: Long and Double arguments require two pops
@@ -1210,6 +1226,9 @@ impl<'a> Interpreter<'a> {
         method_name: JvmString,
         method_descriptor: MethodDescriptor,
     ) -> Result<ControlFlow, Error> {
+        // Increment the gc counter (can this even do an allocation?)
+        self.context.increment_gc_counter();
+
         let mut args = vec![Value::Integer(0); method_descriptor.args().len() + 1];
         for arg in args.iter_mut().skip(1).rev() {
             *arg = self.stack_pop();
@@ -1240,6 +1259,9 @@ impl<'a> Interpreter<'a> {
     }
 
     fn op_new(&mut self, class: Class) -> Result<ControlFlow, Error> {
+        // This does an allocation; we should increment the gc counter
+        self.context.increment_gc_counter();
+
         let instance = class.new_instance(self.context.gc_ctx);
 
         self.stack_push(Value::Object(Some(instance)));
@@ -1248,6 +1270,9 @@ impl<'a> Interpreter<'a> {
     }
 
     fn op_new_array(&mut self, array_type: ArrayType) -> Result<ControlFlow, Error> {
+        // This does an allocation; we should increment the gc counter
+        self.context.increment_gc_counter();
+
         let array_length = self.stack_pop().int();
 
         if array_length < 0 {
@@ -1286,6 +1311,9 @@ impl<'a> Interpreter<'a> {
     }
 
     fn op_a_new_array(&mut self, class: Class) -> Result<ControlFlow, Error> {
+        // This does an allocation; we should increment the gc counter
+        self.context.increment_gc_counter();
+
         let array_length = self.stack_pop().int();
 
         if array_length < 0 {

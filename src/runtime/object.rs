@@ -330,6 +330,7 @@ impl Object {
 }
 
 impl Trace for Object {
+    #[inline(always)]
     fn trace(&self) {
         self.0.trace();
     }
@@ -345,8 +346,10 @@ struct ObjectData {
 }
 
 impl Trace for ObjectData {
+    #[inline(always)]
     fn trace(&self) {
         self.class.trace();
+        self.native_data.trace();
         self.data.trace();
     }
 }
@@ -358,6 +361,7 @@ enum FieldOrArrayData {
 }
 
 impl Trace for FieldOrArrayData {
+    #[inline]
     fn trace(&self) {
         match self {
             FieldOrArrayData::Fields(data) => data.trace(),
@@ -373,6 +377,7 @@ enum NativeData {
 }
 
 impl Trace for NativeData {
+    #[inline(always)]
     fn trace(&self) {
         match self {
             NativeData::None => {}

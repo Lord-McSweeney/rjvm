@@ -218,10 +218,12 @@ impl Class {
         let void_descriptor = context.common.noargs_void_desc;
         let clinit_method_idx = static_method_vtable.lookup((clinit_string, void_descriptor));
         if let Some(clinit_method_idx) = clinit_method_idx {
-            // If this class actually has a clinit method, run it
+            // If this class actually has a clinit method, queue it
+            // (don't run it now as it could potentially trigger a GC, and we
+            // may have Gc pointers stored only on the stack at the moment)
             let clinit_method = self.static_methods()[clinit_method_idx];
 
-            clinit_method.exec(context, &[])?;
+            context.queue_clinit(clinit_method);
         }
 
         Ok(())
@@ -408,20 +410,17 @@ impl Hash for Class {
 }
 
 impl Trace for Class {
+    #[inline(always)]
     fn trace(&self) {
         self.0.trace();
-
-        self.static_method_vtable().trace();
-        self.static_methods().trace();
-
-        self.instance_method_vtable().trace();
-        self.instance_methods().trace();
     }
 }
 
 impl Trace for ClassData {
+    #[inline]
     fn trace(&self) {
         self.class_file.trace();
+        self.load_source.trace();
         self.name.trace();
         self.super_class.trace();
         self.own_interfaces.trace();
@@ -432,5 +431,13 @@ impl Trace for ClassData {
         self.static_fields.trace();
         self.instance_field_vtable.trace();
         self.instance_fields.trace();
+
+        if let Some(method_data) = &*self.method_data.borrow() {
+            method_data.static_method_vtable.trace();
+            method_data.static_methods.trace();
+
+            method_data.instance_method_vtable.trace();
+            method_data.instance_methods.trace();
+        }
     }
 }

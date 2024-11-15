@@ -18,12 +18,6 @@ use std::env;
 use std::fs;
 use std::path::PathBuf;
 
-struct Root {}
-
-impl Trace for Root {
-    fn trace(&self) {}
-}
-
 enum FileType {
     Class,
     Jar,
@@ -122,6 +116,7 @@ fn main() {
     let main_class = match file_info.0 {
         FileType::Class => {
             let class_file = ClassFile::from_data(context.gc_ctx, read_file).unwrap();
+
             let main_class =
                 Class::from_class_file(context, ResourceLoadType::FileSystem, class_file)
                     .expect("Failed to load main class");
@@ -165,6 +160,7 @@ fn main() {
                     .expect("Main class should read");
 
                 let class_file = ClassFile::from_data(context.gc_ctx, main_class_data).unwrap();
+
                 let main_class =
                     Class::from_class_file(context, ResourceLoadType::Jar(jar_data), class_file)
                         .expect("Failed to load main class");
@@ -189,6 +185,10 @@ fn main() {
 
     // TODO actually pass args
     let args_array = Value::Object(Some(Object::obj_array(context, string_class, &[])));
+
+    // Store this on the stack so that GC doesn't decide to collect it
+    context.frame_data.borrow()[0].set(args_array);
+    context.frame_index.set(1);
 
     let main_name = JvmString::new(gc_ctx, "main".to_string());
     let main_descriptor_name = JvmString::new(gc_ctx, "([Ljava/lang/String;)V".to_string());

@@ -274,6 +274,8 @@ impl<T> Trace for Gc<T>
 where
     T: Trace,
 {
+    // Yes, this is pretty big...
+    #[inline(always)]
     fn trace(&self) {
         unsafe {
             let gc_box = self.ptr.as_ref();

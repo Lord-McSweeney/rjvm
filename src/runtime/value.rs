@@ -45,6 +45,7 @@ impl Value {
 }
 
 impl Trace for Value {
+    #[inline(always)]
     fn trace(&self) {
         match self {
             Value::Object(object) => object.trace(),

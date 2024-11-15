@@ -3,9 +3,15 @@ use super::error::{Error, NativeError};
 use super::object::Object;
 use super::value::Value;
 
+use crate::gc::Trace;
+
 use std::io::{self, Write};
 
 pub type NativeMethod = for<'a> fn(Context, &[Value]) -> Result<Option<Value>, Error>;
+
+impl Trace for NativeMethod {
+    fn trace(&self) {}
+}
 
 // java/lang/PrintStream : static byte[] stringToUtf8(String)
 pub fn string_to_utf8(context: Context, args: &[Value]) -> Result<Option<Value>, Error> {

@@ -106,6 +106,7 @@ where
 {
     fn trace(&self) {
         self.parent.trace();
+        self.class.trace();
         self.mapping.trace();
     }
 }
