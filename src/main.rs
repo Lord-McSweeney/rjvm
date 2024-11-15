@@ -21,6 +21,7 @@ use std::path::PathBuf;
 enum FileType {
     Class,
     Jar,
+    Unknown,
 }
 
 fn get_main_class_from_manifest(manifest_data: Vec<u8>) -> Option<String> {
@@ -81,27 +82,77 @@ impl ResourceLoader for DesktopResourceLoader {
     }
 }
 
+struct PassedOptions {
+    file_type: FileType,
+    file_name: String,
+
+    program_args: Vec<String>,
+}
+
+impl PassedOptions {
+    fn from_args(args: Vec<String>) -> Result<Self, String> {
+        if args.len() < 2 {
+            return Err(format!("Run as {} [file.class]", args[0]));
+        }
+
+        let mut file_type = FileType::Unknown;
+        let mut file_name = String::new();
+        let mut program_args = Vec::new();
+        let mut started_args = false;
+
+        let mut i = 1;
+        while i < args.len() {
+            let arg = &args[i];
+
+            if started_args {
+                program_args.push(arg.clone());
+            } else {
+                // We haven't started receiving program arguments yet; we still
+                // have to handle the file being loaded
+                if arg == "--jar" {
+                    if i + 1 == args.len() {
+                        return Err("--jar flag requires a file".to_string());
+                    }
+
+                    file_type = FileType::Jar;
+                    file_name = args[i + 1].clone();
+
+                    i += 1;
+
+                    started_args = true;
+                } else {
+                    file_type = FileType::Class;
+                    file_name = arg.clone();
+
+                    started_args = true;
+                }
+            }
+
+            i += 1;
+        }
+
+        Ok(Self {
+            file_type,
+            file_name,
+            program_args,
+        })
+    }
+}
+
 fn main() {
     let gc_ctx = GcCtx::new();
 
     let args: Vec<String> = env::args().collect();
-    if args.len() < 2 {
-        println!("Run as {} [file.class]", args[0]);
-        return;
-    }
 
-    let file_info = if args[1] == "--jar" {
-        if args.len() < 3 {
-            eprintln!("--jar flag require passing an argument to it");
+    let options = match PassedOptions::from_args(args) {
+        Ok(opts) => opts,
+        Err(error) => {
+            eprintln!("{}", error);
             return;
-        } else {
-            (FileType::Jar, args[2].clone())
         }
-    } else {
-        (FileType::Class, args[1].clone())
     };
 
-    let read_file = match fs::read(&file_info.1) {
+    let read_file = match fs::read(&options.file_name) {
         Ok(data) => data,
         Err(error) => {
             eprintln!("Error: {}", error.to_string());
@@ -110,10 +161,9 @@ fn main() {
     };
 
     let loader = DesktopResourceLoader {};
-
     let context = Context::new(gc_ctx, Box::new(loader));
 
-    let main_class = match file_info.0 {
+    let main_class = match options.file_type {
         FileType::Class => {
             let class_file = ClassFile::from_data(context.gc_ctx, read_file).unwrap();
 
@@ -177,6 +227,7 @@ fn main() {
                 return;
             }
         }
+        _ => unreachable!(),
     };
 
     let string_class = context

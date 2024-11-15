@@ -41,7 +41,7 @@ pub struct Context {
     // Values currently in locals or stacks of interpreter frames
     pub frame_data: Gc<RefCell<Box<[Cell<Value>]>>>,
 
-    // The first unoccupied frame data index
+    // The first index into the frame data that is unoccupied (stack pointer).
     pub frame_index: Gc<Cell<usize>>,
 
     // The GC counter. This is incremented when any op that could allocate is run,
