@@ -243,6 +243,19 @@ impl Context {
         }
     }
 
+    pub fn create_string(self, chars: &[u16]) -> Object {
+        let chars_array_object = Object::char_array(self, chars);
+
+        let string_class = self
+            .lookup_class(self.common.java_lang_string)
+            .expect("String class should exist");
+
+        let string_instance = string_class.new_instance(self.gc_ctx);
+        string_instance.set_field(0, Value::Object(Some(chars_array_object)));
+
+        string_instance
+    }
+
     pub fn arithmetic_exception(&self) -> Error {
         let exception_class = self
             .lookup_class(self.common.java_lang_arithmetic_exception)

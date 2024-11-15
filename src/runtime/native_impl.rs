@@ -155,16 +155,10 @@ pub fn get_name_native(context: Context, args: &[Value]) -> Result<Option<Value>
     let class = args[0].object().unwrap().get_stored_class();
 
     let string_chars = class.dot_name().encode_utf16().collect::<Vec<_>>();
-    let chars_array_object = Object::char_array(context, &string_chars);
 
-    let string_class = context
-        .lookup_class(context.common.java_lang_string)
-        .expect("String class should exist");
-
-    let string_instance = string_class.new_instance(context.gc_ctx);
-    string_instance.set_field(0, Value::Object(Some(chars_array_object)));
-
-    Ok(Some(Value::Object(Some(string_instance))))
+    Ok(Some(Value::Object(Some(
+        context.create_string(&string_chars),
+    ))))
 }
 
 // java/lang/System : static void exit(int)

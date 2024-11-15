@@ -287,19 +287,10 @@ impl<'a> Interpreter<'a> {
                 let string = constant_pool
                     .get_utf8(string_idx)
                     .expect("Should refer to valid entry");
+
                 let string_chars = string.encode_utf16().collect::<Vec<_>>();
-                let chars_array_object = Object::char_array(self.context, &string_chars);
 
-                let string_class = self
-                    .context
-                    .lookup_class(self.context.common.java_lang_string)
-                    .expect("String class should exist");
-
-                // Manually construct the String instance for performance
-                let string_instance = string_class.new_instance(self.context.gc_ctx);
-                string_instance.set_field(0, Value::Object(Some(chars_array_object)));
-
-                Value::Object(Some(string_instance))
+                Value::Object(Some(self.context.create_string(&string_chars)))
             }
             ConstantPoolEntry::Integer { value } => Value::Integer(value),
             ConstantPoolEntry::Class { name_idx } => {
