@@ -297,7 +297,6 @@ impl<'a> Interpreter<'a> {
 
                 // Manually construct the String instance for performance
                 let string_instance = string_class.new_instance(self.context.gc_ctx);
-
                 string_instance.set_field(0, Value::Object(Some(chars_array_object)));
 
                 Value::Object(Some(string_instance))

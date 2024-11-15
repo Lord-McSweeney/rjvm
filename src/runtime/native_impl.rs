@@ -162,16 +162,7 @@ pub fn get_name_native(context: Context, args: &[Value]) -> Result<Option<Value>
         .expect("String class should exist");
 
     let string_instance = string_class.new_instance(context.gc_ctx);
-    string_instance
-        .call_construct(
-            context,
-            context.common.arg_char_array_void_desc,
-            &[
-                Value::Object(Some(string_instance)),
-                Value::Object(Some(chars_array_object)),
-            ],
-        )
-        .expect("String class should construct");
+    string_instance.set_field(0, Value::Object(Some(chars_array_object)));
 
     Ok(Some(Value::Object(Some(string_instance))))
 }
