@@ -230,12 +230,25 @@ fn main() {
         _ => unreachable!(),
     };
 
+    let mut program_args = Vec::new();
+    for arg in &options.program_args {
+        let utf16_encoded = arg.encode_utf16().collect::<Vec<_>>();
+
+        let string = context.create_string(&utf16_encoded);
+
+        program_args.push(Some(string));
+    }
+
     let string_class = context
         .lookup_class(context.common.java_lang_string)
         .expect("String class should exist");
 
     // TODO actually pass args
-    let args_array = Value::Object(Some(Object::obj_array(context, string_class, &[])));
+    let args_array = Value::Object(Some(Object::obj_array(
+        context,
+        string_class,
+        &program_args,
+    )));
 
     // Store this on the stack so that GC doesn't decide to collect it
     context.frame_data.borrow()[0].set(args_array);
