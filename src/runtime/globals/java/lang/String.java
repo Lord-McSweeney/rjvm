@@ -3,6 +3,8 @@ package java.lang;
 public final class String {
     private char[] data;
 
+    // Constructors
+
     public String(String originalString) {
         char[] data = originalString.data;
         int length = originalString.length();
@@ -21,26 +23,7 @@ public final class String {
         this.data = copyData;
     }
 
-    public void getChars(int srcBegin, int srcEnd, char[] dst, int dstBegin) {
-       if (
-            srcBegin < 0 ||
-            srcBegin > srcEnd ||
-            srcEnd > this.data.length
-            // Other conditions will be checked for by System.arraycopy
-        ) {
-            throw new StringIndexOutOfBoundsException();
-        }
-
-        System.arraycopy(this.data, srcBegin, dst, dstBegin, srcEnd - srcBegin);
-    }
-
-    public char charAt(int index) {
-        if (index < 0 || index >= this.data.length) {
-            throw new StringIndexOutOfBoundsException();
-        }
-
-        return this.data[index];
-    }
+    // Overriden from Object
 
     public boolean equals(Object other) {
         if (this == other) {
@@ -62,6 +45,33 @@ public final class String {
         } else {
             return false;
         }
+    }
+
+    public String toString() {
+        return this;
+    }
+
+    // Own functions
+
+    public char charAt(int index) {
+        if (index < 0 || index >= this.data.length) {
+            throw new StringIndexOutOfBoundsException();
+        }
+
+        return this.data[index];
+    }
+
+    public void getChars(int srcBegin, int srcEnd, char[] dst, int dstBegin) {
+       if (
+            srcBegin < 0 ||
+            srcBegin > srcEnd ||
+            srcEnd > this.data.length
+            // Other conditions will be checked for by System.arraycopy
+        ) {
+            throw new StringIndexOutOfBoundsException();
+        }
+
+        System.arraycopy(this.data, srcBegin, dst, dstBegin, srcEnd - srcBegin);
     }
 
     public String trim() {
@@ -90,6 +100,23 @@ public final class String {
         return new String(newBuffer);
     }
 
+    public boolean endsWith(String suffix) {
+        int thisLength = this.length();
+        int suffixLength = suffix.length();
+
+        if (suffixLength > thisLength) {
+            return false;
+        }
+
+        for (int i = 0; i < suffixLength; i ++) {
+            if (this.data[thisLength - i - 1] != suffix.data[suffixLength - i - 1]) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     public int length() {
         return this.data.length;
     }
@@ -98,6 +125,8 @@ public final class String {
         // TODO implement
         return this;
     }
+
+    // Static functions
 
     public static String format(String self, Object... args) {
         // TODO implement
