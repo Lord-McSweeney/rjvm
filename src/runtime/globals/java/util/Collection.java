@@ -1,3 +1,7 @@
 package java.util;
 
-public interface Collection<E> extends Iterable<E> { }
+public interface Collection<E> extends Iterable<E> {
+    boolean add(E e);
+
+    int size();
+}
