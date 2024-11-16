@@ -5,4 +5,9 @@ public class File {
         // TODO implement
         // store bytes of file name?
     }
+
+    public boolean exists() {
+        // TODO implement
+        return false;
+    }
 }
