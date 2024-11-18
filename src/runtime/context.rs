@@ -190,12 +190,14 @@ impl Context {
 
     // Should only be run from Interpreter::interpret_ops
     pub fn run_clinits(self) -> Result<(), Error> {
-        // Note that running a clinit can queue more clinits
-        let mut clinits_copy = self.queued_clinits.borrow_mut().clone();
-        self.queued_clinits.borrow_mut().clear();
+        // Note that running a clinit can queue more clinits. To handle some
+        // edge cases, we need to run clinits this way.
+        let mut current_clinit = self.queued_clinits.borrow_mut().pop_front();
 
-        while let Some(clinit) = clinits_copy.pop_front() {
+        while let Some(clinit) = current_clinit {
             clinit.exec(self, &[])?;
+
+            current_clinit = self.queued_clinits.borrow_mut().pop_front();
         }
 
         Ok(())
