@@ -132,8 +132,12 @@ impl Class {
             }
         }
 
-        let static_field_vtable =
-            VTable::from_parent_and_keys(context.gc_ctx, None, None, static_field_names);
+        let static_field_vtable = VTable::from_parent_and_keys(
+            context.gc_ctx,
+            None,
+            super_class.map(|c| c.static_field_vtable()),
+            static_field_names,
+        );
 
         let instance_field_vtable = VTable::from_parent_and_keys(
             context.gc_ctx,
@@ -197,8 +201,12 @@ impl Class {
             }
         }
 
-        let static_method_vtable =
-            VTable::from_parent_and_keys(context.gc_ctx, Some(self), None, static_method_names);
+        let static_method_vtable = VTable::from_parent_and_keys(
+            context.gc_ctx,
+            Some(self),
+            super_class.map(|c| *c.static_method_vtable()),
+            static_method_names,
+        );
 
         let instance_method_vtable = VTable::from_parent_and_keys(
             context.gc_ctx,
