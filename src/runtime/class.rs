@@ -114,7 +114,7 @@ impl Class {
         let fields = class_file.fields();
 
         let mut static_field_names = Vec::with_capacity(fields.len());
-        let mut static_fields = Vec::with_capacity(fields.len());
+        let mut static_fields = super_class.map_or(Vec::new(), |c| c.static_fields().to_vec());
         let mut instance_field_names = Vec::with_capacity(fields.len());
         let mut instance_fields = super_class.map_or(Vec::new(), |c| c.instance_fields().to_vec());
 
@@ -182,7 +182,7 @@ impl Class {
         let methods = class_file.methods();
 
         let mut static_method_names = Vec::with_capacity(methods.len());
-        let mut static_methods = Vec::with_capacity(methods.len());
+        let mut static_methods = super_class.map_or(Vec::new(), |c| c.static_methods().to_vec());
         let mut instance_method_names = Vec::with_capacity(methods.len());
         let mut instance_methods =
             super_class.map_or(Vec::new(), |c| c.instance_methods().to_vec());
