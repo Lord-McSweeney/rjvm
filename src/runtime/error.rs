@@ -1,6 +1,8 @@
+use super::class::Class;
 use super::object::Object;
 
 use crate::classfile::error::Error as ClassFileError;
+use crate::string::JvmString;
 
 use std::fmt;
 

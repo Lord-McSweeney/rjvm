@@ -1,7 +1,7 @@
 use super::context::{Context, ResourceLoadType};
 use super::descriptor::{Descriptor, MethodDescriptor, ResolvedDescriptor};
 use super::error::{Error, NativeError};
-use super::field::Field;
+use super::field::{Field, FieldRef};
 use super::method::Method;
 use super::object::Object;
 use super::value::Value;
@@ -41,7 +41,7 @@ struct ClassData {
     array_value_type: Option<ResolvedDescriptor>,
 
     static_field_vtable: VTable<(JvmString, Descriptor)>,
-    static_fields: Box<[Field]>,
+    static_fields: Box<[FieldRef]>,
 
     instance_field_vtable: VTable<(JvmString, Descriptor)>,
     // The values present on the class are the default values: when instantiating
@@ -61,7 +61,7 @@ struct MethodData {
 
 impl fmt::Debug for Class {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-        f.debug_struct("Class").field("name", &self.name()).finish()
+        write!(f, "[class {}]", self.name())
     }
 }
 
@@ -94,6 +94,7 @@ impl Class {
 
         for interface in &own_interfaces {
             class_queue.push(*interface);
+            all_interfaces.insert(*interface);
         }
         if let Some(super_class) = super_class {
             class_queue.push(super_class);
@@ -118,9 +119,18 @@ impl Class {
         let mut instance_field_names = Vec::with_capacity(fields.len());
         let mut instance_fields = super_class.map_or(Vec::new(), |c| c.instance_fields().to_vec());
 
+        for interface in &all_interfaces {
+            let interface_statics = interface.static_fields();
+
+            for field in interface_statics {
+                static_field_names.push((field.name(), field.descriptor()));
+                static_fields.push(*field);
+            }
+        }
+
         for field in fields {
             if field.flags().contains(FieldFlags::STATIC) {
-                let created_field = Field::from_field(context.gc_ctx, field)?;
+                let created_field = FieldRef::from_field(context.gc_ctx, field)?;
 
                 static_field_names.push((field.name(), created_field.descriptor()));
                 static_fields.push(created_field);
@@ -327,7 +337,7 @@ impl Class {
         self.0.static_field_vtable
     }
 
-    pub fn static_fields(&self) -> &[Field] {
+    pub fn static_fields(&self) -> &[FieldRef] {
         &self.0.static_fields
     }
 

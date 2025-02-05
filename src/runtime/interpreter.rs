@@ -1070,7 +1070,7 @@ impl<'a> Interpreter<'a> {
         class: Class,
         static_field_idx: usize,
     ) -> Result<ControlFlow, Error> {
-        let static_field = &class.static_fields()[static_field_idx];
+        let static_field = class.static_fields()[static_field_idx];
 
         self.stack_push(static_field.value());
 
@@ -1084,7 +1084,7 @@ impl<'a> Interpreter<'a> {
     ) -> Result<ControlFlow, Error> {
         let value = self.stack_pop();
 
-        let static_field = &class.static_fields()[static_field_idx];
+        let static_field = class.static_fields()[static_field_idx];
 
         static_field.set_value(value);
 
