@@ -38,8 +38,12 @@ public class HashMap<K, V> extends AbstractMap<K, V> {
 
     public V get(K key) {
         for (int i = 0; i < this.keys.length; i ++) {
-            if (this.keys[i] == null && key == null) {
-                return (V) this.values[i];
+            if (this.keys[i] == null) {
+                if (key == null) {
+                    return (V) this.values[i];
+                } else {
+                    continue;
+                }
             }
 
             if (this.keys[i].equals(key)) {
@@ -52,11 +56,15 @@ public class HashMap<K, V> extends AbstractMap<K, V> {
 
     public V put(K key, V value) {
         for (int i = 0; i < this.keys.length; i ++) {
-            if (this.keys[i] == null && key == null) {
-                // The key was present, so replace the old value and return it
-                Object oldValue = this.values[i];
-                this.values[i] = value;
-                return (V) oldValue;
+            if (this.keys[i] == null) {
+                if (key == null) {
+                    // The key was present, so replace the old value and return it
+                    Object oldValue = this.values[i];
+                    this.values[i] = value;
+                    return (V) oldValue;
+                } else {
+                    continue;
+                }
             }
 
             if (this.keys[i].equals(key)) {

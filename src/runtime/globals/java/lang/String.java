@@ -122,6 +122,10 @@ public final class String {
     }
 
     public int indexOf(int search, int fromIndex) {
+        if (fromIndex < 0) {
+            fromIndex = 0;
+        }
+
         // TODO support code points
         char searchChar = (char) search;
         for (int i = fromIndex; i < this.data.length; i ++) {
