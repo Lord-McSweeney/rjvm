@@ -40,8 +40,11 @@ public abstract class AbstractMap<K, V> implements Map<K, V> {
     }
 
     public int size() {
-        // TODO implement
-        return 0;
+        return this.entrySet().size();
+    }
+
+    public boolean isEmpty() {
+        return this.size() == 0;
     }
 
     public void clear() {

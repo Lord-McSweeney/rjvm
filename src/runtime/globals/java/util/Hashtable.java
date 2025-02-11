@@ -1,20 +1,15 @@
 package java.util;
 
 public class Hashtable<K, V> extends Dictionary<K, V> implements Map<K, V> {
+    // FIXME we should really not be reimplementing all the AbstractMap functions...
+    // TODO actually implement a hashmap
+
     Object[] keys;
     Object[] values;
 
     public Hashtable() {
         this.keys = new Object[0];
         this.values = new Object[0];
-    }
-
-    public int size() {
-        return this.keys.length;
-    }
-
-    public boolean isEmpty() {
-        return this.size() == 0;
     }
 
     public Enumeration<K> keys() {
@@ -76,5 +71,22 @@ public class Hashtable<K, V> extends Dictionary<K, V> implements Map<K, V> {
     public V remove(Object key) {
         // TODO implement
         return null;
+    }
+
+    public void putAll(Map<? extends K, ? extends V> map) {
+        // TODO implement
+    }
+
+    public int size() {
+        return this.keys.length;
+    }
+
+    public boolean isEmpty() {
+        return this.size() == 0;
+    }
+
+    public void clear() {
+        this.keys = new Object[0];
+        this.values = new Object[0];
     }
 }

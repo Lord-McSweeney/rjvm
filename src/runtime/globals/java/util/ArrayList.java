@@ -22,6 +22,10 @@ public class ArrayList<E> extends AbstractList<E> implements List<E> {
         // TODO implement
     }
 
+    public void clear() {
+        // TODO implement
+    }
+
     public E get(int index) {
         // TODO implement
         return null;
@@ -30,5 +34,9 @@ public class ArrayList<E> extends AbstractList<E> implements List<E> {
     public int size() {
         // TODO implement
         return 0;
+    }
+
+    public boolean isEmpty() {
+        return this.size() == 0;
     }
 }

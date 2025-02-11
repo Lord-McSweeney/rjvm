@@ -12,5 +12,9 @@ public abstract class AbstractList<E> extends AbstractCollection<E> implements L
         throw new UnsupportedOperationException();
     }
 
+    public void clear() {
+        // TODO implement
+    }
+
     public abstract E get(int index);
 }
