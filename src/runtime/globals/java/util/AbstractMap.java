@@ -25,7 +25,7 @@ public abstract class AbstractMap<K, V> implements Map<K, V> {
         return null;
     }
 
-    public K put(K key, V value) {
+    public V put(K key, V value) {
         // TODO implement
         return null;
     }

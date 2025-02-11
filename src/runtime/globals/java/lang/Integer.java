@@ -7,6 +7,15 @@ public final class Integer extends Number implements Comparable<Integer> {
         this.value = value;
     }
 
+    public boolean equals(Object obj) {
+        if (obj instanceof Integer) {
+            Integer other = (Integer) obj;
+            return this.value == other.value;
+        } else {
+            return false;
+        }
+    }
+
     public String toString() {
         return Integer.toString(this.value);
     }

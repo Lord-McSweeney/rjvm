@@ -117,6 +117,22 @@ public final class String {
         return true;
     }
 
+    public int indexOf(int search) {
+        return this.indexOf(search, 0);
+    }
+
+    public int indexOf(int search, int fromIndex) {
+        // TODO support code points
+        char searchChar = (char) search;
+        for (int i = fromIndex; i < this.data.length; i ++) {
+            if (this.data[i] == searchChar) {
+                return i;
+            }
+        }
+
+        return -1;
+    }
+
     public int length() {
         return this.data.length;
     }
