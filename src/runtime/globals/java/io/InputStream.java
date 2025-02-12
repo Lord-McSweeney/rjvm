@@ -1,6 +1,6 @@
 package java.io;
 
-public abstract class InputStream {
+public abstract class InputStream implements Closeable {
     public int available() throws IOException {
         return 0;
     }
