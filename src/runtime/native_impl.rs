@@ -282,7 +282,7 @@ pub fn get_parent(context: Context, args: &[Value]) -> Result<Option<Value>, Err
 
     let file_name = String::from_utf8_lossy(&file_name_data);
 
-    let path_buf = path::PathBuf::from(file_name);
+    let path_buf = path::PathBuf::from(&*file_name);
     let parent = path_buf.parent();
     let Some(parent) = parent else {
         return Ok(Some(Value::Object(None)));
