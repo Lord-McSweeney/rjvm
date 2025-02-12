@@ -217,7 +217,7 @@ pub fn internal_init_file_data(context: Context, args: &[Value]) -> Result<Optio
     Ok(None)
 }
 
-pub fn get_canonical_path(context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
+pub fn file_get_canonical_path(context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
     use regex::Regex;
     use std::path;
 
@@ -266,7 +266,7 @@ pub fn get_canonical_path(context: Context, args: &[Value]) -> Result<Option<Val
     Ok(Some(Value::Object(Some(string_object))))
 }
 
-pub fn get_parent(context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
+pub fn file_get_parent(context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
     use std::path;
 
     let file_object = args[0].object().unwrap();
@@ -292,6 +292,72 @@ pub fn get_parent(context: Context, args: &[Value]) -> Result<Option<Value>, Err
 
     let mut chars_vec = Vec::with_capacity(parent_string.len());
     for byte in parent_string.chars() {
+        chars_vec.push(byte as u16);
+    }
+
+    let string_object = context.create_string(&chars_vec);
+
+    Ok(Some(Value::Object(Some(string_object))))
+}
+
+pub fn file_get_name(context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
+    let file_object = args[0].object().unwrap();
+    let name_object = file_object.get_field(0).object().unwrap();
+
+    let name_bytes = name_object.get_array_data();
+
+    let mut file_name_data = Vec::with_capacity(name_bytes.len());
+    for value in name_bytes {
+        let byte = value.get().int() as u8;
+        file_name_data.push(byte);
+    }
+
+    let file_name = String::from_utf8_lossy(&file_name_data);
+
+    // TODO don't hardcode separator char
+    let file_name = file_name.split('/').last();
+    let Some(file_name) = file_name else {
+        // Return an empty string if there is no file name
+        return Ok(Some(Value::Object(Some(context.create_string(&[])))));
+    };
+
+    let file_name_string = String::from_utf8_lossy(file_name.as_bytes());
+
+    let mut chars_vec = Vec::with_capacity(file_name_string.len());
+    for byte in file_name_string.chars() {
+        chars_vec.push(byte as u16);
+    }
+
+    let string_object = context.create_string(&chars_vec);
+
+    Ok(Some(Value::Object(Some(string_object))))
+}
+
+pub fn file_get_path(context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
+    use regex::Regex;
+
+    let file_object = args[0].object().unwrap();
+    let name_object = file_object.get_field(0).object().unwrap();
+
+    let name_bytes = name_object.get_array_data();
+
+    let mut file_name_data = Vec::with_capacity(name_bytes.len());
+    for value in name_bytes {
+        let byte = value.get().int() as u8;
+        file_name_data.push(byte);
+    }
+
+    let file_name = String::from_utf8_lossy(&file_name_data);
+
+    // TODO don't hardcode separator char
+    let regex = Regex::new(r"\/{1,}").unwrap();
+
+    let file_path = regex.replace_all(&file_name, "/");
+
+    let file_path_string = String::from_utf8_lossy(file_path.as_bytes());
+
+    let mut chars_vec = Vec::with_capacity(file_path_string.len());
+    for byte in file_path_string.chars() {
         chars_vec.push(byte as u16);
     }
 

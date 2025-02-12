@@ -17,7 +17,11 @@ public class File {
 
     public native String getCanonicalPath() throws IOException;
 
+    public native String getName();
+
     public native String getParent();
+
+    public native String getPath();
 
     private native void internalInitFileData(byte[] name);
 }
