@@ -483,6 +483,7 @@ impl Trace for CommonData {
         self.java_lang_arithmetic_exception.trace();
         self.java_lang_array_index_oob_exception.trace();
         self.java_lang_class_cast_exception.trace();
+        self.java_lang_negative_array_size_exception.trace();
         self.java_lang_no_class_def_found_error.trace();
         self.java_lang_null_pointer_exception.trace();
 
