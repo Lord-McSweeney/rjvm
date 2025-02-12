@@ -142,13 +142,13 @@ impl Context {
 
         if let Some(class) = class_registry.get(&class_name) {
             Ok(*class)
-        } else if class_name.starts_with('[') {
+        } else if let Some(element_name) = class_name.strip_prefix('[') {
+            let element_name = JvmString::new(self.gc_ctx, element_name.to_string());
             drop(class_registry);
-            let array_descriptor = Descriptor::from_string(self.gc_ctx, class_name)
+            let element_descriptor = Descriptor::from_string(self.gc_ctx, element_name)
                 .ok_or_else(|| self.no_class_def_found_error())?;
 
-            let inner_descriptor = array_descriptor.array_inner_descriptor().unwrap();
-            let resolved_descriptor = ResolvedDescriptor::from_descriptor(self, inner_descriptor)?;
+            let resolved_descriptor = ResolvedDescriptor::from_descriptor(self, element_descriptor)?;
 
             let created_class = Class::for_array(self, resolved_descriptor);
             self.register_class(created_class);

@@ -91,13 +91,6 @@ impl Descriptor {
         }
     }
 
-    pub fn array_inner_descriptor(self) -> Option<Descriptor> {
-        match self {
-            Descriptor::Array(inner_descriptor) => Some(*inner_descriptor),
-            _ => None,
-        }
-    }
-
     pub fn to_string(self) -> String {
         let mut result = String::with_capacity(8);
 
