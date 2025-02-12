@@ -163,9 +163,11 @@ pub fn get_name_native(context: Context, args: &[Value]) -> Result<Option<Value>
 
 // java/lang/System : static void exit(int)
 pub fn system_exit(context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
+    use std::process;
+
     let exit_code = args[0].int();
 
-    std::process::exit(exit_code)
+    process::exit(exit_code)
 }
 
 // java/lang/Class : byte[] getResourceData(String)
@@ -191,4 +193,26 @@ pub fn get_resource_data(context: Context, args: &[Value]) -> Result<Option<Valu
     } else {
         Ok(Some(Value::Object(None)))
     }
+}
+
+pub fn internal_init_file_data(context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
+    use std::fs;
+
+    let file_object = args[0].object().unwrap();
+    let name_object = args[1].object().unwrap();
+
+    let name_bytes = name_object.get_array_data();
+
+    let mut file_name = String::with_capacity(name_bytes.len());
+    for value in name_bytes {
+        let byte = value.get().int() as u8;
+        file_name.push(byte as char);
+    }
+
+    let exists = fs::exists(file_name).unwrap_or(false);
+
+    file_object.set_field(0, Value::Object(Some(name_object)));
+    file_object.set_field(1, Value::Integer(exists as i32));
+
+    Ok(None)
 }

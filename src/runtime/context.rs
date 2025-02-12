@@ -96,6 +96,7 @@ impl Context {
             ("java/lang/Class.getNameNative.()Ljava/lang/String;", native_impl::get_name_native),
             ("java/lang/System.exit.(I)V;", native_impl::system_exit),
             ("java/lang/Class.getResourceData.(Ljava/lang/String;)[B", native_impl::get_resource_data),
+            ("java/io/File.internalInitFileData.([B)V", native_impl::internal_init_file_data),
         ];
 
         for mapping in mappings {

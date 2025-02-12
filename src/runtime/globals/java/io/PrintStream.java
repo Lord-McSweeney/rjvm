@@ -66,5 +66,5 @@ public class PrintStream extends FilterOutputStream {
     }
 
     // TODO implement this with proper Charset decoding
-    private static native byte[] stringToUtf8(String string);
+    static native byte[] stringToUtf8(String string);
 }
