@@ -309,6 +309,23 @@ impl Context {
         Error::Java(exception_instance)
     }
 
+    pub fn negative_array_size_exception(&self) -> Error {
+        let exception_class = self
+            .lookup_class(self.common.java_lang_negative_array_size_exception)
+            .expect("ClassCastException class should exist");
+
+        let exception_instance = exception_class.new_instance(self.gc_ctx);
+        exception_instance
+            .call_construct(
+                *self,
+                self.common.noargs_void_desc,
+                &[Value::Object(Some(exception_instance))],
+            )
+            .expect("Exception class should construct");
+
+        Error::Java(exception_instance)
+    }
+
     pub fn no_class_def_found_error(&self) -> Error {
         let error_class = self
             .lookup_class(self.common.java_lang_no_class_def_found_error)
@@ -381,6 +398,7 @@ pub struct CommonData {
     pub java_lang_arithmetic_exception: JvmString,
     pub java_lang_array_index_oob_exception: JvmString,
     pub java_lang_class_cast_exception: JvmString,
+    pub java_lang_negative_array_size_exception: JvmString,
     pub java_lang_no_class_def_found_error: JvmString,
     pub java_lang_null_pointer_exception: JvmString,
 
@@ -425,6 +443,10 @@ impl CommonData {
             java_lang_class_cast_exception: JvmString::new(
                 gc_ctx,
                 "java/lang/ClassCastException".to_string(),
+            ),
+            java_lang_negative_array_size_exception: JvmString::new(
+                gc_ctx,
+                "java/lang/NegativeArraySizeException".to_string(),
             ),
             java_lang_no_class_def_found_error: JvmString::new(
                 gc_ctx,

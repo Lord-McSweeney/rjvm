@@ -15,7 +15,7 @@ impl fmt::Debug for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         match self {
             Error::Native(native) => write!(f, "NativeError({:?})", native),
-            Error::Java(object) => write!(f, "{}", object.class().name()),
+            Error::Java(object) => write!(f, "{}", object.class().dot_name()),
         }
     }
 }
@@ -42,7 +42,6 @@ pub enum NativeError {
     WrongReturnType,
 
     ArrayStoreException,
-    NegativeArraySizeException,
 }
 
 impl From<ClassFileError> for Error {

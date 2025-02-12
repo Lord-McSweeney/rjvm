@@ -1266,7 +1266,7 @@ impl<'a> Interpreter<'a> {
         let array_length = self.stack_pop().int();
 
         if array_length < 0 {
-            return Err(Error::Native(NativeError::NegativeArraySizeException));
+            return Err(self.context.negative_array_size_exception());
         }
 
         let array_length = array_length as usize;
@@ -1307,7 +1307,7 @@ impl<'a> Interpreter<'a> {
         let array_length = self.stack_pop().int();
 
         if array_length < 0 {
-            return Err(Error::Native(NativeError::NegativeArraySizeException));
+            return Err(self.context.negative_array_size_exception());
         }
 
         let array_length = array_length as usize;
