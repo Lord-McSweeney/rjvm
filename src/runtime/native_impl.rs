@@ -216,3 +216,50 @@ pub fn internal_init_file_data(context: Context, args: &[Value]) -> Result<Optio
 
     Ok(None)
 }
+
+pub fn get_canonical_path(context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
+    use regex::Regex;
+    use std::path;
+
+    let file_object = args[0].object().unwrap();
+    let name_object = file_object.get_field(0).object().unwrap();
+
+    let name_bytes = name_object.get_array_data();
+
+    let mut file_name = String::with_capacity(name_bytes.len());
+    for value in name_bytes {
+        let byte = value.get().int() as u8;
+        file_name.push(byte as char);
+    }
+
+    // This is very expensive but seems to exactly match Java, except (FIXME)
+    // we should throw an IOException instead of the `unwrap_or_default`
+    // TODO use correct file separator instead of assuming it must be '/'
+    let first_regex = Regex::new(r"[^\/]{1,}\/\.\.").unwrap();
+    let second_regex = Regex::new(r"\/{1,}").unwrap();
+
+    let canonicalized_path = path::absolute(file_name)
+        .map(|p| {
+            let bytes = p.into_os_string().into_encoded_bytes();
+            let string = core::str::from_utf8(&bytes).unwrap_or("");
+
+            let first_replace = first_regex.replace_all(string, "/");
+            let second_replace = second_regex.replace_all(&first_replace, "/");
+
+            if let Some(stripped) = second_replace.strip_suffix('/') {
+                stripped.to_string()
+            } else {
+                second_replace.to_string()
+            }
+        })
+        .unwrap_or_default();
+
+    let mut chars_vec = Vec::with_capacity(canonicalized_path.len());
+    for byte in canonicalized_path.chars() {
+        chars_vec.push(byte as u16);
+    }
+
+    let string_object = context.create_string(&chars_vec);
+
+    Ok(Some(Value::Object(Some(string_object))))
+}

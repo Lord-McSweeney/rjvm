@@ -15,5 +15,7 @@ public class File {
         return this.exists;
     }
 
+    public native String getCanonicalPath() throws IOException;
+
     private native void internalInitFileData(byte[] name);
 }

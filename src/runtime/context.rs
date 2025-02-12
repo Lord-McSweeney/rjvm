@@ -97,6 +97,7 @@ impl Context {
             ("java/lang/System.exit.(I)V;", native_impl::system_exit),
             ("java/lang/Class.getResourceData.(Ljava/lang/String;)[B", native_impl::get_resource_data),
             ("java/io/File.internalInitFileData.([B)V", native_impl::internal_init_file_data),
+            ("java/io/File.getCanonicalPath.()Ljava/lang/String;", native_impl::get_canonical_path),
         ];
 
         for mapping in mappings {

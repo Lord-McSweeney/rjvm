@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 bitflags = "2.6.0"
+regex = "=1.11.1"
 zip = "2.2.0"
 
 [build-dependencies]
