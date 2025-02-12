@@ -98,6 +98,7 @@ impl Context {
             ("java/lang/Class.getResourceData.(Ljava/lang/String;)[B", native_impl::get_resource_data),
             ("java/io/File.internalInitFileData.([B)V", native_impl::internal_init_file_data),
             ("java/io/File.getCanonicalPath.()Ljava/lang/String;", native_impl::get_canonical_path),
+            ("java/io/File.getParent.()Ljava/lang/String;", native_impl::get_parent),
         ];
 
         for mapping in mappings {

@@ -226,11 +226,13 @@ pub fn get_canonical_path(context: Context, args: &[Value]) -> Result<Option<Val
 
     let name_bytes = name_object.get_array_data();
 
-    let mut file_name = String::with_capacity(name_bytes.len());
+    let mut file_name_data = Vec::with_capacity(name_bytes.len());
     for value in name_bytes {
         let byte = value.get().int() as u8;
-        file_name.push(byte as char);
+        file_name_data.push(byte);
     }
+
+    let file_name = String::from_utf8_lossy(&file_name_data);
 
     // This is very expensive but seems to exactly match Java, except (FIXME)
     // we should throw an IOException instead of the `unwrap_or_default`
@@ -238,12 +240,12 @@ pub fn get_canonical_path(context: Context, args: &[Value]) -> Result<Option<Val
     let first_regex = Regex::new(r"[^\/]{1,}\/\.\.").unwrap();
     let second_regex = Regex::new(r"\/{1,}").unwrap();
 
-    let canonicalized_path = path::absolute(file_name)
+    let canonicalized_path = path::absolute(&*file_name)
         .map(|p| {
             let bytes = p.into_os_string().into_encoded_bytes();
-            let string = core::str::from_utf8(&bytes).unwrap_or("");
+            let string = String::from_utf8_lossy(&bytes);
 
-            let first_replace = first_regex.replace_all(string, "/");
+            let first_replace = first_regex.replace_all(&string, "/");
             let second_replace = second_regex.replace_all(&first_replace, "/");
 
             if let Some(stripped) = second_replace.strip_suffix('/') {
@@ -256,6 +258,40 @@ pub fn get_canonical_path(context: Context, args: &[Value]) -> Result<Option<Val
 
     let mut chars_vec = Vec::with_capacity(canonicalized_path.len());
     for byte in canonicalized_path.chars() {
+        chars_vec.push(byte as u16);
+    }
+
+    let string_object = context.create_string(&chars_vec);
+
+    Ok(Some(Value::Object(Some(string_object))))
+}
+
+pub fn get_parent(context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
+    use std::path;
+
+    let file_object = args[0].object().unwrap();
+    let name_object = file_object.get_field(0).object().unwrap();
+
+    let name_bytes = name_object.get_array_data();
+
+    let mut file_name_data = Vec::with_capacity(name_bytes.len());
+    for value in name_bytes {
+        let byte = value.get().int() as u8;
+        file_name_data.push(byte);
+    }
+
+    let file_name = String::from_utf8_lossy(&file_name_data);
+
+    let path_buf = path::PathBuf::from(file_name);
+    let parent = path_buf.parent();
+    let Some(parent) = parent else {
+        return Ok(Some(Value::Object(None)));
+    };
+
+    let parent_string = String::from_utf8_lossy(parent.as_os_str().as_encoded_bytes());
+
+    let mut chars_vec = Vec::with_capacity(parent_string.len());
+    for byte in parent_string.chars() {
         chars_vec.push(byte as u16);
     }
 
