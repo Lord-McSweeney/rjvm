@@ -23,6 +23,17 @@ public final class String {
         this.data = copyData;
     }
 
+    public String(char[] data, int start, int length) {
+        if (start < 0 || length < 0 || start + length > data.length) {
+            throw new StringIndexOutOfBoundsException();
+        }
+
+        char[] copyData = new char[length];
+        System.arraycopy(data, start, copyData, 0, length);
+
+        this.data = copyData;
+    }
+
     // Overriden from Object
 
     public boolean equals(Object other) {
@@ -135,6 +146,23 @@ public final class String {
         }
 
         return -1;
+    }
+
+    public String substring(int start) {
+        return this.substring(start, this.data.length);
+    }
+
+    public String substring(int start, int end) {
+       if (
+            start < 0 ||
+            start > end ||
+            end > this.data.length
+        ) {
+            throw new StringIndexOutOfBoundsException();
+        }
+
+        // TODO dependent strings
+        return new String(this.data, start, end - start);
     }
 
     public int length() {
