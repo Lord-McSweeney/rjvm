@@ -1,3 +1,5 @@
 package java.util;
 
-public interface Iterator<E> { }
+public interface Iterator<E> {
+    boolean hasNext();
+}

@@ -1,5 +1,19 @@
 package java.util;
 
+class ArrayListIterator<E> implements Iterator<E> {
+    private ArrayList<E> arrayList;
+    private int index;
+
+    public ArrayListIterator(ArrayList<E> arrayList) {
+        this.arrayList = arrayList;
+        this.index = 0;
+    }
+
+    public boolean hasNext() {
+        return this.arrayList.size() < this.index;
+    }
+}
+
 public class ArrayList<E> extends AbstractList<E> implements List<E> {
     public ArrayList() {
         super();
@@ -22,13 +36,18 @@ public class ArrayList<E> extends AbstractList<E> implements List<E> {
         // TODO implement
     }
 
+    public E get(int index) {
+        // TODO implement
+        return null;
+    }
+
     public void clear() {
         // TODO implement
     }
 
-    public E get(int index) {
+    public Iterator<E> iterator() {
         // TODO implement
-        return null;
+        return new ArrayListIterator(this);
     }
 
     public int size() {
