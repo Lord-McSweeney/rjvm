@@ -148,6 +148,36 @@ public final class String {
         return -1;
     }
 
+    public int indexOf(String search) {
+        return this.indexOf(search, 0);
+    }
+
+    public int indexOf(String search, int fromIndex) {
+        if (search.length() > this.length()) {
+            return -1;
+        }
+
+        if (fromIndex < 0) {
+            fromIndex = 0;
+        }
+
+        for (int i = fromIndex; i < this.data.length; i ++) {
+            boolean failedToMatch = false;
+            for (int j = 0; j < search.length(); j ++) {
+                if (this.data[i + j] != search.data[j]) {
+                    failedToMatch = true;
+                    break;
+                }
+            }
+
+            if (!failedToMatch) {
+                return i;
+            }
+        }
+
+        return -1;
+    }
+
     public String substring(int start) {
         return this.substring(start, this.data.length);
     }
