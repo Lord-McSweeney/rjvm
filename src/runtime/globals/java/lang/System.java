@@ -27,8 +27,21 @@ public final class System {
     public static native void arraycopy(Object src, int srcPos, Object dest, int destPos, int length);
 
     public static String getProperty(String propName) {
+        if (propName == null) {
+            throw new NullPointerException();
+        }
+
         // TODO implement
         return null;
+    }
+
+    public static String getProperty(String propName, String defaultValue) {
+        if (propName == null) {
+            throw new NullPointerException();
+        }
+
+        // TODO implement
+        return defaultValue;
     }
 
     public static native void exit(int status);
