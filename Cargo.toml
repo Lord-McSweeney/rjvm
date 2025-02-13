@@ -3,6 +3,7 @@ members = [
     "core",
     "desktop",
     "globals",
+    "web",
 ]
 default_members = ["desktop"]
 resolver = "2"

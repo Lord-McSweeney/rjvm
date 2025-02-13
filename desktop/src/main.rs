@@ -255,7 +255,6 @@ fn main() {
         .lookup_class(context.common.java_lang_string)
         .expect("String class should exist");
 
-    // TODO actually pass args
     let args_array = Value::Object(Some(Object::obj_array(
         context,
         string_class,

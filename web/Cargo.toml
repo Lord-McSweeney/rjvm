@@ -1,0 +1,18 @@
+[package]
+name = "rjvm_web"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+console_error_panic_hook = "0.1.7"
+getrandom = { version = "0.2.15", features = ["js"] }
+rjvm_core = { path = "../core" }
+rjvm_globals = { path = "../globals" }
+wasm-bindgen = "0.2.100"
+
+[dependencies.web-sys]
+features = ['Document', 'Element', 'HtmlElement', 'HtmlTextAreaElement', 'Node', 'Window']
+version = "0.3.77"
