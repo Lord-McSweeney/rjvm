@@ -55,8 +55,6 @@ pub struct Context {
     pub gc_ctx: GcCtx,
 }
 
-const GLOBALS_JAR: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/classes.jar"));
-
 impl Context {
     pub fn new(gc_ctx: GcCtx, loader_backend: Box<dyn ResourceLoader>) -> Self {
         let empty_frame_data = vec![Cell::new(Value::Integer(0)); 80000].into_boxed_slice();
@@ -74,10 +72,6 @@ impl Context {
             common: CommonData::new(gc_ctx),
             gc_ctx,
         };
-
-        let globals_jar =
-            Jar::from_bytes(gc_ctx, GLOBALS_JAR.to_vec()).expect("Builtin globals should be valid");
-        created_self.add_jar(globals_jar);
 
         created_self.register_native_mapping();
 
@@ -148,7 +142,8 @@ impl Context {
             let element_descriptor = Descriptor::from_string(self.gc_ctx, element_name)
                 .ok_or_else(|| self.no_class_def_found_error())?;
 
-            let resolved_descriptor = ResolvedDescriptor::from_descriptor(self, element_descriptor)?;
+            let resolved_descriptor =
+                ResolvedDescriptor::from_descriptor(self, element_descriptor)?;
 
             let created_class = Class::for_array(self, resolved_descriptor);
             self.register_class(created_class);

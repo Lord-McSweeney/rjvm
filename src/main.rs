@@ -139,6 +139,77 @@ impl PassedOptions {
     }
 }
 
+fn init_main_class(
+    context: Context,
+    options: &PassedOptions,
+    read_file: Vec<u8>,
+) -> Result<Class, &'static str> {
+    match options.file_type {
+        FileType::Class => {
+            let class_file = ClassFile::from_data(context.gc_ctx, read_file).unwrap();
+
+            let main_class =
+                Class::from_class_file(context, ResourceLoadType::FileSystem, class_file)
+                    .expect("Failed to load main class");
+
+            context.register_class(main_class);
+
+            main_class
+                .load_methods(context)
+                .expect("Failed to load main class method data");
+
+            Ok(main_class)
+        }
+        FileType::Jar => {
+            let manifest_name = "META-INF/MANIFEST.MF".to_string();
+
+            let jar_data =
+                Jar::from_bytes(context.gc_ctx, read_file).expect("Invalid jar file passed");
+            context.add_jar(jar_data);
+
+            let has_manifest = jar_data.has_file(&manifest_name);
+            if !has_manifest {
+                return Err("Cannot execute JAR file without MANIFEST.MF file");
+            }
+
+            let manifest_data = jar_data
+                .read_file(&manifest_name)
+                .expect("MANIFEST should read");
+
+            let main_class_name = get_main_class_from_manifest(manifest_data);
+            if let Some(main_class_name) = main_class_name {
+                let main_class_name = JvmString::new(context.gc_ctx, main_class_name);
+
+                let has_main_class = jar_data.has_class(main_class_name);
+                if !has_main_class {
+                    return Err("Main class specified in MANIFEST.MF was not present in JAR!");
+                }
+
+                let main_class_data = jar_data
+                    .read_class(main_class_name)
+                    .expect("Main class should read");
+
+                let class_file = ClassFile::from_data(context.gc_ctx, main_class_data).unwrap();
+
+                let main_class =
+                    Class::from_class_file(context, ResourceLoadType::Jar(jar_data), class_file)
+                        .expect("Failed to load main class");
+
+                context.register_class(main_class);
+
+                main_class
+                    .load_methods(context)
+                    .expect("Failed to load main class method data");
+
+                Ok(main_class)
+            } else {
+                Err("Cannot execute JAR file without main class specified")
+            }
+        }
+        _ => unreachable!(),
+    }
+}
+
 fn main() {
     let gc_ctx = GcCtx::new();
 
@@ -160,76 +231,27 @@ fn main() {
         }
     };
 
+    // Initialize JVM
     let loader = DesktopResourceLoader {};
     let context = Context::new(gc_ctx, Box::new(loader));
 
-    let main_class = match options.file_type {
-        FileType::Class => {
-            let class_file = ClassFile::from_data(context.gc_ctx, read_file).unwrap();
+    // Load globals
+    const GLOBALS_JAR: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/classes.jar"));
 
-            let main_class =
-                Class::from_class_file(context, ResourceLoadType::FileSystem, class_file)
-                    .expect("Failed to load main class");
+    let globals_jar =
+        Jar::from_bytes(gc_ctx, GLOBALS_JAR.to_vec()).expect("Builtin globals should be valid");
+    context.add_jar(globals_jar);
 
-            context.register_class(main_class);
-
-            main_class
-                .load_methods(context)
-                .expect("Failed to load main class method data");
-
-            main_class
+    // Load the main class from options
+    let main_class = match init_main_class(context, &options, read_file) {
+        Ok(main_class) => main_class,
+        Err(error_msg) => {
+            eprintln!("{}", error_msg);
+            return;
         }
-        FileType::Jar => {
-            let manifest_name = "META-INF/MANIFEST.MF".to_string();
-
-            let jar_data = Jar::from_bytes(gc_ctx, read_file).expect("Invalid jar file passed");
-            context.add_jar(jar_data);
-
-            let has_manifest = jar_data.has_file(&manifest_name);
-            if !has_manifest {
-                eprintln!("Cannot execute JAR file without MANIFEST.MF file");
-                return;
-            }
-
-            let manifest_data = jar_data
-                .read_file(&manifest_name)
-                .expect("MANIFEST should read");
-
-            let main_class_name = get_main_class_from_manifest(manifest_data);
-            if let Some(main_class_name) = main_class_name {
-                let main_class_name = JvmString::new(gc_ctx, main_class_name);
-
-                let has_main_class = jar_data.has_class(main_class_name);
-                if !has_main_class {
-                    eprintln!("Main class specified in MANIFEST.MF was not present in JAR!");
-                    return;
-                }
-
-                let main_class_data = jar_data
-                    .read_class(main_class_name)
-                    .expect("Main class should read");
-
-                let class_file = ClassFile::from_data(context.gc_ctx, main_class_data).unwrap();
-
-                let main_class =
-                    Class::from_class_file(context, ResourceLoadType::Jar(jar_data), class_file)
-                        .expect("Failed to load main class");
-
-                context.register_class(main_class);
-
-                main_class
-                    .load_methods(context)
-                    .expect("Failed to load main class method data");
-
-                main_class
-            } else {
-                eprintln!("Cannot execute JAR file without main class specified");
-                return;
-            }
-        }
-        _ => unreachable!(),
     };
 
+    // Load program args
     let mut program_args = Vec::new();
     for arg in &options.program_args {
         let utf16_encoded = arg.encode_utf16().collect::<Vec<_>>();
@@ -254,6 +276,7 @@ fn main() {
     context.frame_data.borrow()[0].set(args_array);
     context.frame_index.set(1);
 
+    // Call main method
     let main_name = JvmString::new(gc_ctx, "main".to_string());
     let main_descriptor_name = JvmString::new(gc_ctx, "([Ljava/lang/String;)V".to_string());
 
