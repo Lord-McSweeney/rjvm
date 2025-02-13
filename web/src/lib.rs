@@ -10,6 +10,9 @@ extern "C" {
 
     #[wasm_bindgen(js_name = "appendText")]
     pub fn output(s: &str);
+
+    #[wasm_bindgen(js_name = "appendText")]
+    pub fn output_to_err(s: &str);
 }
 
 #[wasm_bindgen(js_name = "fileLoaded")]

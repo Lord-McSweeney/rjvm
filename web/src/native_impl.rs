@@ -1,4 +1,4 @@
-use crate::output;
+use crate::{output, output_to_err};
 use rjvm_core::{Context, Error, NativeError, NativeMethod, Object, Value};
 
 pub fn register_native_mappings(context: Context) {
@@ -60,7 +60,7 @@ fn stderr_write(_context: Context, args: &[Value]) -> Result<Option<Value>, Erro
     // Expecting integer in args[1]; args[0] is the reciever
     let byte = args[1].int() as u8;
 
-    output(std::str::from_utf8(&[byte]).unwrap());
+    output_to_err(std::str::from_utf8(&[byte]).unwrap());
 
     Ok(None)
 }

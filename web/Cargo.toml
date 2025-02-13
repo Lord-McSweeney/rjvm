@@ -16,3 +16,7 @@ wasm-bindgen = "0.2.100"
 [dependencies.web-sys]
 features = ['Document', 'Element', 'HtmlElement', 'HtmlTextAreaElement', 'Node', 'Window']
 version = "0.3.77"
+
+# pass wasm-opt the `-g` flag to make sure it doesn't remove debug info
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = ['-O3', '-g']

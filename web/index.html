@@ -18,7 +18,10 @@
         <br>
         <br>
         <h2> Output </h2>
-        <textarea id="outputTextarea" style="width: 80vw; height: 50vh; resize: none;" spellcheck="false"></textarea>
+        <textarea id="outputTextarea" style="width: 80vw; height: 50vh; resize: none;" spellcheck="false" readonly></textarea>
+        <br>
+        <button id="clearOutput"> Clear logs </button>
+
         <script type="module">
             import __wbg_init, { fileLoaded, setPanicHook } from "./pkg/rjvm_web.js";
 
@@ -37,12 +40,13 @@
                 let commandLineArguments = document.getElementById("commandLineArguments");
                 let addCommandLineArgument = document.getElementById("addCommandLineArgument");
                 let doRun = document.getElementById("doRun");
+                let clearOutput = document.getElementById("clearOutput");
 
                 doRun.disabled = true;
                 document.getElementById("outputTextarea").value = "$ ";
 
                 fileInput.addEventListener("change", function(e) {
-                    let file = e.target.files[0]; 
+                    let file = e.target.files[0];
 
                     let reader = new FileReader();
                     reader.readAsArrayBuffer(file);
@@ -86,6 +90,10 @@
                     }
 
                     fileLoaded(currentFileName, currentFileData, args);
+                });
+
+                clearOutput.addEventListener("click", function(e) {
+                    document.getElementById("outputTextarea").value = "$ ";
                 });
             }
 

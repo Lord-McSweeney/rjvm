@@ -1,3 +1,4 @@
+use crate::output_to_err;
 use rjvm_core::{
     Class, ClassFile, Context, Jar, JvmString, MethodDescriptor, Object, ResourceLoadType,
     ResourceLoader, Value,
@@ -128,8 +129,7 @@ pub(crate) fn run_file(class_data: &[u8], args: Vec<String>, is_jar: bool) {
     let main_class = match init_main_class(context, class_data.to_vec(), is_jar) {
         Ok(class) => class,
         Err(error) => {
-            crate::output("Error: ");
-            crate::output(error);
+            output_to_err(&format!("Error: {}\n", error));
 
             return;
         }
@@ -175,13 +175,13 @@ pub(crate) fn run_file(class_data: &[u8], args: Vec<String>, is_jar: bool) {
         let result = method.exec(context, &[args_array]);
 
         if let Err(error) = result {
-            eprintln!("Error while running main: {:?}", error);
+            output_to_err(&format!("Error while running main: {:?}\n", error));
         }
     } else {
-        eprintln!(
-            "Class {} has no `void main(String[] args)` method",
-            main_class.dot_name()
-        );
+        output_to_err(&format!(
+            "Class {} has no `void main(String[] args)` method\n",
+            main_class.dot_name(),
+        ));
     }
 
     unsafe {
