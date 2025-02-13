@@ -15,16 +15,20 @@ class ArrayListIterator<E> implements Iterator<E> {
 }
 
 public class ArrayList<E> extends AbstractList<E> implements List<E> {
+    Object[] data;
+
     public ArrayList() {
-        super();
+        this.data = new Object[0];
     }
 
     public ArrayList(Collection<E> collection) {
+        // TODO implement
         super();
     }
 
     public ArrayList(int capacity) {
-        super();
+        // TODO implement
+        this.data = new Object[0];
     }
 
     public boolean add(E element) {
@@ -33,26 +37,33 @@ public class ArrayList<E> extends AbstractList<E> implements List<E> {
     }
 
     public void add(int index, E element) {
-        // TODO implement
+        Object[] newData = new Object[this.data.length + 1];
+
+        System.arraycopy(this.data, 0, newData, 0, index);
+        newData[index] = element;
+        System.arraycopy(this.data, index, newData, index + 1, this.size() - index);
+
+        this.data = newData;
     }
 
     public E get(int index) {
-        // TODO implement
-        return null;
+        if (index < 0 || index >= this.data.length) {
+            throw new IndexOutOfBoundsException();
+        }
+
+        return (E) this.data[index];
     }
 
     public void clear() {
-        // TODO implement
+        this.data = new Object[0];
     }
 
     public Iterator<E> iterator() {
-        // TODO implement
         return new ArrayListIterator(this);
     }
 
     public int size() {
-        // TODO implement
-        return 0;
+        return this.data.length;
     }
 
     public boolean isEmpty() {
