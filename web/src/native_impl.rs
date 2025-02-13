@@ -175,7 +175,8 @@ fn get_name_native(context: Context, args: &[Value]) -> Result<Option<Value>, Er
 
 // java/lang/System : static void exit(int)
 fn system_exit(_context: Context, _args: &[Value]) -> Result<Option<Value>, Error> {
-    todo!()
+    // Just pretend we exited
+    Ok(None)
 }
 
 // java/lang/Class : byte[] getResourceData(String)
@@ -203,8 +204,22 @@ fn get_resource_data(context: Context, args: &[Value]) -> Result<Option<Value>, 
     }
 }
 
-fn internal_init_file_data(_context: Context, _args: &[Value]) -> Result<Option<Value>, Error> {
-    unimplemented!()
+fn internal_init_file_data(_context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
+    let file_object = args[0].object().unwrap();
+    let name_object = args[1].object().unwrap();
+
+    let name_bytes = name_object.get_array_data();
+
+    let mut file_name = String::with_capacity(name_bytes.len());
+    for value in name_bytes {
+        let byte = value.get().int() as u8;
+        file_name.push(byte as char);
+    }
+
+    file_object.set_field(0, Value::Object(Some(name_object)));
+    file_object.set_field(1, Value::Integer(0));
+
+    Ok(None)
 }
 
 fn file_get_canonical_path(_context: Context, _args: &[Value]) -> Result<Option<Value>, Error> {

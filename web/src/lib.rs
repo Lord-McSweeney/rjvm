@@ -12,15 +12,22 @@ extern "C" {
     pub fn output(s: &str);
 }
 
-fn run_file(_name: &str, data: &[u8]) {
-    // TODO automatically detect and run JARs
-    runner::run_file(data);
-}
-
 #[wasm_bindgen(js_name = "fileLoaded")]
-pub fn file_loaded(name: &str, data: &[u8]) {
-    output(&("rjvm ".to_string() + name + "\n"));
-    run_file(name, data);
+pub fn file_loaded(name: &str, data: &[u8], args: Vec<String>) {
+    let is_jar = name.ends_with(".jar");
+
+    output("rjvm ");
+    if is_jar {
+        output("--jar ");
+    }
+    output(name);
+    for arg in &args {
+        output(" ");
+        output(arg);
+    }
+    output("\n");
+
+    runner::run_file(data, args, is_jar);
     output("$ ");
 }
 

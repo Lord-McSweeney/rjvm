@@ -4,6 +4,21 @@
         <meta charset="utf-8">
     </head>
     <body>
+        <h2> Load .class or .jar </h2>
+        <input id="fileInput" type="file">
+        <br>
+        <br>
+        <span> Command line arguments: </span>
+        <span id="commandLineArguments">
+            <button id="addCommandLineArgument"> + </button>
+        </span>
+        <br>
+        <br>
+        <button id="doRun">Run selected file</button>
+        <br>
+        <br>
+        <h2> Output </h2>
+        <textarea id="outputTextarea" style="width: 80vw; height: 50vh; resize: none;" spellcheck="false"></textarea>
         <script type="module">
             import __wbg_init, { fileLoaded, setPanicHook } from "./pkg/rjvm_web.js";
 
@@ -14,12 +29,18 @@
                 document.getElementById("outputTextarea").value += text;
             }
 
+            let currentFileData = null;
+            let currentFileName = null;
+
             function init() {
-                let fileInput = document.createElement('input');
-                fileInput.style.display = "block";
-                fileInput.type = 'file';
-                fileInput.id = "fileInput";
-                document.body.appendChild(fileInput);
+                let fileInput = document.getElementById("fileInput");
+                let commandLineArguments = document.getElementById("commandLineArguments");
+                let addCommandLineArgument = document.getElementById("addCommandLineArgument");
+                let doRun = document.getElementById("doRun");
+
+                doRun.disabled = true;
+                document.getElementById("outputTextarea").value = "$ ";
+
                 fileInput.addEventListener("change", function(e) {
                     let file = e.target.files[0]; 
 
@@ -27,17 +48,45 @@
                     reader.readAsArrayBuffer(file);
 
                     reader.addEventListener("loadend", function(e) {
-                        fileLoaded(file.name, new Uint8Array(reader.result));
+                        currentFileData = new Uint8Array(reader.result);
+                        currentFileName = file.name;
+
+                        // Enable button once a file is selected
+                        doRun.disabled = false;
                     });
                 });
 
-                let outputTextarea = document.createElement("textarea");
-                outputTextarea.style.width = "70vw";
-                outputTextarea.style.height = "40vh";
-                outputTextarea.style.resize = "none";
-                outputTextarea.id = "outputTextarea";
-                outputTextarea.value = "$ ";
-                document.body.appendChild(outputTextarea);
+                addCommandLineArgument.addEventListener("click", function(e) {
+                    let child = document.createElement("span");
+                    child.style.border = "1px solid black";
+                    child.style.padding = "4px";
+                    child.style.margin = "4px";
+
+                    let input = document.createElement("input");
+                    input.type = "text";
+                    input.style.width = "80px";
+
+                    let removeArg = document.createElement("button");
+                    removeArg.innerText = "-";
+                    removeArg.addEventListener("click", function(e) {
+                        child.parentNode.removeChild(child);
+                    });
+
+                    child.appendChild(input);
+                    child.appendChild(removeArg);
+
+                    commandLineArguments.insertBefore(child, addCommandLineArgument);
+                });
+
+                doRun.addEventListener("click", function(e) {
+                    let args = [];
+                    for (let i = 0; i < commandLineArguments.children.length - 1; i ++) {
+                        let child = commandLineArguments.children[i];
+                        args.push(child.children[0].value);
+                    }
+
+                    fileLoaded(currentFileName, currentFileData, args);
+                });
             }
 
             init();
