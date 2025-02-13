@@ -58,6 +58,11 @@ public final class String {
         }
     }
 
+    public int hashCode() {
+        // TODO implement better
+        return this.length();
+    }
+
     public String toString() {
         return this;
     }

@@ -10,6 +10,11 @@ public class Object {
         return this.getClass().getName() + "@0";
     }
 
+    public int hashCode() {
+        // TODO implement
+        return 0;
+    }
+
     public boolean equals(Object other) {
         return this == other;
     }
