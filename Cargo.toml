@@ -1,12 +1,8 @@
-[package]
-name = "rjvm"
-version = "0.1.0"
-edition = "2021"
-
-[dependencies]
-bitflags = "2.6.0"
-regex = "=1.11.1"
-zip = "2.2.0"
-
-[build-dependencies]
-glob = "0.3.1"
+[workspace]
+members = [
+    "core",
+    "desktop",
+    "globals",
+]
+default_members = ["desktop"]
+resolver = "2"

@@ -1,20 +1,36 @@
-use super::context::Context;
-use super::error::{Error, NativeError};
-use super::object::Object;
-use super::value::Value;
+use rjvm_core::{Context, Error, NativeError, NativeMethod, Object, Value};
 
-use crate::gc::Trace;
+pub fn register_native_mappings(context: Context) {
+    #[rustfmt::skip]
+    let mappings: &[(&str, NativeMethod)] = &[
+        ("java/io/PrintStream.stringToUtf8.(Ljava/lang/String;)[B", string_to_utf8),
+        ("java/lang/StdoutStream.write.(I)V", stdout_write),
+        ("java/lang/StderrStream.write.(I)V", stderr_write),
+        ("java/lang/System.arraycopy.(Ljava/lang/Object;ILjava/lang/Object;II)V", array_copy),
+        ("java/lang/Class.isInterface.()Z", is_interface),
+        ("java/lang/Object.getClass.()Ljava/lang/Class;", get_class),
+        ("java/lang/Class.getNameNative.()Ljava/lang/String;", get_name_native),
+        ("java/lang/System.exit.(I)V;", system_exit),
+        ("java/lang/Class.getResourceData.(Ljava/lang/String;)[B", get_resource_data),
+        ("java/io/File.internalInitFileData.([B)V", internal_init_file_data),
+        ("java/io/File.getCanonicalPath.()Ljava/lang/String;", file_get_canonical_path),
+        ("java/io/File.getParent.()Ljava/lang/String;", file_get_parent),
+        ("java/io/File.getName.()Ljava/lang/String;", file_get_name),
+        ("java/io/File.getPath.()Ljava/lang/String;", file_get_path),
+    ];
 
-use std::io::{self, Write};
-
-pub type NativeMethod = for<'a> fn(Context, &[Value]) -> Result<Option<Value>, Error>;
-
-impl Trace for NativeMethod {
-    fn trace(&self) {}
+    context.register_native_mappings(mappings);
 }
 
+use regex::Regex;
+use std::fs;
+use std::io::{self, Write};
+use std::path;
+
+// Native implementations of functions declared in globals
+
 // java/lang/PrintStream : static byte[] stringToUtf8(String)
-pub fn string_to_utf8(context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
+fn string_to_utf8(context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
     // Expecting non-null object
     let string_object = args[0].object().unwrap();
     let char_array = string_object.get_field(0).object().unwrap();
@@ -34,7 +50,7 @@ pub fn string_to_utf8(context: Context, args: &[Value]) -> Result<Option<Value>,
 }
 
 // java/lang/StdoutStream : void write(int)
-pub fn stdout_write(context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
+fn stdout_write(_context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
     // Expecting integer in args[1]; args[0] is the reciever
     let byte = args[1].int() as u8;
 
@@ -44,7 +60,7 @@ pub fn stdout_write(context: Context, args: &[Value]) -> Result<Option<Value>, E
 }
 
 // java/lang/StderrStream : void write(int)
-pub fn stderr_write(context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
+fn stderr_write(_context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
     // Expecting integer in args[1]; args[0] is the reciever
     let byte = args[1].int() as u8;
 
@@ -54,7 +70,7 @@ pub fn stderr_write(context: Context, args: &[Value]) -> Result<Option<Value>, E
 }
 
 // java/lang/System: static void arraycopy(Object, int, Object, int, int)
-pub fn array_copy(context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
+fn array_copy(context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
     let source_arr = args[0].object();
     let Some(source_arr) = source_arr else {
         return Err(context.null_pointer_exception());
@@ -128,7 +144,7 @@ pub fn array_copy(context: Context, args: &[Value]) -> Result<Option<Value>, Err
 }
 
 // java/lang/Class : boolean isInterface()
-pub fn is_interface(context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
+fn is_interface(_context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
     // Receiver should never be null
     let class = args[0].object().unwrap().get_stored_class();
 
@@ -140,7 +156,7 @@ pub fn is_interface(context: Context, args: &[Value]) -> Result<Option<Value>, E
 }
 
 // java/lang/Object : Class getClass()
-pub fn get_class(context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
+fn get_class(context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
     // Receiver should never be null
     let class = args[0].object().unwrap().class();
 
@@ -150,7 +166,7 @@ pub fn get_class(context: Context, args: &[Value]) -> Result<Option<Value>, Erro
 }
 
 // java/lang/Class : String getNameNative()
-pub fn get_name_native(context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
+fn get_name_native(context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
     // Receiver should never be null
     let class = args[0].object().unwrap().get_stored_class();
 
@@ -162,7 +178,7 @@ pub fn get_name_native(context: Context, args: &[Value]) -> Result<Option<Value>
 }
 
 // java/lang/System : static void exit(int)
-pub fn system_exit(context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
+fn system_exit(_context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
     use std::process;
 
     let exit_code = args[0].int();
@@ -171,7 +187,7 @@ pub fn system_exit(context: Context, args: &[Value]) -> Result<Option<Value>, Er
 }
 
 // java/lang/Class : byte[] getResourceData(String)
-pub fn get_resource_data(context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
+fn get_resource_data(context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
     // Receiver should never be null
     let class = args[0].object().unwrap().get_stored_class();
 
@@ -195,9 +211,7 @@ pub fn get_resource_data(context: Context, args: &[Value]) -> Result<Option<Valu
     }
 }
 
-pub fn internal_init_file_data(context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
-    use std::fs;
-
+fn internal_init_file_data(_context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
     let file_object = args[0].object().unwrap();
     let name_object = args[1].object().unwrap();
 
@@ -217,10 +231,7 @@ pub fn internal_init_file_data(context: Context, args: &[Value]) -> Result<Optio
     Ok(None)
 }
 
-pub fn file_get_canonical_path(context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
-    use regex::Regex;
-    use std::path;
-
+fn file_get_canonical_path(context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
     let file_object = args[0].object().unwrap();
     let name_object = file_object.get_field(0).object().unwrap();
 
@@ -266,9 +277,7 @@ pub fn file_get_canonical_path(context: Context, args: &[Value]) -> Result<Optio
     Ok(Some(Value::Object(Some(string_object))))
 }
 
-pub fn file_get_parent(context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
-    use std::path;
-
+fn file_get_parent(context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
     let file_object = args[0].object().unwrap();
     let name_object = file_object.get_field(0).object().unwrap();
 
@@ -300,7 +309,7 @@ pub fn file_get_parent(context: Context, args: &[Value]) -> Result<Option<Value>
     Ok(Some(Value::Object(Some(string_object))))
 }
 
-pub fn file_get_name(context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
+fn file_get_name(context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
     let file_object = args[0].object().unwrap();
     let name_object = file_object.get_field(0).object().unwrap();
 
@@ -333,9 +342,7 @@ pub fn file_get_name(context: Context, args: &[Value]) -> Result<Option<Value>, 
     Ok(Some(Value::Object(Some(string_object))))
 }
 
-pub fn file_get_path(context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
-    use regex::Regex;
-
+fn file_get_path(context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
     let file_object = args[0].object().unwrap();
     let name_object = file_object.get_field(0).object().unwrap();
 

@@ -1,8 +1,7 @@
 use super::class::Class;
 use super::descriptor::{Descriptor, MethodDescriptor, ResolvedDescriptor};
 use super::error::{Error, NativeError};
-use super::method::Method;
-use super::native_impl::{self, NativeMethod};
+use super::method::{Method, NativeMethod};
 use super::object::Object;
 use super::value::Value;
 
@@ -56,10 +55,12 @@ pub struct Context {
 }
 
 impl Context {
-    pub fn new(gc_ctx: GcCtx, loader_backend: Box<dyn ResourceLoader>) -> Self {
+    pub fn new(loader_backend: Box<dyn ResourceLoader>) -> Self {
+        let gc_ctx = GcCtx::new();
+
         let empty_frame_data = vec![Cell::new(Value::Integer(0)); 80000].into_boxed_slice();
 
-        let created_self = Self {
+        Self {
             loader_backend: Gc::new(gc_ctx, loader_backend),
             class_registry: Gc::new(gc_ctx, RefCell::new(HashMap::new())),
             queued_clinits: Gc::new(gc_ctx, RefCell::new(VecDeque::new())),
@@ -71,32 +72,10 @@ impl Context {
             gc_counter: Gc::new(gc_ctx, Cell::new(0)),
             common: CommonData::new(gc_ctx),
             gc_ctx,
-        };
-
-        created_self.register_native_mapping();
-
-        created_self
+        }
     }
 
-    fn register_native_mapping(self) {
-        #[rustfmt::skip]
-        let mappings: &[(&str, NativeMethod)] = &[
-            ("java/io/PrintStream.stringToUtf8.(Ljava/lang/String;)[B", native_impl::string_to_utf8),
-            ("java/lang/StdoutStream.write.(I)V", native_impl::stdout_write),
-            ("java/lang/StderrStream.write.(I)V", native_impl::stderr_write),
-            ("java/lang/System.arraycopy.(Ljava/lang/Object;ILjava/lang/Object;II)V", native_impl::array_copy),
-            ("java/lang/Class.isInterface.()Z", native_impl::is_interface),
-            ("java/lang/Object.getClass.()Ljava/lang/Class;", native_impl::get_class),
-            ("java/lang/Class.getNameNative.()Ljava/lang/String;", native_impl::get_name_native),
-            ("java/lang/System.exit.(I)V;", native_impl::system_exit),
-            ("java/lang/Class.getResourceData.(Ljava/lang/String;)[B", native_impl::get_resource_data),
-            ("java/io/File.internalInitFileData.([B)V", native_impl::internal_init_file_data),
-            ("java/io/File.getCanonicalPath.()Ljava/lang/String;", native_impl::file_get_canonical_path),
-            ("java/io/File.getParent.()Ljava/lang/String;", native_impl::file_get_parent),
-            ("java/io/File.getName.()Ljava/lang/String;", native_impl::file_get_name),
-            ("java/io/File.getPath.()Ljava/lang/String;", native_impl::file_get_path),
-        ];
-
+    pub fn register_native_mappings(self, mappings: &[(&str, NativeMethod)]) {
         for mapping in mappings {
             let name = mapping.0.split(".").collect::<Vec<_>>();
 

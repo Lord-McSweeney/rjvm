@@ -3,7 +3,6 @@ use super::context::Context;
 use super::descriptor::{Descriptor, MethodDescriptor};
 use super::error::{Error, NativeError};
 use super::interpreter::Interpreter;
-use super::native_impl::NativeMethod;
 use super::op::Op;
 use super::value::Value;
 use super::verify::verify_ops;
@@ -315,4 +314,10 @@ impl Trace for BytecodeMethodInfo {
         self.code.trace();
         self.exceptions.trace();
     }
+}
+
+pub type NativeMethod = for<'a> fn(Context, &[Value]) -> Result<Option<Value>, Error>;
+
+impl Trace for NativeMethod {
+    fn trace(&self) {}
 }

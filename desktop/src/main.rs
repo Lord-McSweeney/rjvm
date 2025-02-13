@@ -1,18 +1,10 @@
-mod classfile;
-mod gc;
-mod jar;
-mod runtime;
-mod string;
+use rjvm_core::{
+    Class, ClassFile, Context, Jar, JvmString, MethodDescriptor, Object, ResourceLoadType,
+    ResourceLoader, Value,
+};
+use rjvm_globals::GLOBALS_JAR;
 
-use crate::classfile::class::ClassFile;
-use crate::gc::{Gc, GcCtx, Trace};
-use crate::jar::Jar;
-use crate::runtime::class::Class;
-use crate::runtime::context::{Context, ResourceLoadType, ResourceLoader};
-use crate::runtime::descriptor::MethodDescriptor;
-use crate::runtime::object::Object;
-use crate::runtime::value::Value;
-use crate::string::JvmString;
+mod native_impl;
 
 use std::env;
 use std::fs;
@@ -211,8 +203,6 @@ fn init_main_class(
 }
 
 fn main() {
-    let gc_ctx = GcCtx::new();
-
     let args: Vec<String> = env::args().collect();
 
     let options = match PassedOptions::from_args(args) {
@@ -233,14 +223,14 @@ fn main() {
 
     // Initialize JVM
     let loader = DesktopResourceLoader {};
-    let context = Context::new(gc_ctx, Box::new(loader));
+    let context = Context::new(Box::new(loader));
 
     // Load globals
-    const GLOBALS_JAR: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/classes.jar"));
-
-    let globals_jar =
-        Jar::from_bytes(gc_ctx, GLOBALS_JAR.to_vec()).expect("Builtin globals should be valid");
+    let globals_jar = Jar::from_bytes(context.gc_ctx, GLOBALS_JAR.to_vec())
+        .expect("Builtin globals should be valid");
     context.add_jar(globals_jar);
+
+    native_impl::register_native_mappings(context);
 
     // Load the main class from options
     let main_class = match init_main_class(context, &options, read_file) {
@@ -277,11 +267,11 @@ fn main() {
     context.frame_index.set(1);
 
     // Call main method
-    let main_name = JvmString::new(gc_ctx, "main".to_string());
-    let main_descriptor_name = JvmString::new(gc_ctx, "([Ljava/lang/String;)V".to_string());
+    let main_name = JvmString::new(context.gc_ctx, "main".to_string());
+    let main_descriptor_name = JvmString::new(context.gc_ctx, "([Ljava/lang/String;)V".to_string());
 
-    let main_descriptor =
-        MethodDescriptor::from_string(gc_ctx, main_descriptor_name).expect("Valid descriptor");
+    let main_descriptor = MethodDescriptor::from_string(context.gc_ctx, main_descriptor_name)
+        .expect("Valid descriptor");
 
     let method_idx = main_class
         .static_method_vtable()
@@ -302,8 +292,8 @@ fn main() {
     }
 
     unsafe {
-        gc_ctx.collect(&context);
+        context.gc_ctx.collect(&context);
 
-        gc_ctx.drop();
+        context.gc_ctx.drop();
     }
 }
