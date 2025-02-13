@@ -72,6 +72,16 @@ public final class String {
         return this.data[index];
     }
 
+    public int codePointAt(int index) {
+        // TODO return correct result when char at index is a part of a surrogate pair
+
+        if (index < 0 || index >= this.data.length) {
+            throw new StringIndexOutOfBoundsException();
+        }
+
+        return (int) this.data[index];
+    }
+
     public void getChars(int srcBegin, int srcEnd, char[] dst, int dstBegin) {
        if (
             srcBegin < 0 ||
