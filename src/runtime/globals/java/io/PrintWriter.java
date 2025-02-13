@@ -6,6 +6,11 @@ public class PrintWriter extends Writer {
         super();
     }
 
+    public PrintWriter(Writer writer, boolean autoFlush) {
+        // TODO implement
+        super();
+    }
+
     public void close() {
         // TODO implement
     }
