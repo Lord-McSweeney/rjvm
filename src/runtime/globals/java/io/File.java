@@ -11,6 +11,25 @@ public class File {
         this.internalInitFileData(PrintStream.stringToUtf8(name));
     }
 
+    public File(String parent, String child) {
+        if (child == null) {
+            throw new NullPointerException();
+        }
+
+        String path;
+        if (parent == null) {
+            path = child;
+        } else if (parent == "") {
+            // FIXME this should prepend CWD
+            path = child;
+        } else {
+            // FIXME this is stupid
+            path = parent + "/" + child;
+        }
+
+        this.internalInitFileData(PrintStream.stringToUtf8(path));
+    }
+
     public boolean exists() {
         return this.exists;
     }
