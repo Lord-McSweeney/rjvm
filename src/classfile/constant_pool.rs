@@ -8,6 +8,7 @@ const PLACEHOLDER: u8 = 0;
 const UTF8: u8 = 1;
 const INTEGER: u8 = 3;
 const LONG: u8 = 5;
+const DOUBLE: u8 = 6;
 const CLASS: u8 = 7;
 const STRING: u8 = 8;
 const FIELD_REF: u8 = 9;
@@ -35,6 +36,9 @@ impl ConstantPool {
 
                 // Long has no checks on it
                 ConstantPoolEntry::Long { .. } => {}
+
+                // Double has no checks on it
+                ConstantPoolEntry::Double { .. } => {}
 
                 // Class must point to a Utf8
                 ConstantPoolEntry::Class { name_idx } => {
@@ -198,6 +202,9 @@ pub enum ConstantPoolEntry {
     Long {
         value: i64,
     },
+    Double {
+        value: f64,
+    },
     Class {
         name_idx: u16,
     },
@@ -229,6 +236,7 @@ impl ConstantPoolEntry {
             ConstantPoolEntry::Utf8 { .. } => UTF8,
             ConstantPoolEntry::Integer { .. } => INTEGER,
             ConstantPoolEntry::Long { .. } => LONG,
+            ConstantPoolEntry::Double { .. } => DOUBLE,
             ConstantPoolEntry::Class { .. } => CLASS,
             ConstantPoolEntry::String { .. } => STRING,
             ConstantPoolEntry::FieldRef { .. } => FIELD_REF,
@@ -275,6 +283,16 @@ fn read_constant_pool_entry(
 
             Ok(ConstantPoolEntry::Long {
                 value: value as i64,
+            })
+        }
+        DOUBLE => {
+            let high_value = data.read_u32()? as u64;
+            let low_value = data.read_u32()? as u64;
+
+            let value = (high_value << 32) + low_value;
+
+            Ok(ConstantPoolEntry::Double {
+                value: f64::from_bits(value),
             })
         }
         CLASS => {
@@ -340,8 +358,11 @@ pub fn read_constant_pool(gc_ctx: GcCtx, data: &mut FileData) -> Result<Constant
 
         entries.push(entry);
 
-        if matches!(entry, ConstantPoolEntry::Long { .. }) {
-            // Longs "take up" two cpool entries
+        if matches!(
+            entry,
+            ConstantPoolEntry::Long { .. } | ConstantPoolEntry::Double { .. }
+        ) {
+            // Longs and Doubles "take up" two cpool entries
             entries.push(ConstantPoolEntry::Placeholder);
         }
     }
