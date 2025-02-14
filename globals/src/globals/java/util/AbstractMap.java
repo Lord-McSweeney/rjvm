@@ -3,7 +3,7 @@ package java.util;
 public abstract class AbstractMap<K, V> implements Map<K, V> {
     protected AbstractMap() { }
 
-    public abstract Set<?> entrySet();
+    public abstract Set<Entry<K, V>> entrySet();
 
     public Set<K> keySet() {
         // TODO implement

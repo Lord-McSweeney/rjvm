@@ -5,7 +5,7 @@ public class TreeMap<K, V> extends AbstractMap<K, V> {
         super();
     }
 
-    public Set<?> entrySet() {
+    public Set<Entry<K, V>> entrySet() {
         // TODO implement
         return null;
     }

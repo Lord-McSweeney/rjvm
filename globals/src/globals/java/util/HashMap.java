@@ -21,7 +21,7 @@ public class HashMap<K, V> extends AbstractMap<K, V> {
         this.values = new Object[0];
     }
 
-    public Set<?> entrySet() {
+    public Set<Entry<K, V>> entrySet() {
         // TODO implement
         return null;
     }
