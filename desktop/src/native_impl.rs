@@ -229,7 +229,9 @@ fn internal_init_file_data(context: Context, args: &[Value]) -> Result<Option<Va
 
     let file_path = regex.replace_all(&file_name, "/");
 
-    let file_path = if let Some(stripped) = file_path.strip_suffix('/') {
+    let file_path = if file_path == "/" {
+        &file_path
+    } else if let Some(stripped) = file_path.strip_suffix('/') {
         stripped
     } else {
         &file_path

@@ -223,6 +223,14 @@ fn internal_init_file_data(context: Context, args: &[Value]) -> Result<Option<Va
 
     let file_path = regex.replace_all(&file_name, "/");
 
+    let file_path = if file_path == "/" {
+        &file_path
+    } else if let Some(stripped) = file_path.strip_suffix('/') {
+        stripped
+    } else {
+        &file_path
+    };
+
     let file_path_chars = file_path.chars().map(|c| c as u16).collect::<Vec<_>>();
 
     let string_name = context.create_string(&file_path_chars);
