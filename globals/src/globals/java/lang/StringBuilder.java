@@ -51,6 +51,10 @@ public final class StringBuilder {
         return this.append(stringified);
     }
 
+    public int length() {
+        return this.data.length;
+    }
+
     public String toString() {
         return new String(this.data);
     }
