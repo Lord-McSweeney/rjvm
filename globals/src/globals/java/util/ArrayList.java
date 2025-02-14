@@ -79,12 +79,24 @@ public class ArrayList<E> extends AbstractList<E> implements List<E> {
         return (E) this.data[index];
     }
 
+    public E set(int index, E element) {
+        if (index < 0 || index >= this.data.length) {
+            throw new IndexOutOfBoundsException();
+        }
+
+        E oldElement = (E) this.data[index];
+
+        this.data[index] = element;
+
+        return oldElement;
+    }
+
     public E remove(int index) {
         if (index < 0 || index >= this.data.length) {
             throw new IndexOutOfBoundsException();
         }
 
-        E element = (E) this.data[index];
+        E oldElement = (E) this.data[index];
 
         Object[] newData = new Object[this.data.length - 1];
 
@@ -93,7 +105,7 @@ public class ArrayList<E> extends AbstractList<E> implements List<E> {
 
         this.data = newData;
 
-        return element;
+        return oldElement;
     }
 
     public void clear() {

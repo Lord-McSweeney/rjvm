@@ -14,6 +14,10 @@ public abstract class AbstractList<E> extends AbstractCollection<E> implements L
 
     public abstract E get(int index);
 
+    public E set(int index, E element) {
+        throw new UnsupportedOperationException();
+    }
+
     public E remove(int index) {
         throw new UnsupportedOperationException();
     }

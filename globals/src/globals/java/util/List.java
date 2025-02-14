@@ -7,6 +7,8 @@ public interface List<E> extends Collection<E> {
 
     E get(int index);
 
+    E set(int index, E element);
+
     E remove(int index);
 
     int size();

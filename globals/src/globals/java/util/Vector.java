@@ -19,6 +19,16 @@ public class Vector<E> extends AbstractList<E> {
         return null;
     }
 
+    public E set(int index, E element) {
+        // TODO implement
+        return null;
+    }
+
+    public E remove(int index) {
+        // TODO implement
+        return null;
+    }
+
     public void clear() {
         // TODO implement
     }
