@@ -113,6 +113,7 @@ impl<'a> Interpreter<'a> {
                 }
                 Op::ILoad(index) => self.op_i_load(*index),
                 Op::LLoad(index) => self.op_l_load(*index),
+                Op::DLoad(index) => self.op_d_load(*index),
                 Op::ALoad(index) => self.op_a_load(*index),
                 Op::IaLoad => self.op_ia_load(),
                 Op::LaLoad => self.op_la_load(),
@@ -305,6 +306,7 @@ impl<'a> Interpreter<'a> {
 
                 Value::Object(Some(self.context.class_object_for_class(class)))
             }
+            ConstantPoolEntry::Double { value } => Value::Double(value),
             _ => unimplemented!(),
         };
 
@@ -322,6 +324,14 @@ impl<'a> Interpreter<'a> {
     }
 
     fn op_l_load(&mut self, index: usize) -> Result<ControlFlow, Error> {
+        let loaded = self.local_reg(index);
+
+        self.stack_push(loaded);
+
+        Ok(ControlFlow::Continue)
+    }
+
+    fn op_d_load(&mut self, index: usize) -> Result<ControlFlow, Error> {
         let loaded = self.local_reg(index);
 
         self.stack_push(loaded);

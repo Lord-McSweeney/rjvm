@@ -547,6 +547,14 @@ fn verify_block<'a>(
 
                 push_stack!(Long);
             }
+            Op::DLoad(index) => {
+                expect_local!(*index, Double);
+                if index + 1 >= locals.len() {
+                    return Err(Error::Native(NativeError::VerifyCountWrong));
+                }
+
+                push_stack!(Double);
+            }
             Op::ALoad(index) => {
                 expect_local!(*index, Reference);
                 push_stack!(Reference);

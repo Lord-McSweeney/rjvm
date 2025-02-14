@@ -20,6 +20,7 @@ pub enum Op {
     Ldc2(ConstantPoolEntry),
     ILoad(usize),
     LLoad(usize),
+    DLoad(usize),
     ALoad(usize),
     IaLoad,
     LaLoad,
@@ -125,6 +126,7 @@ impl Trace for Op {
             }
             Op::ILoad(_) => {}
             Op::LLoad(_) => {}
+            Op::DLoad(_) => {}
             Op::ALoad(_) => {}
             Op::IaLoad => {}
             Op::LaLoad => {}
@@ -260,6 +262,8 @@ const I_LOAD_1: u8 = 0x1B;
 const I_LOAD_2: u8 = 0x1C;
 const I_LOAD_3: u8 = 0x1D;
 const L_LOAD_0: u8 = 0x1E;
+const L_LOAD_1: u8 = 0x1F;
+const D_LOAD_1: u8 = 0x27;
 const A_LOAD_0: u8 = 0x2A;
 const A_LOAD_1: u8 = 0x2B;
 const A_LOAD_2: u8 = 0x2C;
@@ -508,6 +512,8 @@ impl Op {
             I_LOAD_2 => Ok(Op::ILoad(2)),
             I_LOAD_3 => Ok(Op::ILoad(3)),
             L_LOAD_0 => Ok(Op::LLoad(0)),
+            L_LOAD_1 => Ok(Op::LLoad(1)),
+            D_LOAD_1 => Ok(Op::DLoad(1)),
             A_LOAD_0 => Ok(Op::ALoad(0)),
             A_LOAD_1 => Ok(Op::ALoad(1)),
             A_LOAD_2 => Ok(Op::ALoad(2)),
