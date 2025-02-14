@@ -79,6 +79,23 @@ public class ArrayList<E> extends AbstractList<E> implements List<E> {
         return (E) this.data[index];
     }
 
+    public E remove(int index) {
+        if (index < 0 || index >= this.data.length) {
+            throw new IndexOutOfBoundsException();
+        }
+
+        E element = (E) this.data[index];
+
+        Object[] newData = new Object[this.data.length - 1];
+
+        System.arraycopy(this.data, 0, newData, 0, index);
+        System.arraycopy(this.data, index + 1, newData, index, this.size() - index - 1);
+
+        this.data = newData;
+
+        return element;
+    }
+
     public void clear() {
         this.data = new Object[0];
     }
