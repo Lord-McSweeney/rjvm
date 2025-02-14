@@ -530,7 +530,10 @@ fn verify_block<'a>(
                 ConstantPoolEntry::Long { .. } => {
                     push_stack!(Long);
                 }
-                _ => unimplemented!(),
+                ConstantPoolEntry::Double { .. } => {
+                    push_stack!(Double);
+                }
+                _ => panic!("Ldc2 expects Long or Double entry"),
             },
             Op::ILoad(index) => {
                 expect_local!(*index, Integer);
