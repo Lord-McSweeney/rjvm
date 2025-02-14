@@ -12,6 +12,17 @@ class ArrayListIterator<E> implements Iterator<E> {
     public boolean hasNext() {
         return this.arrayList.size() < this.index;
     }
+
+    public E next() {
+        if (this.arrayList.size() >= this.index) {
+            throw new NoSuchElementException();
+        }
+
+        E element = this.arrayList.get(this.index);
+        this.index += 1;
+
+        return element;
+    }
 }
 
 public class ArrayList<E> extends AbstractList<E> implements List<E> {
@@ -21,9 +32,9 @@ public class ArrayList<E> extends AbstractList<E> implements List<E> {
         this.data = new Object[0];
     }
 
-    public ArrayList(Collection<E> collection) {
-        // TODO implement
-        super();
+    public ArrayList(Collection<? extends E> collection) {
+        this.data = new Object[0];
+        this.addAll(collection);
     }
 
     public ArrayList(int capacity) {
@@ -44,6 +55,20 @@ public class ArrayList<E> extends AbstractList<E> implements List<E> {
         System.arraycopy(this.data, index, newData, index + 1, this.size() - index);
 
         this.data = newData;
+    }
+
+    public boolean addAll(Collection<? extends E> collection) {
+        // TODO use specialized implementation that grows capacity beforehand
+        boolean added = false;
+
+        Iterator<? extends E> iterator = collection.iterator();
+        while (iterator.hasNext()) {
+            E next = (E) iterator.next();
+            this.add(next);
+            added = true;
+        }
+
+        return added;
     }
 
     public E get(int index) {
