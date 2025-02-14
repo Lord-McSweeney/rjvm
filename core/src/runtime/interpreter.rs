@@ -307,6 +307,7 @@ impl<'a> Interpreter<'a> {
                 Value::Object(Some(self.context.class_object_for_class(class)))
             }
             ConstantPoolEntry::Double { value } => Value::Double(value),
+            ConstantPoolEntry::Long { value } => Value::Long(value),
             _ => unimplemented!(),
         };
 
