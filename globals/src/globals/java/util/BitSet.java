@@ -11,4 +11,8 @@ public class BitSet {
     public BitSet(int numBits) {
         this.bits = new byte[numBits];
     }
+
+    public void set(int index) {
+        // TODO implement
+    }
 }
