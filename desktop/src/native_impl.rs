@@ -17,12 +17,14 @@ pub fn register_native_mappings(context: Context) {
         ("java/io/File.getParent.()Ljava/lang/String;", file_get_parent),
         ("java/io/File.getName.()Ljava/lang/String;", file_get_name),
         ("java/io/File.getPath.()Ljava/lang/String;", file_get_path),
+        ("java/io/File.getAbsolutePath.()Ljava/lang/String;", file_get_absolute_path),
     ];
 
     context.register_native_mappings(mappings);
 }
 
 use regex::Regex;
+use std::env;
 use std::fs;
 use std::io::{self, Write};
 use std::path;
@@ -211,21 +213,30 @@ fn get_resource_data(context: Context, args: &[Value]) -> Result<Option<Value>, 
     }
 }
 
-fn internal_init_file_data(_context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
+fn internal_init_file_data(context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
     let file_object = args[0].object().unwrap();
     let name_object = args[1].object().unwrap();
 
     let name_bytes = name_object.get_array_data();
 
-    let mut file_name = String::with_capacity(name_bytes.len());
+    let mut file_name = Vec::with_capacity(name_bytes.len());
     for value in name_bytes {
         let byte = value.get().int() as u8;
-        file_name.push(byte as char);
+        file_name.push(byte);
     }
 
-    let exists = fs::exists(file_name).unwrap_or(false);
+    let file_name = String::from_utf8_lossy(&file_name);
 
-    file_object.set_field(0, Value::Object(Some(name_object)));
+    // TODO don't hardcode separator char
+    let regex = Regex::new(r"\/{1,}").unwrap();
+
+    let file_path = regex.replace_all(&file_name, "/");
+
+    let path_bytes = Object::byte_array(context, file_path.as_bytes());
+
+    let exists = fs::exists(&*file_path).unwrap_or(false);
+
+    file_object.set_field(0, Value::Object(Some(path_bytes)));
     file_object.set_field(1, Value::Integer(exists as i32));
 
     Ok(None)
@@ -248,21 +259,19 @@ fn file_get_canonical_path(context: Context, args: &[Value]) -> Result<Option<Va
     // This is very expensive but seems to exactly match Java, except (FIXME)
     // we should throw an IOException instead of the `unwrap_or_default`
     // TODO use correct file separator instead of assuming it must be '/'
-    let first_regex = Regex::new(r"[^\/]{1,}\/\.\.").unwrap();
-    let second_regex = Regex::new(r"\/{1,}").unwrap();
+    let regex = Regex::new(r"[^\/]{1,}\/\.\.").unwrap();
 
     let canonicalized_path = path::absolute(&*file_name)
         .map(|p| {
             let bytes = p.into_os_string().into_encoded_bytes();
             let string = String::from_utf8_lossy(&bytes);
 
-            let first_replace = first_regex.replace_all(&string, "/");
-            let second_replace = second_regex.replace_all(&first_replace, "/");
+            let replaced = regex.replace_all(&string, "/");
 
-            if let Some(stripped) = second_replace.strip_suffix('/') {
+            if let Some(stripped) = replaced.strip_suffix('/') {
                 stripped.to_string()
             } else {
-                second_replace.to_string()
+                replaced.to_string()
             }
         })
         .unwrap_or_default();
@@ -289,12 +298,17 @@ fn file_get_parent(context: Context, args: &[Value]) -> Result<Option<Value>, Er
         file_name_data.push(byte);
     }
 
+    if !file_name_data.iter().any(|b| *b == b'/') {
+        return Ok(Some(Value::Object(None)));
+    }
+
     let file_name = String::from_utf8_lossy(&file_name_data);
 
     let path_buf = path::PathBuf::from(&*file_name);
     let parent = path_buf.parent();
     let Some(parent) = parent else {
-        return Ok(Some(Value::Object(None)));
+        // Return empty string
+        return Ok(Some(Value::Object(Some(context.create_string(&[])))));
     };
 
     let parent_string = String::from_utf8_lossy(parent.as_os_str().as_encoded_bytes());
@@ -354,14 +368,40 @@ fn file_get_path(context: Context, args: &[Value]) -> Result<Option<Value>, Erro
         file_name_data.push(byte);
     }
 
+    let file_path_string = String::from_utf8_lossy(&file_name_data);
+
+    let mut chars_vec = Vec::with_capacity(file_path_string.len());
+    for byte in file_path_string.chars() {
+        chars_vec.push(byte as u16);
+    }
+
+    let string_object = context.create_string(&chars_vec);
+
+    Ok(Some(Value::Object(Some(string_object))))
+}
+
+fn file_get_absolute_path(context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
+    let file_object = args[0].object().unwrap();
+    let name_object = file_object.get_field(0).object().unwrap();
+
+    let name_bytes = name_object.get_array_data();
+
+    let mut file_name_data = Vec::with_capacity(name_bytes.len());
+    for value in name_bytes {
+        let byte = value.get().int() as u8;
+        file_name_data.push(byte);
+    }
+
     let file_name = String::from_utf8_lossy(&file_name_data);
 
-    // TODO don't hardcode separator char
-    let regex = Regex::new(r"\/{1,}").unwrap();
+    let mut result = env::current_dir().unwrap_or_default();
+    let path = path::PathBuf::from(&*file_name);
 
-    let file_path = regex.replace_all(&file_name, "/");
+    result.push(path);
 
-    let file_path_string = String::from_utf8_lossy(file_path.as_bytes());
+    let result_bytes = result.into_os_string().into_encoded_bytes();
+
+    let file_path_string = String::from_utf8_lossy(&result_bytes);
 
     let mut chars_vec = Vec::with_capacity(file_path_string.len());
     for byte in file_path_string.chars() {

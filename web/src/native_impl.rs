@@ -18,10 +18,13 @@ pub fn register_native_mappings(context: Context) {
         ("java/io/File.getParent.()Ljava/lang/String;", file_get_parent),
         ("java/io/File.getName.()Ljava/lang/String;", file_get_name),
         ("java/io/File.getPath.()Ljava/lang/String;", file_get_path),
+        ("java/io/File.getAbsolutePath.()Ljava/lang/String;", file_get_absolute_path),
     ];
 
     context.register_native_mappings(mappings);
 }
+
+use regex::Regex;
 
 // Native implementations of functions declared in globals
 
@@ -204,20 +207,32 @@ fn get_resource_data(context: Context, args: &[Value]) -> Result<Option<Value>, 
     }
 }
 
-fn internal_init_file_data(_context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
+fn internal_init_file_data(context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
     let file_object = args[0].object().unwrap();
     let name_object = args[1].object().unwrap();
 
     let name_bytes = name_object.get_array_data();
 
-    let mut file_name = String::with_capacity(name_bytes.len());
+    let mut file_name = Vec::with_capacity(name_bytes.len());
     for value in name_bytes {
         let byte = value.get().int() as u8;
-        file_name.push(byte as char);
+        file_name.push(byte);
     }
 
-    file_object.set_field(0, Value::Object(Some(name_object)));
-    file_object.set_field(1, Value::Integer(0));
+    let file_name = String::from_utf8_lossy(&file_name);
+
+    // TODO don't hardcode separator char
+    let regex = Regex::new(r"\/{1,}").unwrap();
+
+    let file_path = regex.replace_all(&file_name, "/");
+
+    let path_bytes = Object::byte_array(context, file_path.as_bytes());
+
+    // No filesystem on web
+    let exists = false;
+
+    file_object.set_field(0, Value::Object(Some(path_bytes)));
+    file_object.set_field(1, Value::Integer(exists as i32));
 
     Ok(None)
 }
@@ -235,5 +250,9 @@ fn file_get_name(_context: Context, _args: &[Value]) -> Result<Option<Value>, Er
 }
 
 fn file_get_path(_context: Context, _args: &[Value]) -> Result<Option<Value>, Error> {
+    unimplemented!()
+}
+
+fn file_get_absolute_path(_context: Context, _args: &[Value]) -> Result<Option<Value>, Error> {
     unimplemented!()
 }

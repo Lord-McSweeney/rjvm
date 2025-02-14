@@ -9,6 +9,7 @@ crate-type = ["cdylib"]
 [dependencies]
 console_error_panic_hook = "0.1.7"
 getrandom = { version = "0.2.15", features = ["js"] }
+regex = "=1.11.1"
 rjvm_core = { path = "../core" }
 rjvm_globals = { path = "../globals" }
 wasm-bindgen = "0.2.100"

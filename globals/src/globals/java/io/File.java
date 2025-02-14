@@ -1,11 +1,11 @@
 package java.io;
 
 public class File {
-    private byte[] name;
+    private byte[] normalizedPath;
     private boolean exists;
 
     public File(String name) {
-        // TODO implement with FileDescriptor
+        // TODO implement with FileDescriptor?
         // Currently we just initialize all properties in an `internalInitFromName`
         // because File is immutable
         this.internalInitFileData(PrintStream.stringToUtf8(name));
@@ -32,6 +32,12 @@ public class File {
 
     public boolean exists() {
         return this.exists;
+    }
+
+    public native String getAbsolutePath();
+
+    public File getAbsoluteFile() {
+        return new File(this.getAbsolutePath());
     }
 
     public native String getCanonicalPath() throws IOException;
