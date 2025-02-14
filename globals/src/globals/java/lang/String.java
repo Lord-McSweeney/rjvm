@@ -1,5 +1,7 @@
 package java.lang;
 
+import java.nio.charset.Charset;
+
 public final class String {
     private char[] data;
 
@@ -87,8 +89,18 @@ public final class String {
         return (int) this.data[index];
     }
 
+    public byte[] getBytes() {
+        // TODO implement proper decoding
+        return Charset.stringToUtf8(this);
+    }
+
+    public byte[] getBytes(String charsetName) {
+        // TODO implement proper decoding
+        return Charset.stringToUtf8(this);
+    }
+
     public void getChars(int srcBegin, int srcEnd, char[] dst, int dstBegin) {
-       if (
+        if (
             srcBegin < 0 ||
             srcBegin > srcEnd ||
             srcEnd > this.data.length

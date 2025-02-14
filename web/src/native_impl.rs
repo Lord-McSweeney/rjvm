@@ -4,7 +4,7 @@ use rjvm_core::{Context, Error, NativeError, NativeMethod, Object, Value};
 pub fn register_native_mappings(context: Context) {
     #[rustfmt::skip]
     let mappings: &[(&str, NativeMethod)] = &[
-        ("java/io/PrintStream.stringToUtf8.(Ljava/lang/String;)[B", string_to_utf8),
+        ("java/nio/charset/Charset.stringToUtf8.(Ljava/lang/String;)[B", string_to_utf8),
         ("java/lang/StdoutStream.write.(I)V", stdout_write),
         ("java/lang/StderrStream.write.(I)V", stderr_write),
         ("java/lang/System.arraycopy.(Ljava/lang/Object;ILjava/lang/Object;II)V", array_copy),

@@ -1,5 +1,7 @@
 package java.io;
 
+import java.nio.charset.Charset;
+
 public class PrintStream extends FilterOutputStream {
     public PrintStream(OutputStream out) {
         super(out);
@@ -33,7 +35,7 @@ public class PrintStream extends FilterOutputStream {
                 string = "null";
             }
 
-            byte[] bytes = stringToUtf8(string);
+            byte[] bytes = Charset.stringToUtf8(string);
 
             this.write(bytes);
         } catch (IOException e) { }
@@ -64,7 +66,4 @@ public class PrintStream extends FilterOutputStream {
         this.print(string);
         this.printNewline();
     }
-
-    // TODO implement this with proper Charset decoding
-    static native byte[] stringToUtf8(String string);
 }

@@ -10,4 +10,7 @@ public abstract class Charset {
         // TODO implement
         return null;
     }
+
+    // TODO implement proper decoding; this is not a real part of the API
+    public static native byte[] stringToUtf8(String string);
 }

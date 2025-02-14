@@ -1,5 +1,7 @@
 package java.io;
 
+import java.nio.charset.Charset;
+
 public class File {
     // TODO get this from system properties
     public static final char separatorChar = '/';
@@ -11,7 +13,7 @@ public class File {
         // TODO implement with FileDescriptor?
         // Currently we just initialize all properties in an `internalInitFromName`
         // because File is immutable
-        this.internalInitFileData(PrintStream.stringToUtf8(name));
+        this.internalInitFileData(Charset.stringToUtf8(name));
     }
 
     public File(String parent, String child) {
@@ -30,7 +32,7 @@ public class File {
             path = parent + File.separatorChar + child;
         }
 
-        this.internalInitFileData(PrintStream.stringToUtf8(path));
+        this.internalInitFileData(Charset.stringToUtf8(path));
     }
 
     public boolean exists() {
