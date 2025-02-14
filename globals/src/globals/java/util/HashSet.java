@@ -39,8 +39,7 @@ public class HashSet<E> extends AbstractSet<E> implements Set<E> {
     }
 
     public Iterator<E> iterator() {
-        // TODO implement
-        return null;
+        return new ArrayIterator(this.data);
     }
 
     public int size() {

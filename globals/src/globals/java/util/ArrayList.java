@@ -1,30 +1,5 @@
 package java.util;
 
-class ArrayListIterator<E> implements Iterator<E> {
-    private ArrayList<E> arrayList;
-    private int index;
-
-    public ArrayListIterator(ArrayList<E> arrayList) {
-        this.arrayList = arrayList;
-        this.index = 0;
-    }
-
-    public boolean hasNext() {
-        return this.arrayList.size() < this.index;
-    }
-
-    public E next() {
-        if (this.arrayList.size() >= this.index) {
-            throw new NoSuchElementException();
-        }
-
-        E element = this.arrayList.get(this.index);
-        this.index += 1;
-
-        return element;
-    }
-}
-
 public class ArrayList<E> extends AbstractList<E> implements List<E> {
     Object[] data;
 
@@ -113,7 +88,7 @@ public class ArrayList<E> extends AbstractList<E> implements List<E> {
     }
 
     public Iterator<E> iterator() {
-        return new ArrayListIterator(this);
+        return new ArrayIterator(this.data);
     }
 
     public int size() {
