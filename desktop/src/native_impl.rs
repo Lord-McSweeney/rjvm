@@ -256,11 +256,11 @@ fn file_get_canonical_path(context: Context, args: &[Value]) -> Result<Option<Va
 
     let mut file_name_data = Vec::with_capacity(name_bytes.len());
     for value in name_bytes {
-        let byte = value.get().int() as u8;
-        file_name_data.push(byte);
+        let character = value.get().int() as u16;
+        file_name_data.push(character);
     }
 
-    let file_name = String::from_utf8_lossy(&file_name_data);
+    let file_name = String::from_utf16_lossy(&file_name_data);
 
     // This is very expensive but seems to exactly match Java, except (FIXME)
     // we should throw an IOException instead of the `unwrap_or_default`
@@ -303,11 +303,11 @@ fn file_get_absolute_path(context: Context, args: &[Value]) -> Result<Option<Val
 
     let mut file_name_data = Vec::with_capacity(name_bytes.len());
     for value in name_bytes {
-        let byte = value.get().int() as u8;
-        file_name_data.push(byte);
+        let character = value.get().int() as u16;
+        file_name_data.push(character);
     }
 
-    let file_name = String::from_utf8_lossy(&file_name_data);
+    let file_name = String::from_utf16_lossy(&file_name_data);
 
     let mut result = env::current_dir().unwrap_or_default();
     let path = path::PathBuf::from(&*file_name);
