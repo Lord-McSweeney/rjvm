@@ -163,6 +163,18 @@ public final class String {
         return -1;
     }
 
+    public int lastIndexOf(int search) {
+        // TODO support code points
+        char searchChar = (char) search;
+        for (int i = this.data.length - 1; i >= 0; i --) {
+            if (this.data[i] == searchChar) {
+                return i;
+            }
+        }
+
+        return -1;
+    }
+
     public int indexOf(String search) {
         return this.indexOf(search, 0);
     }

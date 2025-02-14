@@ -1,7 +1,10 @@
 package java.io;
 
 public class File {
-    private byte[] normalizedPath;
+    // TODO get this from system properties
+    public static final char separatorChar = '/';
+
+    private String normalizedPath;
     private boolean exists;
 
     public File(String name) {
@@ -24,7 +27,7 @@ public class File {
             path = child;
         } else {
             // FIXME this is stupid
-            path = parent + "/" + child;
+            path = parent + File.separatorChar + child;
         }
 
         this.internalInitFileData(PrintStream.stringToUtf8(path));
@@ -42,11 +45,22 @@ public class File {
 
     public native String getCanonicalPath() throws IOException;
 
-    public native String getName();
+    public String getName() {
+        int separatorIndex = this.normalizedPath.lastIndexOf(File.separatorChar);
+        return this.normalizedPath.substring(separatorIndex + 1);
+    }
 
-    public native String getParent();
+    public String getParent() {
+        int separatorIndex = this.normalizedPath.lastIndexOf(File.separatorChar);
+        if (separatorIndex < 0) {
+            return null;
+        }
+        return this.normalizedPath.substring(0, separatorIndex);
+    }
 
-    public native String getPath();
+    public String getPath() {
+        return this.normalizedPath;
+    }
 
     private native void internalInitFileData(byte[] name);
 }

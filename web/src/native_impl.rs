@@ -15,9 +15,6 @@ pub fn register_native_mappings(context: Context) {
         ("java/lang/Class.getResourceData.(Ljava/lang/String;)[B", get_resource_data),
         ("java/io/File.internalInitFileData.([B)V", internal_init_file_data),
         ("java/io/File.getCanonicalPath.()Ljava/lang/String;", file_get_canonical_path),
-        ("java/io/File.getParent.()Ljava/lang/String;", file_get_parent),
-        ("java/io/File.getName.()Ljava/lang/String;", file_get_name),
-        ("java/io/File.getPath.()Ljava/lang/String;", file_get_path),
         ("java/io/File.getAbsolutePath.()Ljava/lang/String;", file_get_absolute_path),
     ];
 
@@ -226,30 +223,20 @@ fn internal_init_file_data(context: Context, args: &[Value]) -> Result<Option<Va
 
     let file_path = regex.replace_all(&file_name, "/");
 
-    let path_bytes = Object::byte_array(context, file_path.as_bytes());
+    let file_path_chars = file_path.chars().map(|c| c as u16).collect::<Vec<_>>();
+
+    let string_name = context.create_string(&file_path_chars);
 
     // No filesystem on web
     let exists = false;
 
-    file_object.set_field(0, Value::Object(Some(path_bytes)));
+    file_object.set_field(0, Value::Object(Some(string_name)));
     file_object.set_field(1, Value::Integer(exists as i32));
 
     Ok(None)
 }
 
 fn file_get_canonical_path(_context: Context, _args: &[Value]) -> Result<Option<Value>, Error> {
-    unimplemented!()
-}
-
-fn file_get_parent(_context: Context, _args: &[Value]) -> Result<Option<Value>, Error> {
-    unimplemented!()
-}
-
-fn file_get_name(_context: Context, _args: &[Value]) -> Result<Option<Value>, Error> {
-    unimplemented!()
-}
-
-fn file_get_path(_context: Context, _args: &[Value]) -> Result<Option<Value>, Error> {
     unimplemented!()
 }
 

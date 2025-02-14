@@ -14,9 +14,6 @@ pub fn register_native_mappings(context: Context) {
         ("java/lang/Class.getResourceData.(Ljava/lang/String;)[B", get_resource_data),
         ("java/io/File.internalInitFileData.([B)V", internal_init_file_data),
         ("java/io/File.getCanonicalPath.()Ljava/lang/String;", file_get_canonical_path),
-        ("java/io/File.getParent.()Ljava/lang/String;", file_get_parent),
-        ("java/io/File.getName.()Ljava/lang/String;", file_get_name),
-        ("java/io/File.getPath.()Ljava/lang/String;", file_get_path),
         ("java/io/File.getAbsolutePath.()Ljava/lang/String;", file_get_absolute_path),
     ];
 
@@ -232,11 +229,19 @@ fn internal_init_file_data(context: Context, args: &[Value]) -> Result<Option<Va
 
     let file_path = regex.replace_all(&file_name, "/");
 
-    let path_bytes = Object::byte_array(context, file_path.as_bytes());
+    let file_path = if let Some(stripped) = file_path.strip_suffix('/') {
+        stripped
+    } else {
+        &file_path
+    };
+
+    let file_path_chars = file_path.chars().map(|c| c as u16).collect::<Vec<_>>();
+
+    let string_name = context.create_string(&file_path_chars);
 
     let exists = fs::exists(&*file_path).unwrap_or(false);
 
-    file_object.set_field(0, Value::Object(Some(path_bytes)));
+    file_object.set_field(0, Value::Object(Some(string_name)));
     file_object.set_field(1, Value::Integer(exists as i32));
 
     Ok(None)
@@ -246,7 +251,8 @@ fn file_get_canonical_path(context: Context, args: &[Value]) -> Result<Option<Va
     let file_object = args[0].object().unwrap();
     let name_object = file_object.get_field(0).object().unwrap();
 
-    let name_bytes = name_object.get_array_data();
+    let name_array = name_object.get_field(0).object().unwrap();
+    let name_bytes = name_array.get_array_data();
 
     let mut file_name_data = Vec::with_capacity(name_bytes.len());
     for value in name_bytes {
@@ -259,19 +265,21 @@ fn file_get_canonical_path(context: Context, args: &[Value]) -> Result<Option<Va
     // This is very expensive but seems to exactly match Java, except (FIXME)
     // we should throw an IOException instead of the `unwrap_or_default`
     // TODO use correct file separator instead of assuming it must be '/'
-    let regex = Regex::new(r"[^\/]{1,}\/\.\.").unwrap();
+    let first_regex = Regex::new(r"[^\/]{1,}\/\.\.").unwrap();
+    let second_regex = Regex::new(r"\/{1,}").unwrap();
 
     let canonicalized_path = path::absolute(&*file_name)
         .map(|p| {
             let bytes = p.into_os_string().into_encoded_bytes();
             let string = String::from_utf8_lossy(&bytes);
 
-            let replaced = regex.replace_all(&string, "/");
+            let first_replace = first_regex.replace_all(&string, "/");
+            let second_replace = second_regex.replace_all(&first_replace, "/");
 
-            if let Some(stripped) = replaced.strip_suffix('/') {
+            if let Some(stripped) = second_replace.strip_suffix('/') {
                 stripped.to_string()
             } else {
-                replaced.to_string()
+                second_replace.to_string()
             }
         })
         .unwrap_or_default();
@@ -286,105 +294,12 @@ fn file_get_canonical_path(context: Context, args: &[Value]) -> Result<Option<Va
     Ok(Some(Value::Object(Some(string_object))))
 }
 
-fn file_get_parent(context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
-    let file_object = args[0].object().unwrap();
-    let name_object = file_object.get_field(0).object().unwrap();
-
-    let name_bytes = name_object.get_array_data();
-
-    let mut file_name_data = Vec::with_capacity(name_bytes.len());
-    for value in name_bytes {
-        let byte = value.get().int() as u8;
-        file_name_data.push(byte);
-    }
-
-    if !file_name_data.iter().any(|b| *b == b'/') {
-        return Ok(Some(Value::Object(None)));
-    }
-
-    let file_name = String::from_utf8_lossy(&file_name_data);
-
-    let path_buf = path::PathBuf::from(&*file_name);
-    let parent = path_buf.parent();
-    let Some(parent) = parent else {
-        // Return empty string
-        return Ok(Some(Value::Object(Some(context.create_string(&[])))));
-    };
-
-    let parent_string = String::from_utf8_lossy(parent.as_os_str().as_encoded_bytes());
-
-    let mut chars_vec = Vec::with_capacity(parent_string.len());
-    for byte in parent_string.chars() {
-        chars_vec.push(byte as u16);
-    }
-
-    let string_object = context.create_string(&chars_vec);
-
-    Ok(Some(Value::Object(Some(string_object))))
-}
-
-fn file_get_name(context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
-    let file_object = args[0].object().unwrap();
-    let name_object = file_object.get_field(0).object().unwrap();
-
-    let name_bytes = name_object.get_array_data();
-
-    let mut file_name_data = Vec::with_capacity(name_bytes.len());
-    for value in name_bytes {
-        let byte = value.get().int() as u8;
-        file_name_data.push(byte);
-    }
-
-    let file_name = String::from_utf8_lossy(&file_name_data);
-
-    // TODO don't hardcode separator char
-    let file_name = file_name.split('/').last();
-    let Some(file_name) = file_name else {
-        // Return an empty string if there is no file name
-        return Ok(Some(Value::Object(Some(context.create_string(&[])))));
-    };
-
-    let file_name_string = String::from_utf8_lossy(file_name.as_bytes());
-
-    let mut chars_vec = Vec::with_capacity(file_name_string.len());
-    for byte in file_name_string.chars() {
-        chars_vec.push(byte as u16);
-    }
-
-    let string_object = context.create_string(&chars_vec);
-
-    Ok(Some(Value::Object(Some(string_object))))
-}
-
-fn file_get_path(context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
-    let file_object = args[0].object().unwrap();
-    let name_object = file_object.get_field(0).object().unwrap();
-
-    let name_bytes = name_object.get_array_data();
-
-    let mut file_name_data = Vec::with_capacity(name_bytes.len());
-    for value in name_bytes {
-        let byte = value.get().int() as u8;
-        file_name_data.push(byte);
-    }
-
-    let file_path_string = String::from_utf8_lossy(&file_name_data);
-
-    let mut chars_vec = Vec::with_capacity(file_path_string.len());
-    for byte in file_path_string.chars() {
-        chars_vec.push(byte as u16);
-    }
-
-    let string_object = context.create_string(&chars_vec);
-
-    Ok(Some(Value::Object(Some(string_object))))
-}
-
 fn file_get_absolute_path(context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
     let file_object = args[0].object().unwrap();
     let name_object = file_object.get_field(0).object().unwrap();
 
-    let name_bytes = name_object.get_array_data();
+    let name_array = name_object.get_field(0).object().unwrap();
+    let name_bytes = name_array.get_array_data();
 
     let mut file_name_data = Vec::with_capacity(name_bytes.len());
     for value in name_bytes {
