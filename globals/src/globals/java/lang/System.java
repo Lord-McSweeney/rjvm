@@ -1,16 +1,10 @@
 package java.lang;
 
+import java.io.FileDescriptor;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
-
-final class StdoutStream extends OutputStream {
-    public native void write(int b) throws IOException;
-}
-
-final class StderrStream extends OutputStream {
-    public native void write(int b) throws IOException;
-}
 
 public final class System {
     public static PrintStream out = null;
@@ -47,7 +41,7 @@ public final class System {
     public static native void exit(int status);
 
     static {
-        out = new PrintStream(new StdoutStream());
-        err = new PrintStream(new StderrStream());
+        out = new PrintStream(new FileOutputStream(FileDescriptor.out));
+        err = new PrintStream(new FileOutputStream(FileDescriptor.err));
     }
 }

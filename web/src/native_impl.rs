@@ -5,8 +5,6 @@ pub fn register_native_mappings(context: Context) {
     #[rustfmt::skip]
     let mappings: &[(&str, NativeMethod)] = &[
         ("java/nio/charset/Charset.stringToUtf8.(Ljava/lang/String;)[B", string_to_utf8),
-        ("java/lang/StdoutStream.write.(I)V", stdout_write),
-        ("java/lang/StderrStream.write.(I)V", stderr_write),
         ("java/lang/System.arraycopy.(Ljava/lang/Object;ILjava/lang/Object;II)V", array_copy),
         ("java/lang/Class.isInterface.()Z", is_interface),
         ("java/lang/Object.getClass.()Ljava/lang/Class;", get_class),
@@ -16,6 +14,7 @@ pub fn register_native_mappings(context: Context) {
         ("java/io/File.internalInitFileData.([B)V", internal_init_file_data),
         ("java/io/File.getCanonicalPath.()Ljava/lang/String;", file_get_canonical_path),
         ("java/io/File.getAbsolutePath.()Ljava/lang/String;", file_get_absolute_path),
+        ("java/io/FileOutputStream.writeInternal.(I)V", file_stream_write_internal),
     ];
 
     context.register_native_mappings(mappings);
@@ -43,26 +42,6 @@ fn string_to_utf8(context: Context, args: &[Value]) -> Result<Option<Value>, Err
     let byte_array = Object::byte_array(context, bytes);
 
     Ok(Some(Value::Object(Some(byte_array))))
-}
-
-// java/lang/StdoutStream : void write(int)
-fn stdout_write(_context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
-    // Expecting integer in args[1]; args[0] is the reciever
-    let byte = args[1].int() as u8;
-
-    output(std::str::from_utf8(&[byte]).unwrap());
-
-    Ok(None)
-}
-
-// java/lang/StderrStream : void write(int)
-fn stderr_write(_context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
-    // Expecting integer in args[1]; args[0] is the reciever
-    let byte = args[1].int() as u8;
-
-    output_to_err(std::str::from_utf8(&[byte]).unwrap());
-
-    Ok(None)
 }
 
 // java/lang/System: static void arraycopy(Object, int, Object, int, int)
@@ -250,4 +229,29 @@ fn file_get_canonical_path(_context: Context, _args: &[Value]) -> Result<Option<
 
 fn file_get_absolute_path(_context: Context, _args: &[Value]) -> Result<Option<Value>, Error> {
     unimplemented!()
+}
+
+fn file_stream_write_internal(_context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
+    let stream = args[0].object().unwrap();
+    let stream_fd = stream.get_field(0).object().unwrap();
+    let stream_descriptor = stream_fd.get_field(0).int();
+
+    let write_data = args[1].int() as u8;
+
+    match stream_descriptor {
+        0 => panic!("Should not have a FileOutputStream writing to stdin"),
+        1 => {
+            // stdout
+            output(std::str::from_utf8(&[write_data]).unwrap());
+
+            Ok(None)
+        }
+        2 => {
+            // stderr
+            output_to_err(std::str::from_utf8(&[write_data]).unwrap());
+
+            Ok(None)
+        }
+        _ => unimplemented!("writing to files"),
+    }
 }
