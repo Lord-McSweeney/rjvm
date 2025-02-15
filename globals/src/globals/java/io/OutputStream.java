@@ -3,7 +3,7 @@ package java.io;
 import java.lang.IndexOutOfBoundsException;
 import java.lang.NullPointerException;
 
-public abstract class OutputStream {
+public abstract class OutputStream implements Closeable {
     public abstract void write(int b) throws IOException;
 
     public void write(byte buffer[], int ofs, int len) throws IOException {
@@ -25,4 +25,6 @@ public abstract class OutputStream {
     }
 
     public void flush() throws IOException { }
+
+    public void close() throws IOException { }
 }
