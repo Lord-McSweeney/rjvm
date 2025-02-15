@@ -239,19 +239,19 @@ fn file_stream_write_internal(_context: Context, args: &[Value]) -> Result<Optio
     let write_data = args[1].int() as u8;
 
     match stream_descriptor {
-        0 => panic!("Should not have a FileOutputStream writing to stdin"),
+        0 => {
+            // Writing to stdin is a noop
+        }
         1 => {
             // stdout
             output(std::str::from_utf8(&[write_data]).unwrap());
-
-            Ok(None)
         }
         2 => {
             // stderr
             output_to_err(std::str::from_utf8(&[write_data]).unwrap());
-
-            Ok(None)
         }
         _ => unimplemented!("writing to files"),
     }
+
+    Ok(None)
 }
