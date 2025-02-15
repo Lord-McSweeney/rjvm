@@ -41,7 +41,7 @@ public class PrintStream extends FilterOutputStream {
         } catch (IOException e) { }
     }
 
-    void printNewline() {
+    public void println() {
         try {
             this.out.write((byte) '\n');
         } catch (IOException e) { }
@@ -49,21 +49,21 @@ public class PrintStream extends FilterOutputStream {
 
     public void println(boolean b) {
         this.print(b);
-        this.printNewline();
+        this.println();
     }
 
     public void println(int i) {
         this.print(i);
-        this.printNewline();
+        this.println();
     }
 
     public void println(Object obj) {
         this.print(obj);
-        this.printNewline();
+        this.println();
     }
 
     public void println(String string) {
         this.print(string);
-        this.printNewline();
+        this.println();
     }
 }
