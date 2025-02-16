@@ -14,6 +14,7 @@ pub fn register_native_mappings(context: Context) {
         ("java/io/File.getCanonicalPath.()Ljava/lang/String;", file_get_canonical_path),
         ("java/io/File.getAbsolutePath.()Ljava/lang/String;", file_get_absolute_path),
         ("java/io/FileOutputStream.writeInternal.(I)V", file_stream_write_internal),
+        ("java/io/FileInputStream.readInternal.()I", file_stream_read_internal),
         ("java/io/FileDescriptor.internalWriteableDescriptorFromPath.(Ljava/lang/String;)I", writeable_descriptor_from_path),
         ("java/io/FileDescriptor.internalReadableDescriptorFromPath.(Ljava/lang/String;)I", readable_descriptor_from_path),
     ];
@@ -288,6 +289,24 @@ fn file_stream_write_internal(context: Context, args: &[Value]) -> Result<Option
         .write_by_descriptor(stream_descriptor, &[write_data]);
 
     Ok(None)
+}
+
+fn file_stream_read_internal(context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
+    let stream = args[0].object().unwrap();
+    let stream_fd = stream.get_field(0).object().unwrap();
+    let stream_descriptor = stream_fd.get_field(0).int() as u32;
+
+    let mut write_buf = [0; 1];
+
+    let result = context
+        .filesystem_backend
+        .read_by_descriptor(stream_descriptor, &mut write_buf);
+
+    if result.is_err() {
+        Ok(Some(Value::Integer(-1)))
+    } else {
+        Ok(Some(Value::Integer(write_buf[0] as i32)))
+    }
 }
 
 fn writeable_descriptor_from_path(

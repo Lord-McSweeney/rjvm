@@ -41,6 +41,22 @@ impl FilesystemBackend for WebFilesystemBackend {
         }
     }
 
+    fn read_by_descriptor(&self, descriptor: u32, buffer: &mut [u8]) -> Result<(), ()> {
+        match descriptor {
+            0 => {
+                // TODO implement
+                Err(())
+            }
+            1 | 2 => {
+                // Reading from output streams doesn't work
+                // FIXME make this hang (`loop { }`) when we get the WASM
+                // to run in a worker thread
+                Err(())
+            }
+            _ => unreachable!("cannot have descriptors >2 on web"),
+        }
+    }
+
     fn writeable_descriptor_from_path(&self, _path: &str) -> Result<u32, ()> {
         // Cannot open files on web
         Err(())

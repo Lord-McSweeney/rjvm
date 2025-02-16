@@ -4,7 +4,7 @@ use regex::Regex;
 use std::cell::RefCell;
 use std::env;
 use std::fs;
-use std::io::{self, Write};
+use std::io::{self, Read, Write};
 use std::path;
 
 pub struct DesktopFilesystemBackend {
@@ -79,6 +79,31 @@ impl FilesystemBackend for DesktopFilesystemBackend {
                 let mut file = &self.files.borrow()[descriptor as usize - 3];
 
                 file.write(data).unwrap();
+            }
+        }
+    }
+
+    fn read_by_descriptor(&self, descriptor: u32, buffer: &mut [u8]) -> Result<(), ()> {
+        match descriptor {
+            0 => {
+                io::stdin().read(buffer).unwrap();
+
+                Ok(())
+            }
+            1 | 2 => {
+                // Output streams never yield input
+                loop {}
+            }
+            3.. => {
+                // -2 to account for stdin, stdout, and stderr descriptors
+                let mut file = &self.files.borrow()[descriptor as usize - 3];
+
+                let bytes_read = file.read(buffer).unwrap();
+                if bytes_read == 0 {
+                    return Err(());
+                }
+
+                Ok(())
             }
         }
     }

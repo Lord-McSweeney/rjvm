@@ -25,7 +25,12 @@ public class FileInputStream extends InputStream {
     }
 
     public int read() throws IOException {
-        // TODO implement
-        return -1;
+        if (!this.isOpen) {
+            throw new IOException();
+        }
+
+        return this.readInternal();
     }
+
+    public native int readInternal();
 }
