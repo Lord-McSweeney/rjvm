@@ -21,8 +21,8 @@ public final class FileDescriptor {
         return fd;
     }
 
-    static FileDescriptor fromFile(File file) throws FileNotFoundException {
-        int registeredDescriptor = FileDescriptor.internalDescriptorFromPath(file.getPath());
+    static FileDescriptor writeableFromFile(File file) throws FileNotFoundException {
+        int registeredDescriptor = FileDescriptor.internalWriteableDescriptorFromPath(file.getPath());
         // -1 signals an error
         if (registeredDescriptor == -1) {
             throw new FileNotFoundException();
@@ -33,5 +33,19 @@ public final class FileDescriptor {
         return fd;
     }
 
-    private static native int internalDescriptorFromPath(String filePath);
+    static FileDescriptor readableFromFile(File file) throws FileNotFoundException {
+        int registeredDescriptor = FileDescriptor.internalReadableDescriptorFromPath(file.getPath());
+        // -1 signals an error
+        if (registeredDescriptor == -1) {
+            throw new FileNotFoundException();
+        }
+
+        FileDescriptor fd = new FileDescriptor();
+        fd.descriptor = registeredDescriptor;
+        return fd;
+    }
+
+    private static native int internalWriteableDescriptorFromPath(String filePath);
+
+    private static native int internalReadableDescriptorFromPath(String filePath);
 }

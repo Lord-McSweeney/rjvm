@@ -83,7 +83,7 @@ impl FilesystemBackend for DesktopFilesystemBackend {
         }
     }
 
-    fn descriptor_from_path(&self, path: &str) -> Result<u32, ()> {
+    fn writeable_descriptor_from_path(&self, path: &str) -> Result<u32, ()> {
         let mut files_ref = self.files.borrow_mut();
 
         let path = path::PathBuf::from(path);
@@ -91,7 +91,24 @@ impl FilesystemBackend for DesktopFilesystemBackend {
             return Err(());
         }
 
+        // FIXME this sometimes returns Err when the file has a different owner
+        // even if it's actually writeable for us
         let created_file = fs::File::create(path).map_err(|_| ())?;
+        files_ref.push(created_file);
+
+        // +2 to account for stdin, stdout, and stderr descriptors
+        Ok(files_ref.len() as u32 + 2)
+    }
+
+    fn readable_descriptor_from_path(&self, path: &str) -> Result<u32, ()> {
+        let mut files_ref = self.files.borrow_mut();
+
+        let path = path::PathBuf::from(path);
+        if path.is_dir() {
+            return Err(());
+        }
+
+        let created_file = fs::File::open(path).map_err(|_| ())?;
         files_ref.push(created_file);
 
         // +2 to account for stdin, stdout, and stderr descriptors

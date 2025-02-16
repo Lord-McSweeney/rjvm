@@ -9,5 +9,7 @@ pub trait FilesystemBackend {
 
     fn write_by_descriptor(&self, descriptor: u32, data: &[u8]);
 
-    fn descriptor_from_path(&self, path: &str) -> Result<u32, ()>;
+    fn writeable_descriptor_from_path(&self, path: &str) -> Result<u32, ()>;
+
+    fn readable_descriptor_from_path(&self, path: &str) -> Result<u32, ()>;
 }

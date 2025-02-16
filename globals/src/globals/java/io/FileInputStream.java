@@ -9,7 +9,7 @@ public class FileInputStream extends InputStream {
     }
 
     public FileInputStream(File file) throws FileNotFoundException {
-        FileDescriptor fd = FileDescriptor.fromFile(file);
+        FileDescriptor fd = FileDescriptor.readableFromFile(file);
 
         this.fd = fd;
         this.isOpen = true;

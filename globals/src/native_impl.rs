@@ -14,7 +14,8 @@ pub fn register_native_mappings(context: Context) {
         ("java/io/File.getCanonicalPath.()Ljava/lang/String;", file_get_canonical_path),
         ("java/io/File.getAbsolutePath.()Ljava/lang/String;", file_get_absolute_path),
         ("java/io/FileOutputStream.writeInternal.(I)V", file_stream_write_internal),
-        ("java/io/FileDescriptor.internalDescriptorFromPath.(Ljava/lang/String;)I", descriptor_from_path),
+        ("java/io/FileDescriptor.internalWriteableDescriptorFromPath.(Ljava/lang/String;)I", writeable_descriptor_from_path),
+        ("java/io/FileDescriptor.internalReadableDescriptorFromPath.(Ljava/lang/String;)I", readable_descriptor_from_path),
     ];
 
     context.register_native_mappings(mappings);
@@ -289,7 +290,10 @@ fn file_stream_write_internal(context: Context, args: &[Value]) -> Result<Option
     Ok(None)
 }
 
-fn descriptor_from_path(context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
+fn writeable_descriptor_from_path(
+    context: Context,
+    args: &[Value],
+) -> Result<Option<Value>, Error> {
     let path_object = args[0].object().unwrap();
 
     let path_array = path_object.get_field(0).object().unwrap();
@@ -303,7 +307,36 @@ fn descriptor_from_path(context: Context, args: &[Value]) -> Result<Option<Value
 
     let file_path = String::from_utf16_lossy(&file_path_data);
 
-    let descriptor_result = context.filesystem_backend.descriptor_from_path(&file_path);
+    let descriptor_result = context
+        .filesystem_backend
+        .writeable_descriptor_from_path(&file_path);
+
+    // Return -1 to signal that there was an error- Java code will throw the exception
+    let descriptor = match descriptor_result {
+        Ok(descriptor) => descriptor as i32,
+        Err(_) => -1,
+    };
+
+    Ok(Some(Value::Integer(descriptor as i32)))
+}
+
+fn readable_descriptor_from_path(context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
+    let path_object = args[0].object().unwrap();
+
+    let path_array = path_object.get_field(0).object().unwrap();
+    let path_bytes = path_array.get_array_data();
+
+    let mut file_path_data = Vec::with_capacity(path_bytes.len());
+    for value in path_bytes {
+        let character = value.get().int() as u16;
+        file_path_data.push(character);
+    }
+
+    let file_path = String::from_utf16_lossy(&file_path_data);
+
+    let descriptor_result = context
+        .filesystem_backend
+        .readable_descriptor_from_path(&file_path);
 
     // Return -1 to signal that there was an error- Java code will throw the exception
     let descriptor = match descriptor_result {

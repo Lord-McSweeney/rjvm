@@ -41,7 +41,12 @@ impl FilesystemBackend for WebFilesystemBackend {
         }
     }
 
-    fn descriptor_from_path(&self, _path: &str) -> Result<u32, ()> {
+    fn writeable_descriptor_from_path(&self, _path: &str) -> Result<u32, ()> {
+        // Cannot open files on web
+        Err(())
+    }
+
+    fn readable_descriptor_from_path(&self, _path: &str) -> Result<u32, ()> {
         // Cannot open files on web
         Err(())
     }

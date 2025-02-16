@@ -9,7 +9,7 @@ public class FileOutputStream extends OutputStream {
     }
 
     public FileOutputStream(File file) throws FileNotFoundException {
-        FileDescriptor fd = FileDescriptor.fromFile(file);
+        FileDescriptor fd = FileDescriptor.writeableFromFile(file);
 
         this.fd = fd;
         this.isOpen = true;
