@@ -1,4 +1,5 @@
-use super::context::{Context, ResourceLoadType};
+use super::backends::loader::ResourceLoadType;
+use super::context::Context;
 use super::descriptor::{Descriptor, MethodDescriptor, ResolvedDescriptor};
 use super::error::{Error, NativeError};
 use super::field::{Field, FieldRef};

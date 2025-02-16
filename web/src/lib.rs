@@ -1,6 +1,6 @@
 use wasm_bindgen::prelude::*;
 
-mod native_impl;
+mod backends;
 mod runner;
 
 #[wasm_bindgen]

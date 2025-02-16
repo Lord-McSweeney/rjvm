@@ -1,4 +1,3 @@
-use crate::{output, output_to_err};
 use rjvm_core::{Context, Error, NativeError, NativeMethod, Object, Value};
 
 pub fn register_native_mappings(context: Context) {
@@ -19,8 +18,6 @@ pub fn register_native_mappings(context: Context) {
 
     context.register_native_mappings(mappings);
 }
-
-use regex::Regex;
 
 // Native implementations of functions declared in globals
 
@@ -153,9 +150,10 @@ fn get_name_native(context: Context, args: &[Value]) -> Result<Option<Value>, Er
 }
 
 // java/lang/System : static void exit(int)
-fn system_exit(_context: Context, _args: &[Value]) -> Result<Option<Value>, Error> {
-    // Just pretend we exited
-    Ok(None)
+fn system_exit(context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
+    let exit_code = args[0].int();
+
+    context.system_backend.exit(exit_code)
 }
 
 // java/lang/Class : byte[] getResourceData(String)
@@ -195,27 +193,26 @@ fn internal_init_file_data(context: Context, args: &[Value]) -> Result<Option<Va
         file_name.push(byte);
     }
 
+    file_name.dedup_by(|a, b| *a == b'/' && *b == b'/');
+
     let file_name = String::from_utf8_lossy(&file_name);
 
-    // TODO don't hardcode separator char
-    let regex = Regex::new(r"\/{1,}").unwrap();
-
-    let file_path = regex.replace_all(&file_name, "/");
-
-    let file_path = if file_path == "/" {
-        &file_path
-    } else if let Some(stripped) = file_path.strip_suffix('/') {
+    let file_name = if file_name == "/" {
+        &file_name
+    } else if let Some(stripped) = file_name.strip_suffix('/') {
         stripped
     } else {
-        &file_path
+        &file_name
     };
 
-    let file_path_chars = file_path.chars().map(|c| c as u16).collect::<Vec<_>>();
+    let file_name_chars = file_name.chars().map(|c| c as u16).collect::<Vec<_>>();
 
-    let string_name = context.create_string(&file_path_chars);
+    let string_name = context.create_string(&file_name_chars);
 
-    // No filesystem on web
-    let exists = false;
+    let exists = context
+        .filesystem_backend
+        .file_exists(&*file_name)
+        .unwrap_or(false);
 
     file_object.set_field(0, Value::Object(Some(string_name)));
     file_object.set_field(1, Value::Integer(exists as i32));
@@ -223,35 +220,70 @@ fn internal_init_file_data(context: Context, args: &[Value]) -> Result<Option<Va
     Ok(None)
 }
 
-fn file_get_canonical_path(_context: Context, _args: &[Value]) -> Result<Option<Value>, Error> {
-    unimplemented!()
+fn file_get_canonical_path(context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
+    let file_object = args[0].object().unwrap();
+    let name_object = file_object.get_field(0).object().unwrap();
+
+    let name_array = name_object.get_field(0).object().unwrap();
+    let name_bytes = name_array.get_array_data();
+
+    let mut file_name_data = Vec::with_capacity(name_bytes.len());
+    for value in name_bytes {
+        let character = value.get().int() as u16;
+        file_name_data.push(character);
+    }
+
+    let file_name = String::from_utf16_lossy(&file_name_data);
+
+    let canonical_path = context.filesystem_backend.to_canonical_path(&*file_name);
+
+    let mut chars_vec = Vec::with_capacity(canonical_path.len());
+    for byte in canonical_path.chars() {
+        chars_vec.push(byte as u16);
+    }
+
+    let string_object = context.create_string(&chars_vec);
+
+    Ok(Some(Value::Object(Some(string_object))))
 }
 
-fn file_get_absolute_path(_context: Context, _args: &[Value]) -> Result<Option<Value>, Error> {
-    unimplemented!()
+fn file_get_absolute_path(context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
+    let file_object = args[0].object().unwrap();
+    let name_object = file_object.get_field(0).object().unwrap();
+
+    let name_array = name_object.get_field(0).object().unwrap();
+    let name_bytes = name_array.get_array_data();
+
+    let mut file_name_data = Vec::with_capacity(name_bytes.len());
+    for value in name_bytes {
+        let character = value.get().int() as u16;
+        file_name_data.push(character);
+    }
+
+    let file_name = String::from_utf16_lossy(&file_name_data);
+
+    let absolute_path = context.filesystem_backend.to_absolute_path(&*file_name);
+
+    let mut chars_vec = Vec::with_capacity(absolute_path.len());
+    for byte in absolute_path.chars() {
+        chars_vec.push(byte as u16);
+    }
+
+    let string_object = context.create_string(&chars_vec);
+
+    Ok(Some(Value::Object(Some(string_object))))
 }
 
-fn file_stream_write_internal(_context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
+fn file_stream_write_internal(context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
     let stream = args[0].object().unwrap();
     let stream_fd = stream.get_field(0).object().unwrap();
     let stream_descriptor = stream_fd.get_field(0).int();
 
     let write_data = args[1].int() as u8;
 
-    match stream_descriptor {
-        0 => {
-            // Writing to stdin is a noop
-        }
-        1 => {
-            // stdout
-            output(std::str::from_utf8(&[write_data]).unwrap());
-        }
-        2 => {
-            // stderr
-            output_to_err(std::str::from_utf8(&[write_data]).unwrap());
-        }
-        _ => unimplemented!("writing to files"),
-    }
+    context
+        .filesystem_backend
+        .write_by_descriptor(stream_descriptor, &[write_data]);
 
     Ok(None)
 }

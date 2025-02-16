@@ -1,43 +1,9 @@
+use crate::backends;
 use crate::output_to_err;
 use rjvm_core::{
-    Class, ClassFile, Context, Jar, JvmString, MethodDescriptor, Object, ResourceLoadType,
-    ResourceLoader, Value,
+    Class, ClassFile, Context, Jar, JvmString, MethodDescriptor, Object, ResourceLoadType, Value,
 };
-use rjvm_globals::GLOBALS_JAR;
-
-struct WebResourceLoader {}
-
-impl ResourceLoader for WebResourceLoader {
-    fn load_resource(
-        &self,
-        load_type: &ResourceLoadType,
-        class_name: &String,
-        resource_name: &String,
-    ) -> Option<Vec<u8>> {
-        match load_type {
-            ResourceLoadType::FileSystem => todo!(),
-            ResourceLoadType::Jar(jar) => {
-                let resolved_name = if let Some(absolute_path) = class_name.strip_prefix('/') {
-                    // TODO do absolute paths actually work?
-                    absolute_path.to_string()
-                } else {
-                    // TODO should this handle paths starting with "./", maybe?
-                    let mut path_sections = class_name.split('/').collect::<Vec<_>>();
-                    path_sections.pop();
-                    path_sections.push(resource_name);
-
-                    path_sections.join("/")
-                };
-
-                if jar.has_file(&resolved_name) {
-                    jar.read_file(&resolved_name).ok()
-                } else {
-                    None
-                }
-            }
-        }
-    }
-}
+use rjvm_globals::{native_impl, GLOBALS_JAR};
 
 fn init_main_class(
     context: Context,
@@ -115,15 +81,17 @@ fn init_main_class(
 
 pub(crate) fn run_file(class_data: &[u8], args: Vec<String>, is_jar: bool) {
     // Initialize JVM
-    let loader = WebResourceLoader {};
-    let context = Context::new(Box::new(loader));
+    let loader = backends::loader::WebLoaderBackend {};
+    let filesystem = backends::filesystem::WebFilesystemBackend {};
+    let system = backends::system::WebSystemBackend {};
+    let context = Context::new(Box::new(loader), Box::new(filesystem), Box::new(system));
 
     // Load globals
     let globals_jar = Jar::from_bytes(context.gc_ctx, GLOBALS_JAR.to_vec())
         .expect("Builtin globals should be valid");
     context.add_jar(globals_jar);
 
-    crate::native_impl::register_native_mappings(context);
+    native_impl::register_native_mappings(context);
 
     // Load the main class from options
     let main_class = match init_main_class(context, class_data.to_vec(), is_jar) {

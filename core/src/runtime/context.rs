@@ -1,3 +1,6 @@
+use super::backends::filesystem::FilesystemBackend;
+use super::backends::loader::{LoaderBackend, ResourceLoadType};
+use super::backends::system::SystemBackend;
 use super::class::Class;
 use super::descriptor::{Descriptor, MethodDescriptor, ResolvedDescriptor};
 use super::error::{Error, NativeError};
@@ -17,8 +20,14 @@ const GC_THRESHOLD: u32 = 4096;
 
 #[derive(Clone, Copy)]
 pub struct Context {
-    // The function to call into to load resources.
-    loader_backend: Gc<Box<dyn ResourceLoader>>,
+    // The backend to call into to load resources.
+    pub loader_backend: Gc<Box<dyn LoaderBackend>>,
+
+    // The backend to call into to handle filesystem operations.
+    pub filesystem_backend: Gc<Box<dyn FilesystemBackend>>,
+
+    // The backend to call into to handle special program operations.
+    pub system_backend: Gc<Box<dyn SystemBackend>>,
 
     // The global class registry.
     class_registry: Gc<RefCell<HashMap<JvmString, Class>>>,
@@ -55,13 +64,19 @@ pub struct Context {
 }
 
 impl Context {
-    pub fn new(loader_backend: Box<dyn ResourceLoader>) -> Self {
+    pub fn new(
+        loader_backend: Box<dyn LoaderBackend>,
+        filesystem_backend: Box<dyn FilesystemBackend>,
+        system_backend: Box<dyn SystemBackend>,
+    ) -> Self {
         let gc_ctx = GcCtx::new();
 
         let empty_frame_data = vec![Cell::new(Value::Integer(0)); 80000].into_boxed_slice();
 
         Self {
             loader_backend: Gc::new(gc_ctx, loader_backend),
+            filesystem_backend: Gc::new(gc_ctx, filesystem_backend),
+            system_backend: Gc::new(gc_ctx, system_backend),
             class_registry: Gc::new(gc_ctx, RefCell::new(HashMap::new())),
             queued_clinits: Gc::new(gc_ctx, RefCell::new(VecDeque::new())),
             class_to_object_map: Gc::new(gc_ctx, RefCell::new(HashMap::new())),
@@ -343,6 +358,9 @@ impl Context {
 impl Trace for Context {
     fn trace(&self) {
         self.loader_backend.trace_self();
+        self.filesystem_backend.trace_self();
+        self.system_backend.trace_self();
+
         self.class_registry.trace();
         self.queued_clinits.trace();
         self.class_to_object_map.trace();
@@ -472,33 +490,4 @@ impl Trace for CommonData {
         self.noargs_void_desc.trace();
         self.arg_char_array_void_desc.trace();
     }
-}
-
-#[derive(Clone)]
-pub enum ResourceLoadType {
-    // This class was loaded directly from the filesystem. When searching
-    // for resources, look at the files in the directory of this class.
-    FileSystem,
-
-    // This class was loaded from a JAR file. When searching for resources,
-    // look at the files in the directory of this class in the JAR.
-    Jar(Jar),
-}
-
-impl Trace for ResourceLoadType {
-    fn trace(&self) {
-        match self {
-            ResourceLoadType::Jar(jar) => jar.trace(),
-            _ => {}
-        }
-    }
-}
-
-pub trait ResourceLoader {
-    fn load_resource(
-        &self,
-        load_type: &ResourceLoadType,
-        class_name: &String,
-        resource_name: &String,
-    ) -> Option<Vec<u8>>;
 }

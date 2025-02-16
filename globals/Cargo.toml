@@ -3,5 +3,8 @@ name = "rjvm_globals"
 version = "0.1.0"
 edition = "2021"
 
+[dependencies]
+rjvm_core = { path = "../core" }
+
 [build-dependencies]
 glob = "0.3.1"

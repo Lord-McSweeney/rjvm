@@ -53,6 +53,10 @@ public class File {
     }
 
     public String getParent() {
+        if (this.normalizedPath.equals(File.separatorChar)) {
+            return null;
+        }
+
         int separatorIndex = this.normalizedPath.lastIndexOf(File.separatorChar);
         if (separatorIndex < 0) {
             return null;

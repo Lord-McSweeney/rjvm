@@ -1,14 +1,12 @@
 use rjvm_core::{
-    Class, ClassFile, Context, Jar, JvmString, MethodDescriptor, Object, ResourceLoadType,
-    ResourceLoader, Value,
+    Class, ClassFile, Context, Jar, JvmString, MethodDescriptor, Object, ResourceLoadType, Value,
 };
-use rjvm_globals::GLOBALS_JAR;
+use rjvm_globals::{native_impl, GLOBALS_JAR};
 
-mod native_impl;
+mod backends;
 
 use std::env;
 use std::fs;
-use std::path::PathBuf;
 
 enum FileType {
     Class,
@@ -32,46 +30,6 @@ fn get_main_class_from_manifest(manifest_data: Vec<u8>) -> Option<String> {
     }
 
     main_class.map(|c| c.replace('.', "/").to_string())
-}
-
-struct DesktopResourceLoader {}
-
-impl ResourceLoader for DesktopResourceLoader {
-    fn load_resource(
-        &self,
-        load_type: &ResourceLoadType,
-        class_name: &String,
-        resource_name: &String,
-    ) -> Option<Vec<u8>> {
-        match load_type {
-            ResourceLoadType::FileSystem => {
-                let mut path_buf = PathBuf::from(class_name);
-                path_buf.pop();
-                path_buf.push(resource_name);
-
-                fs::read(path_buf).ok()
-            }
-            ResourceLoadType::Jar(jar) => {
-                let resolved_name = if let Some(absolute_path) = class_name.strip_prefix('/') {
-                    // TODO do absolute paths actually work?
-                    absolute_path.to_string()
-                } else {
-                    // TODO should this handle paths starting with "./", maybe?
-                    let mut path_sections = class_name.split('/').collect::<Vec<_>>();
-                    path_sections.pop();
-                    path_sections.push(resource_name);
-
-                    path_sections.join("/")
-                };
-
-                if jar.has_file(&resolved_name) {
-                    jar.read_file(&resolved_name).ok()
-                } else {
-                    None
-                }
-            }
-        }
-    }
 }
 
 struct PassedOptions {
@@ -222,8 +180,10 @@ fn main() {
     };
 
     // Initialize JVM
-    let loader = DesktopResourceLoader {};
-    let context = Context::new(Box::new(loader));
+    let loader = backends::loader::DesktopLoaderBackend {};
+    let filesystem = backends::filesystem::DesktopFilesystemBackend {};
+    let system = backends::system::DesktopSystemBackend {};
+    let context = Context::new(Box::new(loader), Box::new(filesystem), Box::new(system));
 
     // Load globals
     let globals_jar = Jar::from_bytes(context.gc_ctx, GLOBALS_JAR.to_vec())
