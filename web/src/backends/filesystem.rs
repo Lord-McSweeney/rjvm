@@ -4,6 +4,12 @@ use rjvm_core::FilesystemBackend;
 
 pub struct WebFilesystemBackend {}
 
+impl WebFilesystemBackend {
+    pub fn new() -> Self {
+        Self {}
+    }
+}
+
 impl FilesystemBackend for WebFilesystemBackend {
     fn to_absolute_path(&self, _path: &str) -> String {
         unimplemented!()
@@ -18,7 +24,7 @@ impl FilesystemBackend for WebFilesystemBackend {
         Ok(false)
     }
 
-    fn write_by_descriptor(&self, descriptor: i32, data: &[u8]) {
+    fn write_by_descriptor(&self, descriptor: u32, data: &[u8]) {
         match descriptor {
             0 => {
                 // Writing to stdin is a noop
@@ -31,7 +37,12 @@ impl FilesystemBackend for WebFilesystemBackend {
                 // stderr
                 output_to_err(&*String::from_utf8_lossy(data));
             }
-            _ => unimplemented!("writing to files"),
+            _ => unreachable!("cannot have descriptors >2 on web"),
         }
+    }
+
+    fn descriptor_from_path(&self, _path: &str) -> Result<u32, ()> {
+        // Cannot open files on web
+        Err(())
     }
 }

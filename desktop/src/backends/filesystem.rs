@@ -1,12 +1,23 @@
 use rjvm_core::FilesystemBackend;
 
 use regex::Regex;
+use std::cell::RefCell;
 use std::env;
 use std::fs;
 use std::io::{self, Write};
 use std::path;
 
-pub struct DesktopFilesystemBackend {}
+pub struct DesktopFilesystemBackend {
+    files: RefCell<Vec<fs::File>>,
+}
+
+impl DesktopFilesystemBackend {
+    pub fn new() -> Self {
+        Self {
+            files: RefCell::new(Vec::new()),
+        }
+    }
+}
 
 impl FilesystemBackend for DesktopFilesystemBackend {
     fn to_absolute_path(&self, path: &str) -> String {
@@ -50,7 +61,7 @@ impl FilesystemBackend for DesktopFilesystemBackend {
         fs::exists(path).map_err(|_| ())
     }
 
-    fn write_by_descriptor(&self, descriptor: i32, data: &[u8]) {
+    fn write_by_descriptor(&self, descriptor: u32, data: &[u8]) {
         match descriptor {
             0 => {
                 // Writing to stdin is a noop
@@ -63,7 +74,27 @@ impl FilesystemBackend for DesktopFilesystemBackend {
                 // stderr
                 io::stderr().write(data).unwrap();
             }
-            _ => unimplemented!("writing to files"),
+            3.. => {
+                // -2 to account for stdin, stdout, and stderr descriptors
+                let mut file = &self.files.borrow()[descriptor as usize - 3];
+
+                file.write(data).unwrap();
+            }
         }
+    }
+
+    fn descriptor_from_path(&self, path: &str) -> Result<u32, ()> {
+        let mut files_ref = self.files.borrow_mut();
+
+        let path = path::PathBuf::from(path);
+        if path.is_dir() {
+            return Err(());
+        }
+
+        let created_file = fs::File::create(path).map_err(|_| ())?;
+        files_ref.push(created_file);
+
+        // +2 to account for stdin, stdout, and stderr descriptors
+        Ok(files_ref.len() as u32 + 2)
     }
 }

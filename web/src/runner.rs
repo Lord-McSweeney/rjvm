@@ -81,9 +81,9 @@ fn init_main_class(
 
 pub(crate) fn run_file(class_data: &[u8], args: Vec<String>, is_jar: bool) {
     // Initialize JVM
-    let loader = backends::loader::WebLoaderBackend {};
-    let filesystem = backends::filesystem::WebFilesystemBackend {};
-    let system = backends::system::WebSystemBackend {};
+    let loader = backends::loader::WebLoaderBackend::new();
+    let filesystem = backends::filesystem::WebFilesystemBackend::new();
+    let system = backends::system::WebSystemBackend::new();
     let context = Context::new(Box::new(loader), Box::new(filesystem), Box::new(system));
 
     // Load globals

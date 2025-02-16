@@ -180,9 +180,9 @@ fn main() {
     };
 
     // Initialize JVM
-    let loader = backends::loader::DesktopLoaderBackend {};
-    let filesystem = backends::filesystem::DesktopFilesystemBackend {};
-    let system = backends::system::DesktopSystemBackend {};
+    let loader = backends::loader::DesktopLoaderBackend::new();
+    let filesystem = backends::filesystem::DesktopFilesystemBackend::new();
+    let system = backends::system::DesktopSystemBackend::new();
     let context = Context::new(Box::new(loader), Box::new(filesystem), Box::new(system));
 
     // Load globals

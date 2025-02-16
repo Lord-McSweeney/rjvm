@@ -2,6 +2,12 @@ use rjvm_core::{LoaderBackend, ResourceLoadType};
 
 pub struct WebLoaderBackend {}
 
+impl WebLoaderBackend {
+    pub fn new() -> Self {
+        Self {}
+    }
+}
+
 impl LoaderBackend for WebLoaderBackend {
     fn load_resource(
         &self,

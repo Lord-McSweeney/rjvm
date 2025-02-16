@@ -5,6 +5,12 @@ use std::path;
 
 pub struct DesktopLoaderBackend {}
 
+impl DesktopLoaderBackend {
+    pub fn new() -> Self {
+        Self {}
+    }
+}
+
 impl LoaderBackend for DesktopLoaderBackend {
     fn load_resource(
         &self,

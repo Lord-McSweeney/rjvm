@@ -6,6 +6,8 @@ public class File {
     // TODO get this from system properties
     public static final char separatorChar = '/';
 
+    public static final String separator = "" + File.separatorChar;
+
     private String normalizedPath;
     private boolean exists;
 
@@ -53,7 +55,7 @@ public class File {
     }
 
     public String getParent() {
-        if (this.normalizedPath.equals(File.separatorChar)) {
+        if (this.normalizedPath.equals(File.separator)) {
             return null;
         }
 

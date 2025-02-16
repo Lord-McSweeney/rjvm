@@ -21,11 +21,17 @@ public final class FileDescriptor {
         return fd;
     }
 
-    static FileDescriptor fromFile(File file) {
-        // TODO implement
+    static FileDescriptor fromFile(File file) throws FileNotFoundException {
+        int registeredDescriptor = FileDescriptor.internalDescriptorFromPath(file.getPath());
+        // -1 signals an error
+        if (registeredDescriptor == -1) {
+            throw new FileNotFoundException();
+        }
 
         FileDescriptor fd = new FileDescriptor();
-        fd.descriptor = -1;
+        fd.descriptor = registeredDescriptor;
         return fd;
     }
+
+    private static native int internalDescriptorFromPath(String filePath);
 }

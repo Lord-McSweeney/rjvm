@@ -7,5 +7,7 @@ pub trait FilesystemBackend {
 
     fn file_exists(&self, path: &str) -> Result<bool, ()>;
 
-    fn write_by_descriptor(&self, descriptor: i32, data: &[u8]);
+    fn write_by_descriptor(&self, descriptor: u32, data: &[u8]);
+
+    fn descriptor_from_path(&self, path: &str) -> Result<u32, ()>;
 }

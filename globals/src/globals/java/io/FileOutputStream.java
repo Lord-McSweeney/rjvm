@@ -4,12 +4,15 @@ public class FileOutputStream extends OutputStream {
     private FileDescriptor fd;
     private boolean isOpen;
 
-    public FileOutputStream(File file) {
+    public FileOutputStream(String path) throws FileNotFoundException {
+        this(new File(path));
+    }
+
+    public FileOutputStream(File file) throws FileNotFoundException {
         FileDescriptor fd = FileDescriptor.fromFile(file);
 
         this.fd = fd;
-        // TODO implement
-        this.isOpen = false;
+        this.isOpen = true;
     }
 
     public FileOutputStream(FileDescriptor fd) {
