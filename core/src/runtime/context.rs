@@ -32,11 +32,6 @@ pub struct Context {
     // The global class registry.
     class_registry: Gc<RefCell<HashMap<JvmString, Class>>>,
 
-    // Clinits, queued. These cannot be run when loading a class; they will
-    // all be run in order every time an Interpreter is started. Yes, this is
-    // actually correct, it doesn't matter how wrong it sounds.
-    queued_clinits: Gc<RefCell<VecDeque<Method>>>,
-
     // A map of class T to the object of type Class<T>.
     class_to_object_map: Gc<RefCell<HashMap<Class, Object>>>,
 
@@ -78,7 +73,6 @@ impl Context {
             filesystem_backend: Gc::new(gc_ctx, filesystem_backend),
             system_backend: Gc::new(gc_ctx, system_backend),
             class_registry: Gc::new(gc_ctx, RefCell::new(HashMap::new())),
-            queued_clinits: Gc::new(gc_ctx, RefCell::new(VecDeque::new())),
             class_to_object_map: Gc::new(gc_ctx, RefCell::new(HashMap::new())),
             jar_files: Gc::new(gc_ctx, RefCell::new(Vec::new())),
             native_mapping: Gc::new(gc_ctx, RefCell::new(HashMap::new())),
@@ -176,25 +170,6 @@ impl Context {
         } else {
             registry.insert(class_name, class);
         }
-    }
-
-    pub fn queue_clinit(self, clinit: Method) {
-        self.queued_clinits.borrow_mut().push_back(clinit);
-    }
-
-    // Should only be run from Interpreter::interpret_ops
-    pub fn run_clinits(self) -> Result<(), Error> {
-        // Note that running a clinit can queue more clinits. To handle some
-        // edge cases, we need to run clinits this way.
-        let mut current_clinit = self.queued_clinits.borrow_mut().pop_front();
-
-        while let Some(clinit) = current_clinit {
-            clinit.exec(self, &[])?;
-
-            current_clinit = self.queued_clinits.borrow_mut().pop_front();
-        }
-
-        Ok(())
     }
 
     pub fn add_linked_jar(self, jar: Jar) {
@@ -362,7 +337,6 @@ impl Trace for Context {
         self.system_backend.trace_self();
 
         self.class_registry.trace();
-        self.queued_clinits.trace();
         self.class_to_object_map.trace();
         self.jar_files.trace();
         self.native_mapping.trace();

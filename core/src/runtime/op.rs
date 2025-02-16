@@ -364,7 +364,7 @@ impl Op {
         method_return_type: Descriptor,
         constant_pool: &ConstantPool,
         data: &mut FileData,
-    ) -> Result<(Vec<Op>, HashMap<usize, usize>), Error> {
+    ) -> Result<(Vec<Op>, HashMap<usize, usize>, Vec<Class>), Error> {
         // TODO: Should current_class be None if this is a static method?
 
         let code_length = data.read_u32()? as usize;
@@ -373,6 +373,8 @@ impl Op {
 
         let mut op_index = 0;
         let mut offset_to_idx_map = HashMap::new();
+
+        let mut class_dependencies = Vec::new();
 
         while data.position() < code_start + code_length {
             offset_to_idx_map.insert(data.position() - code_start, op_index);
@@ -384,6 +386,7 @@ impl Op {
                 constant_pool,
                 data,
                 data.position() - code_start,
+                &mut class_dependencies,
             )?);
 
             op_index += 1;
@@ -441,7 +444,7 @@ impl Op {
             }
         }
 
-        Ok((code, offset_to_idx_map))
+        Ok((code, offset_to_idx_map, class_dependencies))
     }
 
     fn read_op(
@@ -451,6 +454,7 @@ impl Op {
         constant_pool: &ConstantPool,
         data: &mut FileData,
         data_position: usize,
+        class_dependencies: &mut Vec<Class>,
     ) -> Result<Op, Error> {
         let opcode = data.read_u8()?;
         match opcode {
@@ -753,6 +757,10 @@ impl Op {
                 let (class_name, field_name, descriptor_name) = field_ref;
 
                 let class = context.lookup_class(class_name)?;
+                if !class_dependencies.contains(&class) {
+                    class_dependencies.push(class);
+                }
+
                 let descriptor = Descriptor::from_string(context.gc_ctx, descriptor_name)
                     .ok_or(Error::Native(NativeError::InvalidDescriptor))?;
 
@@ -770,6 +778,10 @@ impl Op {
                 let (class_name, field_name, descriptor_name) = field_ref;
 
                 let class = context.lookup_class(class_name)?;
+                if !class_dependencies.contains(&class) {
+                    class_dependencies.push(class);
+                }
+
                 let descriptor = Descriptor::from_string(context.gc_ctx, descriptor_name)
                     .ok_or(Error::Native(NativeError::InvalidDescriptor))?;
 
@@ -787,6 +799,10 @@ impl Op {
                 let (class_name, field_name, descriptor_name) = field_ref;
 
                 let class = context.lookup_class(class_name)?;
+                if !class_dependencies.contains(&class) {
+                    class_dependencies.push(class);
+                }
+
                 let descriptor = Descriptor::from_string(context.gc_ctx, descriptor_name)
                     .ok_or(Error::Native(NativeError::InvalidDescriptor))?;
 
@@ -804,6 +820,10 @@ impl Op {
                 let (class_name, field_name, descriptor_name) = field_ref;
 
                 let class = context.lookup_class(class_name)?;
+                if !class_dependencies.contains(&class) {
+                    class_dependencies.push(class);
+                }
+
                 let descriptor = Descriptor::from_string(context.gc_ctx, descriptor_name)
                     .ok_or(Error::Native(NativeError::InvalidDescriptor))?;
 
@@ -821,7 +841,11 @@ impl Op {
                 let (class_name, method_name, descriptor_name) = method_ref;
 
                 // Method is called based on class of object on stack
-                let _class = context.lookup_class(class_name)?;
+                let class = context.lookup_class(class_name)?;
+                if !class_dependencies.contains(&class) {
+                    class_dependencies.push(class);
+                }
+
                 let descriptor = MethodDescriptor::from_string(context.gc_ctx, descriptor_name)
                     .ok_or(Error::Native(NativeError::InvalidDescriptor))?;
 
@@ -834,6 +858,9 @@ impl Op {
                 let (class_name, method_name, descriptor_name) = method_ref;
 
                 let class = context.lookup_class(class_name)?;
+                if !class_dependencies.contains(&class) {
+                    class_dependencies.push(class);
+                }
 
                 let real_class = if method_name.as_bytes() != b"<init>"
                     && !class.is_interface()
@@ -863,6 +890,9 @@ impl Op {
                 let (class_name, method_name, descriptor_name) = method_ref;
 
                 let class = context.lookup_class(class_name)?;
+                if !class_dependencies.contains(&class) {
+                    class_dependencies.push(class);
+                }
 
                 let descriptor = MethodDescriptor::from_string(context.gc_ctx, descriptor_name)
                     .ok_or(Error::Native(NativeError::InvalidDescriptor))?;
@@ -884,6 +914,10 @@ impl Op {
 
                 // Method is called based on class of object on stack
                 let class = context.lookup_class(class_name)?;
+                if !class_dependencies.contains(&class) {
+                    class_dependencies.push(class);
+                }
+
                 let descriptor = MethodDescriptor::from_string(context.gc_ctx, descriptor_name)
                     .ok_or(Error::Native(NativeError::InvalidDescriptor))?;
 
@@ -902,6 +936,9 @@ impl Op {
                 let class_name = constant_pool.get_class(class_idx)?;
 
                 let class = context.lookup_class(class_name)?;
+                if !class_dependencies.contains(&class) {
+                    class_dependencies.push(class);
+                }
 
                 Ok(Op::New(class))
             }
@@ -925,6 +962,9 @@ impl Op {
                 let class_name = constant_pool.get_class(class_idx)?;
 
                 let class = context.lookup_class(class_name)?;
+                if !class_dependencies.contains(&class) {
+                    class_dependencies.push(class);
+                }
 
                 Ok(Op::ANewArray(class))
             }
@@ -935,6 +975,9 @@ impl Op {
                 let class_name = constant_pool.get_class(class_idx)?;
 
                 let class = context.lookup_class(class_name)?;
+                if !class_dependencies.contains(&class) {
+                    class_dependencies.push(class);
+                }
 
                 Ok(Op::CheckCast(class))
             }
@@ -943,6 +986,9 @@ impl Op {
                 let class_name = constant_pool.get_class(class_idx)?;
 
                 let class = context.lookup_class(class_name)?;
+                if !class_dependencies.contains(&class) {
+                    class_dependencies.push(class);
+                }
 
                 Ok(Op::InstanceOf(class))
             }

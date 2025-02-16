@@ -13,7 +13,7 @@ use crate::classfile::flags::{ClassFlags, FieldFlags, MethodFlags};
 use crate::gc::{Gc, GcCtx, Trace};
 use crate::string::JvmString;
 
-use std::cell::{Ref, RefCell};
+use std::cell::{Cell, Ref, RefCell};
 use std::collections::HashSet;
 use std::fmt;
 use std::hash::{Hash, Hasher};
@@ -50,6 +50,9 @@ struct ClassData {
     instance_fields: Box<[Field]>,
 
     method_data: RefCell<Option<MethodData>>,
+
+    clinit_method: Cell<Option<Method>>,
+    clinit_run: Cell<bool>,
 }
 
 struct MethodData {
@@ -179,6 +182,8 @@ impl Class {
                 instance_fields: instance_fields.into_boxed_slice(),
 
                 method_data: RefCell::new(None),
+                clinit_method: Cell::new(None),
+                clinit_run: Cell::new(false),
             },
         ));
 
@@ -236,14 +241,13 @@ impl Class {
         let clinit_string = context.common.clinit_name;
         let void_descriptor = context.common.noargs_void_desc;
         let clinit_method_idx = static_method_vtable.lookup((clinit_string, void_descriptor));
-        if let Some(clinit_method_idx) = clinit_method_idx {
-            // If this class actually has a clinit method, queue it
-            // (don't run it now as it could potentially trigger a GC, and we
-            // may have Gc pointers stored only on the stack at the moment)
-            let clinit_method = self.static_methods()[clinit_method_idx];
 
-            context.queue_clinit(clinit_method);
-        }
+        // If this class actually has a clinit method, queue it
+        // (don't run it now as it could potentially trigger a GC, and we
+        // may have Gc pointers stored only on the stack at the moment)
+        self.0
+            .clinit_method
+            .set(clinit_method_idx.map(|i| self.static_methods()[i]));
 
         Ok(())
     }
@@ -290,6 +294,9 @@ impl Class {
                 instance_fields: Box::new([]),
 
                 method_data: RefCell::new(Some(method_data)),
+
+                clinit_method: Cell::new(None),
+                clinit_run: Cell::new(true),
             },
         ))
     }
@@ -412,6 +419,26 @@ impl Class {
             context.load_resource(load_source, self.name().to_string(), resource_name)
         })
     }
+
+    pub fn run_clinit(self, context: Context) -> Result<(), Error> {
+        if !self.0.clinit_run.get() {
+            self.0.clinit_run.set(true);
+
+            if let Some(clinit) = self.0.clinit_method.get() {
+                clinit.exec(context, &[])?;
+            }
+
+            if let Some(super_class) = self.super_class() {
+                super_class.run_clinit(context)?;
+            }
+
+            for interface in self.own_interfaces() {
+                interface.run_clinit(context)?;
+            }
+        }
+
+        Ok(())
+    }
 }
 
 impl PartialEq for Class {
@@ -458,5 +485,7 @@ impl Trace for ClassData {
             method_data.instance_method_vtable.trace();
             method_data.instance_methods.trace();
         }
+
+        self.clinit_method.trace();
     }
 }

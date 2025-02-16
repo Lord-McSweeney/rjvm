@@ -101,6 +101,10 @@ impl Method {
 
         let result = match &*self.0.method_info.borrow() {
             MethodInfo::Bytecode(bytecode_info) => {
+                for class in &bytecode_info.class_dependencies {
+                    class.run_clinit(context)?;
+                }
+
                 let frame_reference = context.frame_data.borrow();
                 let mut interpreter = Interpreter::new(context, frame_reference, self, args)?;
 
@@ -204,6 +208,8 @@ struct BytecodeMethodInfo {
     max_locals: u16,
     code: Vec<Op>,
     exceptions: Vec<Exception>,
+
+    class_dependencies: Vec<Class>,
 }
 
 pub struct Exception {
@@ -242,7 +248,7 @@ impl BytecodeMethodInfo {
         let max_stack = reader.read_u16()?;
         let max_locals = reader.read_u16()?;
 
-        let (code, offset_to_idx_map) =
+        let (code, offset_to_idx_map, class_dependencies) =
             Op::read_ops(context, class, return_type, constant_pool, &mut reader)?;
 
         let exception_count = reader.read_u16()?;
@@ -304,6 +310,7 @@ impl BytecodeMethodInfo {
             max_locals,
             code,
             exceptions,
+            class_dependencies,
         })
     }
 }

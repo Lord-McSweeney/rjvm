@@ -40,10 +40,6 @@ impl<'a> Interpreter<'a> {
         // First, run clinits, to make sure code doesn't observe their lazy
         // execution
 
-        // TODO when we implement stack traces we'll need to reset the stack
-        // trace to pretend this is a toplevel call
-        context.run_clinits()?;
-
         let prev_index = context.frame_index.get();
 
         let mut i = 0;
