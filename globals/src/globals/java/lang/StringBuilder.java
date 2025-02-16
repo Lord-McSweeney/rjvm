@@ -20,6 +20,16 @@ public final class StringBuilder {
         this.data = copyData;
     }
 
+    public StringBuilder append(char character) {
+        char[] newData = new char[this.data.length + 1];
+        System.arraycopy(this.data, 0, newData, 0, this.data.length);
+        newData[this.data.length] = character;
+
+        this.data = newData;
+
+        return this;
+    }
+
     public StringBuilder append(char[] chars) {
         char[] newData = new char[this.data.length + chars.length];
         System.arraycopy(this.data, 0, newData, 0, this.data.length);
