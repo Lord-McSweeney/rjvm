@@ -23,17 +23,15 @@
         <button id="clearOutput"> Clear logs </button>
 
         <script type="module">
-            import __wbg_init, { fileLoaded, setPanicHook } from "./pkg/rjvm_web.js";
+            let worker = new Worker("worker.js", { type: "module" });
 
-            await __wbg_init();
-            setPanicHook();
-
-            globalThis.appendText = function(text) {
-                document.getElementById("outputTextarea").value += text;
-            }
-
-            let currentFileData = null;
-            let currentFileName = null;
+            worker.addEventListener("message", function(e) {
+                switch (e.data.type) {
+                    case "textOutput":
+                        document.getElementById("outputTextarea").value += e.data.data;
+                        break;
+                }
+            });
 
             function init() {
                 let fileInput = document.getElementById("fileInput");
@@ -52,8 +50,11 @@
                     reader.readAsArrayBuffer(file);
 
                     reader.addEventListener("loadend", function(e) {
-                        currentFileData = new Uint8Array(reader.result);
-                        currentFileName = file.name;
+                        worker.postMessage({
+                            "type": "fileUpload",
+                            "fileName": file.name,
+                            "fileData": new Uint8Array(reader.result),
+                        });
 
                         // Enable button once a file is selected
                         doRun.disabled = false;
@@ -89,7 +90,10 @@
                         args.push(child.children[0].value);
                     }
 
-                    fileLoaded(currentFileName, currentFileData, args);
+                    worker.postMessage({
+                        "type": "runFile",
+                        "args": args,
+                    });
                 });
 
                 clearOutput.addEventListener("click", function(e) {

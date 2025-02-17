@@ -41,17 +41,15 @@ impl FilesystemBackend for WebFilesystemBackend {
         }
     }
 
-    fn read_by_descriptor(&self, descriptor: u32, buffer: &mut [u8]) -> Result<(), ()> {
+    fn read_by_descriptor(&self, descriptor: u32, _buffer: &mut [u8]) -> Result<(), ()> {
         match descriptor {
             0 => {
                 // TODO implement
                 Err(())
             }
             1 | 2 => {
-                // Reading from output streams doesn't work
-                // FIXME make this hang (`loop { }`) when we get the WASM
-                // to run in a worker thread
-                Err(())
+                // Output streams never yield input
+                loop {}
             }
             _ => unreachable!("cannot have descriptors >2 on web"),
         }
