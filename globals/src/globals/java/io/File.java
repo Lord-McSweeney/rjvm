@@ -12,8 +12,7 @@ public class File {
     private boolean exists;
 
     public File(String name) {
-        // TODO implement with FileDescriptor?
-        // Currently we just initialize all properties in an `internalInitFromName`
+        // We can initialize all properties in an `internalInitFromName`
         // because File is immutable
         this.internalInitFileData(Charset.stringToUtf8(name));
     }
