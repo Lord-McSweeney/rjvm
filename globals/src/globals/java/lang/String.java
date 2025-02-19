@@ -3,6 +3,9 @@ package java.lang;
 import java.nio.charset.Charset;
 
 public final class String {
+    // TODO make this a weak HashSet
+    private static String[] internedStrings = new String[0];
+
     private char[] data;
 
     // Constructors
@@ -239,7 +242,19 @@ public final class String {
     }
 
     public String intern() {
-        // TODO implement
+        for (int i = 0; i < String.internedStrings.length; i ++) {
+            String checkedString = String.internedStrings[i];
+            if (checkedString.equals(this)) {
+                return checkedString;
+            }
+        }
+
+        String[] newStrings = new String[String.internedStrings.length + 1];
+        System.arraycopy(String.internedStrings, 0, newStrings, 0, String.internedStrings.length);
+        newStrings[String.internedStrings.length] = this;
+
+        String.internedStrings = newStrings;
+
         return this;
     }
 
