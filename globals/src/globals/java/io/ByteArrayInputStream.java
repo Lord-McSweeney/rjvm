@@ -14,14 +14,11 @@ public class ByteArrayInputStream extends InputStream {
     }
 
     public int read() throws IOException {
-        this.pos ++;
         if (this.pos == this.buf.length) {
-            // Make sure to revert position so a call to available()
-            // doesn't return a negative number
-            this.pos --;
-
             return -1;
         } else {
+            this.pos ++;
+
             return this.buf[this.pos - 1];
         }
     }
