@@ -16,7 +16,7 @@ use crate::string::JvmString;
 use std::cell::{Cell, RefCell};
 use std::collections::{HashMap, VecDeque};
 
-const GC_THRESHOLD: u32 = 4096;
+const GC_THRESHOLD: u32 = 32768;
 
 #[derive(Clone, Copy)]
 pub struct Context {
