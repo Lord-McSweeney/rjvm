@@ -7,7 +7,7 @@ use super::object::Object;
 use super::op::{ArrayType, Op};
 use super::value::Value;
 
-use crate::classfile::constant_pool::{ConstantPool, ConstantPoolEntry};
+use crate::classfile::constant_pool::ConstantPoolEntry;
 use crate::string::JvmString;
 
 use std::cell::{Cell, Ref};
@@ -1009,8 +1009,8 @@ impl<'a> Interpreter<'a> {
 
         match (obj1, obj2) {
             (Some(obj1), Some(obj2)) if !obj1.ptr_eq(obj2) => self.ip = position,
-            (Some(obj1), None) => self.ip = position,
-            (None, Some(obj2)) => self.ip = position,
+            (Some(_), None) => self.ip = position,
+            (None, Some(_)) => self.ip = position,
             _ => self.ip += 1,
         }
 

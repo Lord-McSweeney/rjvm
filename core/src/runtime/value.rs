@@ -1,6 +1,3 @@
-use super::class::Class;
-use super::descriptor::Descriptor;
-use super::error::{Error, NativeError};
 use super::object::Object;
 
 use crate::gc::Trace;

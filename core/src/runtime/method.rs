@@ -1,20 +1,19 @@
 use super::class::Class;
 use super::context::Context;
-use super::descriptor::{Descriptor, MethodDescriptor};
+use super::descriptor::MethodDescriptor;
 use super::error::{Error, NativeError};
 use super::interpreter::Interpreter;
 use super::op::Op;
 use super::value::Value;
 use super::verify::verify_ops;
 
-use crate::classfile::attribute::Attribute;
 use crate::classfile::flags::MethodFlags;
 use crate::classfile::method::Method as ClassFileMethod;
 use crate::classfile::reader::{FileData, Reader};
-use crate::gc::{Gc, GcCtx, Trace};
+use crate::gc::{Gc, Trace};
 use crate::string::JvmString;
 
-use std::cell::{Cell, Ref, RefCell};
+use std::cell::RefCell;
 use std::fmt;
 
 #[derive(Clone, Copy)]
@@ -297,7 +296,6 @@ impl BytecodeMethodInfo {
         }
 
         verify_ops(
-            context,
             method,
             max_stack as usize,
             max_locals as usize,

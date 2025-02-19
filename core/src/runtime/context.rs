@@ -3,8 +3,8 @@ use super::backends::loader::{LoaderBackend, ResourceLoadType};
 use super::backends::system::SystemBackend;
 use super::class::Class;
 use super::descriptor::{Descriptor, MethodDescriptor, ResolvedDescriptor};
-use super::error::{Error, NativeError};
-use super::method::{Method, NativeMethod};
+use super::error::Error;
+use super::method::NativeMethod;
 use super::object::Object;
 use super::value::Value;
 
@@ -14,7 +14,7 @@ use crate::jar::Jar;
 use crate::string::JvmString;
 
 use std::cell::{Cell, RefCell};
-use std::collections::{HashMap, VecDeque};
+use std::collections::HashMap;
 
 const GC_THRESHOLD: u32 = 32768;
 

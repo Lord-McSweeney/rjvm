@@ -3,7 +3,6 @@
 use super::class::Class;
 use super::context::Context;
 use super::error::Error;
-use super::object::Object;
 use super::value::Value;
 
 use crate::gc::{Gc, GcCtx, Trace};

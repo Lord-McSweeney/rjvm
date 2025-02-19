@@ -19,11 +19,7 @@ pub trait Reader {
     fn read_bytes(&mut self, count: usize) -> Result<Vec<u8>, Error>;
     fn read_string(&mut self, length: usize) -> Result<String, Error>;
 
-    fn seek(&mut self, pos: usize);
-    fn seek_relative(&mut self, amount: isize);
     fn position(&self) -> usize;
-
-    fn is_at_end(&self) -> bool;
 }
 
 impl Reader for FileData {
@@ -69,23 +65,7 @@ impl Reader for FileData {
         String::from_utf8(bytes).map_err(|_| Error::InvalidString)
     }
 
-    fn seek(&mut self, pos: usize) {
-        self.position = pos;
-    }
-
-    fn seek_relative(&mut self, amount: isize) {
-        if amount >= 0 {
-            self.position += amount as usize;
-        } else {
-            self.position -= (-amount) as usize;
-        }
-    }
-
     fn position(&self) -> usize {
         self.position
-    }
-
-    fn is_at_end(&self) -> bool {
-        self.position == self.data.len()
     }
 }

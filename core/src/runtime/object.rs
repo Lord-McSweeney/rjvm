@@ -6,7 +6,6 @@ use super::field::Field;
 use super::value::Value;
 
 use crate::gc::{Gc, GcCtx, Trace};
-use crate::string::JvmString;
 
 use std::cell::Cell;
 

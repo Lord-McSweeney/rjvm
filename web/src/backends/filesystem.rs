@@ -55,7 +55,7 @@ impl FilesystemBackend for WebFilesystemBackend {
         }
     }
 
-    fn available_bytes(&self, descriptor: u32) -> u64 {
+    fn available_bytes(&self, _descriptor: u32) -> u64 {
         // Cannot open files on web
         0
     }

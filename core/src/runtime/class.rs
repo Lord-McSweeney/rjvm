@@ -5,7 +5,6 @@ use super::error::{Error, NativeError};
 use super::field::{Field, FieldRef};
 use super::method::Method;
 use super::object::Object;
-use super::value::Value;
 use super::vtable::VTable;
 
 use crate::classfile::class::ClassFile;

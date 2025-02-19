@@ -1,4 +1,3 @@
-use super::context::Context;
 use super::descriptor::Descriptor;
 use super::error::{Error, NativeError};
 use super::method::{Exception, Method};
@@ -50,7 +49,6 @@ struct BasicBlock<'a> {
 }
 
 pub fn verify_ops<'a>(
-    context: Context,
     method: Method,
     max_stack: usize,
     max_locals: usize,
@@ -59,7 +57,7 @@ pub fn verify_ops<'a>(
 ) -> Result<(), Error> {
     let blocks = collect_basic_blocks(ops, exceptions)?;
 
-    verify_blocks(context, method, max_stack, max_locals, blocks)
+    verify_blocks(method, max_stack, max_locals, blocks)
 }
 
 fn collect_basic_blocks<'a>(
@@ -367,7 +365,6 @@ struct FrameState {
 }
 
 fn verify_blocks<'a>(
-    context: Context,
     method: Method,
     max_stack: usize,
     max_locals: usize,
@@ -435,11 +432,9 @@ fn verify_blocks<'a>(
             verified_states.insert((block_idx, initial_frame_state.clone()));
 
             verify_block(
-                context,
-                max_stack,
-                max_locals,
                 block,
                 block_idx,
+                max_stack,
                 initial_frame_state,
                 &mut worklist,
             )?;
@@ -450,11 +445,9 @@ fn verify_blocks<'a>(
 }
 
 fn verify_block<'a>(
-    context: Context,
-    max_stack: usize,
-    max_locals: usize,
     block: &BasicBlock<'a>,
     block_idx: usize,
+    max_stack: usize,
     mut frame_state: FrameState,
     worklist: &mut Vec<(usize, FrameState)>,
 ) -> Result<(), Error> {

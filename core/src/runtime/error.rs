@@ -1,8 +1,6 @@
-use super::class::Class;
 use super::object::Object;
 
 use crate::classfile::error::Error as ClassFileError;
-use crate::string::JvmString;
 
 use std::fmt;
 
@@ -45,7 +43,7 @@ pub enum NativeError {
 }
 
 impl From<ClassFileError> for Error {
-    fn from(error: ClassFileError) -> Self {
+    fn from(_error: ClassFileError) -> Self {
         Error::Native(NativeError::ReadError)
     }
 }
