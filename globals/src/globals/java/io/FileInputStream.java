@@ -24,6 +24,16 @@ public class FileInputStream extends InputStream {
         }
     }
 
+    public int available() throws IOException {
+        if (!this.isOpen) {
+            throw new IOException();
+        }
+
+        return this.availableInternal();
+    }
+
+    public native int availableInternal();
+
     public int read() throws IOException {
         if (!this.isOpen) {
             throw new IOException();

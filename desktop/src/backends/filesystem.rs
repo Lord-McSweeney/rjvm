@@ -4,7 +4,7 @@ use regex::Regex;
 use std::cell::RefCell;
 use std::env;
 use std::fs;
-use std::io::{self, Read, Write};
+use std::io::{self, Read, Seek, SeekFrom, Write};
 use std::path;
 
 pub struct DesktopFilesystemBackend {
@@ -75,7 +75,7 @@ impl FilesystemBackend for DesktopFilesystemBackend {
                 io::stderr().write(data).unwrap();
             }
             3.. => {
-                // -2 to account for stdin, stdout, and stderr descriptors
+                // -3 to account for stdin, stdout, and stderr descriptors
                 let mut file = &self.files.borrow()[descriptor as usize - 3];
 
                 file.write(data).unwrap();
@@ -95,7 +95,7 @@ impl FilesystemBackend for DesktopFilesystemBackend {
                 loop {}
             }
             3.. => {
-                // -2 to account for stdin, stdout, and stderr descriptors
+                // -3 to account for stdin, stdout, and stderr descriptors
                 let mut file = &self.files.borrow()[descriptor as usize - 3];
 
                 let bytes_read = file.read(buffer).unwrap();
@@ -104,6 +104,28 @@ impl FilesystemBackend for DesktopFilesystemBackend {
                 }
 
                 Ok(())
+            }
+        }
+    }
+
+    fn available_bytes(&self, descriptor: u32) -> u64 {
+        match descriptor {
+            0 | 1 | 2 => 0,
+            3.. => {
+                // -3 to account for stdin, stdout, and stderr descriptors
+                let mut file = &self.files.borrow()[descriptor as usize - 3];
+
+                // Taken from code of `File::stream_len`, an unstable function
+                let old_pos = file.stream_position().unwrap();
+                let len = file.seek(SeekFrom::End(0)).unwrap();
+
+                // Avoid seeking a third time when we were already at the end of the
+                // stream. The branch is usually way cheaper than a seek operation.
+                if old_pos != len {
+                    file.seek(SeekFrom::Start(old_pos)).unwrap();
+                }
+
+                len
             }
         }
     }

@@ -55,6 +55,11 @@ impl FilesystemBackend for WebFilesystemBackend {
         }
     }
 
+    fn available_bytes(&self, descriptor: u32) -> u64 {
+        // Cannot open files on web
+        0
+    }
+
     fn writeable_descriptor_from_path(&self, _path: &str) -> Result<u32, ()> {
         // Cannot open files on web
         Err(())
