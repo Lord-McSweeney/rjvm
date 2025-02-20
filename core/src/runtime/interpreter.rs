@@ -37,9 +37,6 @@ impl<'a> Interpreter<'a> {
         method: Method,
         args: &[Value],
     ) -> Result<Self, Error> {
-        // First, run clinits, to make sure code doesn't observe their lazy
-        // execution
-
         let prev_index = context.frame_index.get();
 
         let mut i = 0;

@@ -862,6 +862,7 @@ impl Op {
                     class_dependencies.push(class);
                 }
 
+                // TODO implement rules around when `class` is an interface
                 let real_class = if method_name.as_bytes() != b"<init>"
                     && !class.is_interface()
                     && current_class.has_super_class(class)
