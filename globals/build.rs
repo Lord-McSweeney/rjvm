@@ -10,14 +10,14 @@ fn compile_globals() {
     compile_command.args(["-d", &out_dir.to_string_lossy()]);
 
     // Compile .java files into .class files
-    let mut source_file_list = glob("./src/globals/java/*/*.java")
+    let mut source_file_list = glob("./globals/java/*/*.java")
         .expect("Valid pattern")
         .map(|p| p.expect("Files should read"))
         .collect::<Vec<_>>();
 
     // Also include files with a three-component package name.
     source_file_list.extend_from_slice(
-        &glob("./src/globals/java/*/*/*.java")
+        &glob("./globals/java/*/*/*.java")
             .expect("Valid pattern")
             .map(|p| p.expect("Files should read"))
             .collect::<Vec<_>>(),
@@ -82,7 +82,7 @@ fn compile_globals() {
 }
 
 fn main() {
-    println!("cargo:rerun-if-changed=src/globals/");
+    println!("cargo:rerun-if-changed=globals/");
 
     compile_globals();
 }
