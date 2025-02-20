@@ -38,8 +38,6 @@ pub enum NativeError {
     VerifyTypeWrong,
 
     WrongReturnType,
-
-    ArrayStoreException,
 }
 
 impl From<ClassFileError> for Error {

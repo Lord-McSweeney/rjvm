@@ -261,6 +261,23 @@ impl Context {
         Error::Java(exception_instance)
     }
 
+    pub fn array_store_exception(&self) -> Error {
+        let exception_class = self
+            .lookup_class(self.common.java_lang_array_store_exception)
+            .expect("ArrayStoreException class should exist");
+
+        let exception_instance = exception_class.new_instance(self.gc_ctx);
+        exception_instance
+            .call_construct(
+                *self,
+                self.common.noargs_void_desc,
+                &[Value::Object(Some(exception_instance))],
+            )
+            .expect("Exception class should construct");
+
+        Error::Java(exception_instance)
+    }
+
     pub fn class_cast_exception(&self) -> Error {
         let exception_class = self
             .lookup_class(self.common.java_lang_class_cast_exception)
@@ -281,7 +298,7 @@ impl Context {
     pub fn negative_array_size_exception(&self) -> Error {
         let exception_class = self
             .lookup_class(self.common.java_lang_negative_array_size_exception)
-            .expect("ClassCastException class should exist");
+            .expect("NegativeArraySizeException class should exist");
 
         let exception_instance = exception_class.new_instance(self.gc_ctx);
         exception_instance
@@ -368,6 +385,7 @@ pub struct CommonData {
 
     pub java_lang_arithmetic_exception: JvmString,
     pub java_lang_array_index_oob_exception: JvmString,
+    pub java_lang_array_store_exception: JvmString,
     pub java_lang_class_cast_exception: JvmString,
     pub java_lang_negative_array_size_exception: JvmString,
     pub java_lang_no_class_def_found_error: JvmString,
@@ -411,6 +429,10 @@ impl CommonData {
                 gc_ctx,
                 "java/lang/ArrayIndexOutOfBoundsException".to_string(),
             ),
+            java_lang_array_store_exception: JvmString::new(
+                gc_ctx,
+                "java/lang/ArrayStoreException".to_string(),
+            ),
             java_lang_class_cast_exception: JvmString::new(
                 gc_ctx,
                 "java/lang/ClassCastException".to_string(),
@@ -448,6 +470,7 @@ impl Trace for CommonData {
 
         self.java_lang_arithmetic_exception.trace();
         self.java_lang_array_index_oob_exception.trace();
+        self.java_lang_array_store_exception.trace();
         self.java_lang_class_cast_exception.trace();
         self.java_lang_negative_array_size_exception.trace();
         self.java_lang_no_class_def_found_error.trace();

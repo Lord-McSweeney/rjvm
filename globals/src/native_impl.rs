@@ -1,4 +1,4 @@
-use rjvm_core::{Context, Error, NativeError, NativeMethod, Object, Value};
+use rjvm_core::{Context, Error, NativeMethod, Object, Value};
 
 pub fn register_native_mappings(context: Context) {
     #[rustfmt::skip]
@@ -81,14 +81,14 @@ fn array_copy(context: Context, args: &[Value]) -> Result<Option<Value>, Error> 
         source_arr.class().array_value_type(),
         dest_arr.class().array_value_type(),
     ) else {
-        return Err(Error::Native(NativeError::ArrayStoreException));
+        return Err(context.array_store_exception());
     };
 
     if source_value_type != dest_value_type {
         // Only throw if either of them is a primitive type; if both are object types,
         // the type-checking will be in the actual copy loop.
         if source_value_type.is_primitive() || dest_value_type.is_primitive() {
-            return Err(Error::Native(NativeError::ArrayStoreException));
+            return Err(context.array_store_exception());
         }
     }
 
@@ -107,7 +107,7 @@ fn array_copy(context: Context, args: &[Value]) -> Result<Option<Value>, Error> 
         if let Value::Object(obj) = value {
             if let Some(obj) = obj {
                 if !obj.class().matches_descriptor(dest_value_type) {
-                    return Err(Error::Native(NativeError::ArrayStoreException));
+                    return Err(context.array_store_exception());
                 }
             }
         }
