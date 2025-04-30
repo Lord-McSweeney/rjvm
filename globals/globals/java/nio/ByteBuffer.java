@@ -11,17 +11,17 @@ public abstract class ByteBuffer extends Buffer {
 }
 
 class ArrayByteBuffer extends ByteBuffer {
-    byte[] bytes;
+    byte[] data;
 
     ArrayByteBuffer(byte[] array, int ofs, int len) {
         if (ofs < 0 || len < 0 || ofs + len > array.length) {
             throw new IndexOutOfBoundsException();
         }
 
-        byte[] bytes = new byte[len];
+        byte[] data = new byte[len];
         for (int i = ofs; i < ofs + len; i ++) {
-            bytes[i] = array[i];
+            data[i] = array[i];
         }
-        this.bytes = bytes;
+        this.data = data;
     }
 }

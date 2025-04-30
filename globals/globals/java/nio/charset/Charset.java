@@ -16,7 +16,7 @@ public abstract class Charset {
 
     public final CharBuffer decode(ByteBuffer buf) {
         // TODO implement
-        return null;
+        return CharBuffer.wrap(new char[0]);
     }
 
     public final ByteBuffer encode(CharBuffer buf) {
