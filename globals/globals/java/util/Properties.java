@@ -92,6 +92,11 @@ public class Properties extends Hashtable<Object, Object> {
         }
 
         if (state == 1) {
+            // We haven't processed the item in `next` because the loop ended:
+            // do it now
+            buffer[bufferLength] = next;
+            bufferLength ++;
+
             String value = new String(buffer, 0, bufferLength);
 
             super.put(currentKey, value);
