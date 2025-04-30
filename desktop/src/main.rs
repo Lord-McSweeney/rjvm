@@ -1,9 +1,10 @@
 use rjvm_core::{
     Class, ClassFile, Context, Jar, JvmString, MethodDescriptor, Object, ResourceLoadType, Value,
 };
-use rjvm_globals::{native_impl, GLOBALS_JAR};
+use rjvm_globals::{native_impl as base_native_impl, GLOBALS_JAR};
 
-mod backends;
+mod loader_backend;
+mod native_impl;
 
 use std::env;
 use std::fs;
@@ -180,16 +181,15 @@ fn main() {
     };
 
     // Initialize JVM
-    let loader = backends::loader::DesktopLoaderBackend::new();
-    let filesystem = backends::filesystem::DesktopFilesystemBackend::new();
-    let system = backends::system::DesktopSystemBackend::new();
-    let context = Context::new(Box::new(loader), Box::new(filesystem), Box::new(system));
+    let loader = loader_backend::DesktopLoaderBackend::new();
+    let context = Context::new(Box::new(loader));
 
     // Load globals
     let globals_jar = Jar::from_bytes(context.gc_ctx, GLOBALS_JAR.to_vec())
         .expect("Builtin globals should be valid");
     context.add_jar(globals_jar);
 
+    base_native_impl::register_native_mappings(context);
     native_impl::register_native_mappings(context);
 
     // Load the main class from options

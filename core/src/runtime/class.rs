@@ -1,8 +1,8 @@
-use super::backends::loader::ResourceLoadType;
 use super::context::Context;
 use super::descriptor::{Descriptor, MethodDescriptor, ResolvedDescriptor};
 use super::error::{Error, NativeError};
 use super::field::{Field, FieldRef};
+use super::loader::ResourceLoadType;
 use super::method::Method;
 use super::object::Object;
 use super::vtable::VTable;

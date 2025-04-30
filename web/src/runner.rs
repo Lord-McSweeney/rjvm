@@ -1,9 +1,11 @@
-use crate::backends;
+use crate::loader_backend;
+use crate::native_impl;
 use crate::output_to_err;
+
 use rjvm_core::{
     Class, ClassFile, Context, Jar, JvmString, MethodDescriptor, Object, ResourceLoadType, Value,
 };
-use rjvm_globals::{native_impl, GLOBALS_JAR};
+use rjvm_globals::{native_impl as base_native_impl, GLOBALS_JAR};
 
 fn init_main_class(
     context: Context,
@@ -81,16 +83,15 @@ fn init_main_class(
 
 pub(crate) fn run_file(class_data: &[u8], args: Vec<String>, is_jar: bool) {
     // Initialize JVM
-    let loader = backends::loader::WebLoaderBackend::new();
-    let filesystem = backends::filesystem::WebFilesystemBackend::new();
-    let system = backends::system::WebSystemBackend::new();
-    let context = Context::new(Box::new(loader), Box::new(filesystem), Box::new(system));
+    let loader = loader_backend::WebLoaderBackend::new();
+    let context = Context::new(Box::new(loader));
 
     // Load globals
     let globals_jar = Jar::from_bytes(context.gc_ctx, GLOBALS_JAR.to_vec())
         .expect("Builtin globals should be valid");
     context.add_jar(globals_jar);
 
+    base_native_impl::register_native_mappings(context);
     native_impl::register_native_mappings(context);
 
     // Load the main class from options
