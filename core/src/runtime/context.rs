@@ -21,8 +21,10 @@ pub struct Context {
     // The backend to call into to load resources.
     loader_backend: Gc<Box<dyn LoaderBackend>>,
 
-    // The global class registry.
-    class_registry: Gc<RefCell<HashMap<JvmString, Class>>>,
+    // The global class registry. This is stored as a hashmap in list form; it
+    // is assumed that classes will never be removed, so we can create integer
+    // ids to classes.
+    class_registry: Gc<RefCell<Vec<(JvmString, Class)>>>,
 
     // A map of class T to the object of type Class<T>.
     class_to_object_map: Gc<RefCell<HashMap<Class, Object>>>,
@@ -58,7 +60,7 @@ impl Context {
 
         Self {
             loader_backend: Gc::new(gc_ctx, loader_backend),
-            class_registry: Gc::new(gc_ctx, RefCell::new(HashMap::new())),
+            class_registry: Gc::new(gc_ctx, RefCell::new(Vec::new())),
             class_to_object_map: Gc::new(gc_ctx, RefCell::new(HashMap::new())),
             jar_files: Gc::new(gc_ctx, RefCell::new(Vec::new())),
             native_mapping: Gc::new(gc_ctx, RefCell::new(HashMap::new())),
@@ -108,7 +110,7 @@ impl Context {
     pub fn lookup_class(self, class_name: JvmString) -> Result<Class, Error> {
         let class_registry = self.class_registry.borrow();
 
-        if let Some(class) = class_registry.get(&class_name) {
+        if let Some((_, class)) = class_registry.iter().find(|(name, _)| name == &class_name) {
             Ok(*class)
         } else if let Some(element_name) = class_name.strip_prefix('[') {
             let element_name = JvmString::new(self.gc_ctx, element_name.to_string());
@@ -151,10 +153,31 @@ impl Context {
         let class_name = class.name();
         let mut registry = self.class_registry.borrow_mut();
 
-        if registry.contains_key(&class_name) {
+        if registry.iter().any(|(name, _)| name == &class_name) {
             panic!("Attempted to register class {} twice", class_name);
         } else {
-            registry.insert(class_name, class);
+            registry.push((class_name, class));
+        }
+    }
+
+    pub fn class_id_by_class(self, searched_class: Class) -> usize {
+        let registry = self.class_registry.borrow();
+        for (i, element) in registry.iter().enumerate() {
+            let (_, class) = element;
+            if *class == searched_class {
+                return i;
+            }
+        }
+
+        panic!("class_id_by_class expects a registered class")
+    }
+
+    pub fn class_by_class_id(self, searched_id: usize) -> Class {
+        let registry = self.class_registry.borrow();
+        if let Some((_, class)) = registry.get(searched_id) {
+            *class
+        } else {
+            panic!("class_by_class_id expects a valid class id")
         }
     }
 

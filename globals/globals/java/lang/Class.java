@@ -5,6 +5,8 @@ import java.io.IOException;
 import java.io.InputStream;
 
 public final class Class<T> {
+    private int classId;
+
     private Class() { }
 
     private String cachedName;

@@ -111,9 +111,10 @@ fn array_copy(context: Context, args: &[Value]) -> Result<Option<Value>, Error> 
 }
 
 // java/lang/Class : boolean isInterface()
-fn is_interface(_context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
+fn is_interface(context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
     // Receiver should never be null
-    let class = args[0].object().unwrap().get_stored_class();
+    let class_id = args[0].object().unwrap().get_field(0).int();
+    let class = context.class_by_class_id(class_id as usize);
 
     if class.is_interface() {
         Ok(Some(Value::Integer(1)))
@@ -135,7 +136,8 @@ fn get_class(context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
 // java/lang/Class : String getNameNative()
 fn get_name_native(context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
     // Receiver should never be null
-    let class = args[0].object().unwrap().get_stored_class();
+    let class_id = args[0].object().unwrap().get_field(0).int();
+    let class = context.class_by_class_id(class_id as usize);
 
     let string_chars = class.dot_name().encode_utf16().collect::<Vec<_>>();
 
@@ -147,7 +149,8 @@ fn get_name_native(context: Context, args: &[Value]) -> Result<Option<Value>, Er
 // java/lang/Class : byte[] getResourceData(String)
 fn get_resource_data(context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
     // Receiver should never be null
-    let class = args[0].object().unwrap().get_stored_class();
+    let class_id = args[0].object().unwrap().get_field(0).int();
+    let class = context.class_by_class_id(class_id as usize);
 
     // First argument should never be null
     let resource_name_data = args[1].object().unwrap().get_field(0).object().unwrap();

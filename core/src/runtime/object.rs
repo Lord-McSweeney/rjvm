@@ -20,7 +20,6 @@ impl Object {
             gc_ctx,
             ObjectData {
                 class,
-                native_data: NativeData::None,
                 data: FieldOrArrayData::Fields(fields),
             },
         ))
@@ -34,14 +33,18 @@ impl Object {
 
         let fields = class_class.instance_fields().to_vec().into_boxed_slice();
 
-        Self(Gc::new(
+        let class_object = Self(Gc::new(
             context.gc_ctx,
             ObjectData {
                 class: class_class,
-                native_data: NativeData::Class(class),
                 data: FieldOrArrayData::Fields(fields),
             },
-        ))
+        ));
+
+        let class_id = context.class_id_by_class(class);
+        class_object.set_field(0, Value::Integer(class_id as i32));
+
+        class_object
     }
 
     pub fn byte_array(context: Context, chars: &[u8]) -> Self {
@@ -56,7 +59,6 @@ impl Object {
                 class: context
                     .lookup_class(context.common.array_byte_desc)
                     .expect("Should lookup"),
-                native_data: NativeData::None,
                 data: FieldOrArrayData::Array(value_list.into_boxed_slice()),
             },
         ))
@@ -74,7 +76,6 @@ impl Object {
                 class: context
                     .lookup_class(context.common.array_char_desc)
                     .expect("Should lookup"),
-                native_data: NativeData::None,
                 data: FieldOrArrayData::Array(value_list.into_boxed_slice()),
             },
         ))
@@ -92,7 +93,6 @@ impl Object {
                 class: context
                     .lookup_class(context.common.array_int_desc)
                     .expect("Should lookup"),
-                native_data: NativeData::None,
                 data: FieldOrArrayData::Array(value_list.into_boxed_slice()),
             },
         ))
@@ -110,7 +110,6 @@ impl Object {
                 class: context
                     .lookup_class(context.common.array_long_desc)
                     .expect("Should lookup"),
-                native_data: NativeData::None,
                 data: FieldOrArrayData::Array(value_list.into_boxed_slice()),
             },
         ))
@@ -128,7 +127,6 @@ impl Object {
             context.gc_ctx,
             ObjectData {
                 class: Class::for_array(context, descriptor),
-                native_data: NativeData::None,
                 data: FieldOrArrayData::Array(value_list.into_boxed_slice()),
             },
         ))
@@ -300,13 +298,6 @@ impl Object {
         }
     }
 
-    pub fn get_stored_class(&self) -> Class {
-        match self.0.native_data {
-            NativeData::Class(class) => class,
-            NativeData::None => unreachable!(),
-        }
-    }
-
     pub fn call_construct(
         self,
         context: Context,
@@ -339,8 +330,6 @@ impl Trace for Object {
 struct ObjectData {
     class: Class,
 
-    native_data: NativeData,
-
     data: FieldOrArrayData,
 }
 
@@ -348,7 +337,6 @@ impl Trace for ObjectData {
     #[inline(always)]
     fn trace(&self) {
         self.class.trace();
-        self.native_data.trace();
         self.data.trace();
     }
 }
@@ -365,24 +353,6 @@ impl Trace for FieldOrArrayData {
         match self {
             FieldOrArrayData::Fields(data) => data.trace(),
             FieldOrArrayData::Array(data) => data.trace(),
-        }
-    }
-}
-
-#[derive(Clone, Copy, Debug)]
-enum NativeData {
-    None,
-    Class(Class),
-}
-
-impl Trace for NativeData {
-    #[inline(always)]
-    fn trace(&self) {
-        match self {
-            NativeData::None => {}
-            NativeData::Class(class) => {
-                class.trace();
-            }
         }
     }
 }
