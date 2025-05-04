@@ -304,6 +304,23 @@ impl Context {
         Error::Java(exception_instance)
     }
 
+    pub fn clone_not_supported_exception(&self) -> Error {
+        let exception_class = self
+            .lookup_class(self.common.java_lang_clone_not_supported_exception)
+            .expect("CloneNotSupportedException class should exist");
+
+        let exception_instance = exception_class.new_instance(self.gc_ctx);
+        exception_instance
+            .call_construct(
+                *self,
+                self.common.noargs_void_desc,
+                &[Value::Object(Some(exception_instance))],
+            )
+            .expect("Exception class should construct");
+
+        Error::Java(exception_instance)
+    }
+
     pub fn negative_array_size_exception(&self) -> Error {
         let exception_class = self
             .lookup_class(self.common.java_lang_negative_array_size_exception)
@@ -394,6 +411,8 @@ pub struct CommonData {
     pub java_lang_array_index_oob_exception: JvmString,
     pub java_lang_array_store_exception: JvmString,
     pub java_lang_class_cast_exception: JvmString,
+    pub java_lang_clone_not_supported_exception: JvmString,
+    pub java_lang_cloneable: JvmString,
     pub java_lang_negative_array_size_exception: JvmString,
     pub java_lang_no_class_def_found_error: JvmString,
     pub java_lang_null_pointer_exception: JvmString,
@@ -445,6 +464,11 @@ impl CommonData {
                 gc_ctx,
                 "java/lang/ClassCastException".to_string(),
             ),
+            java_lang_clone_not_supported_exception: JvmString::new(
+                gc_ctx,
+                "java/lang/CloneNotSupportedException".to_string(),
+            ),
+            java_lang_cloneable: JvmString::new(gc_ctx, "java/lang/Cloneable".to_string()),
             java_lang_negative_array_size_exception: JvmString::new(
                 gc_ctx,
                 "java/lang/NegativeArraySizeException".to_string(),
@@ -481,6 +505,8 @@ impl Trace for CommonData {
         self.java_lang_array_index_oob_exception.trace();
         self.java_lang_array_store_exception.trace();
         self.java_lang_class_cast_exception.trace();
+        self.java_lang_clone_not_supported_exception.trace();
+        self.java_lang_cloneable.trace();
         self.java_lang_negative_array_size_exception.trace();
         self.java_lang_no_class_def_found_error.trace();
         self.java_lang_null_pointer_exception.trace();

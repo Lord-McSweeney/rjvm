@@ -315,6 +315,19 @@ impl Object {
         }
     }
 
+    /// Create a clone of this object
+    pub fn create_clone(self, gc_ctx: GcCtx) -> Object {
+        let cloned_data = self.0.data.clone();
+
+        Self(Gc::new(
+            gc_ctx,
+            ObjectData {
+                class: self.0.class,
+                data: cloned_data,
+            },
+        ))
+    }
+
     pub fn call_construct(
         self,
         context: Context,
@@ -358,7 +371,7 @@ impl Trace for ObjectData {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 enum FieldOrArrayData {
     Fields(Box<[Field]>),
     Array(Box<[Cell<Value>]>),

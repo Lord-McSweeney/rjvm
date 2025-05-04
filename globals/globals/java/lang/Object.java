@@ -19,7 +19,5 @@ public class Object {
         return this == other;
     }
 
-    protected Object clone() throws CloneNotSupportedException {
-        throw new CloneNotSupportedException();
-    }
+    protected native Object clone() throws CloneNotSupportedException;
 }

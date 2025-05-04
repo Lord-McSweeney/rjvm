@@ -6,8 +6,11 @@ IMPORTANT:
 If you want to replace or edit the classes defined here, be sure to keep the following classes:
 - `java/lang/ArithmeticException`
 - `java/lang/ArrayIndexOutOfBoundsException`
+- `java/lang/ArrayStoreException`
 - `java/lang/Class`
 - `java/lang/ClassCastException`
+- `java/lang/CloneNotSupportedException`
+- `java/lang/Cloneable`
 - `java/lang/NegativeArraySizeException`
 - `java/lang/NoClassDefFoundError`
 - `java/lang/NullPointerException`

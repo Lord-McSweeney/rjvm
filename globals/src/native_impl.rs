@@ -11,6 +11,7 @@ pub fn register_native_mappings(context: Context) {
         ("java/lang/Class.getResourceData.(Ljava/lang/String;)[B", get_resource_data),
         ("java/lang/Math.log.(D)D", math_log),
         ("java/lang/Math.pow.(DD)D", math_pow),
+        ("java/lang/Object.clone.()Ljava/lang/Object;", object_clone),
     ];
 
     context.register_native_mappings(mappings);
@@ -185,4 +186,23 @@ fn math_pow(_context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
     let exp = args[1].double();
 
     Ok(Some(Value::Double(base.powf(exp))))
+}
+
+fn object_clone(context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
+    let this = args[0].object().unwrap();
+    let this_class = this.class();
+
+    let cloneable_iface = context
+        .lookup_class(context.common.java_lang_cloneable)
+        .expect("Cloneable class should exist");
+
+    let implements_cloneable = this_class.implements_interface(cloneable_iface);
+
+    if implements_cloneable || this_class.array_value_type().is_some() {
+        let cloned_object = this.create_clone(context.gc_ctx);
+
+        Ok(Some(Value::Object(Some(cloned_object))))
+    } else {
+        Err(context.clone_not_supported_exception())
+    }
 }
