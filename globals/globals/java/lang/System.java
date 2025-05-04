@@ -45,6 +45,15 @@ public final class System {
         return defaultValue;
     }
 
+    public static String setProperty(String propName, String newValue) {
+        if (propName == null || newValue == null) {
+            throw new NullPointerException();
+        }
+
+        // TODO implement
+        return null;
+    }
+
     public static native void exit(int status);
 
     static {
