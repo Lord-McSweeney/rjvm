@@ -402,6 +402,7 @@ pub struct CommonData {
     pub array_char_desc: JvmString,
     pub array_int_desc: JvmString,
     pub array_long_desc: JvmString,
+    pub array_bool_desc: JvmString,
 
     pub init_name: JvmString,
     pub clinit_name: JvmString,
@@ -460,6 +461,7 @@ impl CommonData {
             array_char_desc: JvmString::new(gc_ctx, "[C".to_string()),
             array_int_desc: JvmString::new(gc_ctx, "[I".to_string()),
             array_long_desc: JvmString::new(gc_ctx, "[J".to_string()),
+            array_bool_desc: JvmString::new(gc_ctx, "[Z".to_string()),
             init_name: JvmString::new(gc_ctx, "<init>".to_string()),
             clinit_name: JvmString::new(gc_ctx, "<clinit>".to_string()),
             noargs_void_desc,
@@ -487,6 +489,7 @@ impl Trace for CommonData {
         self.array_char_desc.trace();
         self.array_int_desc.trace();
         self.array_long_desc.trace();
+        self.array_bool_desc.trace();
 
         self.init_name.trace();
         self.clinit_name.trace();

@@ -1296,6 +1296,11 @@ impl<'a> Interpreter<'a> {
 
                 Object::long_array(self.context, &longs)
             }
+            ArrayType::Boolean => {
+                let bools = vec![false; array_length];
+
+                Object::bool_array(self.context, &bools)
+            }
             _ => unimplemented!("Array type {:?} unimplemented", array_type),
         };
 

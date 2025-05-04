@@ -115,6 +115,23 @@ impl Object {
         ))
     }
 
+    pub fn bool_array(context: Context, bools: &[bool]) -> Self {
+        let value_list = bools
+            .iter()
+            .map(|b| Cell::new(Value::Integer((*b).into())))
+            .collect::<Vec<_>>();
+
+        Self(Gc::new(
+            context.gc_ctx,
+            ObjectData {
+                class: context
+                    .lookup_class(context.common.array_bool_desc)
+                    .expect("Should lookup"),
+                data: FieldOrArrayData::Array(value_list.into_boxed_slice()),
+            },
+        ))
+    }
+
     pub fn obj_array(context: Context, class: Class, objs: &[Option<Object>]) -> Self {
         let value_list = objs
             .iter()
