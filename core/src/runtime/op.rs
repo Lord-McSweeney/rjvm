@@ -65,6 +65,7 @@ pub enum Op {
     LXor,
     IInc(usize, i32),
     I2L,
+    I2D,
     L2I,
     D2I,
     I2B,
@@ -178,6 +179,7 @@ impl Trace for Op {
             Op::LXor => {}
             Op::IInc(_, _) => {}
             Op::I2L => {}
+            Op::I2D => {}
             Op::L2I => {}
             Op::D2I => {}
             Op::I2B => {}
@@ -343,6 +345,7 @@ const L_OR: u8 = 0x81;
 const L_XOR: u8 = 0x83;
 const I_INC: u8 = 0x84;
 const I2L: u8 = 0x85;
+const I2D: u8 = 0x87;
 const L2I: u8 = 0x88;
 const D2I: u8 = 0x8E;
 const I2B: u8 = 0x91;
@@ -638,6 +641,7 @@ impl Op {
                 Ok(Op::IInc(local_idx as usize, constant as i32))
             }
             I2L => Ok(Op::I2L),
+            I2D => Ok(Op::I2D),
             L2I => Ok(Op::L2I),
             D2I => Ok(Op::D2I),
             I2B => Ok(Op::I2B),
