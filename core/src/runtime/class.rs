@@ -251,6 +251,8 @@ impl Class {
         Ok(())
     }
 
+    /// DO NOT USE THIS TO GET ARRAY CLASSES! It WILL create duplicate classes
+    /// for the same `array_type`! Use `Context::array_class_for` instead.
     pub fn for_array(context: Context, array_type: ResolvedDescriptor) -> Self {
         let object_class_name = context.common.java_lang_object;
         let object_class = context

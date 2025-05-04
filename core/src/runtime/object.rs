@@ -143,7 +143,7 @@ impl Object {
         Self(Gc::new(
             context.gc_ctx,
             ObjectData {
-                class: Class::for_array(context, descriptor),
+                class: context.array_class_for(descriptor),
                 data: FieldOrArrayData::Array(value_list.into_boxed_slice()),
             },
         ))

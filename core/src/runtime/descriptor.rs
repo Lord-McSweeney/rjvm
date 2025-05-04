@@ -156,7 +156,7 @@ impl ResolvedDescriptor {
             Descriptor::Array(inner_descriptor) => {
                 let inner_resolved =
                     ResolvedDescriptor::from_descriptor(context, *inner_descriptor)?;
-                let class = Class::for_array(context, inner_resolved);
+                let class = context.array_class_for(inner_resolved);
 
                 ResolvedDescriptor::Array(class)
             }

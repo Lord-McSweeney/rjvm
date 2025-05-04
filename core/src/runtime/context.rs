@@ -29,6 +29,9 @@ pub struct Context {
     // A map of class T to the object of type Class<T>.
     class_to_object_map: Gc<RefCell<HashMap<Class, Object>>>,
 
+    // A map of descriptor D to class [D.
+    array_classes: Gc<RefCell<HashMap<ResolvedDescriptor, Class>>>,
+
     // A list of JAR files to check for classes.
     jar_files: Gc<RefCell<Vec<Jar>>>,
 
@@ -62,6 +65,7 @@ impl Context {
             loader_backend: Gc::new(gc_ctx, loader_backend),
             class_registry: Gc::new(gc_ctx, RefCell::new(Vec::new())),
             class_to_object_map: Gc::new(gc_ctx, RefCell::new(HashMap::new())),
+            array_classes: Gc::new(gc_ctx, RefCell::new(HashMap::new())),
             jar_files: Gc::new(gc_ctx, RefCell::new(Vec::new())),
             native_mapping: Gc::new(gc_ctx, RefCell::new(HashMap::new())),
             frame_data: Gc::new(gc_ctx, RefCell::new(empty_frame_data)),
@@ -121,7 +125,7 @@ impl Context {
             let resolved_descriptor =
                 ResolvedDescriptor::from_descriptor(self, element_descriptor)?;
 
-            let created_class = Class::for_array(self, resolved_descriptor);
+            let created_class = self.array_class_for(resolved_descriptor);
             self.register_class(created_class);
 
             Ok(created_class)
@@ -206,6 +210,21 @@ impl Context {
             class_objects.insert(class, object);
 
             object
+        }
+    }
+
+    // Used to avoid making multiple array classes for one array type
+    pub fn array_class_for(self, descriptor: ResolvedDescriptor) -> Class {
+        let array_classes = self.array_classes.borrow();
+        if let Some(class) = array_classes.get(&descriptor) {
+            *class
+        } else {
+            drop(array_classes);
+            let created_class = Class::for_array(self, descriptor);
+            self.array_classes
+                .borrow_mut()
+                .insert(descriptor, created_class);
+            created_class
         }
     }
 
@@ -379,6 +398,7 @@ impl Trace for Context {
 
         self.class_registry.trace();
         self.class_to_object_map.trace();
+        self.array_classes.trace();
         self.jar_files.trace();
         self.native_mapping.trace();
 
