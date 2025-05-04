@@ -507,6 +507,9 @@ fn verify_block<'a>(
             Op::LConst(_) => {
                 push_stack!(Long);
             }
+            Op::DConst(_) => {
+                push_stack!(Double);
+            }
             Op::Ldc(constant_pool_entry) => match constant_pool_entry {
                 ConstantPoolEntry::String { .. } => {
                     push_stack!(Reference);
@@ -584,6 +587,13 @@ fn verify_block<'a>(
             Op::LStore(index) => {
                 expect_pop_stack!(Long);
                 set_local!(*index, Long);
+
+                // The docs aren't clear on this, but this is expected
+                set_local!(*index + 1, Invalid);
+            }
+            Op::DStore(index) => {
+                expect_pop_stack!(Double);
+                set_local!(*index, Double);
 
                 // The docs aren't clear on this, but this is expected
                 set_local!(*index + 1, Invalid);
@@ -700,6 +710,11 @@ fn verify_block<'a>(
                 expect_pop_stack!(Long);
                 push_stack!(Long);
             }
+            Op::DAdd | Op::DSub | Op::DMul | Op::DDiv => {
+                expect_pop_stack!(Double);
+                expect_pop_stack!(Double);
+                push_stack!(Double);
+            }
             Op::INeg => {
                 expect_pop_stack!(Integer);
                 push_stack!(Integer);
@@ -738,6 +753,10 @@ fn verify_block<'a>(
             }
             Op::L2I => {
                 expect_pop_stack!(Long);
+                push_stack!(Integer);
+            }
+            Op::D2I => {
+                expect_pop_stack!(Double);
                 push_stack!(Integer);
             }
             Op::I2B | Op::I2C | Op::I2S => {

@@ -101,6 +101,7 @@ impl<'a> Interpreter<'a> {
                 Op::AConstNull => self.op_a_const_null(),
                 Op::IConst(val) => self.op_i_const(*val),
                 Op::LConst(val) => self.op_l_const(*val),
+                Op::DConst(val) => self.op_d_const(*val),
                 Op::Ldc(constant_pool_entry) | Op::Ldc2(constant_pool_entry) => {
                     self.op_ldc(*constant_pool_entry)
                 }
@@ -115,6 +116,7 @@ impl<'a> Interpreter<'a> {
                 Op::CaLoad => self.op_ca_load(),
                 Op::IStore(index) => self.op_i_store(*index),
                 Op::LStore(index) => self.op_l_store(*index),
+                Op::DStore(index) => self.op_d_store(*index),
                 Op::AStore(index) => self.op_a_store(*index),
                 Op::IaStore => self.op_ia_store(),
                 Op::LaStore => self.op_la_store(),
@@ -127,10 +129,14 @@ impl<'a> Interpreter<'a> {
                 Op::Dup2 => self.op_dup_2(),
                 Op::IAdd => self.op_i_add(),
                 Op::LAdd => self.op_l_add(),
+                Op::DAdd => self.op_d_add(),
                 Op::ISub => self.op_i_sub(),
                 Op::LSub => self.op_l_sub(),
+                Op::DSub => self.op_d_sub(),
                 Op::IMul => self.op_i_mul(),
+                Op::DMul => self.op_d_mul(),
                 Op::IDiv => self.op_i_div(),
+                Op::DDiv => self.op_d_div(),
                 Op::IRem => self.op_i_rem(),
                 Op::INeg => self.op_i_neg(),
                 Op::IShl => self.op_i_shl(),
@@ -146,6 +152,7 @@ impl<'a> Interpreter<'a> {
                 Op::IInc(index, amount) => self.op_i_inc(*index, *amount),
                 Op::I2L => self.op_i2l(),
                 Op::L2I => self.op_l2i(),
+                Op::D2I => self.op_d2i(),
                 Op::I2B => self.op_i2b(),
                 Op::I2C => self.op_i2c(),
                 Op::I2S => self.op_i2s(),
@@ -268,6 +275,12 @@ impl<'a> Interpreter<'a> {
 
     fn op_l_const(&mut self, value: i8) -> Result<ControlFlow, Error> {
         self.stack_push(Value::Long(value as i64));
+
+        Ok(ControlFlow::Continue)
+    }
+
+    fn op_d_const(&mut self, value: f64) -> Result<ControlFlow, Error> {
+        self.stack_push(Value::Double(value));
 
         Ok(ControlFlow::Continue)
     }
@@ -457,6 +470,14 @@ impl<'a> Interpreter<'a> {
         Ok(ControlFlow::Continue)
     }
 
+    fn op_d_store(&mut self, index: usize) -> Result<ControlFlow, Error> {
+        let value = self.stack_pop();
+
+        self.set_local_reg(index, value);
+
+        Ok(ControlFlow::Continue)
+    }
+
     fn op_a_store(&mut self, index: usize) -> Result<ControlFlow, Error> {
         let value = self.stack_pop();
 
@@ -619,6 +640,15 @@ impl<'a> Interpreter<'a> {
         Ok(ControlFlow::Continue)
     }
 
+    fn op_d_add(&mut self) -> Result<ControlFlow, Error> {
+        let int1 = self.stack_pop().double();
+        let int2 = self.stack_pop().double();
+
+        self.stack_push(Value::Double(int1 + int2));
+
+        Ok(ControlFlow::Continue)
+    }
+
     fn op_i_sub(&mut self) -> Result<ControlFlow, Error> {
         let int1 = self.stack_pop().int();
         let int2 = self.stack_pop().int();
@@ -637,11 +667,29 @@ impl<'a> Interpreter<'a> {
         Ok(ControlFlow::Continue)
     }
 
+    fn op_d_sub(&mut self) -> Result<ControlFlow, Error> {
+        let int1 = self.stack_pop().double();
+        let int2 = self.stack_pop().double();
+
+        self.stack_push(Value::Double(int2 - int1));
+
+        Ok(ControlFlow::Continue)
+    }
+
     fn op_i_mul(&mut self) -> Result<ControlFlow, Error> {
         let int1 = self.stack_pop().int();
         let int2 = self.stack_pop().int();
 
         self.stack_push(Value::Integer(int1 * int2));
+
+        Ok(ControlFlow::Continue)
+    }
+
+    fn op_d_mul(&mut self) -> Result<ControlFlow, Error> {
+        let int1 = self.stack_pop().double();
+        let int2 = self.stack_pop().double();
+
+        self.stack_push(Value::Double(int1 * int2));
 
         Ok(ControlFlow::Continue)
     }
@@ -657,6 +705,15 @@ impl<'a> Interpreter<'a> {
 
             Ok(ControlFlow::Continue)
         }
+    }
+
+    fn op_d_div(&mut self) -> Result<ControlFlow, Error> {
+        let int1 = self.stack_pop().double();
+        let int2 = self.stack_pop().double();
+
+        self.stack_push(Value::Double(int2 / int1));
+
+        Ok(ControlFlow::Continue)
     }
 
     fn op_i_rem(&mut self) -> Result<ControlFlow, Error> {
@@ -790,6 +847,14 @@ impl<'a> Interpreter<'a> {
         let long = self.stack_pop().long();
 
         self.stack_push(Value::Integer(long as i32));
+
+        Ok(ControlFlow::Continue)
+    }
+
+    fn op_d2i(&mut self) -> Result<ControlFlow, Error> {
+        let double = self.stack_pop().double();
+
+        self.stack_push(Value::Integer(double as i32));
 
         Ok(ControlFlow::Continue)
     }

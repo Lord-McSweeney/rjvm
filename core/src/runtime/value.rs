@@ -33,6 +33,13 @@ impl Value {
         }
     }
 
+    pub fn double(self) -> f64 {
+        match self {
+            Value::Double(double) => double,
+            _ => panic!("Expected value to be double"),
+        }
+    }
+
     pub fn object(self) -> Option<Object> {
         match self {
             Value::Object(object) => object,
