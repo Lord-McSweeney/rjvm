@@ -9,6 +9,8 @@ pub fn register_native_mappings(context: Context) {
         ("java/lang/Object.getClass.()Ljava/lang/Class;", get_class),
         ("java/lang/Class.getNameNative.()Ljava/lang/String;", get_name_native),
         ("java/lang/Class.getResourceData.(Ljava/lang/String;)[B", get_resource_data),
+        ("java/lang/Math.log.(D)D", math_log),
+        ("java/lang/Math.pow.(DD)D", math_pow),
     ];
 
     context.register_native_mappings(mappings);
@@ -170,4 +172,17 @@ fn get_resource_data(context: Context, args: &[Value]) -> Result<Option<Value>, 
     } else {
         Ok(Some(Value::Object(None)))
     }
+}
+
+fn math_log(_context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
+    let value = args[0].double();
+
+    Ok(Some(Value::Double(value.ln())))
+}
+
+fn math_pow(_context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
+    let base = args[0].double();
+    let exp = args[1].double();
+
+    Ok(Some(Value::Double(base.powf(exp))))
 }
