@@ -6,7 +6,7 @@ use rjvm_core::{Context, Error, NativeMethod, Value};
 pub fn register_native_mappings(context: Context) {
     #[rustfmt::skip]
     let mappings: &[(&str, NativeMethod)] = &[
-        ("java/lang/System.exit.(I)V;", system_exit),
+        ("java/lang/Runtime.exit.(I)V;", system_exit),
         ("java/io/File.internalInitFileData.([B)V", internal_init_file_data),
         ("java/io/File.getCanonicalPath.()Ljava/lang/String;", file_get_canonical_path),
         ("java/io/File.getAbsolutePath.()Ljava/lang/String;", file_get_absolute_path),
@@ -22,7 +22,7 @@ pub fn register_native_mappings(context: Context) {
 
 // java/lang/System : static void exit(int)
 fn system_exit(_context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
-    let exit_code = args[0].int();
+    let exit_code = args[1].int();
 
     // No exit function on web
     panic!("System.exit called (code {})", exit_code)

@@ -9,6 +9,8 @@ import java.io.OutputStream;
 import java.io.PrintStream;
 
 public final class System {
+    private System() { }
+
     public static InputStream in = null;
     public static PrintStream out = null;
     public static PrintStream err = null;
@@ -54,7 +56,9 @@ public final class System {
         return null;
     }
 
-    public static native void exit(int status);
+    public static void exit(int status) {
+        Runtime.getRuntime().exit(status);
+    }
 
     static {
         in = new FileInputStream(FileDescriptor.in);
