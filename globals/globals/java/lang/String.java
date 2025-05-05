@@ -237,6 +237,38 @@ public final class String {
         return new String(this.data, start, end - start);
     }
 
+    public String[] split(String delim) {
+        // TODO handle delim=""
+
+        int resultSize = 1;
+        for (int i = 0; i < this.data.length; i ++) {
+            if (this.indexOf(delim, i) == i) {
+                i += delim.data.length - 1;
+                if (i != this.data.length - 1) {
+                    resultSize += 1;
+                }
+            }
+        }
+
+        String[] results = new String[resultSize];
+        int numResults = 0;
+
+        int lastStart = 0;
+        for (int i = 0; i < this.data.length; i ++) {
+            if (this.indexOf(delim, i) == i) {
+                results[numResults ++] = this.substring(lastStart, i);
+                i += delim.data.length - 1;
+                lastStart = i + 1;
+            }
+        }
+
+        if (lastStart != this.data.length) {
+            results[numResults] = this.substring(lastStart, this.data.length);
+        }
+
+        return results;
+    }
+
     public int length() {
         return this.data.length;
     }
