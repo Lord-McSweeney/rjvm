@@ -107,6 +107,7 @@ pub enum Op {
     AThrow,
     CheckCast(Class),
     InstanceOf(Class),
+    MultiANewArray(Class, u8),
     IfNull(usize),
     IfNonNull(usize),
 }
@@ -249,6 +250,9 @@ impl Trace for Op {
             Op::InstanceOf(class) => {
                 class.trace();
             }
+            Op::MultiANewArray(class, _) => {
+                class.trace();
+            }
             Op::IfNull(_) => {}
             Op::IfNonNull(_) => {}
         }
@@ -387,6 +391,7 @@ const ARRAY_LENGTH: u8 = 0xBE;
 const A_THROW: u8 = 0xBF;
 const CHECK_CAST: u8 = 0xC0;
 const INSTANCE_OF: u8 = 0xC1;
+const MULTI_A_NEW_ARRAY: u8 = 0xC5;
 const IF_NULL: u8 = 0xC6;
 const IF_NON_NULL: u8 = 0xC7;
 
@@ -1050,6 +1055,33 @@ impl Op {
                 }
 
                 Ok(Op::InstanceOf(class))
+            }
+            MULTI_A_NEW_ARRAY => {
+                let class_idx = data.read_u16()?;
+                let class_name = constant_pool.get_class(class_idx)?;
+
+                let mut class = context.lookup_class(class_name)?;
+
+                // Get the innermost class of this class if we were given an array class.
+                while let Some(resolved_descriptor) = class.array_value_type() {
+                    if let Some(inner_class) = resolved_descriptor.class() {
+                        class = inner_class;
+                    } else {
+                        return Err(Error::Native(NativeError::VerifyTypeWrong));
+                    }
+                }
+
+                if !class_dependencies.contains(&class) {
+                    class_dependencies.push(class);
+                }
+
+                let dim_count = data.read_u8()?;
+
+                if dim_count == 0 {
+                    return Err(Error::Native(NativeError::VerifyCountWrong));
+                }
+
+                Ok(Op::MultiANewArray(class, dim_count))
             }
             IF_NULL => {
                 let offset = data.read_u16()? as i16 as isize;

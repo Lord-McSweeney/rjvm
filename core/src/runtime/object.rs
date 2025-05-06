@@ -138,7 +138,12 @@ impl Object {
             .map(|b| Cell::new(Value::Object(*b)))
             .collect::<Vec<_>>();
 
-        let descriptor = ResolvedDescriptor::Class(class);
+        // If this is an array of arrays, use an array type for its type instead of a class type
+        let descriptor = if class.array_value_type().is_some() {
+            ResolvedDescriptor::Array(class)
+        } else {
+            ResolvedDescriptor::Class(class)
+        };
 
         Self(Gc::new(
             context.gc_ctx,

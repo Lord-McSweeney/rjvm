@@ -213,6 +213,13 @@ impl ResolvedDescriptor {
 
         result
     }
+
+    pub fn class(self) -> Option<Class> {
+        match self {
+            ResolvedDescriptor::Class(class) | ResolvedDescriptor::Array(class) => Some(class),
+            _ => None,
+        }
+    }
 }
 
 impl Trace for ResolvedDescriptor {

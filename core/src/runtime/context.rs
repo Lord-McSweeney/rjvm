@@ -126,7 +126,7 @@ impl Context {
                 ResolvedDescriptor::from_descriptor(self, element_descriptor)?;
 
             let created_class = self.array_class_for(resolved_descriptor);
-            self.register_class(created_class);
+            // `array_class_for` will register the class in the registry
 
             Ok(created_class)
         } else {
@@ -224,6 +224,7 @@ impl Context {
             self.array_classes
                 .borrow_mut()
                 .insert(descriptor, created_class);
+            self.register_class(created_class);
             created_class
         }
     }

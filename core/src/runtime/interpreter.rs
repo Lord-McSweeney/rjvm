@@ -1,6 +1,6 @@
 use super::class::Class;
 use super::context::Context;
-use super::descriptor::MethodDescriptor;
+use super::descriptor::{MethodDescriptor, ResolvedDescriptor};
 use super::error::{Error, NativeError};
 use super::method::{Exception, Method};
 use super::object::Object;
@@ -205,6 +205,9 @@ impl<'a> Interpreter<'a> {
                 Op::AThrow => self.op_a_throw(),
                 Op::CheckCast(class) => self.op_check_cast(*class),
                 Op::InstanceOf(class) => self.op_instance_of(*class),
+                Op::MultiANewArray(class, dim_count) => {
+                    self.op_multi_a_new_array(*class, *dim_count)
+                }
                 Op::IfNull(position) => self.op_if_null(*position),
                 Op::IfNonNull(position) => self.op_if_non_null(*position),
             };
@@ -1342,7 +1345,6 @@ impl<'a> Interpreter<'a> {
         self.context.increment_gc_counter();
 
         let array_length = self.stack_pop().int();
-
         if array_length < 0 {
             return Err(self.context.negative_array_size_exception());
         }
@@ -1388,14 +1390,11 @@ impl<'a> Interpreter<'a> {
         self.context.increment_gc_counter();
 
         let array_length = self.stack_pop().int();
-
         if array_length < 0 {
             return Err(self.context.negative_array_size_exception());
         }
 
-        let array_length = array_length as usize;
-
-        let nulls = vec![None; array_length];
+        let nulls = vec![None; array_length as usize];
 
         let array_object = Object::obj_array(self.context, class, &nulls);
         self.stack_push(Value::Object(Some(array_object)));
@@ -1470,6 +1469,60 @@ impl<'a> Interpreter<'a> {
         } else {
             self.stack_push(Value::Integer(0));
         }
+
+        Ok(ControlFlow::Continue)
+    }
+
+    fn op_multi_a_new_array(&mut self, class: Class, dim_count: u8) -> Result<ControlFlow, Error> {
+        // This does an allocation; we should increment the gc counter
+        self.context.increment_gc_counter();
+
+        // FIXME: Do this without the temporary Vec
+
+        let mut dimensions = Vec::with_capacity(dim_count as usize);
+        for _ in 0..dim_count {
+            let array_length = self.stack_pop().int();
+            if array_length < 0 {
+                return Err(self.context.negative_array_size_exception());
+            }
+
+            dimensions.push(array_length as usize);
+        }
+        dimensions.reverse();
+
+        // Now that we have the dimensions, let's create the array
+
+        fn recursive_create_array(
+            context: Context,
+            class: Class,
+            dimensions: &Vec<usize>,
+            dim_index: usize,
+        ) -> Option<Object> {
+            let Some(elem_count) = dimensions.get(dim_index).copied() else {
+                // The iterator is finished; we're going to fill the elements of the
+                // innermost arrays with `null`.
+                return None;
+            };
+
+            let mut elems = vec![None; elem_count];
+            for elem in elems.iter_mut() {
+                *elem = recursive_create_array(context, class, dimensions, dim_index + 1);
+            }
+
+            let mut descriptor = ResolvedDescriptor::Class(class);
+            let mut class = class;
+            let levels_left = (dimensions.len() - dim_index) - 1;
+            for _ in 0..levels_left {
+                class = context.array_class_for(descriptor);
+                descriptor = ResolvedDescriptor::Array(class);
+            }
+
+            Some(Object::obj_array(context, class, &elems))
+        }
+
+        let object = recursive_create_array(self.context, class, &dimensions, 0)
+            .expect("dim_count did not == 0");
+        self.stack_push(Value::Object(Some(object)));
 
         Ok(ControlFlow::Continue)
     }

@@ -1144,6 +1144,13 @@ fn verify_block<'a>(
                 expect_pop_stack!(Reference);
                 push_stack!(Integer);
             }
+            Op::MultiANewArray(_, dimension_count) => {
+                for _ in 0..(*dimension_count) {
+                    expect_pop_stack!(Integer);
+                }
+
+                push_stack!(Reference);
+            }
             Op::IfNull(_) => {
                 expect_pop_stack!(Reference);
             }
