@@ -118,9 +118,13 @@ impl Method {
     }
 
     fn parse_info(self, context: Context) -> Result<(), Error> {
-        let new_method_info = match &*self.0.method_info.borrow() {
+        let borrow = self.0.method_info.borrow();
+
+        let new_method_info = match &*borrow {
             MethodInfo::BytecodeUnparsed(code_data) => {
                 let cloned_data = code_data.clone();
+
+                drop(borrow);
 
                 // Clone again...
                 let bytecode_method_info =
@@ -318,6 +322,7 @@ impl Trace for BytecodeMethodInfo {
     fn trace(&self) {
         self.code.trace();
         self.exceptions.trace();
+        self.class_dependencies.trace();
     }
 }
 
