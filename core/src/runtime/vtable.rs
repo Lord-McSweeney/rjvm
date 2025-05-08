@@ -110,3 +110,92 @@ where
         self.mapping.trace();
     }
 }
+
+pub struct OverridingVTable<T, E>(Gc<OverridingVTableData<T, E>>);
+
+impl<T, E> Clone for OverridingVTable<T, E> {
+    fn clone(&self) -> Self {
+        *self
+    }
+}
+
+impl<T, E> Copy for OverridingVTable<T, E> {}
+
+impl<T: Copy + Debug + Eq + Hash, E: Copy + Debug> OverridingVTable<T, E> {
+    pub fn empty(gc_ctx: GcCtx) -> Self {
+        Self(Gc::new(
+            gc_ctx,
+            OverridingVTableData {
+                class: None,
+                mapping: HashMap::new(),
+                elements: Box::new([]),
+            },
+        ))
+    }
+
+    pub fn from_parent_and_keys(
+        gc_ctx: GcCtx,
+        class: Option<Class>,
+        parent: Option<OverridingVTable<T, E>>,
+        data: Vec<(T, E)>,
+    ) -> Self {
+        let mut new_mapping = parent.map(|p| p.0.mapping.clone()).unwrap_or_default();
+        let mut new_elements = parent
+            .map(|p| p.0.elements.clone())
+            .unwrap_or_default()
+            .to_vec();
+
+        for (key, element) in data {
+            if let Some(idx) = new_mapping.get(&key) {
+                // Override of function
+                new_elements[*idx] = element;
+            } else {
+                new_mapping.insert(key, new_elements.len());
+                new_elements.push(element);
+            }
+        }
+
+        Self(Gc::new(
+            gc_ctx,
+            OverridingVTableData {
+                class,
+                mapping: new_mapping,
+                elements: new_elements.into_boxed_slice(),
+            },
+        ))
+    }
+
+    pub fn lookup(self, key: T) -> Option<usize> {
+        self.0.mapping.get(&key).copied()
+    }
+
+    pub fn get_element(self, index: usize) -> E {
+        self.0.elements[index]
+    }
+}
+
+impl<T: Trace, E: Trace> Trace for OverridingVTable<T, E> {
+    fn trace(&self) {
+        self.0.trace();
+    }
+}
+
+struct OverridingVTableData<T, E> {
+    /// The class that created this vtable. This is entirely optional and
+    /// only used for debugging.
+    class: Option<Class>,
+
+    /// A mapping of T (a tuple (name, descriptor) ) to slot index.
+    mapping: HashMap<T, usize>,
+
+    /// The items on this VTable.
+    elements: Box<[E]>,
+}
+
+impl<T: Trace, E: Trace> Trace for OverridingVTableData<T, E> {
+    fn trace(&self) {
+        self.class.trace();
+        self.mapping.trace();
+        self.elements.trace();
+    }
+}

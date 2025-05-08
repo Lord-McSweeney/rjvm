@@ -5,7 +5,7 @@ use super::field::{Field, FieldRef};
 use super::loader::ResourceLoadType;
 use super::method::Method;
 use super::object::Object;
-use super::vtable::VTable;
+use super::vtable::{OverridingVTable, VTable};
 
 use crate::classfile::class::ClassFile;
 use crate::classfile::flags::{ClassFlags, FieldFlags, MethodFlags};
@@ -58,8 +58,7 @@ struct MethodData {
     static_method_vtable: VTable<(JvmString, MethodDescriptor)>,
     static_methods: Box<[Method]>,
 
-    instance_method_vtable: VTable<(JvmString, MethodDescriptor)>,
-    instance_methods: Box<[Method]>,
+    instance_method_vtable: OverridingVTable<(JvmString, MethodDescriptor), Method>,
 }
 
 impl fmt::Debug for Class {
@@ -198,9 +197,9 @@ impl Class {
 
         let mut static_method_names = Vec::with_capacity(methods.len());
         let mut static_methods = super_class.map_or(Vec::new(), |c| c.static_methods().to_vec());
-        let mut instance_method_names = Vec::with_capacity(methods.len());
-        let mut instance_methods =
-            super_class.map_or(Vec::new(), |c| c.instance_methods().to_vec());
+
+        // Instance methods are special because we need dynamic dispatch for them
+        let mut instance_methods = Vec::with_capacity(methods.len());
 
         for method in methods {
             if method.flags().contains(MethodFlags::STATIC) {
@@ -211,8 +210,9 @@ impl Class {
             } else {
                 let created_method = Method::from_method(context, method, self)?;
 
-                instance_method_names.push((method.name(), created_method.descriptor()));
-                instance_methods.push(created_method);
+                let key = (method.name(), created_method.descriptor());
+
+                instance_methods.push((key, created_method));
             }
         }
 
@@ -223,18 +223,17 @@ impl Class {
             static_method_names,
         );
 
-        let instance_method_vtable = VTable::from_parent_and_keys(
+        let instance_method_vtable = OverridingVTable::from_parent_and_keys(
             context.gc_ctx,
             Some(self),
             super_class.map(|c| *c.instance_method_vtable()),
-            instance_method_names,
+            instance_methods,
         );
 
         *self.0.method_data.borrow_mut() = Some(MethodData {
             static_method_vtable,
             static_methods: static_methods.into_boxed_slice(),
             instance_method_vtable,
-            instance_methods: instance_methods.into_boxed_slice(),
         });
 
         let clinit_string = context.common.clinit_name;
@@ -259,14 +258,12 @@ impl Class {
             .lookup_class(object_class_name)
             .expect("Object class should exist");
 
-        let instance_methods = object_class.instance_methods();
         let instance_method_vtable = *object_class.instance_method_vtable();
 
         let method_data = MethodData {
             static_method_vtable: VTable::empty(context.gc_ctx),
             static_methods: Box::new([]),
             instance_method_vtable,
-            instance_methods: instance_methods.clone(),
         };
 
         let mut name = String::with_capacity(8);
@@ -350,15 +347,11 @@ impl Class {
         &self.0.static_fields
     }
 
-    pub fn instance_method_vtable(&self) -> Ref<VTable<(JvmString, MethodDescriptor)>> {
+    pub fn instance_method_vtable(
+        &self,
+    ) -> Ref<OverridingVTable<(JvmString, MethodDescriptor), Method>> {
         Ref::map(self.0.method_data.borrow(), |data| {
             &data.as_ref().unwrap().instance_method_vtable
-        })
-    }
-
-    pub fn instance_methods(&self) -> Ref<Box<[Method]>> {
-        Ref::map(self.0.method_data.borrow(), |data| {
-            &data.as_ref().unwrap().instance_methods
         })
     }
 
@@ -484,7 +477,6 @@ impl Trace for ClassData {
             method_data.static_methods.trace();
 
             method_data.instance_method_vtable.trace();
-            method_data.instance_methods.trace();
         }
 
         self.clinit_method.trace();

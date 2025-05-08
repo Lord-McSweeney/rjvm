@@ -96,7 +96,7 @@ pub enum Op {
     PutStatic(Class, usize),
     GetField(Class, usize),
     PutField(Class, usize),
-    InvokeVirtual((JvmString, MethodDescriptor)),
+    InvokeVirtual(Class, usize),
     InvokeSpecial(Class, Method),
     InvokeStatic(Method),
     InvokeInterface(Class, (JvmString, MethodDescriptor)),
@@ -219,9 +219,8 @@ impl Trace for Op {
             Op::PutField(class, _) => {
                 class.trace();
             }
-            Op::InvokeVirtual((method_name, method_descriptor)) => {
-                method_name.trace();
-                method_descriptor.trace();
+            Op::InvokeVirtual(class, _) => {
+                class.trace();
             }
             Op::InvokeSpecial(class, method) => {
                 class.trace();
@@ -912,7 +911,12 @@ impl Op {
                 let descriptor = MethodDescriptor::from_string(context.gc_ctx, descriptor_name)
                     .ok_or(Error::Native(NativeError::InvalidDescriptor))?;
 
-                Ok(Op::InvokeVirtual((method_name, descriptor)))
+                let method_index = class
+                    .instance_method_vtable()
+                    .lookup((method_name, descriptor))
+                    .ok_or(Error::Native(NativeError::VTableLookupFailed))?;
+
+                Ok(Op::InvokeVirtual(class, method_index))
             }
             INVOKE_SPECIAL => {
                 let method_ref_idx = data.read_u16()?;
@@ -935,15 +939,16 @@ impl Op {
                     class
                 };
 
+                let method_vtable = real_class.instance_method_vtable();
+
                 let descriptor = MethodDescriptor::from_string(context.gc_ctx, descriptor_name)
                     .ok_or(Error::Native(NativeError::InvalidDescriptor))?;
 
-                let method_slot = real_class
-                    .instance_method_vtable()
+                let method_slot = method_vtable
                     .lookup((method_name, descriptor))
                     .ok_or(Error::Native(NativeError::VTableLookupFailed))?;
 
-                let method = class.instance_methods()[method_slot];
+                let method = method_vtable.get_element(method_slot);
 
                 Ok(Op::InvokeSpecial(class, method))
             }
@@ -1114,7 +1119,7 @@ impl Op {
                 | Op::IRem
                 | Op::GetField(_, _)
                 | Op::PutField(_, _)
-                | Op::InvokeVirtual(_)
+                | Op::InvokeVirtual(_, _)
                 | Op::InvokeSpecial(_, _)
                 | Op::InvokeStatic(_)
                 | Op::InvokeInterface(_, _)

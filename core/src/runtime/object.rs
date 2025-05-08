@@ -342,13 +342,14 @@ impl Object {
         let init_name = context.common.init_name;
 
         let instance_method_vtable = self.0.class.instance_method_vtable();
-        let instance_methods = self.0.class.instance_methods();
 
         let method_idx = instance_method_vtable
             .lookup((init_name, descriptor))
             .ok_or(Error::Native(NativeError::VTableLookupFailed))?;
 
-        instance_methods[method_idx].exec(context, args)?;
+        let method = instance_method_vtable.get_element(method_idx);
+
+        method.exec(context, args)?;
 
         Ok(())
     }

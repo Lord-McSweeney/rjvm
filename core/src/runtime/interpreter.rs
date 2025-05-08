@@ -190,8 +190,8 @@ impl<'a> Interpreter<'a> {
                 }
                 Op::GetField(class, field_idx) => self.op_get_field(*class, *field_idx),
                 Op::PutField(class, field_idx) => self.op_put_field(*class, *field_idx),
-                Op::InvokeVirtual((method_name, method_descriptor)) => {
-                    self.op_invoke_virtual(*method_name, *method_descriptor)
+                Op::InvokeVirtual(class, method_index) => {
+                    self.op_invoke_virtual(*class, *method_index)
                 }
                 Op::InvokeSpecial(class, method) => self.op_invoke_special(*class, *method),
                 Op::InvokeStatic(method) => self.op_invoke_static(*method),
@@ -1210,11 +1210,19 @@ impl<'a> Interpreter<'a> {
 
     fn op_invoke_virtual(
         &mut self,
-        method_name: JvmString,
-        method_descriptor: MethodDescriptor,
+        class: Class,
+        method_index: usize,
     ) -> Result<ControlFlow, Error> {
         // Increment the gc counter (can this even do an allocation?)
         self.context.increment_gc_counter();
+
+        // We need to know the number of args, so let's lookup the method defined by
+        // the base class to get the descriptor- this is the wrong method, but we
+        // can still use its descriptor
+        let method_descriptor = class
+            .instance_method_vtable()
+            .get_element(method_index)
+            .descriptor();
 
         let mut args = vec![Value::Object(None); method_descriptor.args().len() + 1];
         for arg in args.iter_mut().skip(1).rev() {
@@ -1224,12 +1232,15 @@ impl<'a> Interpreter<'a> {
         let receiver = self.stack_pop().object();
 
         if let Some(receiver) = receiver {
+            if !receiver.is_of_class(class) {
+                // TODO verify this in verifier
+                panic!("Object on stack was of wrong Class");
+            }
+
             let receiver_class = receiver.class();
-            let method_idx = receiver_class
+            let method = receiver_class
                 .instance_method_vtable()
-                .lookup((method_name, method_descriptor))
-                .ok_or(Error::Native(NativeError::VTableLookupFailed))?;
-            let method = receiver_class.instance_methods()[method_idx];
+                .get_element(method_index);
 
             args[0] = Value::Object(Some(receiver));
 
@@ -1310,11 +1321,12 @@ impl<'a> Interpreter<'a> {
         if let Some(receiver) = receiver {
             // Should we check that the receiver is of the class?
             let receiver_class = receiver.class();
-            let method_idx = receiver_class
-                .instance_method_vtable()
+            let method_vtable = receiver_class.instance_method_vtable();
+
+            let method_idx = method_vtable
                 .lookup((method_name, method_descriptor))
                 .ok_or(Error::Native(NativeError::VTableLookupFailed))?;
-            let method = receiver_class.instance_methods()[method_idx];
+            let method = method_vtable.get_element(method_idx);
 
             args[0] = Value::Object(Some(receiver));
 
