@@ -92,6 +92,11 @@ public final class String {
         return (int) this.data[index];
     }
 
+    public boolean equalsIgnoreCase(String other) {
+        // TODO implement
+        return false;
+    }
+
     public byte[] getBytes() {
         // TODO implement proper decoding
         return Charset.stringToUtf8(this);
@@ -218,6 +223,20 @@ public final class String {
         }
 
         return -1;
+    }
+
+    public String replace(char search, char replace) {
+        char[] copy = new char[this.data.length];
+        System.arraycopy(this.data, 0, copy, 0, this.data.length);
+
+        for (int i = 0; i < copy.length; i ++) {
+            if (copy[i] == search) {
+                copy[i] = replace;
+            }
+        }
+
+        // FIXME we can avoid the extra copy here
+        return new String(copy);
     }
 
     public String substring(int start) {

@@ -12,6 +12,11 @@ public abstract class AbstractList<E> extends AbstractCollection<E> implements L
         throw new UnsupportedOperationException();
     }
 
+    public boolean addAll(int index, Collection<? extends E> collection) {
+        // TODO implement
+        return false;
+    }
+
     public abstract E get(int index);
 
     public E set(int index, E element) {

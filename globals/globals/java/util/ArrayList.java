@@ -33,13 +33,22 @@ public class ArrayList<E> extends AbstractList<E> implements List<E> {
     }
 
     public boolean addAll(Collection<? extends E> collection) {
+        return this.addAll(0, collection);
+    }
+
+    public boolean addAll(int index, Collection<? extends E> collection) {
+        if (index < 0 || index > this.data.length) {
+            throw new IndexOutOfBoundsException();
+        }
+
         // TODO use specialized implementation that grows capacity beforehand
         boolean added = false;
 
         Iterator<? extends E> iterator = collection.iterator();
         while (iterator.hasNext()) {
             E next = (E) iterator.next();
-            this.add(next);
+            this.add(index, next);
+            index += 1;
             added = true;
         }
 
@@ -87,8 +96,35 @@ public class ArrayList<E> extends AbstractList<E> implements List<E> {
         this.data = new Object[0];
     }
 
+    public boolean contains(Object element) {
+        for (int i = 0; i < this.data.length; i ++) {
+            if (this.data[i] == null) {
+                if (element == null) {
+                    return true;
+                }
+            } else if (this.data[i].equals(element)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public Iterator<E> iterator() {
         return new ArrayIterator(this.data);
+    }
+
+    public ListIterator<E> listIterator() {
+        return this.listIterator(0);
+    }
+
+    public ListIterator<E> listIterator(int index) {
+        if (index < 0 || index > this.data.length) {
+            throw new IndexOutOfBoundsException();
+        }
+
+        // TODO implement
+        return null;
     }
 
     public int size() {

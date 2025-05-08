@@ -38,6 +38,20 @@ public class HashSet<E> extends AbstractSet<E> implements Set<E> {
         this.data = new Object[0];
     }
 
+    public boolean contains(Object element) {
+        for (int i = 0; i < this.data.length; i ++) {
+            if (this.data[i] == null) {
+                if (element == null) {
+                    return true;
+                }
+            } else if (this.data[i].equals(element)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public Iterator<E> iterator() {
         return new ArrayIterator(this.data);
     }
