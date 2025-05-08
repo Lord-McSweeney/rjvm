@@ -92,6 +92,22 @@ public class ArrayList<E> extends AbstractList<E> implements List<E> {
         return oldElement;
     }
 
+    public boolean remove(Object search) {
+        for (int i = 0; i < this.data.length; i ++) {
+            Object element = this.data[i];
+            if (element == null) {
+                if (search == null) {
+                    this.remove(i);
+                    return true;
+                }
+            } else if (element.equals(search)) {
+                this.remove(i);
+                return true;
+            }
+        }
+        return false;
+    }
+
     public void clear() {
         this.data = new Object[0];
     }
