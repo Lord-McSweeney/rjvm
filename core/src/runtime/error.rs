@@ -13,7 +13,24 @@ impl fmt::Debug for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         match self {
             Error::Native(native) => write!(f, "NativeError({:?})", native),
-            Error::Java(object) => write!(f, "{}", object.class().dot_name()),
+            Error::Java(object) => {
+                write!(f, "{}", object.class().dot_name())?;
+
+                let stack_trace = object.get_field(1).object();
+                if let Some(stack_trace) = stack_trace {
+                    let chars = stack_trace.get_field(0).object().unwrap();
+                    let chars = chars.get_array_data();
+                    let chars = chars
+                        .iter()
+                        .map(|c| c.get().int() as u16)
+                        .collect::<Vec<_>>();
+
+                    let string = String::from_utf16_lossy(&chars);
+                    write!(f, "{}", string)?;
+                }
+
+                Ok(())
+            }
         }
     }
 }

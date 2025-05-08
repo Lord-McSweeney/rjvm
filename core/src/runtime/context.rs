@@ -1,8 +1,9 @@
+use super::call_stack::CallStack;
 use super::class::Class;
 use super::descriptor::{Descriptor, MethodDescriptor, ResolvedDescriptor};
 use super::error::Error;
 use super::loader::{LoaderBackend, ResourceLoadType};
-use super::method::NativeMethod;
+use super::method::{Method, NativeMethod};
 use super::object::Object;
 use super::value::Value;
 
@@ -44,6 +45,9 @@ pub struct Context {
     // The first index into the frame data that is unoccupied (stack pointer).
     pub frame_index: Gc<Cell<usize>>,
 
+    // The current call stack.
+    call_stack: Gc<RefCell<CallStack>>,
+
     // The GC counter. This is incremented when any op that could allocate is run,
     // and when it reaches GC_THRESHOLD, a collection is called.
     gc_counter: Gc<Cell<u32>>,
@@ -70,6 +74,7 @@ impl Context {
             native_mapping: Gc::new(gc_ctx, RefCell::new(HashMap::new())),
             frame_data: Gc::new(gc_ctx, RefCell::new(empty_frame_data)),
             frame_index: Gc::new(gc_ctx, Cell::new(0)),
+            call_stack: Gc::new(gc_ctx, RefCell::new(CallStack::empty())),
             gc_counter: Gc::new(gc_ctx, Cell::new(0)),
             common: CommonData::new(gc_ctx),
             gc_ctx,
@@ -227,6 +232,18 @@ impl Context {
             self.register_class(created_class);
             created_class
         }
+    }
+
+    pub fn push_call(self, method: Method) {
+        self.call_stack.borrow_mut().push_call(method);
+    }
+
+    pub fn pop_call(self) {
+        self.call_stack.borrow_mut().pop_call();
+    }
+
+    pub fn capture_call_stack(self) -> String {
+        self.call_stack.borrow().display()
     }
 
     pub fn increment_gc_counter(self) {
@@ -414,6 +431,8 @@ impl Trace for Context {
         }
 
         self.frame_index.trace();
+
+        self.call_stack.trace();
 
         self.gc_counter.trace();
 

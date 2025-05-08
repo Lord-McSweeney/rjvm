@@ -88,33 +88,39 @@ impl Method {
     }
 
     pub fn exec(self, context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
-        // Parse bytecode if it hasn't been already
-        if matches!(
-            &*self.0.method_info.borrow(),
-            MethodInfo::BytecodeUnparsed(_)
-        ) {
-            self.parse_info(context)?;
-        }
-
-        // All checks are performed in the verifier
-
-        let result = match &*self.0.method_info.borrow() {
-            MethodInfo::Bytecode(bytecode_info) => {
-                for class in &bytecode_info.class_dependencies {
-                    class.run_clinit(context)?;
-                }
-
-                let frame_reference = context.frame_data.borrow();
-                let mut interpreter = Interpreter::new(context, frame_reference, self, args)?;
-
-                interpreter.interpret_ops(&bytecode_info.code, &bytecode_info.exceptions)?
+        // Run everything in a closure so we can handle the call stack more easily
+        let closure = || -> Result<Option<Value>, Error> {
+            // Parse bytecode if it hasn't been already
+            if matches!(
+                &*self.0.method_info.borrow(),
+                MethodInfo::BytecodeUnparsed(_)
+            ) {
+                self.parse_info(context)?;
             }
-            MethodInfo::BytecodeUnparsed(_) => unreachable!(),
-            MethodInfo::Native(native_method) => native_method(context, &args)?,
-            MethodInfo::Empty => None,
+
+            // All checks are performed in the verifier
+
+            match &*self.0.method_info.borrow() {
+                MethodInfo::Bytecode(bytecode_info) => {
+                    for class in &bytecode_info.class_dependencies {
+                        class.run_clinit(context)?;
+                    }
+
+                    let frame_reference = context.frame_data.borrow();
+                    let mut interpreter = Interpreter::new(context, frame_reference, self, args)?;
+
+                    interpreter.interpret_ops(&bytecode_info.code, &bytecode_info.exceptions)
+                }
+                MethodInfo::BytecodeUnparsed(_) => unreachable!(),
+                MethodInfo::Native(native_method) => native_method(context, &args),
+                MethodInfo::Empty => Ok(None),
+            }
         };
 
-        Ok(result)
+        context.push_call(self);
+        let result = closure();
+        context.pop_call();
+        result
     }
 
     fn parse_info(self, context: Context) -> Result<(), Error> {

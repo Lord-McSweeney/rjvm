@@ -5,13 +5,25 @@ import java.io.PrintStream;
 public class Throwable {
     private String message;
 
+    // Should technically be an array of stack trace elements
+    // NOTE field ordering is important
+    private String stackTrace;
+
     public Throwable() {
-        // Would normally initialize a stack trace, but we don't support that
+        this.fillInStackTrace();
     }
 
     public Throwable(String message) {
+        this.fillInStackTrace();
         this.message = message;
     }
+
+    public Throwable fillInStackTrace() {
+        this.stackTrace = this.internalFillInStackTrace();
+        return this;
+    }
+
+    private native String internalFillInStackTrace();
 
     public String toString() {
         String className = this.getClass().getName();
@@ -30,6 +42,6 @@ public class Throwable {
     public void printStackTrace(PrintStream s) {
         s.println(this);
 
-        // TODO print stack trace
+        s.print(this.stackTrace);
     }
 }

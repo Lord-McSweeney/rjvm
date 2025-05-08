@@ -12,6 +12,7 @@ pub fn register_native_mappings(context: Context) {
         ("java/lang/Math.log.(D)D", math_log),
         ("java/lang/Math.pow.(DD)D", math_pow),
         ("java/lang/Object.clone.()Ljava/lang/Object;", object_clone),
+        ("java/lang/Throwable.internalFillInStackTrace.()Ljava/lang/String;", capture_stack_trace),
     ];
 
     context.register_native_mappings(mappings);
@@ -205,4 +206,12 @@ fn object_clone(context: Context, args: &[Value]) -> Result<Option<Value>, Error
     } else {
         Err(context.clone_not_supported_exception())
     }
+}
+
+fn capture_stack_trace(context: Context, _args: &[Value]) -> Result<Option<Value>, Error> {
+    let stack_data = context.capture_call_stack();
+    // TODO filter out the error constructors
+    let chars = stack_data.chars().map(|c| c as u16).collect::<Vec<_>>();
+
+    Ok(Some(Value::Object(Some(context.create_string(&chars)))))
 }
