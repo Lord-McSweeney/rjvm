@@ -70,7 +70,15 @@ impl Method {
         } else if method.flags().contains(MethodFlags::NATIVE) {
             let native_method = context.get_native_method(class.name(), method.name(), descriptor);
 
-            MethodInfo::Native(native_method.expect("Native method lookup failed"))
+            let Some(native_method) = native_method else {
+                panic!(
+                    "associated native method for {}.{} not found",
+                    class.name(),
+                    method.name()
+                );
+            };
+
+            MethodInfo::Native(native_method)
         } else {
             MethodInfo::Empty
         };
