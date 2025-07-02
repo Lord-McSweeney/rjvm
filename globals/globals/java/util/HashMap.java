@@ -1,5 +1,7 @@
 package java.util;
 
+import rjvm.internal.Todo;
+
 public class HashMap<K, V> extends AbstractMap<K, V> {
     // FIXME we should really not be reimplementing all the AbstractMap functions...
     // TODO actually implement a hashmap
@@ -22,17 +24,20 @@ public class HashMap<K, V> extends AbstractMap<K, V> {
     }
 
     public Set<Entry<K, V>> entrySet() {
-        // TODO implement
+        Todo.warnNotImpl("java.util.HashMap.entrySet");
+
         return null;
     }
 
     public Collection<V> values() {
-        // TODO implement
+        Todo.warnNotImpl("java.util.HashMap.values");
+
         return null;
     }
 
     public boolean containsKey(K key) {
-        // TODO implement
+        Todo.warnNotImpl("java.util.HashMap.containsKey");
+
         return false;
     }
 
@@ -94,12 +99,13 @@ public class HashMap<K, V> extends AbstractMap<K, V> {
     }
 
     public V remove(Object key) {
-        // TODO implement
+        Todo.warnNotImpl("java.util.HashMap.remove");
+
         return null;
     }
 
     public void putAll(Map<? extends K, ? extends V> map) {
-        // TODO implement
+        Todo.warnNotImpl("java.util.HashMap.putAll");
     }
 
     public int size() {

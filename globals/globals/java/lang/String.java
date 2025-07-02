@@ -1,5 +1,6 @@
 package java.lang;
 
+import rjvm.internal.Todo;
 import java.nio.charset.Charset;
 
 public final class String {
@@ -312,7 +313,8 @@ public final class String {
     // Static functions
 
     public static String format(String self, Object... args) {
-        // TODO implement
+        Todo.warnNotImpl("java.lang.String.format");
+
         return self;
     }
 

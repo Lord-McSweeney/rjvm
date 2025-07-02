@@ -1,5 +1,7 @@
 package java.util;
 
+import rjvm.internal.Todo;
+
 public class ArrayList<E> extends AbstractList<E> implements List<E> {
     Object[] data;
 
@@ -139,7 +141,8 @@ public class ArrayList<E> extends AbstractList<E> implements List<E> {
             throw new IndexOutOfBoundsException();
         }
 
-        // TODO implement
+        Todo.warnNotImpl("java.util.ArrayList.listIterator");
+
         return null;
     }
 

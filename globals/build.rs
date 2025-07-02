@@ -10,14 +10,14 @@ fn compile_globals() {
     compile_command.args(["-d", &out_dir.to_string_lossy()]);
 
     // Compile .java files into .class files
-    let mut source_file_list = glob("./globals/java/*/*.java")
+    let mut source_file_list = glob("./globals/*/*/*.java")
         .expect("Valid pattern")
         .map(|p| p.expect("Files should read"))
         .collect::<Vec<_>>();
 
     // Also include files with a three-component package name.
     source_file_list.extend_from_slice(
-        &glob("./globals/java/*/*/*.java")
+        &glob("./globals/*/*/*/*.java")
             .expect("Valid pattern")
             .map(|p| p.expect("Files should read"))
             .collect::<Vec<_>>(),
@@ -38,14 +38,14 @@ fn compile_globals() {
     let mut archive_command = Command::new("jar");
     archive_command.args(["cf", &out_dir.join("classes.jar").to_string_lossy()]);
 
-    let mut class_file_list = glob(&out_dir.join("java/*/*.class").to_string_lossy())
+    let mut class_file_list = glob(&out_dir.join("*/*/*.class").to_string_lossy())
         .expect("Valid pattern")
         .map(|p| p.expect("Files should read"))
         .collect::<Vec<_>>();
 
     // Also include files with a three-component package name.
     class_file_list.extend_from_slice(
-        &glob(&out_dir.join("java/*/*/*.class").to_string_lossy())
+        &glob(&out_dir.join("*/*/*/*.class").to_string_lossy())
             .expect("Valid pattern")
             .map(|p| p.expect("Files should read"))
             .collect::<Vec<_>>(),

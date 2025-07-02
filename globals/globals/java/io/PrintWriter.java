@@ -1,5 +1,7 @@
 package java.io;
 
+import rjvm.internal.Todo;
+
 public class PrintWriter extends Writer {
     public PrintWriter(Writer writer) {
         // TODO implement
@@ -12,22 +14,22 @@ public class PrintWriter extends Writer {
     }
 
     public void print(String data) {
-        // TODO implement
+        Todo.warnNotImpl("java.io.PrintWriter.print");
     }
 
     public void println() {
-        // TODO implement
+        Todo.warnNotImpl("java.io.PrintWriter.println");
     }
 
     public void println(String data) {
-        // TODO implement
+        Todo.warnNotImpl("java.io.PrintWriter.println");
     }
 
     public void write(String data) {
-        // TODO implement
+        Todo.warnNotImpl("java.io.PrintWriter.write");
     }
 
     public void close() {
-        // TODO implement
+        Todo.warnNotImpl("java.io.PrintWriter.close");
     }
 }

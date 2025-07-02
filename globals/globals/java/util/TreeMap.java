@@ -1,5 +1,7 @@
 package java.util;
 
+import rjvm.internal.Todo;
+
 public class TreeMap<K, V> extends AbstractMap<K, V> {
     Object[] keys;
     Object[] values;
@@ -19,27 +21,32 @@ public class TreeMap<K, V> extends AbstractMap<K, V> {
     }
 
     public K firstKey() {
-        // TODO implement
+        Todo.warnNotImpl("java.util.TreeMap.firstKey");
+
         return null;
     }
 
     public K lastKey() {
-        // TODO implement
+        Todo.warnNotImpl("java.util.TreeMap.lastKey");
+
         return null;
     }
 
     public SortedMap<K, V> headMap(K highestKey) {
-        // TODO implement
+        Todo.warnNotImpl("java.util.TreeMap.headMap");
+
         return null;
     }
 
     public SortedMap<K, V> tailMap(K lowestKey) {
-        // TODO implement
+        Todo.warnNotImpl("java.util.TreeMap.tailMap");
+
         return null;
     }
 
     public SortedMap<K, V> subMap(K lowestKey, K highestKey) {
-        // TODO implement
+        Todo.warnNotImpl("java.util.TreeMap.subMap");
+
         return null;
     }
 
@@ -47,12 +54,14 @@ public class TreeMap<K, V> extends AbstractMap<K, V> {
         // TODO implement
 
         public Iterator<Entry<K, V>> iterator() {
-            // TODO implement
+            Todo.warnNotImpl("java.util.TreeMap.EntrySet.iterator");
+
             return new ArrayIterator(new Object[0]);
         }
 
         public int size() {
-            // TODO implement
+            Todo.warnNotImpl("java.util.TreeMap.EntrySet.size");
+
             return 0;
         }
     }

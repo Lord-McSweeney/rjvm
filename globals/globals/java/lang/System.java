@@ -1,5 +1,6 @@
 package java.lang;
 
+import rjvm.internal.Todo;
 import java.io.FileDescriptor;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -34,7 +35,8 @@ public final class System {
             throw new NullPointerException();
         }
 
-        // TODO implement
+        Todo.warnNotImpl("java.lang.System.getProperty");
+
         return null;
     }
 
@@ -43,7 +45,8 @@ public final class System {
             throw new NullPointerException();
         }
 
-        // TODO implement
+        Todo.warnPartialImpl("java.lang.System.getProperty");
+
         return defaultValue;
     }
 
@@ -52,7 +55,8 @@ public final class System {
             throw new NullPointerException();
         }
 
-        // TODO implement
+        Todo.warnNotImpl("java.lang.System.setProperty");
+
         return null;
     }
 
