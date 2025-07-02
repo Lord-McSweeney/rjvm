@@ -1,4 +1,4 @@
-rjvm is a Java Virtual Machine implementation in Rust.
+rjvm is a performant Java Virtual Machine implementation in Rust.
 
 Features:
 - bytecode verifier
@@ -9,6 +9,7 @@ Missing features:
 - multithreading/`synchronized` support
 - support for several operations, especially around doubles and floats
 - lots of API
+- proper garbage collection
 
 Upcoming features:
 - Array type verification in verifier
