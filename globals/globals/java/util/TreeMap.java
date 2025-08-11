@@ -3,21 +3,14 @@ package java.util;
 import rjvm.internal.Todo;
 
 public class TreeMap<K, V> extends AbstractMap<K, V> {
-    Object[] keys;
-    Object[] values;
-
-    EntrySet cachedEntrySet;
+    Entry root;
+    int size;
 
     public TreeMap(Comparator<? super K> comparator) {
-        this.keys = new Object[0];
-        this.values = new Object[0];
     }
 
-    public Set<Entry<K, V>> entrySet() {
-        if (this.cachedEntrySet == null) {
-            this.cachedEntrySet = new EntrySet();
-        }
-        return this.cachedEntrySet;
+    public Set<Map.Entry<K, V>> entrySet() {
+        return new EntrySet(this);
     }
 
     public K firstKey() {
@@ -50,10 +43,26 @@ public class TreeMap<K, V> extends AbstractMap<K, V> {
         return null;
     }
 
-    class EntrySet extends AbstractSet<Entry<K, V>> {
+    public V put(K key, V value) {
+        Todo.warnNotImpl("java.util.TreeMap.put");
+
+        return null;
+    }
+
+    public void clear() {
+        Todo.warnNotImpl("java.util.TreeMap.clear");
+    }
+
+    class EntrySet extends AbstractSet<Map.Entry<K, V>> {
         // TODO implement
 
-        public Iterator<Entry<K, V>> iterator() {
+        TreeMap map;
+
+        EntrySet(TreeMap map) {
+            this.map = map;
+        }
+
+        public Iterator<Map.Entry<K, V>> iterator() {
             Todo.warnNotImpl("java.util.TreeMap.EntrySet.iterator");
 
             return new ArrayIterator(new Object[0]);
@@ -63,6 +72,31 @@ public class TreeMap<K, V> extends AbstractMap<K, V> {
             Todo.warnNotImpl("java.util.TreeMap.EntrySet.size");
 
             return 0;
+        }
+    }
+
+    static class Entry<K, V> implements Map.Entry<K, V> {
+        // TODO implement
+
+        K key;
+        V value;
+
+        Entry<K, V> left;
+        Entry<K, V> right;
+
+        Entry<K,V> parent;
+
+        Entry(K key, V value) {
+            this.key = key;
+            this.value = value;
+        }
+
+        public K getKey() {
+            return this.key;
+        }
+
+        public V getValue() {
+            return this.value;
         }
     }
 }
