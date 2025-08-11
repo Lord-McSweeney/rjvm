@@ -11,7 +11,9 @@ use std::fs;
 
 enum FileType {
     Class,
-    Jar,
+    // If `main_class` is `None`, use the main class specified in the manifest;
+    // if it's `Some`, use that value, regardless of what the manifest specifies
+    Jar { main_class: Option<String> },
     Unknown,
 }
 
@@ -30,6 +32,7 @@ fn get_main_class_from_manifest(manifest_data: Vec<u8>) -> Option<String> {
         }
     }
 
+    // Main class is specified with `.` delimiter, but we want `/` delimiter
     main_class.map(|c| c.replace('.', "/").to_string())
 }
 
@@ -49,6 +52,7 @@ impl PassedOptions {
         let mut file_type = FileType::Unknown;
         let mut file_name = String::new();
         let mut program_args = Vec::new();
+
         let mut started_args = false;
 
         let mut i = 1;
@@ -61,14 +65,31 @@ impl PassedOptions {
                 // We haven't started receiving program arguments yet; we still
                 // have to handle the file being loaded
                 if arg == "--jar" {
-                    if i + 1 == args.len() {
+                    if i + 1 > args.len() {
                         return Err("--jar flag requires a file".to_string());
                     }
 
-                    file_type = FileType::Jar;
+                    file_type = FileType::Jar { main_class: None };
                     file_name = args[i + 1].clone();
 
                     i += 1;
+
+                    started_args = true;
+                } else if arg == "--jar-with-main" {
+                    if i + 2 > args.len() {
+                        return Err("--jar-with-main flag requires a file".to_string());
+                    }
+
+                    // Main class is specified with `.` delimiter, but we want
+                    // `/` delimiter
+                    let main_class = args[i + 2].replace('.', "/").to_string();
+
+                    file_type = FileType::Jar {
+                        main_class: Some(main_class),
+                    };
+                    file_name = args[i + 1].clone();
+
+                    i += 2;
 
                     started_args = true;
                 } else {
@@ -92,7 +113,7 @@ impl PassedOptions {
 
 fn init_main_class(
     context: Context,
-    options: &PassedOptions,
+    options: PassedOptions,
     read_file: Vec<u8>,
 ) -> Result<Class, &'static str> {
     match options.file_type {
@@ -111,7 +132,7 @@ fn init_main_class(
 
             Ok(main_class)
         }
-        FileType::Jar => {
+        FileType::Jar { main_class } => {
             let manifest_name = "META-INF/MANIFEST.MF".to_string();
 
             let jar_data =
@@ -127,13 +148,18 @@ fn init_main_class(
                 .read_file(&manifest_name)
                 .expect("MANIFEST should read");
 
-            let main_class_name = get_main_class_from_manifest(manifest_data);
+            let main_class_name = if let Some(main_class) = main_class {
+                Some(main_class)
+            } else {
+                get_main_class_from_manifest(manifest_data)
+            };
+
             if let Some(main_class_name) = main_class_name {
                 let main_class_name = JvmString::new(context.gc_ctx, main_class_name);
 
                 let has_main_class = jar_data.has_class(main_class_name);
                 if !has_main_class {
-                    return Err("Main class specified in MANIFEST.MF was not present in JAR!");
+                    return Err("Main class specified was not present in JAR!");
                 }
 
                 let main_class_data = jar_data
@@ -192,15 +218,6 @@ fn main() {
     base_native_impl::register_native_mappings(context);
     native_impl::register_native_mappings(context);
 
-    // Load the main class from options
-    let main_class = match init_main_class(context, &options, read_file) {
-        Ok(main_class) => main_class,
-        Err(error_msg) => {
-            eprintln!("{}", error_msg);
-            return;
-        }
-    };
-
     // Load program args
     let mut program_args = Vec::new();
     for arg in &options.program_args {
@@ -210,6 +227,15 @@ fn main() {
 
         program_args.push(Some(string));
     }
+
+    // Load the main class from options
+    let main_class = match init_main_class(context, options, read_file) {
+        Ok(main_class) => main_class,
+        Err(error_msg) => {
+            eprintln!("{}", error_msg);
+            return;
+        }
+    };
 
     let string_class = context
         .lookup_class(context.common.java_lang_string)
