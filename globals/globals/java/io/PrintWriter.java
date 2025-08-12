@@ -13,6 +13,16 @@ public class PrintWriter extends Writer {
         super();
     }
 
+    public PrintWriter(OutputStream out) {
+        // TODO implement
+        super();
+    }
+
+    public PrintWriter(OutputStream out, boolean autoFlush) {
+        // TODO implement
+        super();
+    }
+
     public void print(String data) {
         Todo.warnNotImpl("java.io.PrintWriter.print");
     }
