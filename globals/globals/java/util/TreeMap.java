@@ -3,10 +3,16 @@ package java.util;
 import rjvm.internal.Todo;
 
 public class TreeMap<K, V> extends AbstractMap<K, V> {
-    Entry root;
+    Entry<K, V> root;
     int size;
 
+    // The comparator we're using, or `null` if we use default comparison
+    Comparator<? super K> comparator;
+
     public TreeMap(Comparator<? super K> comparator) {
+        Todo.warnNotImpl("java.util.TreeMap(comparator)");
+
+        this.comparator = comparator;
     }
 
     public Set<Map.Entry<K, V>> entrySet() {
@@ -14,15 +20,29 @@ public class TreeMap<K, V> extends AbstractMap<K, V> {
     }
 
     public K firstKey() {
-        Todo.warnNotImpl("java.util.TreeMap.firstKey");
+        if (this.root == null) {
+            return null;
+        }
 
-        return null;
+        Entry<K, V> current = this.root;
+        while (current.left != null) {
+            current = current.left;
+        }
+
+        return current.key;
     }
 
     public K lastKey() {
-        Todo.warnNotImpl("java.util.TreeMap.lastKey");
+        if (this.root == null) {
+            return null;
+        }
 
-        return null;
+        Entry<K, V> current = this.root;
+        while (current.right != null) {
+            current = current.right;
+        }
+
+        return current.key;
     }
 
     public SortedMap<K, V> headMap(K highestKey) {
