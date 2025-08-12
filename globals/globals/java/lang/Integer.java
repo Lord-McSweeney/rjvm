@@ -92,4 +92,14 @@ public final class Integer extends Number implements Comparable<Integer> {
         // TODO implement
         return 0;
     }
+
+    public int compareTo(Integer other) {
+        if (this.value < other.value) {
+            return -1;
+        } else if (this.value == other.value) {
+            return 0;
+        } else {
+            return 1;
+        }
+    }
 }

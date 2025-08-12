@@ -3,7 +3,7 @@ package java.lang;
 import rjvm.internal.Todo;
 import java.nio.charset.Charset;
 
-public final class String {
+public final class String implements Comparable<String> {
     // TODO make this a weak HashSet
     private static String[] internedStrings = new String[0];
 
@@ -308,6 +308,18 @@ public final class String {
         String.internedStrings = newStrings;
 
         return this;
+    }
+
+    public int compareTo(String other) {
+        for (int i = 0; i < this.data.length; i ++) {
+            if (i >= other.data.length) {
+                return this.data.length - other.data.length;
+            } else if (this.data[i] != other.data[i]) {
+                return this.data[i] - other.data[i];
+            }
+        }
+
+        return this.data.length - other.data.length;
     }
 
     // Static functions

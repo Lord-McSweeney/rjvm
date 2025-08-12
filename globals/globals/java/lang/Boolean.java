@@ -30,4 +30,16 @@ public class Boolean implements Comparable<Boolean> {
             return "false";
         }
     }
+
+    public int compareTo(Boolean other) {
+        if (this.value == other.value) {
+            return 0;
+        } else if (this.value) {
+            // (true).compareTo(false)
+            return 1;
+        } else {
+            // (false).compareTo(true)
+            return -1;
+        }
+    }
 }
