@@ -103,7 +103,7 @@ public class TreeMap<K, V> extends AbstractMap<K, V> {
     }
 
     public void clear() {
-        Todo.warnNotImpl("java.util.TreeMap.clear");
+        this.root = null;
     }
 
     class EntrySet extends AbstractSet<Map.Entry<K, V>> {
