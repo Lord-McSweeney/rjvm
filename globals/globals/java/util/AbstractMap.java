@@ -1,42 +1,50 @@
 package java.util;
 
+import rjvm.internal.Todo;
+
 public abstract class AbstractMap<K, V> implements Map<K, V> {
     protected AbstractMap() { }
 
     public abstract Set<Entry<K, V>> entrySet();
 
     public Set<K> keySet() {
-        // TODO implement
+        Todo.warnNotImpl("java.util.AbstractMap.keySet");
+
         return null;
     }
 
     public Collection<V> values() {
-        // TODO implement
+        Todo.warnNotImpl("java.util.AbstractMap.values");
+
         return null;
     }
 
     public boolean containsKey(K key) {
-        // TODO implement
+        Todo.warnNotImpl("java.util.AbstractMap.containsKey");
+
         return false;
     }
 
     public V get(K key) {
-        // TODO implement
+        Todo.warnNotImpl("java.util.AbstractMap.get");
+
         return null;
     }
 
     public V put(K key, V value) {
-        // TODO implement
+        Todo.warnNotImpl("java.util.AbstractMap.put");
+
         return null;
     }
 
     public V remove(Object key) {
-        // TODO implement
+        Todo.warnNotImpl("java.util.AbstractMap.remove");
+
         return null;
     }
 
     public void putAll(Map<? extends K, ? extends V> map) {
-        // TODO implement
+        Todo.warnNotImpl("java.util.AbstractMap.putAll");
     }
 
     public int size() {
@@ -48,6 +56,6 @@ public abstract class AbstractMap<K, V> implements Map<K, V> {
     }
 
     public void clear() {
-        // TODO implement
+        Todo.warnNotImpl("java.util.AbstractMap.clear");
     }
 }
