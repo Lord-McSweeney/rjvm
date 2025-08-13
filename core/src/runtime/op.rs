@@ -508,12 +508,12 @@ impl Op {
             D_CONST_0 => Ok(Op::DConst(0.0)),
             D_CONST_1 => Ok(Op::DConst(1.0)),
             B_I_PUSH => {
-                let byte = data.read_u8()? as i32;
+                let byte = data.read_u8()? as i8 as i32;
 
                 Ok(Op::IConst(byte))
             }
             S_I_PUSH => {
-                let byte = data.read_u16()? as i32;
+                let byte = data.read_u16()? as i16 as i32;
 
                 Ok(Op::IConst(byte))
             }
