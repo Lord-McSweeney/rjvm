@@ -64,9 +64,42 @@ public class TreeMap<K, V> extends AbstractMap<K, V> {
     }
 
     public V put(K key, V value) {
-        Todo.warnNotImpl("java.util.TreeMap.put");
+        Comparable<K> comparableKey = (Comparable<K>) key;
 
-        return null;
+        if (this.root == null) {
+            Entry<K, V> entry = new Entry<K, V>(key, value);
+            this.root = entry;
+
+            return null;
+        } else {
+            Entry<K, V> current = this.root;
+            while (true) {
+                int result = comparableKey.compareTo(current.key);
+                if (result == 0) {
+                    V previousValue = current.value;
+                    current.value = value;
+                    return previousValue;
+                } else if (result > 0) {
+                    if (current.right == null) {
+                        Entry<K, V> entry = new Entry<K, V>(key, value);
+                        current.right = entry;
+
+                        return null;
+                    } else {
+                        current = current.right;
+                    }
+                } else {
+                    if (current.left == null) {
+                        Entry<K, V> entry = new Entry<K, V>(key, value);
+                        current.left = entry;
+
+                        return null;
+                    } else {
+                        current = current.left;
+                    }
+                }
+            }
+        }
     }
 
     public void clear() {
