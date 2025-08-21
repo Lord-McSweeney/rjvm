@@ -5,7 +5,7 @@ use crate::output_to_err;
 use rjvm_core::{
     Class, ClassFile, Context, Jar, JvmString, MethodDescriptor, Object, ResourceLoadType, Value,
 };
-use rjvm_globals::{native_impl as base_native_impl, GLOBALS_JAR};
+use rjvm_globals::{GLOBALS_JAR, native_impl as base_native_impl};
 
 fn init_main_class(
     context: Context,

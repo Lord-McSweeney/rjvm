@@ -455,7 +455,7 @@ impl Op {
                         .get(position)
                         .ok_or(Error::Native(NativeError::InvalidBranchPosition))?;
                 }
-                Op::TableSwitch(_, _, ref mut matches, default_offset) => {
+                Op::TableSwitch(_, _, matches, default_offset) => {
                     *default_offset = *offset_to_idx_map
                         .get(default_offset)
                         .ok_or(Error::Native(NativeError::InvalidBranchPosition))?;
@@ -466,7 +466,7 @@ impl Op {
                             .ok_or(Error::Native(NativeError::InvalidBranchPosition))?;
                     }
                 }
-                Op::LookupSwitch(ref mut matches, default_offset) => {
+                Op::LookupSwitch(matches, default_offset) => {
                     *default_offset = *offset_to_idx_map
                         .get(default_offset)
                         .ok_or(Error::Native(NativeError::InvalidBranchPosition))?;

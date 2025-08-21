@@ -1,7 +1,7 @@
 use rjvm_core::{
     Class, ClassFile, Context, Jar, JvmString, MethodDescriptor, Object, ResourceLoadType, Value,
 };
-use rjvm_globals::{native_impl as base_native_impl, GLOBALS_JAR};
+use rjvm_globals::{GLOBALS_JAR, native_impl as base_native_impl};
 
 mod loader_backend;
 mod native_impl;

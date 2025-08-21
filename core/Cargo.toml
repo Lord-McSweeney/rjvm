@@ -1,8 +1,8 @@
 [package]
 name = "rjvm_core"
 version = "0.1.0"
-edition = "2021"
+edition = "2024"
 
 [dependencies]
-bitflags = "2.6.0"
-zip = { version = "2.2.0", default-features = false, features = ["deflate"] }
+bitflags = "2.9.2"
+zip = { version = "4.5.0", default-features = false, features = ["deflate"] }

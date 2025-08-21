@@ -1,5 +1,5 @@
 use super::attribute::Attribute;
-use super::constant_pool::{read_constant_pool, ConstantPool};
+use super::constant_pool::{ConstantPool, read_constant_pool};
 use super::error::Error;
 use super::field::Field;
 use super::flags::ClassFlags;
