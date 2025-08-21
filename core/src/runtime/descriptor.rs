@@ -8,9 +8,10 @@ use super::value::Value;
 use crate::gc::{Gc, GcCtx, Trace};
 use crate::string::JvmString;
 
+use std::fmt;
 use std::hash::{Hash, Hasher};
 
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Eq, Hash, PartialEq)]
 pub enum Descriptor {
     Class(JvmString),
     Array(Gc<Descriptor>),
@@ -23,6 +24,12 @@ pub enum Descriptor {
     Long,
     Short,
     Void,
+}
+
+impl fmt::Debug for Descriptor {
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        write!(f, "{}", self.to_string())
+    }
 }
 
 impl Descriptor {
