@@ -10,11 +10,11 @@ class ArrayIterator<E> implements Iterator<E> {
     }
 
     public boolean hasNext() {
-        return this.data.length < this.index;
+        return this.index < this.data.length;
     }
 
     public E next() {
-        if (this.data.length >= this.index) {
+        if (this.index >= this.data.length) {
             throw new NoSuchElementException();
         }
 

@@ -24,9 +24,31 @@ public abstract class AbstractCollection<E> implements Collection<E> {
         // TODO implement
     }
 
+    public abstract Iterator<E> iterator();
+
     public abstract int size();
 
     public boolean isEmpty() {
         return size() == 0;
+    }
+
+    public String toString() {
+        StringBuilder builder = new StringBuilder();
+        builder.append('[');
+
+        Iterator<E> iter = this.iterator();
+        while (iter.hasNext()) {
+            E next = iter.next();
+            builder.append(next.toString());
+
+            // Append comma only if there's a next element
+            if (iter.hasNext()) {
+                builder.append(", ");
+            }
+        }
+
+        builder.append(']');
+
+        return builder.toString();
     }
 }
