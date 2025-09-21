@@ -60,6 +60,8 @@ public final class System {
         return null;
     }
 
+    public static native long nanoTime();
+
     public static void exit(int status) {
         Runtime.getRuntime().exit(status);
     }

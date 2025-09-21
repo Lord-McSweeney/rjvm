@@ -2,11 +2,13 @@ use crate::output;
 use crate::output_to_err;
 
 use rjvm_core::{Context, Error, NativeMethod, Value};
+use wasm_bindgen::prelude::*;
 
 pub fn register_native_mappings(context: Context) {
     #[rustfmt::skip]
     let mappings: &[(&str, NativeMethod)] = &[
-        ("java/lang/Runtime.exit.(I)V;", system_exit),
+        ("java/lang/Runtime.exit.(I)V", system_exit),
+        ("java/lang/System.nanoTime.()J", system_nano_time),
         ("java/io/File.internalInitFileData.([B)V", internal_init_file_data),
         ("java/io/File.getCanonicalPath.()Ljava/lang/String;", file_get_canonical_path),
         ("java/io/File.getAbsolutePath.()Ljava/lang/String;", file_get_absolute_path),
@@ -20,12 +22,24 @@ pub fn register_native_mappings(context: Context) {
     context.register_native_mappings(mappings);
 }
 
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(js_namespace = Date, js_name = "now")]
+    fn date_now() -> f64;
+}
+
 // java/lang/System : static void exit(int)
 fn system_exit(_context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
     let exit_code = args[1].int();
 
     // No exit function on web
     panic!("System.exit called (code {})", exit_code)
+}
+
+fn system_nano_time(_context: Context, _args: &[Value]) -> Result<Option<Value>, Error> {
+    // `Date.now()` returns value in milliseconds; `System.nanoTime` wants nanoseconds
+    let nanosecs = (date_now() as i64) * 1000;
+    Ok(Some(Value::Long(nanosecs)))
 }
 
 fn internal_init_file_data(context: Context, args: &[Value]) -> Result<Option<Value>, Error> {

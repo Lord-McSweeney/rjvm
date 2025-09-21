@@ -4,6 +4,7 @@
 
 If you want to use `rjvm_globals` yourself, you will need to provide implementations for some native methods:
 - `java/lang/Runtime.exit.(I)V`
+- `java/lang/System.nanoTime.()J`
 - `java/io/File.internalInitFileData.([B)V`
 - `java/io/File.getCanonicalPath.()Ljava/lang/String;`
 - `java/io/File.getAbsolutePath.()Ljava/lang/String;`

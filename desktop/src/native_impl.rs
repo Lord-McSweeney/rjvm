@@ -7,13 +7,15 @@ use std::io::{self, Read, Seek, SeekFrom, Write};
 use std::path;
 use std::process;
 use std::sync::Mutex;
+use std::time::SystemTime;
 
 static ALL_FILES: Mutex<Vec<fs::File>> = Mutex::new(Vec::new());
 
 pub fn register_native_mappings(context: Context) {
     #[rustfmt::skip]
     let mappings: &[(&str, NativeMethod)] = &[
-        ("java/lang/Runtime.exit.(I)V;", system_exit),
+        ("java/lang/Runtime.exit.(I)V", system_exit),
+        ("java/lang/System.nanoTime.()J", system_nano_time),
         ("java/io/File.internalInitFileData.([B)V", internal_init_file_data),
         ("java/io/File.getCanonicalPath.()Ljava/lang/String;", file_get_canonical_path),
         ("java/io/File.getAbsolutePath.()Ljava/lang/String;", file_get_absolute_path),
@@ -32,6 +34,15 @@ fn system_exit(_context: Context, args: &[Value]) -> Result<Option<Value>, Error
     let exit_code = args[1].int();
 
     process::exit(exit_code)
+}
+
+fn system_nano_time(_context: Context, _args: &[Value]) -> Result<Option<Value>, Error> {
+    let millisecs = SystemTime::now()
+        .duration_since(SystemTime::UNIX_EPOCH)
+        .expect("User didn't set their clock to 1969")
+        .as_millis();
+
+    Ok(Some(Value::Long((millisecs * 1000) as i64)))
 }
 
 fn internal_init_file_data(context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
