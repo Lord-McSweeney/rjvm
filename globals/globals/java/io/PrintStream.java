@@ -20,6 +20,11 @@ public class PrintStream extends FilterOutputStream {
         this.print(stringified);
     }
 
+    public void print(long integer) {
+        String stringified = Long.toString(integer);
+        this.print(stringified);
+    }
+
     public void print(Object object) {
         if (object == null) {
             this.print("null");
@@ -54,6 +59,11 @@ public class PrintStream extends FilterOutputStream {
 
     public void println(int i) {
         this.print(i);
+        this.println();
+    }
+
+    public void println(long l) {
+        this.print(l);
         this.println();
     }
 
