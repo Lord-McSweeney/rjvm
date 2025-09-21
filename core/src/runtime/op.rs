@@ -829,7 +829,7 @@ impl Op {
                 let field_slot = class
                     .static_field_vtable()
                     .lookup((field_name, descriptor))
-                    .ok_or(Error::Native(NativeError::VTableLookupFailed))?;
+                    .ok_or_else(|| context.no_such_field_error())?;
 
                 Ok(Op::GetStatic(class, field_slot))
             }
@@ -850,7 +850,7 @@ impl Op {
                 let field_slot = class
                     .static_field_vtable()
                     .lookup((field_name, descriptor))
-                    .ok_or(Error::Native(NativeError::VTableLookupFailed))?;
+                    .ok_or_else(|| context.no_such_field_error())?;
 
                 Ok(Op::PutStatic(class, field_slot))
             }
@@ -871,7 +871,7 @@ impl Op {
                 let field_slot = class
                     .instance_field_vtable()
                     .lookup((field_name, descriptor))
-                    .ok_or(Error::Native(NativeError::VTableLookupFailed))?;
+                    .ok_or_else(|| context.no_such_field_error())?;
 
                 Ok(Op::GetField(class, field_slot))
             }
@@ -892,7 +892,7 @@ impl Op {
                 let field_slot = class
                     .instance_field_vtable()
                     .lookup((field_name, descriptor))
-                    .ok_or(Error::Native(NativeError::VTableLookupFailed))?;
+                    .ok_or_else(|| context.no_such_field_error())?;
 
                 Ok(Op::PutField(class, field_slot))
             }
@@ -914,7 +914,7 @@ impl Op {
                 let method_index = class
                     .instance_method_vtable()
                     .lookup((method_name, descriptor))
-                    .ok_or(Error::Native(NativeError::VTableLookupFailed))?;
+                    .ok_or_else(|| context.no_such_method_error())?;
 
                 Ok(Op::InvokeVirtual(class, method_index))
             }
@@ -946,7 +946,7 @@ impl Op {
 
                 let method_slot = method_vtable
                     .lookup((method_name, descriptor))
-                    .ok_or(Error::Native(NativeError::VTableLookupFailed))?;
+                    .ok_or_else(|| context.no_such_method_error())?;
 
                 let method = method_vtable.get_element(method_slot);
 
@@ -969,7 +969,7 @@ impl Op {
                 let method_slot = class
                     .static_method_vtable()
                     .lookup((method_name, descriptor))
-                    .ok_or(Error::Native(NativeError::VTableLookupFailed))?;
+                    .ok_or_else(|| context.no_such_method_error())?;
 
                 let method = class.static_methods()[method_slot];
 

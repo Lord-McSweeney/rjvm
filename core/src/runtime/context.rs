@@ -436,6 +436,40 @@ impl Context {
         Error::Java(error_instance)
     }
 
+    pub fn no_such_field_error(&self) -> Error {
+        let error_class = self
+            .lookup_class(self.common.java_lang_no_such_field_error)
+            .expect("NoSuchFieldError class should exist");
+
+        let error_instance = error_class.new_instance(self.gc_ctx);
+        error_instance
+            .call_construct(
+                *self,
+                self.common.noargs_void_desc,
+                &[Value::Object(Some(error_instance))],
+            )
+            .expect("Error class should construct");
+
+        Error::Java(error_instance)
+    }
+
+    pub fn no_such_method_error(&self) -> Error {
+        let error_class = self
+            .lookup_class(self.common.java_lang_no_such_method_error)
+            .expect("NoSuchMethodError class should exist");
+
+        let error_instance = error_class.new_instance(self.gc_ctx);
+        error_instance
+            .call_construct(
+                *self,
+                self.common.noargs_void_desc,
+                &[Value::Object(Some(error_instance))],
+            )
+            .expect("Error class should construct");
+
+        Error::Java(error_instance)
+    }
+
     pub fn null_pointer_exception(&self) -> Error {
         let exception_class = self
             .lookup_class(self.common.java_lang_null_pointer_exception)
@@ -499,6 +533,8 @@ pub struct CommonData {
     pub java_lang_cloneable: JvmString,
     pub java_lang_negative_array_size_exception: JvmString,
     pub java_lang_no_class_def_found_error: JvmString,
+    pub java_lang_no_such_field_error: JvmString,
+    pub java_lang_no_such_method_error: JvmString,
     pub java_lang_null_pointer_exception: JvmString,
 
     pub array_byte_desc: JvmString,
@@ -561,6 +597,14 @@ impl CommonData {
                 gc_ctx,
                 "java/lang/NoClassDefFoundError".to_string(),
             ),
+            java_lang_no_such_field_error: JvmString::new(
+                gc_ctx,
+                "java/lang/NoSuchFieldError".to_string(),
+            ),
+            java_lang_no_such_method_error: JvmString::new(
+                gc_ctx,
+                "java/lang/NoSuchMethodError".to_string(),
+            ),
             java_lang_null_pointer_exception: JvmString::new(
                 gc_ctx,
                 "java/lang/NullPointerException".to_string(),
@@ -593,6 +637,8 @@ impl Trace for CommonData {
         self.java_lang_cloneable.trace();
         self.java_lang_negative_array_size_exception.trace();
         self.java_lang_no_class_def_found_error.trace();
+        self.java_lang_no_such_field_error.trace();
+        self.java_lang_no_such_method_error.trace();
         self.java_lang_null_pointer_exception.trace();
 
         self.array_byte_desc.trace();
