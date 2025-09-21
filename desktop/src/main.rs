@@ -139,18 +139,18 @@ fn init_main_class(
                 Jar::from_bytes(context.gc_ctx, read_file).expect("Invalid jar file passed");
             context.add_jar(jar_data);
 
-            let has_manifest = jar_data.has_file(&manifest_name);
-            if !has_manifest {
-                return Err("Cannot execute JAR file without MANIFEST.MF file");
-            }
-
-            let manifest_data = jar_data
-                .read_file(&manifest_name)
-                .expect("MANIFEST should read");
-
             let main_class_name = if let Some(main_class) = main_class {
                 Some(main_class)
             } else {
+                let has_manifest = jar_data.has_file(&manifest_name);
+                if !has_manifest {
+                    return Err("Cannot execute JAR file without MANIFEST.MF file");
+                }
+
+                let manifest_data = jar_data
+                    .read_file(&manifest_name)
+                    .expect("MANIFEST should read");
+
                 get_main_class_from_manifest(manifest_data)
             };
 
