@@ -507,6 +507,9 @@ fn verify_block<'a>(
             Op::LConst(_) => {
                 push_stack!(Long);
             }
+            Op::FConst(_) => {
+                push_stack!(Float);
+            }
             Op::DConst(_) => {
                 push_stack!(Double);
             }

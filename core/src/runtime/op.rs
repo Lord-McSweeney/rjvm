@@ -16,6 +16,7 @@ pub enum Op {
     AConstNull,
     IConst(i32),
     LConst(i8),
+    FConst(f32),
     DConst(f64),
     Ldc(ConstantPoolEntry),
     Ldc2(ConstantPoolEntry),
@@ -130,6 +131,7 @@ impl Trace for Op {
             Op::AConstNull => {}
             Op::IConst(_) => {}
             Op::LConst(_) => {}
+            Op::FConst(_) => {}
             Op::DConst(_) => {}
             Op::Ldc(entry) | Op::Ldc2(entry) => {
                 entry.trace();
@@ -268,6 +270,9 @@ const I_CONST_4: u8 = 0x07;
 const I_CONST_5: u8 = 0x08;
 const L_CONST_0: u8 = 0x09;
 const L_CONST_1: u8 = 0x0A;
+const F_CONST_0: u8 = 0x0B;
+const F_CONST_1: u8 = 0x0C;
+const F_CONST_2: u8 = 0x0D;
 const D_CONST_0: u8 = 0x0E;
 const D_CONST_1: u8 = 0x0F;
 const B_I_PUSH: u8 = 0x10;
@@ -505,6 +510,9 @@ impl Op {
             I_CONST_5 => Ok(Op::IConst(5)),
             L_CONST_0 => Ok(Op::LConst(0)),
             L_CONST_1 => Ok(Op::LConst(1)),
+            F_CONST_0 => Ok(Op::FConst(0.0)),
+            F_CONST_1 => Ok(Op::FConst(1.0)),
+            F_CONST_2 => Ok(Op::FConst(2.0)),
             D_CONST_0 => Ok(Op::DConst(0.0)),
             D_CONST_1 => Ok(Op::DConst(1.0)),
             B_I_PUSH => {

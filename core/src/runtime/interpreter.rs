@@ -101,6 +101,7 @@ impl<'a> Interpreter<'a> {
                 Op::AConstNull => self.op_a_const_null(),
                 Op::IConst(val) => self.op_i_const(*val),
                 Op::LConst(val) => self.op_l_const(*val),
+                Op::FConst(val) => self.op_f_const(*val),
                 Op::DConst(val) => self.op_d_const(*val),
                 Op::Ldc(constant_pool_entry) | Op::Ldc2(constant_pool_entry) => {
                     self.op_ldc(*constant_pool_entry)
@@ -279,6 +280,12 @@ impl<'a> Interpreter<'a> {
 
     fn op_l_const(&mut self, value: i8) -> Result<ControlFlow, Error> {
         self.stack_push(Value::Long(value as i64));
+
+        Ok(ControlFlow::Continue)
+    }
+
+    fn op_f_const(&mut self, value: f32) -> Result<ControlFlow, Error> {
+        self.stack_push(Value::Float(value));
 
         Ok(ControlFlow::Continue)
     }
