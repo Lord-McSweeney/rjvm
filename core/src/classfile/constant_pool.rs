@@ -7,6 +7,7 @@ use crate::string::JvmString;
 const PLACEHOLDER: u8 = 0;
 const UTF8: u8 = 1;
 const INTEGER: u8 = 3;
+const FLOAT: u8 = 4;
 const LONG: u8 = 5;
 const DOUBLE: u8 = 6;
 const CLASS: u8 = 7;
@@ -33,6 +34,9 @@ impl ConstantPool {
 
                 // Integer has no checks on it
                 ConstantPoolEntry::Integer { .. } => {}
+
+                // Float has no checks on it
+                ConstantPoolEntry::Float { .. } => {}
 
                 // Long has no checks on it
                 ConstantPoolEntry::Long { .. } => {}
@@ -199,6 +203,9 @@ pub enum ConstantPoolEntry {
     Integer {
         value: i32,
     },
+    Float {
+        value: f32,
+    },
     Long {
         value: i64,
     },
@@ -235,6 +242,7 @@ impl ConstantPoolEntry {
             ConstantPoolEntry::Placeholder { .. } => PLACEHOLDER,
             ConstantPoolEntry::Utf8 { .. } => UTF8,
             ConstantPoolEntry::Integer { .. } => INTEGER,
+            ConstantPoolEntry::Float { .. } => FLOAT,
             ConstantPoolEntry::Long { .. } => LONG,
             ConstantPoolEntry::Double { .. } => DOUBLE,
             ConstantPoolEntry::Class { .. } => CLASS,
@@ -283,6 +291,13 @@ fn read_constant_pool_entry(
 
             Ok(ConstantPoolEntry::Long {
                 value: value as i64,
+            })
+        }
+        FLOAT => {
+            let value = data.read_u32()?;
+
+            Ok(ConstantPoolEntry::Float {
+                value: f32::from_bits(value),
             })
         }
         DOUBLE => {

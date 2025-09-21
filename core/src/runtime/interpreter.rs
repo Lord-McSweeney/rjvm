@@ -304,6 +304,7 @@ impl<'a> Interpreter<'a> {
                 Value::Object(Some(self.context.create_string(&string_chars)))
             }
             ConstantPoolEntry::Integer { value } => Value::Integer(value),
+            ConstantPoolEntry::Float { value } => Value::Float(value),
             ConstantPoolEntry::Class { name_idx } => {
                 let class_name = constant_pool
                     .get_utf8(name_idx)

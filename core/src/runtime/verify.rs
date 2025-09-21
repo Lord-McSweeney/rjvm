@@ -517,6 +517,9 @@ fn verify_block<'a>(
                 ConstantPoolEntry::Integer { .. } => {
                     push_stack!(Integer);
                 }
+                ConstantPoolEntry::Float { .. } => {
+                    push_stack!(Float);
+                }
                 ConstantPoolEntry::Class { .. } => {
                     push_stack!(Reference);
                 }
