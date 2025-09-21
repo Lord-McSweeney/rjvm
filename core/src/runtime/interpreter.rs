@@ -108,6 +108,7 @@ impl<'a> Interpreter<'a> {
                 }
                 Op::ILoad(index) => self.op_i_load(*index),
                 Op::LLoad(index) => self.op_l_load(*index),
+                Op::FLoad(index) => self.op_f_load(*index),
                 Op::DLoad(index) => self.op_d_load(*index),
                 Op::ALoad(index) => self.op_a_load(*index),
                 Op::IaLoad => self.op_ia_load(),
@@ -343,6 +344,14 @@ impl<'a> Interpreter<'a> {
     }
 
     fn op_l_load(&mut self, index: usize) -> Result<ControlFlow, Error> {
+        let loaded = self.local_reg(index);
+
+        self.stack_push(loaded);
+
+        Ok(ControlFlow::Continue)
+    }
+
+    fn op_f_load(&mut self, index: usize) -> Result<ControlFlow, Error> {
         let loaded = self.local_reg(index);
 
         self.stack_push(loaded);

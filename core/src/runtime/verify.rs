@@ -549,6 +549,10 @@ fn verify_block<'a>(
 
                 push_stack!(Long);
             }
+            Op::FLoad(index) => {
+                expect_local!(*index, Float);
+                push_stack!(Float);
+            }
             Op::DLoad(index) => {
                 expect_local!(*index, Double);
                 if index + 1 >= locals.len() {
