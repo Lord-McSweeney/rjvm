@@ -26,6 +26,8 @@ If you want to replace or edit the classes defined here, be sure to keep the fol
 - `java/lang/Cloneable`
 - `java/lang/NegativeArraySizeException`
 - `java/lang/NoClassDefFoundError`
+- `java/lang/NoSuchFieldError`
+- `java/lang/NoSuchMethodError`
 - `java/lang/NullPointerException`
 - `java/lang/Object`
 - `java/lang/String`
