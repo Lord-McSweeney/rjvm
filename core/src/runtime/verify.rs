@@ -715,7 +715,7 @@ fn verify_block<'a>(
                 expect_pop_stack!(Integer);
                 push_stack!(Integer);
             }
-            Op::LAdd | Op::LSub => {
+            Op::LAdd | Op::LSub | Op::LDiv | Op::LRem => {
                 expect_pop_stack!(Long);
                 expect_pop_stack!(Long);
                 push_stack!(Long);
@@ -728,6 +728,10 @@ fn verify_block<'a>(
             Op::INeg => {
                 expect_pop_stack!(Integer);
                 push_stack!(Integer);
+            }
+            Op::LNeg => {
+                expect_pop_stack!(Long);
+                push_stack!(Long);
             }
             Op::IShl | Op::IShr => {
                 expect_pop_stack!(Integer);

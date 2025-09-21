@@ -138,9 +138,12 @@ impl<'a> Interpreter<'a> {
                 Op::IMul => self.op_i_mul(),
                 Op::DMul => self.op_d_mul(),
                 Op::IDiv => self.op_i_div(),
+                Op::LDiv => self.op_l_div(),
                 Op::DDiv => self.op_d_div(),
                 Op::IRem => self.op_i_rem(),
+                Op::LRem => self.op_l_rem(),
                 Op::INeg => self.op_i_neg(),
+                Op::LNeg => self.op_l_neg(),
                 Op::IShl => self.op_i_shl(),
                 Op::LShl => self.op_l_shl(),
                 Op::IShr => self.op_i_shr(),
@@ -728,6 +731,19 @@ impl<'a> Interpreter<'a> {
         }
     }
 
+    fn op_l_div(&mut self) -> Result<ControlFlow, Error> {
+        let long1 = self.stack_pop().long();
+        let long2 = self.stack_pop().long();
+
+        if long1 == 0 {
+            Err(self.context.arithmetic_exception())
+        } else {
+            self.stack_push(Value::Long(long2 / long1));
+
+            Ok(ControlFlow::Continue)
+        }
+    }
+
     fn op_d_div(&mut self) -> Result<ControlFlow, Error> {
         let int1 = self.stack_pop().double();
         let int2 = self.stack_pop().double();
@@ -750,10 +766,31 @@ impl<'a> Interpreter<'a> {
         }
     }
 
+    fn op_l_rem(&mut self) -> Result<ControlFlow, Error> {
+        let long1 = self.stack_pop().long();
+        let long2 = self.stack_pop().long();
+
+        if long1 == 0 {
+            Err(self.context.arithmetic_exception())
+        } else {
+            self.stack_push(Value::Long(long2 % long1));
+
+            Ok(ControlFlow::Continue)
+        }
+    }
+
     fn op_i_neg(&mut self) -> Result<ControlFlow, Error> {
         let int = self.stack_pop().int();
 
         self.stack_push(Value::Integer(-int));
+
+        Ok(ControlFlow::Continue)
+    }
+
+    fn op_l_neg(&mut self) -> Result<ControlFlow, Error> {
+        let long = self.stack_pop().long();
+
+        self.stack_push(Value::Long(-long));
 
         Ok(ControlFlow::Continue)
     }

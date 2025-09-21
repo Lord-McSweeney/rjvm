@@ -52,9 +52,12 @@ pub enum Op {
     IMul,
     DMul,
     IDiv,
+    LDiv,
     DDiv,
     IRem,
+    LRem,
     INeg,
+    LNeg,
     IShl,
     LShl,
     IShr,
@@ -169,9 +172,12 @@ impl Trace for Op {
             Op::IMul => {}
             Op::DMul => {}
             Op::IDiv => {}
+            Op::LDiv => {}
             Op::DDiv => {}
             Op::IRem => {}
+            Op::LRem => {}
             Op::INeg => {}
+            Op::LNeg => {}
             Op::IShl => {}
             Op::LShl => {}
             Op::IShr => {}
@@ -341,9 +347,12 @@ const D_SUB: u8 = 0x67;
 const I_MUL: u8 = 0x68;
 const D_MUL: u8 = 0x6B;
 const I_DIV: u8 = 0x6C;
+const L_DIV: u8 = 0x6D;
 const D_DIV: u8 = 0x6F;
 const I_REM: u8 = 0x70;
+const L_REM: u8 = 0x71;
 const I_NEG: u8 = 0x74;
+const L_NEG: u8 = 0x75;
 const I_SHL: u8 = 0x78;
 const L_SHL: u8 = 0x79;
 const I_SHR: u8 = 0x7A;
@@ -637,9 +646,12 @@ impl Op {
             I_MUL => Ok(Op::IMul),
             D_MUL => Ok(Op::DMul),
             I_DIV => Ok(Op::IDiv),
+            L_DIV => Ok(Op::LDiv),
             D_DIV => Ok(Op::DDiv),
             I_REM => Ok(Op::IRem),
+            L_REM => Ok(Op::LRem),
             I_NEG => Ok(Op::INeg),
+            L_NEG => Ok(Op::LNeg),
             I_SHL => Ok(Op::IShl),
             L_SHL => Ok(Op::LShl),
             I_SHR => Ok(Op::IShr),
@@ -1128,7 +1140,9 @@ impl Op {
                 | Op::BaStore
                 | Op::CaStore
                 | Op::IDiv
+                | Op::LDiv
                 | Op::IRem
+                | Op::LRem
                 | Op::GetField(_, _)
                 | Op::PutField(_, _)
                 | Op::InvokeVirtual(_, _)

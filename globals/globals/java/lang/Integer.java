@@ -1,5 +1,7 @@
 package java.lang;
 
+import rjvm.internal.Todo;
+
 public final class Integer extends Number implements Comparable<Integer> {
     private int value;
 
@@ -89,7 +91,7 @@ public final class Integer extends Number implements Comparable<Integer> {
     }
 
     public static int parseInt(String string) {
-        // TODO implement
+        Todo.warnNotImpl("Integer.parseInt");
         return 0;
     }
 
