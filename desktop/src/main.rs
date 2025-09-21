@@ -40,17 +40,24 @@ struct PassedOptions {
     file_type: FileType,
     file_name: String,
 
+    linked_jars: Vec<String>,
+
     program_args: Vec<String>,
 }
 
 impl PassedOptions {
-    fn from_args(args: Vec<String>) -> Result<Self, String> {
+    fn from_args(args: Vec<String>) -> Result<Option<Self>, String> {
         if args.len() < 2 {
-            return Err(format!("Run as {} [file.class]", args[0]));
+            return Ok(None);
+        }
+
+        if args[1] == "--help" {
+            return Ok(None);
         }
 
         let mut file_type = FileType::Unknown;
-        let mut file_name = String::new();
+        let mut file_name = None;
+        let mut linked_jars = Vec::new();
         let mut program_args = Vec::new();
 
         let mut started_args = false;
@@ -65,19 +72,21 @@ impl PassedOptions {
                 // We haven't started receiving program arguments yet; we still
                 // have to handle the file being loaded
                 if arg == "--jar" {
-                    if i + 1 > args.len() {
+                    if i + 1 >= args.len() {
                         return Err("--jar flag requires a file".to_string());
                     }
 
                     file_type = FileType::Jar { main_class: None };
-                    file_name = args[i + 1].clone();
+                    file_name = Some(args[i + 1].clone());
 
                     i += 1;
 
                     started_args = true;
                 } else if arg == "--jar-with-main" {
-                    if i + 2 > args.len() {
-                        return Err("--jar-with-main flag requires a file".to_string());
+                    if i + 2 >= args.len() {
+                        return Err(
+                            "--jar-with-main flag requires a file and main class name".to_string()
+                        );
                     }
 
                     // Main class is specified with `.` delimiter, but we want
@@ -87,14 +96,24 @@ impl PassedOptions {
                     file_type = FileType::Jar {
                         main_class: Some(main_class),
                     };
-                    file_name = args[i + 1].clone();
+                    file_name = Some(args[i + 1].clone());
 
                     i += 2;
 
                     started_args = true;
+                } else if arg == "--link" {
+                    if i + 1 >= args.len() {
+                        return Err("--link flag requires a file".to_string());
+                    }
+
+                    linked_jars.push(args[i + 1].clone());
+
+                    i += 1;
+                } else if arg.starts_with("--") {
+                    return Err(format!("Unknown flag {}", arg));
                 } else {
                     file_type = FileType::Class;
-                    file_name = arg.clone();
+                    file_name = Some(arg.clone());
 
                     started_args = true;
                 }
@@ -103,11 +122,16 @@ impl PassedOptions {
             i += 1;
         }
 
-        Ok(Self {
-            file_type,
-            file_name,
-            program_args,
-        })
+        if let Some(file_name) = file_name {
+            Ok(Some(Self {
+                file_type,
+                file_name,
+                linked_jars,
+                program_args,
+            }))
+        } else {
+            return Err("No class or JAR file provided".to_string());
+        }
     }
 }
 
@@ -190,8 +214,23 @@ fn init_main_class(
 fn main() {
     let args: Vec<String> = env::args().collect();
 
+    let program_name = args[0].clone();
+
     let options = match PassedOptions::from_args(args) {
-        Ok(opts) => opts,
+        Ok(Some(opts)) => opts,
+        Ok(None) => {
+            println!("Run as {program_name} [link options] [options] [args]
+or as {program_name} [link options] file.class [args]
+
+Options:
+--help: Show this message
+--jar file.jar: Run a JAR file instead of a class file
+--jar-with-main file.jar com.example.MainClass: Run a JAR file with an explicitly specified main class
+
+Link options:
+--link library.jar: Load a JAR file when loading this code");
+            return;
+        }
         Err(error) => {
             eprintln!("{}", error);
             return;
@@ -201,7 +240,7 @@ fn main() {
     let read_file = match fs::read(&options.file_name) {
         Ok(data) => data,
         Err(error) => {
-            eprintln!("Error: {}", error.to_string());
+            eprintln!("Failed to read main file: {}", error.to_string());
             return;
         }
     };
@@ -217,6 +256,26 @@ fn main() {
 
     base_native_impl::register_native_mappings(context);
     native_impl::register_native_mappings(context);
+
+    // Load linked JARs
+    for linked_jar_name in &options.linked_jars {
+        let jar_data = match fs::read(linked_jar_name) {
+            Ok(data) => data,
+            Err(error) => {
+                eprintln!("Failed to read linked JAR: {}", error.to_string());
+                return;
+            }
+        };
+
+        let linked_jar = Jar::from_bytes(context.gc_ctx, jar_data);
+
+        if let Ok(linked_jar) = linked_jar {
+            context.add_jar(linked_jar);
+        } else {
+            eprintln!("Linked JAR \"{}\" was not a valid JAR", linked_jar_name);
+            return;
+        }
+    }
 
     // Load program args
     let mut program_args = Vec::new();
