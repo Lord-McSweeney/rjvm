@@ -1,4 +1,7 @@
+use super::context::Context;
+use super::context::{OBJECT_TO_STRING_METHOD, THROWABLE_STACK_TRACE_FIELD};
 use super::object::Object;
+use super::value::Value;
 
 use crate::classfile::error::Error as ClassFileError;
 
@@ -11,25 +14,61 @@ pub enum Error {
 
 impl fmt::Debug for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        write!(f, "{}", self.display_infallible())
+    }
+}
+
+impl Error {
+    pub fn display_infallible(&self) -> String {
         match self {
-            Error::Native(native) => write!(f, "NativeError({:?})", native),
-            Error::Java(object) => {
-                write!(f, "{}", object.class().dot_name())?;
+            Error::Native(native) => format!("NativeError({:?})", native),
+            Error::Java(object) => format!("{}", object.class().dot_name()),
+        }
+    }
 
-                let stack_trace = object.get_field(1).object();
-                if let Some(stack_trace) = stack_trace {
-                    let chars = stack_trace.get_field(0).object().unwrap();
-                    let chars = chars.get_array_data();
-                    let chars = chars
-                        .iter()
-                        .map(|c| c.get().int() as u16)
-                        .collect::<Vec<_>>();
+    pub fn display(&self, context: Context) -> String {
+        match self {
+            Error::Native(native) => format!("NativeError({:?})", native),
+            Error::Java(error_object) => {
+                let mut result_string = String::new();
 
-                    let string = String::from_utf16_lossy(&chars);
-                    write!(f, "{}", string)?;
+                // Call `toString` on the error object
+                let to_string_method = error_object
+                    .class()
+                    .instance_method_vtable()
+                    .get_element(OBJECT_TO_STRING_METHOD);
+
+                let args = &[Value::Object(Some(*error_object))];
+                let result = to_string_method.exec(context, args);
+                let value = match result {
+                    Ok(value) => value,
+                    Err(e) => {
+                        return format!(
+                            "(error while displaying error): {}",
+                            e.display_infallible()
+                        );
+                    }
+                };
+
+                let Some(Value::Object(string_obj)) = value else {
+                    unreachable!()
+                };
+
+                if let Some(string_obj) = string_obj {
+                    result_string.push_str(&Context::string_object_to_string(string_obj));
+                } else {
+                    result_string.push_str("null");
                 }
 
-                Ok(())
+                // Now write the stack trace, if it exists. (TODO: Shouldn't it
+                // always exist?)
+
+                let stack_trace = error_object.get_field(THROWABLE_STACK_TRACE_FIELD).object();
+                if let Some(stack_trace) = stack_trace {
+                    result_string.push_str(&Context::string_object_to_string(stack_trace));
+                }
+
+                result_string
             }
         }
     }

@@ -5,6 +5,7 @@ public class Object {
 
     public final native Class<?> getClass();
 
+    // NOTE method ordering is important
     public String toString() {
         // TODO implement
         return this.getClass().getName() + "@0";

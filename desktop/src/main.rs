@@ -267,7 +267,7 @@ fn main() {
         let result = method.exec(context, &[args_array]);
 
         if let Err(error) = result {
-            eprintln!("Error while running main: {:?}", error);
+            eprintln!("Error while running main: {}", error.display(context));
         }
     } else {
         eprintln!(

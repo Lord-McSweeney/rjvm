@@ -144,7 +144,10 @@ pub(crate) fn run_file(class_data: &[u8], args: Vec<String>, is_jar: bool) {
         let result = method.exec(context, &[args_array]);
 
         if let Err(error) = result {
-            output_to_err(&format!("Error while running main: {:?}\n", error));
+            output_to_err(&format!(
+                "Error while running main: {}\n",
+                error.display(context)
+            ));
         }
     } else {
         output_to_err(&format!(

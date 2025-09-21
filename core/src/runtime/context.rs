@@ -15,6 +15,15 @@ use crate::string::JvmString;
 use std::cell::{Cell, RefCell};
 use std::collections::HashMap;
 
+// Various magic fields
+pub const OBJECT_TO_STRING_METHOD: usize = 2;
+
+pub const THROWABLE_MESSAGE_FIELD: usize = 0;
+pub const THROWABLE_STACK_TRACE_FIELD: usize = 1;
+
+pub const STRING_DATA_FIELD: usize = 0;
+
+/// The number of allocation operations before the GC runs.
 const GC_THRESHOLD: u32 = 32768;
 
 #[derive(Clone, Copy)]
@@ -125,7 +134,7 @@ impl Context {
             let element_name = JvmString::new(self.gc_ctx, element_name.to_string());
             drop(class_registry);
             let element_descriptor = Descriptor::from_string(self.gc_ctx, element_name)
-                .ok_or_else(|| self.no_class_def_found_error())?;
+                .ok_or_else(|| self.no_class_def_found_error(class_name))?;
 
             let resolved_descriptor =
                 ResolvedDescriptor::from_descriptor(self, element_descriptor)?;
@@ -154,7 +163,7 @@ impl Context {
                 }
             }
 
-            Err(self.no_class_def_found_error())
+            Err(self.no_class_def_found_error(class_name))
         }
     }
 
@@ -260,6 +269,35 @@ impl Context {
         }
     }
 
+    /// Convert a Java String object to a Rust `String`.
+    pub fn string_object_to_string(string_obj: Object) -> String {
+        let chars = string_obj.get_field(STRING_DATA_FIELD).object().unwrap();
+        let chars = chars.get_array_data();
+        let chars = chars
+            .iter()
+            .map(|c| c.get().int() as u16)
+            .collect::<Vec<_>>();
+
+        return String::from_utf16_lossy(&chars);
+    }
+
+    /// Convert a Rust `JvmString` to a Java String object.
+    pub fn jvm_string_to_string(self, string: JvmString) -> Object {
+        let chars = string.chars().map(|c| c as u16).collect::<Vec<_>>();
+
+        let chars_array_object = Object::char_array(self, &chars);
+
+        let string_class = self
+            .lookup_class(self.common.java_lang_string)
+            .expect("String class should exist");
+
+        let string_instance = string_class.new_instance(self.gc_ctx);
+        string_instance.set_field(STRING_DATA_FIELD, Value::Object(Some(chars_array_object)));
+
+        string_instance
+    }
+
+    /// Convert a Rust `&[u16]` to a Java String object.
     pub fn create_string(self, chars: &[u16]) -> Object {
         let chars_array_object = Object::char_array(self, chars);
 
@@ -268,7 +306,7 @@ impl Context {
             .expect("String class should exist");
 
         let string_instance = string_class.new_instance(self.gc_ctx);
-        string_instance.set_field(0, Value::Object(Some(chars_array_object)));
+        string_instance.set_field(STRING_DATA_FIELD, Value::Object(Some(chars_array_object)));
 
         string_instance
     }
@@ -375,7 +413,7 @@ impl Context {
         Error::Java(exception_instance)
     }
 
-    pub fn no_class_def_found_error(&self) -> Error {
+    pub fn no_class_def_found_error(&self, class_name: JvmString) -> Error {
         let error_class = self
             .lookup_class(self.common.java_lang_no_class_def_found_error)
             .expect("NoClassDefFoundError class should exist");
@@ -388,6 +426,12 @@ impl Context {
                 &[Value::Object(Some(error_instance))],
             )
             .expect("Error class should construct");
+
+        // Set the `message` field
+        error_instance.set_field(
+            THROWABLE_MESSAGE_FIELD,
+            Value::Object(Some(self.jvm_string_to_string(class_name))),
+        );
 
         Error::Java(error_instance)
     }
