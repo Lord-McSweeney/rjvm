@@ -10,12 +10,12 @@ use super::value::Value;
 use crate::classfile::constant_pool::ConstantPoolEntry;
 use crate::string::JvmString;
 
-use std::cell::{Cell, Ref};
+use std::cell::Cell;
 use std::cmp::Ordering;
 
 pub struct Interpreter<'a> {
     method: Method,
-    frame_reference: Ref<'a, Box<[Cell<Value>]>>,
+    frame_reference: &'a [Cell<Value>],
     local_count: usize,
     local_base: usize,
 
@@ -33,7 +33,7 @@ enum ControlFlow {
 impl<'a> Interpreter<'a> {
     pub fn new(
         context: Context,
-        frame_reference: Ref<'a, Box<[Cell<Value>]>>,
+        frame_reference: &'a [Cell<Value>],
         method: Method,
         args: &[Value],
     ) -> Result<Self, Error> {

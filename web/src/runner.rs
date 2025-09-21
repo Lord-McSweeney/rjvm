@@ -125,7 +125,7 @@ pub(crate) fn run_file(class_data: &[u8], args: Vec<String>, is_jar: bool) {
     )));
 
     // Store this on the stack so that GC doesn't decide to collect it
-    context.frame_data.borrow()[0].set(args_array);
+    context.frame_data[0].set(args_array);
     context.frame_index.set(1);
 
     // Call main method

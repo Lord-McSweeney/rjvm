@@ -40,7 +40,7 @@ pub struct Context {
     native_mapping: Gc<RefCell<HashMap<(JvmString, JvmString, MethodDescriptor), NativeMethod>>>,
 
     // Values currently in locals or stacks of interpreter frames
-    pub frame_data: Gc<RefCell<Box<[Cell<Value>]>>>,
+    pub frame_data: Gc<Box<[Cell<Value>]>>,
 
     // The first index into the frame data that is unoccupied (stack pointer).
     pub frame_index: Gc<Cell<usize>>,
@@ -72,7 +72,7 @@ impl Context {
             array_classes: Gc::new(gc_ctx, RefCell::new(HashMap::new())),
             jar_files: Gc::new(gc_ctx, RefCell::new(Vec::new())),
             native_mapping: Gc::new(gc_ctx, RefCell::new(HashMap::new())),
-            frame_data: Gc::new(gc_ctx, RefCell::new(empty_frame_data)),
+            frame_data: Gc::new(gc_ctx, empty_frame_data),
             frame_index: Gc::new(gc_ctx, Cell::new(0)),
             call_stack: Gc::new(gc_ctx, RefCell::new(CallStack::empty())),
             gc_counter: Gc::new(gc_ctx, Cell::new(0)),
@@ -423,7 +423,7 @@ impl Trace for Context {
         // We want to do a custom tracing over frame data to avoid tracing values
         // above frame_index. This approach isn't too hacky and works well.
         self.frame_data.trace_self();
-        let data = self.frame_data.borrow();
+        let data = &**self.frame_data;
         let mut i = 0;
         while i < self.frame_index.get() {
             data[i].trace();

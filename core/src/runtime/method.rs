@@ -114,7 +114,7 @@ impl Method {
                         class.run_clinit(context)?;
                     }
 
-                    let frame_reference = context.frame_data.borrow();
+                    let frame_reference = &context.frame_data;
                     let mut interpreter = Interpreter::new(context, frame_reference, self, args)?;
 
                     interpreter.interpret_ops(&bytecode_info.code, &bytecode_info.exceptions)
