@@ -32,6 +32,7 @@ pub enum Op {
     CaLoad,
     IStore(usize),
     LStore(usize),
+    FStore(usize),
     DStore(usize),
     AStore(usize),
     IaStore,
@@ -71,8 +72,10 @@ pub enum Op {
     LXor,
     IInc(usize, i32),
     I2L,
+    I2F,
     I2D,
     L2I,
+    F2I,
     D2I,
     I2B,
     I2C,
@@ -154,6 +157,7 @@ impl Trace for Op {
             Op::CaLoad => {}
             Op::IStore(_) => {}
             Op::LStore(_) => {}
+            Op::FStore(_) => {}
             Op::DStore(_) => {}
             Op::AStore(_) => {}
             Op::IaStore => {}
@@ -193,8 +197,10 @@ impl Trace for Op {
             Op::LXor => {}
             Op::IInc(_, _) => {}
             Op::I2L => {}
+            Op::I2F => {}
             Op::I2D => {}
             Op::L2I => {}
+            Op::F2I => {}
             Op::D2I => {}
             Op::I2B => {}
             Op::I2C => {}
@@ -303,6 +309,8 @@ const I_LOAD_3: u8 = 0x1D;
 const L_LOAD_0: u8 = 0x1E;
 const L_LOAD_1: u8 = 0x1F;
 const F_LOAD_1: u8 = 0x23;
+const F_LOAD_2: u8 = 0x24;
+const F_LOAD_3: u8 = 0x25;
 const D_LOAD_0: u8 = 0x26;
 const D_LOAD_1: u8 = 0x27;
 const D_LOAD_2: u8 = 0x28;
@@ -326,6 +334,9 @@ const I_STORE_2: u8 = 0x3D;
 const I_STORE_3: u8 = 0x3E;
 const L_STORE_0: u8 = 0x3F;
 const L_STORE_1: u8 = 0x40;
+const F_STORE_1: u8 = 0x44;
+const F_STORE_2: u8 = 0x45;
+const F_STORE_3: u8 = 0x46;
 const D_STORE_0: u8 = 0x47;
 const D_STORE_1: u8 = 0x48;
 const D_STORE_2: u8 = 0x49;
@@ -371,8 +382,10 @@ const L_OR: u8 = 0x81;
 const L_XOR: u8 = 0x83;
 const I_INC: u8 = 0x84;
 const I2L: u8 = 0x85;
+const I2F: u8 = 0x86;
 const I2D: u8 = 0x87;
 const L2I: u8 = 0x88;
+const F2I: u8 = 0x8B;
 const D2I: u8 = 0x8E;
 const I2B: u8 = 0x91;
 const I2C: u8 = 0x92;
@@ -589,6 +602,8 @@ impl Op {
             L_LOAD_0 => Ok(Op::LLoad(0)),
             L_LOAD_1 => Ok(Op::LLoad(1)),
             F_LOAD_1 => Ok(Op::FLoad(1)),
+            F_LOAD_2 => Ok(Op::FLoad(2)),
+            F_LOAD_3 => Ok(Op::FLoad(3)),
             D_LOAD_0 => Ok(Op::DLoad(0)),
             D_LOAD_1 => Ok(Op::DLoad(1)),
             D_LOAD_2 => Ok(Op::DLoad(2)),
@@ -628,6 +643,9 @@ impl Op {
             I_STORE_3 => Ok(Op::IStore(3)),
             L_STORE_0 => Ok(Op::LStore(0)),
             L_STORE_1 => Ok(Op::LStore(1)),
+            F_STORE_1 => Ok(Op::FStore(1)),
+            F_STORE_2 => Ok(Op::FStore(2)),
+            F_STORE_3 => Ok(Op::FStore(3)),
             D_STORE_0 => Ok(Op::DStore(0)),
             D_STORE_1 => Ok(Op::DStore(1)),
             D_STORE_2 => Ok(Op::DStore(2)),
@@ -678,8 +696,10 @@ impl Op {
                 Ok(Op::IInc(local_idx as usize, constant as i32))
             }
             I2L => Ok(Op::I2L),
+            I2F => Ok(Op::I2F),
             I2D => Ok(Op::I2D),
             L2I => Ok(Op::L2I),
+            F2I => Ok(Op::F2I),
             D2I => Ok(Op::D2I),
             I2B => Ok(Op::I2B),
             I2C => Ok(Op::I2C),

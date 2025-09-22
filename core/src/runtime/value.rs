@@ -33,6 +33,13 @@ impl Value {
         }
     }
 
+    pub fn float(self) -> f32 {
+        match self {
+            Value::Float(float) => float,
+            _ => panic!("Expected value to be float"),
+        }
+    }
+
     pub fn double(self) -> f64 {
         match self {
             Value::Double(double) => double,

@@ -118,6 +118,7 @@ impl<'a> Interpreter<'a> {
                 Op::CaLoad => self.op_ca_load(),
                 Op::IStore(index) => self.op_i_store(*index),
                 Op::LStore(index) => self.op_l_store(*index),
+                Op::FStore(index) => self.op_f_store(*index),
                 Op::DStore(index) => self.op_d_store(*index),
                 Op::AStore(index) => self.op_a_store(*index),
                 Op::IaStore => self.op_ia_store(),
@@ -157,8 +158,10 @@ impl<'a> Interpreter<'a> {
                 Op::LXor => self.op_l_xor(),
                 Op::IInc(index, amount) => self.op_i_inc(*index, *amount),
                 Op::I2L => self.op_i2l(),
+                Op::I2F => self.op_i2f(),
                 Op::I2D => self.op_i2d(),
                 Op::L2I => self.op_l2i(),
+                Op::F2I => self.op_f2i(),
                 Op::D2I => self.op_d2i(),
                 Op::I2B => self.op_i2b(),
                 Op::I2C => self.op_i2c(),
@@ -489,6 +492,14 @@ impl<'a> Interpreter<'a> {
     }
 
     fn op_l_store(&mut self, index: usize) -> Result<ControlFlow, Error> {
+        let value = self.stack_pop();
+
+        self.set_local_reg(index, value);
+
+        Ok(ControlFlow::Continue)
+    }
+
+    fn op_f_store(&mut self, index: usize) -> Result<ControlFlow, Error> {
         let value = self.stack_pop();
 
         self.set_local_reg(index, value);
@@ -912,6 +923,14 @@ impl<'a> Interpreter<'a> {
         Ok(ControlFlow::Continue)
     }
 
+    fn op_i2f(&mut self) -> Result<ControlFlow, Error> {
+        let int = self.stack_pop().int();
+
+        self.stack_push(Value::Float(int as f32));
+
+        Ok(ControlFlow::Continue)
+    }
+
     fn op_i2d(&mut self) -> Result<ControlFlow, Error> {
         let int = self.stack_pop().int();
 
@@ -924,6 +943,14 @@ impl<'a> Interpreter<'a> {
         let long = self.stack_pop().long();
 
         self.stack_push(Value::Integer(long as i32));
+
+        Ok(ControlFlow::Continue)
+    }
+
+    fn op_f2i(&mut self) -> Result<ControlFlow, Error> {
+        let float = self.stack_pop().float();
+
+        self.stack_push(Value::Integer(float as i32));
 
         Ok(ControlFlow::Continue)
     }

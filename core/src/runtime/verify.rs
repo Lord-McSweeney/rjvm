@@ -601,6 +601,10 @@ fn verify_block<'a>(
                 // The docs aren't clear on this, but this is expected
                 set_local!(*index + 1, Invalid);
             }
+            Op::FStore(index) => {
+                expect_pop_stack!(Float);
+                set_local!(*index, Float);
+            }
             Op::DStore(index) => {
                 expect_pop_stack!(Double);
                 set_local!(*index, Double);
@@ -765,12 +769,20 @@ fn verify_block<'a>(
                 expect_pop_stack!(Integer);
                 push_stack!(Long);
             }
+            Op::I2F => {
+                expect_pop_stack!(Integer);
+                push_stack!(Float);
+            }
             Op::I2D => {
                 expect_pop_stack!(Integer);
                 push_stack!(Double);
             }
             Op::L2I => {
                 expect_pop_stack!(Long);
+                push_stack!(Integer);
+            }
+            Op::F2I => {
+                expect_pop_stack!(Float);
                 push_stack!(Integer);
             }
             Op::D2I => {
