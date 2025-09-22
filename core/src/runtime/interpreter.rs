@@ -136,6 +136,7 @@ impl<'a> Interpreter<'a> {
                 Op::LSub => self.op_l_sub(),
                 Op::DSub => self.op_d_sub(),
                 Op::IMul => self.op_i_mul(),
+                Op::LMul => self.op_l_mul(),
                 Op::DMul => self.op_d_mul(),
                 Op::IDiv => self.op_i_div(),
                 Op::LDiv => self.op_l_div(),
@@ -185,6 +186,7 @@ impl<'a> Interpreter<'a> {
                     self.op_lookup_switch(&**matches, *default_offset)
                 }
                 Op::IReturn => self.op_i_return(),
+                Op::LReturn => self.op_l_return(),
                 Op::AReturn => self.op_a_return(),
                 Op::Return => Ok(ControlFlow::Return(None)),
                 Op::GetStatic(class, static_field_idx) => {
@@ -709,6 +711,15 @@ impl<'a> Interpreter<'a> {
         Ok(ControlFlow::Continue)
     }
 
+    fn op_l_mul(&mut self) -> Result<ControlFlow, Error> {
+        let int1 = self.stack_pop().long();
+        let int2 = self.stack_pop().long();
+
+        self.stack_push(Value::Long(int1 * int2));
+
+        Ok(ControlFlow::Continue)
+    }
+
     fn op_d_mul(&mut self) -> Result<ControlFlow, Error> {
         let int1 = self.stack_pop().double();
         let int2 = self.stack_pop().double();
@@ -1189,6 +1200,12 @@ impl<'a> Interpreter<'a> {
     }
 
     fn op_i_return(&mut self) -> Result<ControlFlow, Error> {
+        let value = self.stack_pop();
+
+        Ok(ControlFlow::Return(Some(value)))
+    }
+
+    fn op_l_return(&mut self) -> Result<ControlFlow, Error> {
         let value = self.stack_pop();
 
         Ok(ControlFlow::Return(Some(value)))

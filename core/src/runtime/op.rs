@@ -50,6 +50,7 @@ pub enum Op {
     LSub,
     DSub,
     IMul,
+    LMul,
     DMul,
     IDiv,
     LDiv,
@@ -95,6 +96,7 @@ pub enum Op {
     TableSwitch(i32, i32, Box<[usize]>, usize),
     LookupSwitch(Box<[(i32, usize)]>, usize),
     IReturn,
+    LReturn,
     AReturn,
     Return,
     GetStatic(Class, usize),
@@ -170,6 +172,7 @@ impl Trace for Op {
             Op::LSub => {}
             Op::DSub => {}
             Op::IMul => {}
+            Op::LMul => {}
             Op::DMul => {}
             Op::IDiv => {}
             Op::LDiv => {}
@@ -215,6 +218,7 @@ impl Trace for Op {
             Op::TableSwitch(_, _, _, _) => {}
             Op::LookupSwitch(_, _) => {}
             Op::IReturn => {}
+            Op::LReturn => {}
             Op::AReturn => {}
             Op::Return => {}
             Op::GetStatic(class, _) => {
@@ -321,6 +325,7 @@ const I_STORE_1: u8 = 0x3C;
 const I_STORE_2: u8 = 0x3D;
 const I_STORE_3: u8 = 0x3E;
 const L_STORE_0: u8 = 0x3F;
+const L_STORE_1: u8 = 0x40;
 const D_STORE_0: u8 = 0x47;
 const D_STORE_1: u8 = 0x48;
 const D_STORE_2: u8 = 0x49;
@@ -345,6 +350,7 @@ const I_SUB: u8 = 0x64;
 const L_SUB: u8 = 0x65;
 const D_SUB: u8 = 0x67;
 const I_MUL: u8 = 0x68;
+const L_MUL: u8 = 0x69;
 const D_MUL: u8 = 0x6B;
 const I_DIV: u8 = 0x6C;
 const L_DIV: u8 = 0x6D;
@@ -390,6 +396,7 @@ const GOTO: u8 = 0xA7;
 const TABLE_SWITCH: u8 = 0xAA;
 const LOOKUP_SWITCH: u8 = 0xAB;
 const I_RETURN: u8 = 0xAC;
+const L_RETURN: u8 = 0xAD;
 const A_RETURN: u8 = 0xB0;
 const RETURN: u8 = 0xB1;
 const GET_STATIC: u8 = 0xB2;
@@ -620,6 +627,7 @@ impl Op {
             I_STORE_2 => Ok(Op::IStore(2)),
             I_STORE_3 => Ok(Op::IStore(3)),
             L_STORE_0 => Ok(Op::LStore(0)),
+            L_STORE_1 => Ok(Op::LStore(1)),
             D_STORE_0 => Ok(Op::DStore(0)),
             D_STORE_1 => Ok(Op::DStore(1)),
             D_STORE_2 => Ok(Op::DStore(2)),
@@ -644,6 +652,7 @@ impl Op {
             L_SUB => Ok(Op::LSub),
             D_SUB => Ok(Op::DSub),
             I_MUL => Ok(Op::IMul),
+            L_MUL => Ok(Op::LMul),
             D_MUL => Ok(Op::DMul),
             I_DIV => Ok(Op::IDiv),
             L_DIV => Ok(Op::LDiv),
@@ -817,6 +826,13 @@ impl Op {
                     Err(Error::Native(NativeError::WrongReturnType))
                 } else {
                     Ok(Op::IReturn)
+                }
+            }
+            L_RETURN => {
+                if !matches!(method_return_type, Descriptor::Long) {
+                    Err(Error::Native(NativeError::WrongReturnType))
+                } else {
+                    Ok(Op::LReturn)
                 }
             }
             A_RETURN => {
