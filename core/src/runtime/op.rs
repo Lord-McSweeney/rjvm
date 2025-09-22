@@ -1190,6 +1190,7 @@ impl Op {
                 | Op::ArrayLength
                 | Op::AThrow
                 | Op::CheckCast(_)
+                | Op::MultiANewArray(_, _)
         )
     }
 }
