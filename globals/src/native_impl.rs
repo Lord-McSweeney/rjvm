@@ -210,7 +210,6 @@ fn object_clone(context: Context, args: &[Value]) -> Result<Option<Value>, Error
 
 fn capture_stack_trace(context: Context, _args: &[Value]) -> Result<Option<Value>, Error> {
     let stack_data = context.capture_call_stack();
-    // TODO filter out the error constructors
     let chars = stack_data.chars().map(|c| c as u16).collect::<Vec<_>>();
 
     Ok(Some(Value::Object(Some(context.create_string(&chars)))))

@@ -39,7 +39,6 @@ struct MethodData {
 
     flags: MethodFlags,
 
-    // This should only be used for debugging
     name: JvmString,
 
     class: Class,
