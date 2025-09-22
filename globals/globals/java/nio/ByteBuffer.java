@@ -43,6 +43,8 @@ public abstract class ByteBuffer extends Buffer {
     }
 
     public abstract FloatBuffer asFloatBuffer();
+
+    public abstract IntBuffer asIntBuffer();
 }
 
 class ArrayByteBuffer extends ByteBuffer {
@@ -59,10 +61,6 @@ class ArrayByteBuffer extends ByteBuffer {
 
         // All byte buffers start off as big-endian
         this.order = ByteOrder.BIG_ENDIAN;
-    }
-
-    public FloatBuffer asFloatBuffer() {
-        return new ByteBufferAsFloatBuffer(this.data, this.order);
     }
 
     public byte get() {
@@ -82,6 +80,14 @@ class ArrayByteBuffer extends ByteBuffer {
             return this.data[index];
         }
     }
+
+    public FloatBuffer asFloatBuffer() {
+        return new ByteBufferAsFloatBuffer(this.data, this.order);
+    }
+
+    public IntBuffer asIntBuffer() {
+        return new ByteBufferAsIntBuffer(this.data, this.order);
+    }
 }
 
 class ByteBufferAsFloatBuffer extends FloatBuffer {
@@ -90,6 +96,21 @@ class ByteBufferAsFloatBuffer extends FloatBuffer {
 
     // TODO: Handle limit and capacity adjustment
     ByteBufferAsFloatBuffer(byte[] data, ByteOrder order) {
+        this.realData = data;
+        this.order = order;
+    }
+
+    public ByteOrder order() {
+        return this.order;
+    }
+}
+
+class ByteBufferAsIntBuffer extends IntBuffer {
+    byte[] realData;
+    ByteOrder order;
+
+    // TODO: Handle limit and capacity adjustment
+    ByteBufferAsIntBuffer(byte[] data, ByteOrder order) {
         this.realData = data;
         this.order = order;
     }
