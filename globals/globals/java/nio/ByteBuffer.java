@@ -7,8 +7,6 @@ public abstract class ByteBuffer extends Buffer {
 
     byte[] data;
     int arrayOffset;
-    int position;
-    int limit;
 
     public static ByteBuffer wrap(byte[] array, int ofs, int len) {
         return new ArrayByteBuffer(array, ofs, len);
@@ -64,8 +62,7 @@ class ArrayByteBuffer extends ByteBuffer {
     }
 
     public FloatBuffer asFloatBuffer() {
-        Todo.warnNotImpl("ByteBuffer.asFloatBuffer");
-        return null;
+        return new ByteBufferAsFloatBuffer(this.data, this.order);
     }
 
     public byte get() {
@@ -84,5 +81,20 @@ class ArrayByteBuffer extends ByteBuffer {
         } else {
             return this.data[index];
         }
+    }
+}
+
+class ByteBufferAsFloatBuffer extends FloatBuffer {
+    byte[] realData;
+    ByteOrder order;
+
+    // TODO: Handle limit and capacity adjustment
+    ByteBufferAsFloatBuffer(byte[] data, ByteOrder order) {
+        this.realData = data;
+        this.order = order;
+    }
+
+    public ByteOrder order() {
+        return this.order;
     }
 }
