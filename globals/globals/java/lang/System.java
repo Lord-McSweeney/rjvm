@@ -60,7 +60,12 @@ public final class System {
         return null;
     }
 
-    public static native long nanoTime();
+    public static native long currentTimeMillis();
+
+    public static long nanoTime() {
+        // :p
+        return System.currentTimeMillis() * 1000000;
+    }
 
     public static void exit(int status) {
         Runtime.getRuntime().exit(status);

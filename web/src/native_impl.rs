@@ -8,7 +8,7 @@ pub fn register_native_mappings(context: Context) {
     #[rustfmt::skip]
     let mappings: &[(&str, NativeMethod)] = &[
         ("java/lang/Runtime.exit.(I)V", system_exit),
-        ("java/lang/System.nanoTime.()J", system_nano_time),
+        ("java/lang/System.currentTimeMillis.()J", system_current_time_millis),
         ("java/io/File.internalInitFileData.([B)V", internal_init_file_data),
         ("java/io/File.getCanonicalPath.()Ljava/lang/String;", file_get_canonical_path),
         ("java/io/File.getAbsolutePath.()Ljava/lang/String;", file_get_absolute_path),
@@ -36,10 +36,9 @@ fn system_exit(_context: Context, args: &[Value]) -> Result<Option<Value>, Error
     panic!("System.exit called (code {})", exit_code)
 }
 
-fn system_nano_time(_context: Context, _args: &[Value]) -> Result<Option<Value>, Error> {
-    // `Date.now()` returns value in milliseconds; `System.nanoTime` wants nanoseconds
-    let nanosecs = (date_now() as i64) * 1000;
-    Ok(Some(Value::Long(nanosecs)))
+fn system_current_time_millis(_context: Context, _args: &[Value]) -> Result<Option<Value>, Error> {
+    let millisecs = date_now() as i64;
+    Ok(Some(Value::Long(millisecs)))
 }
 
 fn internal_init_file_data(context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
