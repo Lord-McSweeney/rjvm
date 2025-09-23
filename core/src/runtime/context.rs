@@ -31,13 +31,12 @@ pub struct Context {
     // The backend to call into to load resources.
     loader_backend: Gc<Box<dyn LoaderBackend>>,
 
-    // The global class registry. This is stored as a hashmap in list form; it
-    // is assumed that classes will never be removed, so we can create integer
-    // ids to classes.
-    class_registry: Gc<RefCell<Vec<(JvmString, Class)>>>,
+    // The global class registry.
+    class_registry: Gc<RefCell<HashMap<JvmString, Class>>>,
 
     // A map of class T to the object of type Class<T>.
-    class_to_object_map: Gc<RefCell<HashMap<Class, Object>>>,
+    class_to_java_class_map: Gc<RefCell<HashMap<Class, Object>>>,
+    java_class_to_class_map: Gc<RefCell<HashMap<Object, Class>>>,
 
     // A map of descriptor D to class [D.
     array_classes: Gc<RefCell<HashMap<ResolvedDescriptor, Class>>>,
@@ -76,8 +75,9 @@ impl Context {
 
         Self {
             loader_backend: Gc::new(gc_ctx, loader_backend),
-            class_registry: Gc::new(gc_ctx, RefCell::new(Vec::new())),
-            class_to_object_map: Gc::new(gc_ctx, RefCell::new(HashMap::new())),
+            class_registry: Gc::new(gc_ctx, RefCell::new(HashMap::new())),
+            class_to_java_class_map: Gc::new(gc_ctx, RefCell::new(HashMap::new())),
+            java_class_to_class_map: Gc::new(gc_ctx, RefCell::new(HashMap::new())),
             array_classes: Gc::new(gc_ctx, RefCell::new(HashMap::new())),
             jar_files: Gc::new(gc_ctx, RefCell::new(Vec::new())),
             native_mapping: Gc::new(gc_ctx, RefCell::new(HashMap::new())),
@@ -128,7 +128,7 @@ impl Context {
     pub fn lookup_class(self, class_name: JvmString) -> Result<Class, Error> {
         let class_registry = self.class_registry.borrow();
 
-        if let Some((_, class)) = class_registry.iter().find(|(name, _)| name == &class_name) {
+        if let Some(class) = class_registry.get(&class_name) {
             Ok(*class)
         } else if let Some(element_name) = class_name.strip_prefix('[') {
             let element_name = JvmString::new(self.gc_ctx, element_name.to_string());
@@ -171,31 +171,10 @@ impl Context {
         let class_name = class.name();
         let mut registry = self.class_registry.borrow_mut();
 
-        if registry.iter().any(|(name, _)| name == &class_name) {
+        if registry.contains_key(&class_name) {
             panic!("Attempted to register class {} twice", class_name);
         } else {
-            registry.push((class_name, class));
-        }
-    }
-
-    pub fn class_id_by_class(self, searched_class: Class) -> usize {
-        let registry = self.class_registry.borrow();
-        for (i, element) in registry.iter().enumerate() {
-            let (_, class) = element;
-            if *class == searched_class {
-                return i;
-            }
-        }
-
-        panic!("class_id_by_class expects a registered class")
-    }
-
-    pub fn class_by_class_id(self, searched_id: usize) -> Class {
-        let registry = self.class_registry.borrow();
-        if let Some((_, class)) = registry.get(searched_id) {
-            *class
-        } else {
-            panic!("class_by_class_id expects a valid class id")
+            registry.insert(class_name, class);
         }
     }
 
@@ -213,17 +192,31 @@ impl Context {
             .load_resource(load_type, class_name, resource_name)
     }
 
-    pub fn class_object_for_class(self, class: Class) -> Object {
-        let mut class_objects = self.class_to_object_map.borrow_mut();
+    pub fn get_or_init_java_class_for_class(self, class: Class) -> Object {
+        let mut class_objects = self.class_to_java_class_map.borrow_mut();
+        let mut classes = self.java_class_to_class_map.borrow_mut();
 
         if let Some(class_object) = class_objects.get(&class) {
             *class_object
         } else {
-            let object = Object::class_object(self, class);
+            let object = Object::class_object(self);
 
             class_objects.insert(class, object);
+            classes.insert(object, class);
 
             object
+        }
+    }
+
+    pub fn get_class_for_java_class(self, object: Object) -> Class {
+        let classes = self.java_class_to_class_map.borrow_mut();
+
+        if let Some(class_object) = classes.get(&object) {
+            *class_object
+        } else {
+            unreachable!(
+                "Object passed to `get_class_for_java_class` should be a valid java Class<?>"
+            )
         }
     }
 
@@ -493,7 +486,8 @@ impl Trace for Context {
         self.loader_backend.trace_self();
 
         self.class_registry.trace();
-        self.class_to_object_map.trace();
+        self.class_to_java_class_map.trace();
+        self.java_class_to_class_map.trace();
         self.array_classes.trace();
         self.jar_files.trace();
         self.native_mapping.trace();

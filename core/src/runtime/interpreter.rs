@@ -331,7 +331,7 @@ impl<'a> Interpreter<'a> {
                     .lookup_class(class_name)
                     .expect("Class should exist");
 
-                Value::Object(Some(self.context.class_object_for_class(class)))
+                Value::Object(Some(self.context.get_or_init_java_class_for_class(class)))
             }
             ConstantPoolEntry::Double { value } => Value::Double(value),
             ConstantPoolEntry::Long { value } => Value::Long(value),

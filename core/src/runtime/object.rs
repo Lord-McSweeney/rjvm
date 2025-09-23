@@ -8,6 +8,7 @@ use super::value::Value;
 use crate::gc::{Gc, GcCtx, Trace};
 
 use std::cell::Cell;
+use std::hash::{Hash, Hasher};
 
 #[derive(Clone, Copy, Debug)]
 pub struct Object(Gc<ObjectData>);
@@ -25,26 +26,23 @@ impl Object {
         ))
     }
 
-    // Creates a new instance of java.lang.Class referencing the given class.
-    pub fn class_object(context: Context, class: Class) -> Self {
+    // Creates a new instance of java.lang.Class. The caller is responsible for
+    // making it a valid `Class` object (see how
+    // `Context::get_or_init_java_class_for_class` does it).
+    pub fn class_object(context: Context) -> Self {
         let class_class = context
             .lookup_class(context.common.java_lang_class)
             .expect("Class class should exist");
 
         let fields = class_class.instance_fields().to_vec().into_boxed_slice();
 
-        let class_object = Self(Gc::new(
+        Self(Gc::new(
             context.gc_ctx,
             ObjectData {
                 class: class_class,
                 data: FieldOrArrayData::Fields(fields),
             },
-        ));
-
-        let class_id = context.class_id_by_class(class);
-        class_object.set_field(0, Value::Integer(class_id as i32));
-
-        class_object
+        ))
     }
 
     pub fn byte_array(context: Context, chars: &[u8]) -> Self {
@@ -359,6 +357,20 @@ impl Trace for Object {
     #[inline(always)]
     fn trace(&self) {
         self.0.trace();
+    }
+}
+
+impl PartialEq for Object {
+    fn eq(&self, other: &Self) -> bool {
+        Gc::as_ptr(self.0) == Gc::as_ptr(other.0)
+    }
+}
+
+impl Eq for Object {}
+
+impl Hash for Object {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        Gc::as_ptr(self.0).hash(state);
     }
 }
 

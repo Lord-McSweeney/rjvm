@@ -4,9 +4,9 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
+// NOTE: The native `Class` corresponding to this `Class<T>` is stored in
+// `rjvm_core`'s `Context` and can be retrieved with `Context::class_for_java_class`
 public final class Class<T> {
-    private int classId;
-
     private Class() { }
 
     private String cachedName;
