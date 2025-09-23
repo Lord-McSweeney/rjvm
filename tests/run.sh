@@ -10,19 +10,14 @@ do
 
     printf "[runner] Running test ${test_name}..."
     rjvm_result=$(../../../target/release/rjvm_desktop Test.class 2> /dev/null)
+    rjvm_exit=$?
     java_result=$(java Test 2> /dev/null)
+    java_exit=$?
 
-    if [[ "$rjvm_result" == "$java_result" ]]; then
+    if [[ "$rjvm_result" == "$java_result" && $rjvm_exit == 0 && $java_exit == 0 ]]; then
         printf "\033[0;32mok\033[0m\n"
     else
         printf "\033[0;31mFAILED\033[0m\n"
-        echo ""
-        echo "rjvm:"
-        echo $rjvm_result
-        echo ""
-        echo "java:"
-        echo $java_result
-        echo ""
     fi
 
     cd ..
