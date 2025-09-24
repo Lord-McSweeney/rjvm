@@ -56,8 +56,17 @@ public final class StringBuilder {
         return this;
     }
 
+    public StringBuilder append(Object object) {
+        return this.append(String.valueOf(object));
+    }
+
     public StringBuilder append(int integer) {
         String stringified = Integer.toString(integer);
+        return this.append(stringified);
+    }
+
+    public StringBuilder append(long l) {
+        String stringified = Long.toString(l);
         return this.append(stringified);
     }
 
