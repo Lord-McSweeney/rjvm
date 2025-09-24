@@ -43,4 +43,18 @@ public final class Class<T> {
         // TODO implement
         return false;
     }
+
+    public String toString() {
+        StringBuilder result = new StringBuilder();
+
+        if (this.isInterface()) {
+            result.append("interface ");
+        } else {
+            result.append("class ");
+        }
+
+        result.append(this.getName());
+
+        return result.toString();
+    }
 }

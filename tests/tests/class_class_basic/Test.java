@@ -8,5 +8,7 @@ public class Test {
         System.out.println(Comparable.class.isInterface());
         System.out.println(System.class.isInterface());
         System.out.println(Test.class.getResourceAsStream("Test.class").read());
+        System.out.println(Comparable.class);
+        System.out.println(System.class);
     }
 }
