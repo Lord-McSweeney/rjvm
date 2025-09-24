@@ -11,10 +11,25 @@ public class Test {
         System.out.println(v3 - v1);
         System.out.println((v3 * v2) + v1);
         System.out.println(v4 / v2);
+        System.out.println(-v2);
+        System.out.println(v2 % v4);
+        System.out.println(v4 | v2);
+        System.out.println(v2 | v1);
+        System.out.println(v1 & v4);
+        System.out.println(v2 & v4);
+        System.out.println(~v3);
+        System.out.println(~v2);
+        System.out.println(v3 ^ v1);
+        System.out.println(v2 ^ v4);
         try {
             System.out.println(v4 / v0);
         } catch(ArithmeticException e) {
             System.out.println("Division by 0 threw exception");
+        }
+        try {
+            System.out.println(v3 % v0);
+        } catch(ArithmeticException e) {
+            System.out.println("Modulo by 0 threw exception");
         }
     }
 }
