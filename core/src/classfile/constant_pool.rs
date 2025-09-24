@@ -16,6 +16,9 @@ const FIELD_REF: u8 = 9;
 const METHOD_REF: u8 = 10;
 const INTERFACE_METHOD_REF: u8 = 11;
 const NAME_AND_TYPE: u8 = 12;
+const METHOD_HANDLE: u8 = 15;
+const METHOD_TYPE: u8 = 16;
+const INVOKE_DYNAMIC: u8 = 18;
 
 pub struct ConstantPool {
     entries: Vec<ConstantPoolEntry>,
@@ -78,6 +81,70 @@ impl ConstantPool {
                 } => {
                     self.ensure_entry_type(name_idx, UTF8)?;
                     self.ensure_entry_type(descriptor_idx, UTF8)?;
+                }
+
+                // MethodHandle has some complicated rules for verification, see
+                // JVMS 4
+                ConstantPoolEntry::MethodHandle { method_handle } => match method_handle {
+                    MethodHandle::GetField(cpool_idx)
+                    | MethodHandle::GetStatic(cpool_idx)
+                    | MethodHandle::PutField(cpool_idx)
+                    | MethodHandle::PutStatic(cpool_idx) => {
+                        self.ensure_entry_type(cpool_idx, FIELD_REF)?;
+                    }
+                    MethodHandle::InvokeVirtual(cpool_idx)
+                    | MethodHandle::InvokeStatic(cpool_idx)
+                    | MethodHandle::InvokeSpecial(cpool_idx) => {
+                        self.ensure_entry_type(cpool_idx, METHOD_REF)?;
+
+                        let method_name = self
+                            .get_method_ref(cpool_idx)
+                            .expect("Just checked it to be MethodRef")
+                            .1;
+
+                        if *method_name == "<init>" || *method_name == "<clinit>" {
+                            return Err(Error::ConstantPoolVerifyError);
+                        }
+                    }
+                    MethodHandle::NewInvokeSpecial(cpool_idx) => {
+                        self.ensure_entry_type(cpool_idx, METHOD_REF)?;
+
+                        let method_name = self
+                            .get_method_ref(cpool_idx)
+                            .expect("Just checked it to be MethodRef")
+                            .1;
+
+                        if *method_name != "<init>" {
+                            return Err(Error::ConstantPoolVerifyError);
+                        }
+                    }
+                    MethodHandle::InvokeInterface(cpool_idx) => {
+                        self.ensure_entry_type(cpool_idx, INTERFACE_METHOD_REF)?;
+
+                        let interface_method_name = self
+                            .get_method_ref(cpool_idx)
+                            .expect("Just checked it to be InterfaceMethodRef")
+                            .1;
+
+                        if *interface_method_name == "<init>"
+                            || *interface_method_name == "<clinit>"
+                        {
+                            return Err(Error::ConstantPoolVerifyError);
+                        }
+                    }
+                },
+
+                // MethodType must point to a Utf8
+                ConstantPoolEntry::MethodType { descriptor_idx } => {
+                    self.ensure_entry_type(descriptor_idx, UTF8)?;
+                }
+
+                // InvokeDynamic must point to a NameAndType
+                ConstantPoolEntry::InvokeDynamic {
+                    name_and_type_idx, ..
+                } => {
+                    // Should we verify the `bootstrap_method_idx` here?
+                    self.ensure_entry_type(name_and_type_idx, NAME_AND_TYPE)?;
                 }
             }
         }
@@ -234,6 +301,29 @@ pub enum ConstantPoolEntry {
         name_idx: u16,
         descriptor_idx: u16,
     },
+    MethodHandle {
+        method_handle: MethodHandle,
+    },
+    MethodType {
+        descriptor_idx: u16,
+    },
+    InvokeDynamic {
+        bootstrap_method_idx: u16,
+        name_and_type_idx: u16,
+    },
+}
+
+#[derive(Clone, Copy, Debug)]
+pub enum MethodHandle {
+    GetField(u16),
+    GetStatic(u16),
+    PutField(u16),
+    PutStatic(u16),
+    InvokeVirtual(u16),
+    InvokeStatic(u16),
+    InvokeSpecial(u16),
+    NewInvokeSpecial(u16),
+    InvokeInterface(u16),
 }
 
 impl ConstantPoolEntry {
@@ -251,6 +341,9 @@ impl ConstantPoolEntry {
             ConstantPoolEntry::MethodRef { .. } => METHOD_REF,
             ConstantPoolEntry::InterfaceMethodRef { .. } => INTERFACE_METHOD_REF,
             ConstantPoolEntry::NameAndType { .. } => NAME_AND_TYPE,
+            ConstantPoolEntry::MethodHandle { .. } => METHOD_HANDLE,
+            ConstantPoolEntry::MethodType { .. } => METHOD_TYPE,
+            ConstantPoolEntry::InvokeDynamic { .. } => INVOKE_DYNAMIC,
         }
     }
 }
@@ -356,7 +449,40 @@ fn read_constant_pool_entry(
                 descriptor_idx,
             })
         }
-        _ => unimplemented!("Constant pool entry type: {}", tag),
+        METHOD_HANDLE => {
+            let kind = data.read_u8()?;
+            let cpool_idx = data.read_u16()?;
+
+            let method_handle = match kind {
+                1 => MethodHandle::GetField(cpool_idx),
+                2 => MethodHandle::GetStatic(cpool_idx),
+                3 => MethodHandle::PutField(cpool_idx),
+                4 => MethodHandle::PutStatic(cpool_idx),
+                5 => MethodHandle::InvokeVirtual(cpool_idx),
+                6 => MethodHandle::InvokeStatic(cpool_idx),
+                7 => MethodHandle::InvokeSpecial(cpool_idx),
+                8 => MethodHandle::NewInvokeSpecial(cpool_idx),
+                9 => MethodHandle::InvokeInterface(cpool_idx),
+                _ => return Err(Error::ConstantPoolVerifyError),
+            };
+
+            Ok(ConstantPoolEntry::MethodHandle { method_handle })
+        }
+        METHOD_TYPE => {
+            let descriptor_idx = data.read_u16()?;
+
+            Ok(ConstantPoolEntry::MethodType { descriptor_idx })
+        }
+        INVOKE_DYNAMIC => {
+            let bootstrap_method_idx = data.read_u16()?;
+            let name_and_type_idx = data.read_u16()?;
+
+            Ok(ConstantPoolEntry::InvokeDynamic {
+                bootstrap_method_idx,
+                name_and_type_idx,
+            })
+        }
+        _ => return Err(Error::ConstantPoolInvalidEntry),
     }
 }
 
