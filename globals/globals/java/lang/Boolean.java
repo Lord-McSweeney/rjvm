@@ -1,8 +1,9 @@
 package java.lang;
 
 public class Boolean implements Comparable<Boolean> {
-    public static Boolean TRUE = new Boolean(true);
+    public static Class<Boolean> TYPE = (Class<Boolean>) Class.getPrimitiveClass(Class.PRIM_BOOLEAN);
 
+    public static Boolean TRUE = new Boolean(true);
     public static Boolean FALSE = new Boolean(false);
 
     private boolean value;

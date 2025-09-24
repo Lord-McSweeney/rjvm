@@ -4,9 +4,19 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
-// NOTE: The native `Class` corresponding to this `Class<T>` is stored in
-// `rjvm_core`'s `Context` and can be retrieved with `Context::class_for_java_class`
+// NOTE: The native `Class` corresponding to this `Class<T>` is stored in the
+// native `Context` and can be retrieved with `Context::class_for_java_class`
 public final class Class<T> {
+    static final int PRIM_BOOLEAN = 0;
+    static final int PRIM_BYTE = 1;
+    static final int PRIM_CHAR = 2;
+    static final int PRIM_SHORT = 3;
+    static final int PRIM_INT = 4;
+    static final int PRIM_LONG = 5;
+    static final int PRIM_FLOAT = 6;
+    static final int PRIM_DOUBLE = 7;
+    static final int PRIM_VOID = 8;
+
     private Class() { }
 
     private String cachedName;
@@ -22,6 +32,8 @@ public final class Class<T> {
     private native String getNameNative();
 
     public native boolean isInterface();
+
+    public native boolean isPrimitive();
 
     public InputStream getResourceAsStream(String resourceName) {
         if (resourceName == null) {
@@ -44,17 +56,24 @@ public final class Class<T> {
         return false;
     }
 
+    static native Class<?> getPrimitiveClass(int id);
+
     public String toString() {
-        StringBuilder result = new StringBuilder();
-
-        if (this.isInterface()) {
-            result.append("interface ");
+        if (this.isPrimitive()) {
+            // Primitive classes just return their name
+            return this.getName();
         } else {
-            result.append("class ");
+            StringBuilder result = new StringBuilder();
+
+            if (this.isInterface()) {
+                result.append("interface ");
+            } else {
+                result.append("class ");
+            }
+
+            result.append(this.getName());
+
+            return result.toString();
         }
-
-        result.append(this.getName());
-
-        return result.toString();
     }
 }

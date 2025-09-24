@@ -1,4 +1,4 @@
-use rjvm_core::{Context, Error, NativeMethod, Object, Value};
+use rjvm_core::{Context, Error, NativeMethod, Object, PrimitiveType, Value};
 
 pub fn register_native_mappings(context: Context) {
     #[rustfmt::skip]
@@ -6,6 +6,7 @@ pub fn register_native_mappings(context: Context) {
         ("java/nio/charset/Charset.stringToUtf8.(Ljava/lang/String;)[B", string_to_utf8),
         ("java/lang/System.arraycopy.(Ljava/lang/Object;ILjava/lang/Object;II)V", array_copy),
         ("java/lang/Class.isInterface.()Z", is_interface),
+        ("java/lang/Class.isPrimitive.()Z", is_primitive),
         ("java/lang/Object.getClass.()Ljava/lang/Class;", get_class),
         ("java/lang/Class.getNameNative.()Ljava/lang/String;", get_name_native),
         ("java/lang/Class.getResourceData.(Ljava/lang/String;)[B", get_resource_data),
@@ -13,6 +14,7 @@ pub fn register_native_mappings(context: Context) {
         ("java/lang/Math.pow.(DD)D", math_pow),
         ("java/lang/Object.clone.()Ljava/lang/Object;", object_clone),
         ("java/lang/Throwable.internalFillInStackTrace.()Ljava/lang/String;", capture_stack_trace),
+        ("java/lang/Class.getPrimitiveClass.(I)Ljava/lang/Class;", get_primitive_class),
     ];
 
     context.register_native_mappings(mappings);
@@ -127,6 +129,19 @@ fn is_interface(context: Context, args: &[Value]) -> Result<Option<Value>, Error
     }
 }
 
+// java/lang/Class : boolean isPrimitive()
+fn is_primitive(context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
+    // Receiver should never be null
+    let class_obj = args[0].object().unwrap();
+    let class = context.get_class_for_java_class(class_obj);
+
+    if class.is_primitive() {
+        Ok(Some(Value::Integer(1)))
+    } else {
+        Ok(Some(Value::Integer(0)))
+    }
+}
+
 // java/lang/Object : Class getClass()
 fn get_class(context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
     // Receiver should never be null
@@ -213,4 +228,25 @@ fn capture_stack_trace(context: Context, _args: &[Value]) -> Result<Option<Value
     let chars = stack_data.chars().map(|c| c as u16).collect::<Vec<_>>();
 
     Ok(Some(Value::Object(Some(context.create_string(&chars)))))
+}
+
+fn get_primitive_class(context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
+    let id = args[0].int();
+    let primitive_type = match id {
+        0 => PrimitiveType::Boolean,
+        1 => PrimitiveType::Byte,
+        2 => PrimitiveType::Char,
+        3 => PrimitiveType::Short,
+        4 => PrimitiveType::Int,
+        5 => PrimitiveType::Long,
+        6 => PrimitiveType::Float,
+        7 => PrimitiveType::Double,
+        8 => PrimitiveType::Void,
+        _ => panic!("Called getPrimitiveClass with invalid arg"),
+    };
+
+    let class = context.primitive_class_for(primitive_type);
+    let class_obj = context.get_or_init_java_class_for_class(class);
+
+    Ok(Some(Value::Object(Some(class_obj))))
 }

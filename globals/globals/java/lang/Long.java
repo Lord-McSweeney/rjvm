@@ -1,6 +1,8 @@
 package java.lang;
 
 public final class Long extends Number implements Comparable<Long> {
+    public static Class<Long> TYPE = (Class<Long>) Class.getPrimitiveClass(Class.PRIM_LONG);
+
     private long value;
 
     public Long(long value) {
