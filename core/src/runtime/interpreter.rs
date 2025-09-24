@@ -326,10 +326,8 @@ impl<'a> Interpreter<'a> {
                     .get_utf8(name_idx)
                     .expect("Should refer to valid entry");
 
-                let class = self
-                    .context
-                    .lookup_class(class_name)
-                    .expect("Class should exist");
+                // TODO should this be a verify-time error?
+                let class = self.context.lookup_class(class_name)?;
 
                 Value::Object(Some(self.context.get_or_init_java_class_for_class(class)))
             }
