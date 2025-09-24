@@ -333,4 +333,12 @@ public final class String implements Comparable<String> {
     public static String valueOf(int integer) {
         return Integer.toString(integer);
     }
+
+    public static String valueOf(Object object) {
+        if (object == null) {
+            return "null";
+        } else {
+            return object.toString();
+        }
+    }
 }
