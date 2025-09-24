@@ -1,5 +1,5 @@
 use super::call_stack::CallStack;
-use super::class::Class;
+use super::class::{Class, PrimitiveType};
 use super::descriptor::{Descriptor, MethodDescriptor, ResolvedDescriptor};
 use super::error::Error;
 use super::loader::{LoaderBackend, ResourceLoadType};
@@ -41,6 +41,9 @@ pub struct Context {
     // A map of descriptor D to class [D.
     array_classes: Gc<RefCell<HashMap<ResolvedDescriptor, Class>>>,
 
+    // The builtin primitive classes, constructed on JVM startup.
+    primitive_classes: Gc<HashMap<PrimitiveType, Class>>,
+
     // A list of JAR files to check for classes.
     jar_files: Gc<RefCell<Vec<Jar>>>,
 
@@ -73,12 +76,20 @@ impl Context {
 
         let empty_frame_data = vec![Cell::new(Value::Integer(0)); 80000].into_boxed_slice();
 
+        let mut primitive_classes = HashMap::new();
+        let primitive_types = PrimitiveType::get_all();
+        for primitive_type in primitive_types {
+            // Create a primitive class for each primitive class
+            primitive_classes.insert(primitive_type, Class::for_primitive(gc_ctx, primitive_type));
+        }
+
         Self {
             loader_backend: Gc::new(gc_ctx, loader_backend),
             class_registry: Gc::new(gc_ctx, RefCell::new(HashMap::new())),
             class_to_java_class_map: Gc::new(gc_ctx, RefCell::new(HashMap::new())),
             java_class_to_class_map: Gc::new(gc_ctx, RefCell::new(HashMap::new())),
             array_classes: Gc::new(gc_ctx, RefCell::new(HashMap::new())),
+            primitive_classes: Gc::new(gc_ctx, primitive_classes),
             jar_files: Gc::new(gc_ctx, RefCell::new(Vec::new())),
             native_mapping: Gc::new(gc_ctx, RefCell::new(HashMap::new())),
             frame_data: Gc::new(gc_ctx, empty_frame_data),
@@ -234,6 +245,10 @@ impl Context {
             self.register_class(created_class);
             created_class
         }
+    }
+
+    pub fn primitive_class_for(self, primitive_type: PrimitiveType) -> Class {
+        *self.primitive_classes.get(&primitive_type).unwrap()
     }
 
     pub fn push_call(self, method: Method) {
@@ -489,6 +504,7 @@ impl Trace for Context {
         self.class_to_java_class_map.trace();
         self.java_class_to_class_map.trace();
         self.array_classes.trace();
+        self.primitive_classes.trace();
         self.jar_files.trace();
         self.native_mapping.trace();
 

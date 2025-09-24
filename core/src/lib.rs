@@ -7,7 +7,7 @@ mod string;
 pub use crate::classfile::class::ClassFile;
 pub use crate::gc::{Gc, GcCtx, Trace};
 pub use crate::jar::Jar;
-pub use crate::runtime::class::Class;
+pub use crate::runtime::class::{Class, PrimitiveType};
 pub use crate::runtime::context::Context;
 pub use crate::runtime::descriptor::{Descriptor, MethodDescriptor};
 pub use crate::runtime::error::{Error, NativeError};

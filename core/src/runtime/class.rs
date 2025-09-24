@@ -40,6 +40,9 @@ struct ClassData {
     // If this class represents an array (T[]), the descriptor of the value type of the array.
     array_value_type: Option<ResolvedDescriptor>,
 
+    // The primitive type that this class represents.
+    primitive_type: Option<PrimitiveType>,
+
     static_field_vtable: VTable<(JvmString, Descriptor)>,
     static_fields: Box<[FieldRef]>,
 
@@ -173,6 +176,7 @@ impl Class {
                 all_interfaces: all_interfaces.iter().copied().collect::<Box<[_]>>(),
 
                 array_value_type: None,
+                primitive_type: None,
 
                 static_field_vtable,
                 static_fields: static_fields.into_boxed_slice(),
@@ -276,7 +280,7 @@ impl Class {
                 class_file: None,
                 load_source: None,
 
-                flags: ClassFlags::PUBLIC,
+                flags: ClassFlags::PUBLIC | ClassFlags::FINAL,
 
                 name: JvmString::new(context.gc_ctx, name),
                 super_class: Some(object_class),
@@ -285,10 +289,49 @@ impl Class {
                 all_interfaces: Box::new([]),
 
                 array_value_type: Some(array_type),
+                primitive_type: None,
 
                 static_field_vtable: VTable::empty(context.gc_ctx),
                 static_fields: Box::new([]),
                 instance_field_vtable: VTable::empty(context.gc_ctx),
+                instance_fields: Box::new([]),
+
+                method_data: RefCell::new(Some(method_data)),
+
+                clinit_method: Cell::new(None),
+                clinit_run: Cell::new(true),
+            },
+        ))
+    }
+
+    // Creates a builtin class for one of the primitive types.
+    pub fn for_primitive(gc_ctx: GcCtx, primitive_type: PrimitiveType) -> Self {
+        let method_data = MethodData {
+            static_method_vtable: VTable::empty(gc_ctx),
+            static_methods: Box::new([]),
+            instance_method_vtable: OverridingVTable::empty(gc_ctx),
+        };
+
+        Self(Gc::new(
+            gc_ctx,
+            ClassData {
+                class_file: None,
+                load_source: None,
+
+                flags: ClassFlags::PUBLIC | ClassFlags::FINAL,
+
+                name: JvmString::new(gc_ctx, primitive_type.name().to_string()),
+                super_class: None,
+
+                own_interfaces: Box::new([]),
+                all_interfaces: Box::new([]),
+
+                array_value_type: None,
+                primitive_type: Some(primitive_type),
+
+                static_field_vtable: VTable::empty(gc_ctx),
+                static_fields: Box::new([]),
+                instance_field_vtable: VTable::empty(gc_ctx),
                 instance_fields: Box::new([]),
 
                 method_data: RefCell::new(Some(method_data)),
@@ -305,6 +348,10 @@ impl Class {
 
     pub fn is_interface(self) -> bool {
         self.0.flags.contains(ClassFlags::INTERFACE)
+    }
+
+    pub fn is_primitive(self) -> bool {
+        self.0.primitive_type.is_some()
     }
 
     pub fn name(self) -> JvmString {
@@ -481,4 +528,51 @@ impl Trace for ClassData {
 
         self.clinit_method.trace();
     }
+}
+
+#[derive(Clone, Copy, Eq, Hash, PartialEq)]
+pub enum PrimitiveType {
+    Boolean,
+    Byte,
+    Char,
+    Short,
+    Int,
+    Long,
+    Float,
+    Double,
+    Void,
+}
+
+impl PrimitiveType {
+    fn name(self) -> &'static str {
+        match self {
+            PrimitiveType::Boolean => "boolean",
+            PrimitiveType::Byte => "byte",
+            PrimitiveType::Char => "char",
+            PrimitiveType::Short => "short",
+            PrimitiveType::Int => "int",
+            PrimitiveType::Long => "long",
+            PrimitiveType::Float => "float",
+            PrimitiveType::Double => "double",
+            PrimitiveType::Void => "void",
+        }
+    }
+
+    pub fn get_all() -> Vec<PrimitiveType> {
+        vec![
+            PrimitiveType::Boolean,
+            PrimitiveType::Byte,
+            PrimitiveType::Char,
+            PrimitiveType::Short,
+            PrimitiveType::Int,
+            PrimitiveType::Long,
+            PrimitiveType::Float,
+            PrimitiveType::Double,
+            PrimitiveType::Void,
+        ]
+    }
+}
+
+impl Trace for PrimitiveType {
+    fn trace(&self) {}
 }
