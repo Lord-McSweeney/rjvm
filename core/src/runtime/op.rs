@@ -69,6 +69,7 @@ pub enum Op {
     LAnd,
     IOr,
     LOr,
+    IXor,
     LXor,
     IInc(usize, i32),
     I2L,
@@ -194,6 +195,7 @@ impl Trace for Op {
             Op::LAnd => {}
             Op::IOr => {}
             Op::LOr => {}
+            Op::IXor => {}
             Op::LXor => {}
             Op::IInc(_, _) => {}
             Op::I2L => {}
@@ -379,6 +381,7 @@ const I_AND: u8 = 0x7E;
 const L_AND: u8 = 0x7F;
 const I_OR: u8 = 0x80;
 const L_OR: u8 = 0x81;
+const I_XOR: u8 = 0x82;
 const L_XOR: u8 = 0x83;
 const I_INC: u8 = 0x84;
 const I2L: u8 = 0x85;
@@ -688,6 +691,7 @@ impl Op {
             L_AND => Ok(Op::LAnd),
             I_OR => Ok(Op::IOr),
             L_OR => Ok(Op::LOr),
+            I_XOR => Ok(Op::IXor),
             L_XOR => Ok(Op::LXor),
             I_INC => {
                 let local_idx = data.read_u8()?;

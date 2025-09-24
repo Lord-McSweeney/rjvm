@@ -155,6 +155,7 @@ impl<'a> Interpreter<'a> {
                 Op::LAnd => self.op_l_and(),
                 Op::IOr => self.op_i_or(),
                 Op::LOr => self.op_l_or(),
+                Op::IXor => self.op_i_xor(),
                 Op::LXor => self.op_l_xor(),
                 Op::IInc(index, amount) => self.op_i_inc(*index, *amount),
                 Op::I2L => self.op_i2l(),
@@ -892,6 +893,15 @@ impl<'a> Interpreter<'a> {
         let int2 = self.stack_pop().long();
 
         self.stack_push(Value::Long(int1 | int2));
+
+        Ok(ControlFlow::Continue)
+    }
+
+    fn op_i_xor(&mut self) -> Result<ControlFlow, Error> {
+        let int1 = self.stack_pop().int();
+        let int2 = self.stack_pop().int();
+
+        self.stack_push(Value::Integer(int1 ^ int2));
 
         Ok(ControlFlow::Continue)
     }
