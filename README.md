@@ -1,17 +1,20 @@
-rjvm is a performant Java Virtual Machine implementation in Rust.
+# Java Virtual Machine implementation in Rust
 
-Features:
+## Features
 - bytecode verifier
-- support for many common operations
 - support for some classes in the `java.io`, `java.lang`, and `java.util` packages
+- ability to run Java on the browser through WASM
 
-Missing features:
-- multithreading/`synchronized` support
-- support for several operations, especially around doubles and floats
-- lots of API
-- proper garbage collection
-
-Upcoming features:
+## Upcoming features
+- Implementations for the remaining double and float operations
+- Proper `ClassLoader`s
+    - Finding classes in the current directory when running a class
 - Array type verification in verifier
 - Object class verification in verifier
 - Storage specialization for primitive-type arrays
+
+## Missing features
+- multithreading
+- lots of API
+- proper garbage collection
+- `no_std` support
