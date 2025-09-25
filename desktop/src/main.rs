@@ -1,7 +1,7 @@
 use rjvm_core::{
     Class, ClassFile, Context, Jar, JvmString, MethodDescriptor, Object, ResourceLoadType, Value,
 };
-use rjvm_globals::{GLOBALS_JAR, native_impl as base_native_impl};
+use rjvm_globals::{GLOBALS_BASE_JAR, GLOBALS_DESKTOP_JAR, native_impl as base_native_impl};
 
 mod loader_backend;
 mod native_impl;
@@ -250,9 +250,12 @@ Link options:
     let context = Context::new(Box::new(loader));
 
     // Load globals
-    let globals_jar = Jar::from_bytes(context.gc_ctx, GLOBALS_JAR.to_vec())
+    let globals_base_jar = Jar::from_bytes(context.gc_ctx, GLOBALS_BASE_JAR.to_vec())
         .expect("Builtin globals should be valid");
-    context.add_jar(globals_jar);
+    context.add_jar(globals_base_jar);
+    let globals_desktop_jar = Jar::from_bytes(context.gc_ctx, GLOBALS_DESKTOP_JAR.to_vec())
+        .expect("Builtin globals should be valid");
+    context.add_jar(globals_desktop_jar);
 
     base_native_impl::register_native_mappings(context);
     native_impl::register_native_mappings(context);

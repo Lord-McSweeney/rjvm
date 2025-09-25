@@ -1,23 +1,41 @@
 use glob::glob;
 use std::env;
+use std::fs;
 use std::path::PathBuf;
 use std::process::Command;
 
-fn compile_globals() {
-    let out_dir: PathBuf = env::var("OUT_DIR").unwrap().into();
+const MODULES: &'static [&'static str] = &["base", "desktop"];
+
+fn compile_module(module: &str) {
+    let mut out_dir: PathBuf = env::var("OUT_DIR").unwrap().into();
+    out_dir.push(module);
+
+    fs::remove_dir_all(&out_dir).unwrap();
+    fs::create_dir(&out_dir).unwrap();
 
     let mut compile_command = Command::new("javac");
     compile_command.args(["-d", &out_dir.to_string_lossy()]);
 
+    // Prevent javac from generating redundant class files
+    compile_command.args(["-implicit:none"]);
+
+    let mut classpaths = Vec::new();
+    for module in MODULES {
+        classpaths.push(format!("./globals/{}", module));
+    }
+
+    // Set classpath correctly
+    compile_command.args(["-cp", &classpaths.join(":")]);
+
     // Compile .java files into .class files
-    let mut source_file_list = glob("./globals/*/*/*.java")
+    let mut source_file_list = glob(&format!("./globals/{}/*/*/*.java", module))
         .expect("Valid pattern")
         .map(|p| p.expect("Files should read"))
         .collect::<Vec<_>>();
 
     // Also include files with a three-component package name.
     source_file_list.extend_from_slice(
-        &glob("./globals/*/*/*/*.java")
+        &glob(&format!("./globals/{}/*/*/*/*.java", module))
             .expect("Valid pattern")
             .map(|p| p.expect("Files should read"))
             .collect::<Vec<_>>(),
@@ -31,12 +49,20 @@ fn compile_globals() {
         panic!("javac returned error");
     }
 
+    // So that we can restore it
+    let saved_current_dir = env::current_dir().unwrap();
+
     // This makes the next operations easier
     env::set_current_dir(out_dir.clone()).expect("Should set");
 
     // Now gather the .class files together into a .jar archive
     let mut archive_command = Command::new("jar");
-    archive_command.args(["cf", &out_dir.join("classes.jar").to_string_lossy()]);
+    archive_command.args([
+        "cf",
+        &out_dir
+            .join(&format!("../classes-{}.jar", module))
+            .to_string_lossy(),
+    ]);
 
     let mut class_file_list = glob(&out_dir.join("*/*/*.class").to_string_lossy())
         .expect("Valid pattern")
@@ -78,6 +104,14 @@ fn compile_globals() {
 
     if !archive_status.success() {
         panic!("jar returned error");
+    }
+
+    env::set_current_dir(&saved_current_dir).expect("Should set");
+}
+
+fn compile_globals() {
+    for module in MODULES {
+        compile_module(module);
     }
 }
 
