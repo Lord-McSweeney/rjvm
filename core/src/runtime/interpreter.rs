@@ -1340,9 +1340,21 @@ impl<'a> Interpreter<'a> {
             .get_element(method_index)
             .descriptor();
 
-        let mut args = vec![Value::Object(None); method_descriptor.args().len() + 1];
-        for arg in args.iter_mut().skip(1).rev() {
-            *arg = self.stack_pop();
+        let mut args = vec![Value::Object(None); method_descriptor.physical_arg_count() + 1];
+        let args_len = args.len();
+
+        // FIXME fix this mess sometime...
+        let mut i = 0;
+        while i < args.len() - 1 {
+            let popped = self.stack_pop();
+
+            if popped.is_wide() {
+                args[args_len - i - 2] = popped;
+                i += 2;
+            } else {
+                args[args_len - i - 1] = popped;
+                i += 1;
+            }
         }
 
         let receiver = self.stack_pop().object();
@@ -1375,9 +1387,21 @@ impl<'a> Interpreter<'a> {
         // Increment the gc counter (can this even do an allocation?)
         self.context.increment_gc_counter();
 
-        let mut args = vec![Value::Integer(0); method.arg_count() + 1];
-        for arg in args.iter_mut().skip(1).rev() {
-            *arg = self.stack_pop();
+        let mut args = vec![Value::Integer(0); method.physical_arg_count() + 1];
+        let args_len = args.len();
+
+        // FIXME fix this mess sometime...
+        let mut i = 0;
+        while i < args.len() - 1 {
+            let popped = self.stack_pop();
+
+            if popped.is_wide() {
+                args[args_len - i - 2] = popped;
+                i += 2;
+            } else {
+                args[args_len - i - 1] = popped;
+                i += 1;
+            }
         }
 
         let receiver = self.stack_pop().object();
@@ -1404,10 +1428,21 @@ impl<'a> Interpreter<'a> {
         // Increment the gc counter (can this even do an allocation?)
         self.context.increment_gc_counter();
 
-        let mut args = vec![Value::Integer(0); method.arg_count()];
-        for arg in args.iter_mut().rev() {
-            // TODO: Long and Double arguments require two pops
-            *arg = self.stack_pop();
+        let mut args = vec![Value::Integer(0); method.physical_arg_count()];
+        let args_len = args.len();
+
+        // FIXME fix this mess sometime...
+        let mut i = 0;
+        while i < args.len() {
+            let popped = self.stack_pop();
+
+            if popped.is_wide() {
+                args[args_len - i - 2] = popped;
+                i += 2;
+            } else {
+                args[args_len - i - 1] = popped;
+                i += 1;
+            }
         }
 
         let result = method.exec(self.context, &args)?;
@@ -1427,9 +1462,21 @@ impl<'a> Interpreter<'a> {
         // Increment the gc counter (can this even do an allocation?)
         self.context.increment_gc_counter();
 
-        let mut args = vec![Value::Integer(0); method_descriptor.args().len() + 1];
-        for arg in args.iter_mut().skip(1).rev() {
-            *arg = self.stack_pop();
+        let mut args = vec![Value::Integer(0); method_descriptor.physical_arg_count() + 1];
+        let args_len = args.len();
+
+        // FIXME fix this mess sometime...
+        let mut i = 0;
+        while i < args.len() - 1 {
+            let popped = self.stack_pop();
+
+            if popped.is_wide() {
+                args[args_len - i - 2] = popped;
+                i += 2;
+            } else {
+                args[args_len - i - 1] = popped;
+                i += 1;
+            }
         }
 
         let receiver = self.stack_pop().object();

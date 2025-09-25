@@ -164,6 +164,10 @@ impl Method {
         self.descriptor().args().len()
     }
 
+    pub fn physical_arg_count(self) -> usize {
+        self.descriptor().physical_arg_count()
+    }
+
     pub fn flags(self) -> MethodFlags {
         self.0.flags
     }

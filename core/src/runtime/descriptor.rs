@@ -127,6 +127,10 @@ impl Descriptor {
 
         result
     }
+
+    pub fn is_wide(self) -> bool {
+        matches!(self, Descriptor::Double | Descriptor::Long)
+    }
 }
 
 impl Trace for Descriptor {
@@ -260,6 +264,7 @@ impl Hash for MethodDescriptor {
 #[derive(Debug, Eq, Hash, PartialEq)]
 struct MethodDescriptorData {
     args: Box<[Descriptor]>,
+    physical_arg_count: usize,
     return_type: Descriptor,
 }
 
@@ -273,6 +278,8 @@ impl MethodDescriptor {
 
         let mut args = Vec::with_capacity(2);
         let return_type;
+
+        let mut physical_arg_count = 0;
 
         // Start from 1 to skip over the extra '(' at the beginning of every descriptor
         let mut i = 1;
@@ -293,6 +300,12 @@ impl MethodDescriptor {
                     i += arg_desc.1 - 1;
 
                     args.push(arg_desc.0);
+
+                    if arg_desc.0.is_wide() {
+                        physical_arg_count += 2;
+                    } else {
+                        physical_arg_count += 1;
+                    }
                 }
             }
 
@@ -303,6 +316,7 @@ impl MethodDescriptor {
             gc_ctx,
             MethodDescriptorData {
                 args: args.into_boxed_slice(),
+                physical_arg_count,
                 return_type,
             },
         )))
@@ -310,6 +324,10 @@ impl MethodDescriptor {
 
     pub fn args(&self) -> &[Descriptor] {
         &self.0.args
+    }
+
+    pub fn physical_arg_count(&self) -> usize {
+        self.0.physical_arg_count
     }
 
     pub fn return_type(self) -> Descriptor {
