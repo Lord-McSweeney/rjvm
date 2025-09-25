@@ -23,8 +23,7 @@ pub const THROWABLE_STACK_TRACE_FIELD: usize = 1;
 
 pub const STRING_DATA_FIELD: usize = 0;
 
-/// The number of allocation operations before the GC runs.
-const GC_THRESHOLD: u32 = 32768;
+const DEFAULT_GC_THRESHOLD: u32 = 32768;
 
 #[derive(Clone, Copy)]
 pub struct Context {
@@ -63,6 +62,9 @@ pub struct Context {
     // and when it reaches GC_THRESHOLD, a collection is called.
     gc_counter: Gc<Cell<u32>>,
 
+    // The number of allocation operations before the GC runs.
+    gc_threshold: Gc<Cell<u32>>,
+
     // Common strings and descriptors.
     pub common: CommonData,
 
@@ -96,6 +98,7 @@ impl Context {
             frame_index: Gc::new(gc_ctx, Cell::new(0)),
             call_stack: Gc::new(gc_ctx, RefCell::new(CallStack::empty())),
             gc_counter: Gc::new(gc_ctx, Cell::new(0)),
+            gc_threshold: Gc::new(gc_ctx, Cell::new(DEFAULT_GC_THRESHOLD)),
             common: CommonData::new(gc_ctx),
             gc_ctx,
         }
@@ -118,6 +121,10 @@ impl Context {
                 .borrow_mut()
                 .insert((class_name, method_name, descriptor), method);
         }
+    }
+
+    pub fn set_gc_threshold(self, gc_threshold: u32) {
+        self.gc_threshold.set(gc_threshold);
     }
 
     pub fn get_native_method(
@@ -266,7 +273,7 @@ impl Context {
     pub fn increment_gc_counter(self) {
         let new_value = self.gc_counter.get() + 1;
 
-        if new_value == GC_THRESHOLD {
+        if new_value == self.gc_threshold.get() {
             unsafe {
                 self.gc_ctx.collect(&self);
             }
@@ -523,6 +530,7 @@ impl Trace for Context {
         self.call_stack.trace();
 
         self.gc_counter.trace();
+        self.gc_threshold.trace();
 
         self.common.trace();
     }
