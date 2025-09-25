@@ -10,7 +10,9 @@ fn compile_module(module: &str) {
     let mut out_dir: PathBuf = env::var("OUT_DIR").unwrap().into();
     out_dir.push(module);
 
-    fs::remove_dir_all(&out_dir).unwrap();
+    // Ignore error if it's not there
+    let _ = fs::remove_dir_all(&out_dir);
+
     fs::create_dir(&out_dir).unwrap();
 
     let mut compile_command = Command::new("javac");
