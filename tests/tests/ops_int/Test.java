@@ -7,6 +7,7 @@ public class Test {
         int v4 = 4;
         int v5 = 9;
         int v6 = -3;
+        int v7 = 3;
 
         System.out.println(v1 + v2);
         System.out.println(v2 - v3);
@@ -24,6 +25,8 @@ public class Test {
         System.out.println(v3 ^ v1);
         System.out.println(v2 ^ v4);
         System.out.println(v6 >>> v3);
+        System.out.println(v6 << v7);
+        System.out.println(v6 >> v7);
         try {
             System.out.println(v4 / v0);
         } catch(ArithmeticException e) {
