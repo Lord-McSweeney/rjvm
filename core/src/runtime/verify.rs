@@ -737,12 +737,12 @@ fn verify_block<'a>(
                 expect_pop_stack!(Long);
                 push_stack!(Long);
             }
-            Op::IShl | Op::IShr => {
+            Op::IShl | Op::IShr | Op::IUshr => {
                 expect_pop_stack!(Integer);
                 expect_pop_stack!(Integer);
                 push_stack!(Integer);
             }
-            Op::LShr | Op::LUshr => {
+            Op::LShl | Op::LShr | Op::LUshr => {
                 expect_pop_stack!(Integer);
                 expect_pop_stack!(Long);
                 push_stack!(Long);
@@ -751,11 +751,6 @@ fn verify_block<'a>(
                 expect_pop_stack!(Integer);
                 expect_pop_stack!(Integer);
                 push_stack!(Integer);
-            }
-            Op::LShl => {
-                expect_pop_stack!(Integer);
-                expect_pop_stack!(Long);
-                push_stack!(Long);
             }
             Op::LAnd | Op::LOr | Op::LXor => {
                 expect_pop_stack!(Long);

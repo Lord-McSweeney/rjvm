@@ -64,6 +64,7 @@ pub enum Op {
     LShl,
     IShr,
     LShr,
+    IUshr,
     LUshr,
     IAnd,
     LAnd,
@@ -190,6 +191,7 @@ impl Trace for Op {
             Op::LShl => {}
             Op::IShr => {}
             Op::LShr => {}
+            Op::IUshr => {}
             Op::LUshr => {}
             Op::IAnd => {}
             Op::LAnd => {}
@@ -376,6 +378,7 @@ const I_SHL: u8 = 0x78;
 const L_SHL: u8 = 0x79;
 const I_SHR: u8 = 0x7A;
 const L_SHR: u8 = 0x7B;
+const I_USHR: u8 = 0x7C;
 const L_USHR: u8 = 0x7D;
 const I_AND: u8 = 0x7E;
 const L_AND: u8 = 0x7F;
@@ -686,6 +689,7 @@ impl Op {
             L_SHL => Ok(Op::LShl),
             I_SHR => Ok(Op::IShr),
             L_SHR => Ok(Op::LShr),
+            I_USHR => Ok(Op::IUshr),
             L_USHR => Ok(Op::LUshr),
             I_AND => Ok(Op::IAnd),
             L_AND => Ok(Op::LAnd),

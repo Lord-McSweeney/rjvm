@@ -150,6 +150,7 @@ impl<'a> Interpreter<'a> {
                 Op::LShl => self.op_l_shl(),
                 Op::IShr => self.op_i_shr(),
                 Op::LShr => self.op_l_shr(),
+                Op::IUshr => self.op_i_ushr(),
                 Op::LUshr => self.op_l_ushr(),
                 Op::IAnd => self.op_i_and(),
                 Op::LAnd => self.op_l_and(),
@@ -848,6 +849,15 @@ impl<'a> Interpreter<'a> {
         let int2 = self.stack_pop().long();
 
         self.stack_push(Value::Long(int2 >> (int1 & 0x1F)));
+
+        Ok(ControlFlow::Continue)
+    }
+
+    fn op_i_ushr(&mut self) -> Result<ControlFlow, Error> {
+        let int1 = self.stack_pop().int();
+        let int2 = self.stack_pop().int() as u32;
+
+        self.stack_push(Value::Integer((int2 >> (int1 & 0x1F)) as i32));
 
         Ok(ControlFlow::Continue)
     }
