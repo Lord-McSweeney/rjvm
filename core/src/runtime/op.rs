@@ -304,6 +304,7 @@ const LDC_W: u8 = 0x13;
 const LDC_2_W: u8 = 0x14;
 const I_LOAD: u8 = 0x15;
 const L_LOAD: u8 = 0x16;
+const F_LOAD: u8 = 0x17;
 const D_LOAD: u8 = 0x18;
 const A_LOAD: u8 = 0x19;
 const I_LOAD_0: u8 = 0x1A;
@@ -596,6 +597,11 @@ impl Op {
                 let local_idx = data.read_u8()?;
 
                 Ok(Op::LLoad(local_idx as usize))
+            }
+            F_LOAD => {
+                let local_idx = data.read_u8()?;
+
+                Ok(Op::FLoad(local_idx as usize))
             }
             D_LOAD => {
                 let local_idx = data.read_u8()?;
