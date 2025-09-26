@@ -12,6 +12,7 @@ pub fn register_native_mappings(context: Context) {
         ("java/lang/Class.getResourceData.(Ljava/lang/String;)[B", get_resource_data),
         ("java/lang/Math.log.(D)D", math_log),
         ("java/lang/Math.pow.(DD)D", math_pow),
+        ("java/lang/Math.sqrt.(D)D", math_sqrt),
         ("java/lang/Object.clone.()Ljava/lang/Object;", object_clone),
         ("java/lang/Throwable.internalFillInStackTrace.()Ljava/lang/String;", capture_stack_trace),
         ("java/lang/Class.getPrimitiveClass.(I)Ljava/lang/Class;", get_primitive_class),
@@ -202,6 +203,12 @@ fn math_pow(_context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
     let exp = args[2].double();
 
     Ok(Some(Value::Double(base.powf(exp))))
+}
+
+fn math_sqrt(_context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
+    let value = args[0].double();
+
+    Ok(Some(Value::Double(value.sqrt())))
 }
 
 fn object_clone(context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
