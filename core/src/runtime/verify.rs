@@ -724,7 +724,7 @@ fn verify_block<'a>(
                 expect_pop_stack!(Long);
                 push_stack!(Long);
             }
-            Op::DAdd | Op::DSub | Op::DMul | Op::DDiv => {
+            Op::DAdd | Op::DSub | Op::DMul | Op::DDiv | Op::DRem => {
                 expect_pop_stack!(Double);
                 expect_pop_stack!(Double);
                 push_stack!(Double);
@@ -736,6 +736,10 @@ fn verify_block<'a>(
             Op::LNeg => {
                 expect_pop_stack!(Long);
                 push_stack!(Long);
+            }
+            Op::DNeg => {
+                expect_pop_stack!(Double);
+                push_stack!(Double);
             }
             Op::IShl | Op::IShr | Op::IUshr => {
                 expect_pop_stack!(Integer);
@@ -791,6 +795,11 @@ fn verify_block<'a>(
             Op::LCmp => {
                 expect_pop_stack!(Long);
                 expect_pop_stack!(Long);
+                push_stack!(Integer);
+            }
+            Op::DCmpL | Op::DCmpG => {
+                expect_pop_stack!(Double);
+                expect_pop_stack!(Double);
                 push_stack!(Integer);
             }
             Op::IfEq(_) | Op::IfNe(_) | Op::IfLt(_) | Op::IfGe(_) | Op::IfGt(_) | Op::IfLe(_) => {

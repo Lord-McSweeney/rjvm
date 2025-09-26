@@ -144,8 +144,10 @@ impl<'a> Interpreter<'a> {
                 Op::DDiv => self.op_d_div(),
                 Op::IRem => self.op_i_rem(),
                 Op::LRem => self.op_l_rem(),
+                Op::DRem => self.op_d_rem(),
                 Op::INeg => self.op_i_neg(),
                 Op::LNeg => self.op_l_neg(),
+                Op::DNeg => self.op_d_neg(),
                 Op::IShl => self.op_i_shl(),
                 Op::LShl => self.op_l_shl(),
                 Op::IShr => self.op_i_shr(),
@@ -169,6 +171,8 @@ impl<'a> Interpreter<'a> {
                 Op::I2C => self.op_i2c(),
                 Op::I2S => self.op_i2s(),
                 Op::LCmp => self.op_l_cmp(),
+                Op::DCmpL => self.op_d_cmp_l(),
+                Op::DCmpG => self.op_d_cmp_g(),
                 Op::IfEq(position) => self.op_if_eq(*position),
                 Op::IfNe(position) => self.op_if_ne(*position),
                 Op::IfLt(position) => self.op_if_lt(*position),
@@ -801,6 +805,15 @@ impl<'a> Interpreter<'a> {
         }
     }
 
+    fn op_d_rem(&mut self) -> Result<ControlFlow, Error> {
+        let double1 = self.stack_pop().double();
+        let double2 = self.stack_pop().double();
+
+        self.stack_push(Value::Double(double2 % double1));
+
+        Ok(ControlFlow::Continue)
+    }
+
     fn op_i_neg(&mut self) -> Result<ControlFlow, Error> {
         let int = self.stack_pop().int();
 
@@ -813,6 +826,14 @@ impl<'a> Interpreter<'a> {
         let long = self.stack_pop().long();
 
         self.stack_push(Value::Long(-long));
+
+        Ok(ControlFlow::Continue)
+    }
+
+    fn op_d_neg(&mut self) -> Result<ControlFlow, Error> {
+        let double = self.stack_pop().double();
+
+        self.stack_push(Value::Double(-double));
 
         Ok(ControlFlow::Continue)
     }
@@ -1019,6 +1040,58 @@ impl<'a> Interpreter<'a> {
             Ordering::Less => {
                 self.stack_push(Value::Integer(-1));
             }
+        }
+
+        Ok(ControlFlow::Continue)
+    }
+
+    fn op_d_cmp_l(&mut self) -> Result<ControlFlow, Error> {
+        let double2 = self.stack_pop().double();
+        let double1 = self.stack_pop().double();
+
+        let cmp = double1.partial_cmp(&double2);
+
+        if let Some(cmp) = cmp {
+            match cmp {
+                Ordering::Greater => {
+                    self.stack_push(Value::Integer(1));
+                }
+                Ordering::Equal => {
+                    self.stack_push(Value::Integer(0));
+                }
+                Ordering::Less => {
+                    self.stack_push(Value::Integer(-1));
+                }
+            }
+        } else {
+            // Double comparison
+            self.stack_push(Value::Integer(-1));
+        }
+
+        Ok(ControlFlow::Continue)
+    }
+
+    fn op_d_cmp_g(&mut self) -> Result<ControlFlow, Error> {
+        let double2 = self.stack_pop().double();
+        let double1 = self.stack_pop().double();
+
+        let cmp = double1.partial_cmp(&double2);
+
+        if let Some(cmp) = cmp {
+            match cmp {
+                Ordering::Greater => {
+                    self.stack_push(Value::Integer(1));
+                }
+                Ordering::Equal => {
+                    self.stack_push(Value::Integer(0));
+                }
+                Ordering::Less => {
+                    self.stack_push(Value::Integer(-1));
+                }
+            }
+        } else {
+            // Double comparison
+            self.stack_push(Value::Integer(1));
         }
 
         Ok(ControlFlow::Continue)

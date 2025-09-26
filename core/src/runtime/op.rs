@@ -58,8 +58,10 @@ pub enum Op {
     DDiv,
     IRem,
     LRem,
+    DRem,
     INeg,
     LNeg,
+    DNeg,
     IShl,
     LShl,
     IShr,
@@ -83,6 +85,8 @@ pub enum Op {
     I2C,
     I2S,
     LCmp,
+    DCmpL,
+    DCmpG,
     IfEq(usize),
     IfNe(usize),
     IfLt(usize),
@@ -185,8 +189,10 @@ impl Trace for Op {
             Op::DDiv => {}
             Op::IRem => {}
             Op::LRem => {}
+            Op::DRem => {}
             Op::INeg => {}
             Op::LNeg => {}
+            Op::DNeg => {}
             Op::IShl => {}
             Op::LShl => {}
             Op::IShr => {}
@@ -210,6 +216,8 @@ impl Trace for Op {
             Op::I2C => {}
             Op::I2S => {}
             Op::LCmp => {}
+            Op::DCmpL => {}
+            Op::DCmpG => {}
             Op::IfEq(_) => {}
             Op::IfNe(_) => {}
             Op::IfLt(_) => {}
@@ -379,8 +387,10 @@ const L_DIV: u8 = 0x6D;
 const D_DIV: u8 = 0x6F;
 const I_REM: u8 = 0x70;
 const L_REM: u8 = 0x71;
+const D_REM: u8 = 0x73;
 const I_NEG: u8 = 0x74;
 const L_NEG: u8 = 0x75;
+const D_NEG: u8 = 0x77;
 const I_SHL: u8 = 0x78;
 const L_SHL: u8 = 0x79;
 const I_SHR: u8 = 0x7A;
@@ -404,6 +414,8 @@ const I2B: u8 = 0x91;
 const I2C: u8 = 0x92;
 const I2S: u8 = 0x93;
 const L_CMP: u8 = 0x94;
+const D_CMP_L: u8 = 0x97;
+const D_CMP_G: u8 = 0x98;
 const IF_EQ: u8 = 0x99;
 const IF_NE: u8 = 0x9A;
 const IF_LT: u8 = 0x9B;
@@ -701,8 +713,10 @@ impl Op {
             D_DIV => Ok(Op::DDiv),
             I_REM => Ok(Op::IRem),
             L_REM => Ok(Op::LRem),
+            D_REM => Ok(Op::DRem),
             I_NEG => Ok(Op::INeg),
             L_NEG => Ok(Op::LNeg),
+            D_NEG => Ok(Op::DNeg),
             I_SHL => Ok(Op::IShl),
             L_SHL => Ok(Op::LShl),
             I_SHR => Ok(Op::IShr),
@@ -731,6 +745,8 @@ impl Op {
             I2C => Ok(Op::I2C),
             I2S => Ok(Op::I2S),
             L_CMP => Ok(Op::LCmp),
+            D_CMP_L => Ok(Op::DCmpL),
+            D_CMP_G => Ok(Op::DCmpG),
             IF_EQ => {
                 let offset = data.read_u16()? as i16 as isize;
 
