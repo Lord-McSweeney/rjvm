@@ -199,7 +199,7 @@ fn math_log(_context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
 
 fn math_pow(_context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
     let base = args[0].double();
-    let exp = args[1].double();
+    let exp = args[2].double();
 
     Ok(Some(Value::Double(base.powf(exp))))
 }
