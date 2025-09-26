@@ -10,6 +10,7 @@ pub fn register_native_mappings(context: Context) {
         ("java/lang/Object.getClass.()Ljava/lang/Class;", get_class),
         ("java/lang/Class.getNameNative.()Ljava/lang/String;", get_name_native),
         ("java/lang/Class.getResourceData.(Ljava/lang/String;)[B", get_resource_data),
+        ("java/lang/Math.atan2.(DD)D", math_atan2),
         ("java/lang/Math.log.(D)D", math_log),
         ("java/lang/Math.pow.(DD)D", math_pow),
         ("java/lang/Math.sqrt.(D)D", math_sqrt),
@@ -190,6 +191,15 @@ fn get_resource_data(context: Context, args: &[Value]) -> Result<Option<Value>, 
     } else {
         Ok(Some(Value::Object(None)))
     }
+}
+
+fn math_atan2(_context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
+    let y = args[0].double();
+    let x = args[2].double();
+
+    // TODO docs say this has some special-cases
+
+    Ok(Some(Value::Double(y.atan2(x))))
 }
 
 fn math_log(_context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
