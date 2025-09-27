@@ -1,5 +1,6 @@
 package java.lang;
 
+// TODO capacity
 public final class StringBuilder {
     private char[] data;
 

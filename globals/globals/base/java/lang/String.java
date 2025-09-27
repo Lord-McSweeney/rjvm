@@ -147,6 +147,23 @@ public final class String implements Comparable<String> {
         return new String(newBuffer);
     }
 
+    public boolean startsWith(String prefix) {
+        int thisLength = this.length();
+        int prefixLength = prefix.length();
+
+        if (prefixLength > thisLength) {
+            return false;
+        }
+
+        for (int i = 0; i < prefixLength; i ++) {
+            if (this.data[i] != prefix.data[i]) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     public boolean endsWith(String suffix) {
         int thisLength = this.length();
         int suffixLength = suffix.length();
