@@ -3,8 +3,15 @@ package java.io;
 import java.nio.charset.Charset;
 
 public class PrintStream extends FilterOutputStream {
+    private final boolean autoFlush;
+
     public PrintStream(OutputStream out) {
+        this(out, false);
+    }
+
+    public PrintStream(OutputStream out, boolean autoFlush) {
         super(out);
+        this.autoFlush = autoFlush;
     }
 
     public void print(boolean b) {
@@ -43,6 +50,9 @@ public class PrintStream extends FilterOutputStream {
             byte[] bytes = Charset.stringToUtf8(string);
 
             this.write(bytes);
+            if (this.autoFlush) {
+                this.flush();
+            }
         } catch (IOException e) { }
     }
 

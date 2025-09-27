@@ -73,7 +73,7 @@ public final class System {
 
     static {
         in = new FileInputStream(FileDescriptor.in);
-        out = new PrintStream(new FileOutputStream(FileDescriptor.out));
-        err = new PrintStream(new FileOutputStream(FileDescriptor.err));
+        out = new PrintStream(new FileOutputStream(FileDescriptor.out), true);
+        err = new PrintStream(new FileOutputStream(FileDescriptor.err), true);
     }
 }

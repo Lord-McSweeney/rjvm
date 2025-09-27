@@ -9,6 +9,7 @@ If you want to use `rjvm_globals` yourself, you will need to provide implementat
 - `java/io/File.getCanonicalPath.()Ljava/lang/String;`
 - `java/io/File.getAbsolutePath.()Ljava/lang/String;`
 - `java/io/FileOutputStream.writeInternal.(I)V`
+- `java/io/FileOutputStream.flushInternal.()V`
 - `java/io/FileInputStream.readInternal.()I`
 - `java/io/FileInputStream.availableInternal.()I`
 - `java/io/FileDescriptor.internalWriteableDescriptorFromPath.(Ljava/lang/String;)I`

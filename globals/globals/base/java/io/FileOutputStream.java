@@ -34,6 +34,16 @@ public class FileOutputStream extends OutputStream {
 
     private native void writeInternal(int b);
 
+    public void flush() throws IOException {
+        if (!this.isOpen) {
+            throw new IOException();
+        }
+
+        this.flushInternal();
+    }
+
+    private native void flushInternal();
+
     public final FileDescriptor getFD() throws IOException {
         return this.fd;
     }

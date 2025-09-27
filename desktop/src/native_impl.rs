@@ -20,6 +20,7 @@ pub fn register_native_mappings(context: Context) {
         ("java/io/File.getCanonicalPath.()Ljava/lang/String;", file_get_canonical_path),
         ("java/io/File.getAbsolutePath.()Ljava/lang/String;", file_get_absolute_path),
         ("java/io/FileOutputStream.writeInternal.(I)V", file_stream_write_internal),
+        ("java/io/FileOutputStream.flushInternal.()V", file_stream_flush_internal),
         ("java/io/FileInputStream.readInternal.()I", file_stream_read_internal),
         ("java/io/FileInputStream.availableInternal.()I", file_stream_available_internal),
         ("java/io/FileDescriptor.internalWriteableDescriptorFromPath.(Ljava/lang/String;)I", writeable_descriptor_from_path),
@@ -188,6 +189,34 @@ fn file_stream_write_internal(_context: Context, args: &[Value]) -> Result<Optio
             let mut file = &ALL_FILES.lock().unwrap()[stream_descriptor as usize - 3];
 
             file.write(&[write_data]).unwrap();
+        }
+    }
+
+    Ok(None)
+}
+
+fn file_stream_flush_internal(_context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
+    let stream = args[0].object().unwrap();
+    let stream_fd = stream.get_field(0).object().unwrap();
+    let stream_descriptor = stream_fd.get_field(0).int() as u32;
+
+    match stream_descriptor {
+        0 => {
+            // Flushing stdin is a noop
+        }
+        1 => {
+            // stdout
+            io::stdout().flush().unwrap();
+        }
+        2 => {
+            // stderr
+            io::stderr().flush().unwrap();
+        }
+        3.. => {
+            // -3 to account for stdin, stdout, and stderr descriptors
+            let mut file = &ALL_FILES.lock().unwrap()[stream_descriptor as usize - 3];
+
+            file.flush().unwrap();
         }
     }
 
