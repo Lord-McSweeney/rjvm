@@ -284,7 +284,26 @@ public final class String implements Comparable<String> {
 
         if (lastStart != this.data.length) {
             results[numResults] = this.substring(lastStart, this.data.length);
+        } else if (lastStart == 0) {
+            results[numResults] = "";
+            return results;
         }
+
+        // Empty strings at the end of the array seem to get trimmed?
+        int stopAfter = results.length;
+        for (int i = results.length - 1; i >= 0; i --) {
+            if (results[i].data.length == 0) {
+                stopAfter -= 1;
+            } else {
+                break;
+            }
+        }
+
+        String[] realResults = new String[stopAfter];
+        for (int i = 0; i < realResults.length; i ++) {
+            realResults[i] = results[i];
+        }
+        results = realResults;
 
         return results;
     }
