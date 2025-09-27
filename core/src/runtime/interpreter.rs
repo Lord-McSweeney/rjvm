@@ -196,6 +196,7 @@ impl<'a> Interpreter<'a> {
                 }
                 Op::IReturn => self.op_i_return(),
                 Op::LReturn => self.op_l_return(),
+                Op::DReturn => self.op_d_return(),
                 Op::AReturn => self.op_a_return(),
                 Op::Return => Ok(ControlFlow::Return(None)),
                 Op::GetStatic(class, static_field_idx) => {
@@ -1324,6 +1325,12 @@ impl<'a> Interpreter<'a> {
     }
 
     fn op_l_return(&mut self) -> Result<ControlFlow, Error> {
+        let value = self.stack_pop();
+
+        Ok(ControlFlow::Return(Some(value)))
+    }
+
+    fn op_d_return(&mut self) -> Result<ControlFlow, Error> {
         let value = self.stack_pop();
 
         Ok(ControlFlow::Return(Some(value)))

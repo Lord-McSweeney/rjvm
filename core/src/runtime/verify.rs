@@ -149,7 +149,7 @@ fn collect_basic_blocks<'a>(
 
                     break;
                 }
-                Op::AThrow | Op::IReturn | Op::LReturn | Op::AReturn | Op::Return => {
+                Op::AThrow | Op::IReturn | Op::LReturn | Op::DReturn | Op::AReturn | Op::Return => {
                     break;
                 }
                 _ => {}
@@ -242,7 +242,7 @@ fn collect_basic_blocks<'a>(
             }
             // TODO should AThrow not in a try area also count as a return? Class
             // might expect unreachable code after the AThrow to not be verified
-            Op::IReturn | Op::LReturn | Op::AReturn | Op::Return => {
+            Op::IReturn | Op::LReturn | Op::DReturn | Op::AReturn | Op::Return => {
                 let block = BasicBlock {
                     start_index: current_block_start,
                     ops: &ops[current_block_start..i + 1],
@@ -832,6 +832,9 @@ fn verify_block<'a>(
             }
             Op::LReturn => {
                 expect_pop_stack!(Long);
+            }
+            Op::DReturn => {
+                expect_pop_stack!(Double);
             }
             Op::AReturn => {
                 expect_pop_stack!(Reference);

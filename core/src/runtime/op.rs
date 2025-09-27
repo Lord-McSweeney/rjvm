@@ -106,6 +106,7 @@ pub enum Op {
     LookupSwitch(Box<[(i32, usize)]>, usize),
     IReturn,
     LReturn,
+    DReturn,
     AReturn,
     Return,
     GetStatic(Class, usize),
@@ -237,6 +238,7 @@ impl Trace for Op {
             Op::LookupSwitch(_, _) => {}
             Op::IReturn => {}
             Op::LReturn => {}
+            Op::DReturn => {}
             Op::AReturn => {}
             Op::Return => {}
             Op::GetStatic(class, _) => {
@@ -435,6 +437,7 @@ const TABLE_SWITCH: u8 = 0xAA;
 const LOOKUP_SWITCH: u8 = 0xAB;
 const I_RETURN: u8 = 0xAC;
 const L_RETURN: u8 = 0xAD;
+const D_RETURN: u8 = 0xAF;
 const A_RETURN: u8 = 0xB0;
 const RETURN: u8 = 0xB1;
 const GET_STATIC: u8 = 0xB2;
@@ -895,6 +898,13 @@ impl Op {
                     Err(Error::Native(NativeError::WrongReturnType))
                 } else {
                     Ok(Op::LReturn)
+                }
+            }
+            D_RETURN => {
+                if !matches!(method_return_type, Descriptor::Double) {
+                    Err(Error::Native(NativeError::WrongReturnType))
+                } else {
+                    Ok(Op::DReturn)
                 }
             }
             A_RETURN => {
