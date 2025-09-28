@@ -3,6 +3,10 @@ package java.lang;
 public final class Character extends Number implements Comparable<Character> {
     public static Class<Character> TYPE = (Class<Character>) Class.getPrimitiveClass(Class.PRIM_CHAR);
 
+    public static final int MIN_RADIX = 2;
+
+    public static final int MAX_RADIX = 36;
+
     private char value;
 
     public Character(char value) {

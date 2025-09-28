@@ -5,6 +5,8 @@ import rjvm.internal.Todo;
 public final class Integer extends Number implements Comparable<Integer> {
     public static Class<Integer> TYPE = (Class<Integer>) Class.getPrimitiveClass(Class.PRIM_INT);
 
+    private static final char[] ALL_DIGITS = new char[]{'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'};
+
     private int value;
 
     public Integer(int value) {
@@ -33,6 +35,7 @@ public final class Integer extends Number implements Comparable<Integer> {
     }
 
     public static String toString(int integer) {
+        // Special-case for radix 10 because most code will use this
         if (integer == -2147483648) {
             return "-2147483648";
         }
@@ -90,6 +93,54 @@ public final class Integer extends Number implements Comparable<Integer> {
         }
 
         return new String(charArray);
+    }
+
+    public static String toString(int integer, int radix) {
+        if (integer == 0) {
+            return "0";
+        }
+
+        if (radix < Character.MIN_RADIX || radix > Character.MAX_RADIX) {
+            radix = 10;
+        }
+
+        char[] result = new char[33];
+        int position = 32;
+        boolean isNeg = true;
+
+        // Can't do it the other way around because of -MIN_VALUE
+        if (integer >= 0) {
+            integer = -integer;
+            isNeg = false;
+        }
+
+        while (integer < 0) {
+            result[position --] = ALL_DIGITS[-(integer % radix)];
+
+            integer /= radix;
+        }
+
+        if (isNeg) {
+            result[position --] = '-';
+        }
+
+        return new String(result, position + 1, 32 - position);
+    }
+
+    public static String toHexString(int integer) {
+        if (integer == 0) {
+            return "0";
+        }
+
+        char[] result = new char[8];
+        int position = 7;
+
+        while (integer != 0) {
+            result[position --] = ALL_DIGITS[integer & 0xF];
+            integer >>>= 4;
+        }
+
+        return new String(result, position + 1, 7 - position);
     }
 
     public static int parseInt(String string) {
