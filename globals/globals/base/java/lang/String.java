@@ -7,9 +7,14 @@ public final class String implements Comparable<String> {
     // TODO make this a weak HashSet
     private static String[] internedStrings = new String[0];
 
+    // NOTE: This must always be non-null
     private char[] data;
 
     // Constructors
+
+    public String() {
+        this.data = new char[0];
+    }
 
     public String(String originalString) {
         char[] data = originalString.data;
