@@ -73,6 +73,9 @@ public final class System {
 
     static {
         in = new FileInputStream(FileDescriptor.in);
+        // Enable `autoFlush` on these streams. If we don't, reading from stdin
+        // after writing to stdout without writing a newline to flush the
+        // terminal buffer won't work
         out = new PrintStream(new FileOutputStream(FileDescriptor.out), true);
         err = new PrintStream(new FileOutputStream(FileDescriptor.err), true);
     }
