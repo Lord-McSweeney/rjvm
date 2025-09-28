@@ -351,6 +351,10 @@ impl Object {
 
         Ok(())
     }
+
+    pub fn as_ptr(self) -> *const () {
+        Gc::as_ptr(self.0) as *const ()
+    }
 }
 
 impl Trace for Object {

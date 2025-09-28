@@ -1,4 +1,4 @@
-use rjvm_core::{Context, Error, NativeMethod, Object, PrimitiveType, Value};
+use rjvm_core::{Class, Context, Error, NativeMethod, Object, PrimitiveType, Value};
 
 pub fn register_native_mappings(context: Context) {
     #[rustfmt::skip]
@@ -17,6 +17,7 @@ pub fn register_native_mappings(context: Context) {
         ("java/lang/Object.clone.()Ljava/lang/Object;", object_clone),
         ("java/lang/Throwable.internalFillInStackTrace.()Ljava/lang/String;", capture_stack_trace),
         ("java/lang/Class.getPrimitiveClass.(I)Ljava/lang/Class;", get_primitive_class),
+        ("java/lang/Object.hashCode.()I", object_hash_code),
     ];
 
     context.register_native_mappings(mappings);
@@ -266,4 +267,20 @@ fn get_primitive_class(context: Context, args: &[Value]) -> Result<Option<Value>
     let class_obj = context.get_or_init_java_class_for_class(class);
 
     Ok(Some(Value::Object(Some(class_obj))))
+}
+
+fn object_hash_code(_context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
+    let this = args[0].object().unwrap();
+    let this_class = this.class();
+
+    let ptr_obj = Object::as_ptr(this) as usize;
+    let ptr_cls = Class::as_ptr(this_class) as usize;
+
+    let mut result = (ptr_cls << 8) + ptr_obj;
+    result >>= 3;
+    result ^= 0xed0f87;
+    result ^= (91 + (result & 0xFF)) << 24;
+    result += 143;
+
+    Ok(Some(Value::Integer(result as i32)))
 }

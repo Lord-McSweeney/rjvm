@@ -7,14 +7,11 @@ public class Object {
 
     // NOTE method ordering is important
     public String toString() {
-        // TODO implement
-        return this.getClass().getName() + "@0";
+        String hexHashCode = Integer.toHexString(this.hashCode());
+        return this.getClass().getName() + "@" + hexHashCode;
     }
 
-    public int hashCode() {
-        // TODO implement
-        return 0;
-    }
+    public native int hashCode();
 
     public boolean equals(Object other) {
         return this == other;
