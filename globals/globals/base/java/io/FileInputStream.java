@@ -43,4 +43,8 @@ public class FileInputStream extends InputStream {
     }
 
     public native int readInternal();
+
+    public final FileDescriptor getFD() throws IOException {
+        return this.fd;
+    }
 }
