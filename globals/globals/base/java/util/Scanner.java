@@ -7,25 +7,54 @@ import java.io.IOException;
 public class Scanner {
     private InputStream stream;
 
+    private static int BUFFER_SIZE = 8192;
+    private char[] buffer;
+    private int bufferPos;
+    private int bufferSize;
+
     public Scanner(InputStream stream) {
         this.stream = stream;
+        this.buffer = new char[BUFFER_SIZE];
+        this.bufferPos = 0;
+        this.bufferSize = 0;
+    }
+
+    private void tryFillBuffer() {
+        byte[] array = new byte[BUFFER_SIZE - this.bufferPos];
+        try {
+            int numRead = this.stream.read(array);
+
+            // TODO implement proper decoding
+            for (int i = 0; i < numRead; i ++) {
+                this.buffer[i + this.bufferPos] = (char) array[i];
+            }
+
+            this.bufferSize += numRead;
+        } catch(IOException e) {
+            throw new NoSuchElementException();
+        }
+    }
+
+    private char nextChar() {
+        if (this.bufferPos == this.bufferSize) {
+            // Reset and refill the buffer
+            this.bufferPos = 0;
+            this.bufferSize = 0;
+            this.tryFillBuffer();
+        }
+
+        return this.buffer[this.bufferPos ++];
+    }
+
+    private void backtrack() {
+        this.bufferPos -= 1;
     }
 
     public String nextLine() {
         char[] data = new char[1];
         int position = 0;
         while (true) {
-            char next;
-            try {
-                int nextRaw = this.stream.read();
-                if (nextRaw < 0) {
-                    throw new NoSuchElementException();
-                } else {
-                    next = (char) nextRaw;
-                }
-            } catch(IOException e) {
-                throw new NoSuchElementException();
-            }
+            char next = this.nextChar();
 
             // FIXME: `\r`
             if (next == '\n') {
