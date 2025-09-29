@@ -11,6 +11,7 @@ If you want to use `rjvm_globals` yourself, you will need to provide implementat
 - `java/io/FileOutputStream.writeInternal.(I)V`
 - `java/io/FileOutputStream.flushInternal.()V`
 - `java/io/FileInputStream.readInternal.()I`
+- `java/io/FileInputStream.readMultiInternal.([BII)I`
 - `java/io/FileInputStream.availableInternal.()I`
 - `java/io/FileDescriptor.internalWriteableDescriptorFromPath.(Ljava/lang/String;)I`
 - `java/io/FileDescriptor.internalReadableDescriptorFromPath.(Ljava/lang/String;)I`

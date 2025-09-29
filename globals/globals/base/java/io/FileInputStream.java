@@ -24,6 +24,7 @@ public class FileInputStream extends InputStream {
         }
     }
 
+    // `available` implementation
     public int available() throws IOException {
         if (!this.isOpen) {
             throw new IOException();
@@ -31,9 +32,9 @@ public class FileInputStream extends InputStream {
 
         return this.availableInternal();
     }
+    private native int availableInternal();
 
-    public native int availableInternal();
-
+    // `read()` implementation
     public int read() throws IOException {
         if (!this.isOpen) {
             throw new IOException();
@@ -41,8 +42,23 @@ public class FileInputStream extends InputStream {
 
         return this.readInternal();
     }
+    private native int readInternal();
 
-    public native int readInternal();
+    // `read(byte[], int, int)` implementation
+    public int read(byte[] b, int offset, int length) throws IOException {
+        if (!this.isOpen) {
+            throw new IOException();
+        }
+
+        if (offset < 0 || length < 0 || offset + length > b.length) {
+            throw new IndexOutOfBoundsException();
+        }
+
+        // We know `b` is non-null, we just checked `b.length`
+
+        return this.readMultiInternal(b, offset, length);
+    }
+    private native int readMultiInternal(byte[] b, int offset, int length);
 
     public final FileDescriptor getFD() throws IOException {
         return this.fd;

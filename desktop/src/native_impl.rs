@@ -22,6 +22,7 @@ pub fn register_native_mappings(context: Context) {
         ("java/io/FileOutputStream.writeInternal.(I)V", file_stream_write_internal),
         ("java/io/FileOutputStream.flushInternal.()V", file_stream_flush_internal),
         ("java/io/FileInputStream.readInternal.()I", file_stream_read_internal),
+        ("java/io/FileInputStream.readMultiInternal.([BII)I", file_stream_read_multi_internal),
         ("java/io/FileInputStream.availableInternal.()I", file_stream_available_internal),
         ("java/io/FileDescriptor.internalWriteableDescriptorFromPath.(Ljava/lang/String;)I", writeable_descriptor_from_path),
         ("java/io/FileDescriptor.internalReadableDescriptorFromPath.(Ljava/lang/String;)I", readable_descriptor_from_path),
@@ -252,6 +253,47 @@ fn file_stream_read_internal(_context: Context, args: &[Value]) -> Result<Option
             }
         }
     }
+}
+
+fn file_stream_read_multi_internal(
+    _context: Context,
+    args: &[Value],
+) -> Result<Option<Value>, Error> {
+    let stream = args[0].object().unwrap();
+    let stream_fd = stream.get_field(0).object().unwrap();
+    let stream_descriptor = stream_fd.get_field(0).int() as u32;
+
+    let write_arr = args[1].object().unwrap();
+    let requested_offset = args[2].int() as usize;
+    let requested_length = args[3].int() as usize;
+
+    let mut write_buf = vec![0; requested_length];
+
+    let bytes_read = match stream_descriptor {
+        0 => io::stdin().read(&mut write_buf).unwrap(),
+        1 | 2 => {
+            // Output streams never yield input
+            loop {}
+        }
+        3.. => {
+            // -3 to account for stdin, stdout, and stderr descriptors
+            let mut file = &ALL_FILES.lock().unwrap()[stream_descriptor as usize - 3];
+
+            file.read(&mut write_buf).unwrap()
+        }
+    };
+
+    let array_data = write_arr.get_array_data();
+
+    for (dest, src) in array_data
+        .iter()
+        .skip(requested_offset)
+        .zip(write_buf.iter())
+    {
+        dest.set(Value::Integer(*src as i32));
+    }
+
+    Ok(Some(Value::Integer(bytes_read as i32)))
 }
 
 fn file_stream_available_internal(

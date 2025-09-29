@@ -7,6 +7,10 @@ public abstract class InputStream implements Closeable {
 
     public abstract int read() throws IOException;
 
+    public int read(byte buffer[]) throws IOException {
+        return this.read(buffer, 0, buffer.length);
+    }
+
     public int read(byte buffer[], int ofs, int len) throws IOException {
         if (buffer == null) {
             throw new NullPointerException();
