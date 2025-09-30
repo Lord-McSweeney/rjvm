@@ -1,12 +1,15 @@
 package java.lang;
 
+import java.lang.reflect.AnnotatedElement;
+import java.lang.reflect.GenericDeclaration;
+import java.lang.reflect.Type;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
 // NOTE: The native `Class` corresponding to this `Class<T>` is stored in the
 // native `Context` and can be retrieved with `Context::class_for_java_class`
-public final class Class<T> {
+public final class Class<T> implements AnnotatedElement, GenericDeclaration, Type {
     static final int PRIM_BOOLEAN = 0;
     static final int PRIM_BYTE = 1;
     static final int PRIM_CHAR = 2;
