@@ -5,7 +5,15 @@ import rjvm.internal.Todo;
 public final class Integer extends Number implements Comparable<Integer> {
     public static Class<Integer> TYPE = (Class<Integer>) Class.getPrimitiveClass(Class.PRIM_INT);
 
-    private static final char[] ALL_DIGITS = new char[]{'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'};
+    public static final int MIN_VALUE = -2147483648;
+    public static final int MAX_VALUE = 2147483647;
+
+    private static final char[] ALL_DIGITS = new char[]{
+        '0', '1', '2', '3', '4', '5', '6', '7', '8',
+        '9', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h',
+        'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q',
+        'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'
+    };
 
     private int value;
 
@@ -36,7 +44,7 @@ public final class Integer extends Number implements Comparable<Integer> {
 
     public static String toString(int integer) {
         // Special-case for radix 10 because most code will use this
-        if (integer == -2147483648) {
+        if (integer == Integer.MIN_VALUE) {
             return "-2147483648";
         }
 
@@ -83,7 +91,7 @@ public final class Integer extends Number implements Comparable<Integer> {
 
         while (integer > 0) {
             char digit = (char) (integer % 10);
-            charArray[-- numChars] = (char) (digit + 0x30);
+            charArray[-- numChars] = (char) (digit + '0');
 
             integer /= 10;
         }
@@ -143,9 +151,66 @@ public final class Integer extends Number implements Comparable<Integer> {
         return new String(result, position + 1, 7 - position);
     }
 
-    public static int parseInt(String string) {
-        Todo.warnNotImpl("Integer.parseInt");
-        return 0;
+    public static int parseInt(String string) throws NumberFormatException {
+        if (string.length() == 0) {
+            throw new NumberFormatException();
+        }
+
+        int result = 0;
+        int position = 0;
+        boolean isNeg = false;
+
+        char firstChar = string.charAt(0);
+        if (firstChar == '-') {
+            isNeg = true;
+            position += 1;
+
+            if (string.length() == 1) {
+                // Cannot just have "+"
+                throw new NumberFormatException();
+            }
+        } else if (string.charAt(0) == '+') {
+            // No need to do anything
+            position += 1;
+
+            if (string.length() == 1) {
+                // Cannot just have "-"
+                throw new NumberFormatException();
+            }
+        }
+
+        for (; position < string.length(); position ++) {
+            char thisChar = string.charAt(position);
+            if (thisChar < '0' || thisChar > '9') {
+                throw new NumberFormatException();
+            }
+
+            // Current result is `214748365` or greater
+            if (result > Integer.MAX_VALUE / 10) {
+                throw new NumberFormatException();
+            }
+
+            if (isNeg) {
+                // Current result is `-214748364`, and the current char is > "8"
+                if (result == Integer.MAX_VALUE / 10 && thisChar > '8') {
+                    throw new NumberFormatException();
+                }
+            } else {
+                // Current result is `214748364`, and the current char is > "7"
+                if (result == Integer.MAX_VALUE / 10 && thisChar > '7') {
+                    throw new NumberFormatException();
+                }
+            }
+
+            result *= 10;
+            result += thisChar - '0';
+        }
+
+        if (isNeg) {
+            return -result;
+        } else {
+            return result;
+        }
     }
 
     public int compareTo(Integer other) {
