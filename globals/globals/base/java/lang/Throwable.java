@@ -25,6 +25,10 @@ public class Throwable {
 
     private native String internalFillInStackTrace();
 
+    public String getMessage() {
+        return this.message;
+    }
+
     public String toString() {
         String className = this.getClass().getName();
 
