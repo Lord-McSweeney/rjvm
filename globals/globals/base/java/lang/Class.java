@@ -31,7 +31,6 @@ public final class Class<T> implements AnnotatedElement, GenericDeclaration, Typ
 
         return this.cachedName;
     }
-
     private native String getNameNative();
 
     public native boolean isInterface();
@@ -51,7 +50,6 @@ public final class Class<T> implements AnnotatedElement, GenericDeclaration, Typ
             return null;
         }
     }
-
     private native byte[] getResourceData(String resourceName);
 
     public boolean desiredAssertionStatus() {
@@ -60,6 +58,20 @@ public final class Class<T> implements AnnotatedElement, GenericDeclaration, Typ
     }
 
     static native Class<?> getPrimitiveClass(int id);
+
+    public static Class<?> forName(String className) throws ClassNotFoundException {
+        if (className == null) {
+            throw new NullPointerException();
+        }
+
+        Class<?> result = Class.forNameNative(className);
+        if (result == null) {
+            throw new ClassNotFoundException();
+        } else {
+            return result;
+        }
+    }
+    private static native Class<?> forNameNative(String className);
 
     public String toString() {
         if (this.isPrimitive()) {

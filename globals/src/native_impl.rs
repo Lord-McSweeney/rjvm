@@ -1,4 +1,4 @@
-use rjvm_core::{Class, Context, Error, NativeMethod, Object, PrimitiveType, Value};
+use rjvm_core::{Class, Context, Error, JvmString, NativeMethod, Object, PrimitiveType, Value};
 
 pub fn register_native_mappings(context: Context) {
     #[rustfmt::skip]
@@ -18,6 +18,7 @@ pub fn register_native_mappings(context: Context) {
         ("java/lang/Throwable.internalFillInStackTrace.()Ljava/lang/String;", capture_stack_trace),
         ("java/lang/Class.getPrimitiveClass.(I)Ljava/lang/Class;", get_primitive_class),
         ("java/lang/Object.hashCode.()I", object_hash_code),
+        ("java/lang/Class.forNameNative.(Ljava/lang/String;)Ljava/lang/Class;", class_for_name_native),
     ];
 
     context.register_native_mappings(mappings);
@@ -283,4 +284,33 @@ fn object_hash_code(_context: Context, args: &[Value]) -> Result<Option<Value>, 
     result += 143;
 
     Ok(Some(Value::Integer(result as i32)))
+}
+
+fn class_for_name_native(context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
+    // First argument should never be null
+    let class_name_data = args[0].object().unwrap().get_field(0).object().unwrap();
+
+    let length = class_name_data.array_length();
+    let mut chars_vec = Vec::with_capacity(length);
+    for i in 0..length {
+        chars_vec.push(class_name_data.get_char_at_index(i));
+    }
+
+    let class_name = String::from_utf16_lossy(&chars_vec);
+    // FIXME fix this- we need to make sure `/` doesn't work as a delimiter somehow
+    let class_name = class_name.replace('/', "*");
+    // Make `.`s `/`s
+    let class_name = class_name.replace('.', "/");
+    let class_name = JvmString::new(context.gc_ctx, class_name);
+
+    let class = context.lookup_class(class_name);
+
+    if let Ok(class) = class {
+        let class = context.get_or_init_java_class_for_class(class);
+        Ok(Some(Value::Object(Some(class))))
+    } else {
+        // If the class doesn't exist, we return `null`. Java code will throw
+        // a `ClassNotFoundException`.
+        Ok(Some(Value::Object(None)))
+    }
 }
