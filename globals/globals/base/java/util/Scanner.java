@@ -57,6 +57,7 @@ public class Scanner {
             char next = this.nextChar();
 
             // FIXME: `\r`
+            // TODO custom delimeters
             if (next == '\n') {
                 return new String(data);
             }
@@ -68,6 +69,45 @@ public class Scanner {
             }
             data[position] = next;
             position += 1;
+        }
+    }
+
+    public String next() {
+        boolean skippingWhitespace = true;
+        char[] data = new char[1];
+        int position = 0;
+        while (true) {
+            char next = this.nextChar();
+
+            // TODO custom delimiters
+            if (skippingWhitespace) {
+                if (next != ' ' && next != '\n' && next != '\r' && next != '\t') {
+                    skippingWhitespace = false;
+                }
+            }
+
+            if (!skippingWhitespace) {
+                if (next == ' ' || next == '\n' || next == '\r' || next == '\t') {
+                    this.backtrack();
+                    return new String(data);
+                }
+                if (data.length == position) {
+                    char[] newData = new char[data.length * 2];
+                    System.arraycopy(data, 0, newData, 0, data.length);
+                    data = newData;
+                }
+                data[position] = next;
+                position += 1;
+            }
+        }
+    }
+
+    public int nextInt() {
+        try {
+            return Integer.parseInt(this.next());
+        } catch(NumberFormatException e) {
+            // TODO: Somehow we have to backtrack to the start of the token...
+            throw new InputMismatchException();
         }
     }
 }
