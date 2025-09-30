@@ -21,6 +21,10 @@ public final class Integer extends Number implements Comparable<Integer> {
         this.value = value;
     }
 
+    public Integer(String value) {
+        this(Integer.parseInt(value));
+    }
+
     public boolean equals(Object obj) {
         if (obj instanceof Integer) {
             Integer other = (Integer) obj;
@@ -40,6 +44,10 @@ public final class Integer extends Number implements Comparable<Integer> {
 
     public static Integer valueOf(int integer) {
         return new Integer(integer);
+    }
+
+    public static Integer valueOf(String string) {
+        return new Integer(string);
     }
 
     public static String toString(int integer) {
