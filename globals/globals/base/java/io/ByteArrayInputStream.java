@@ -17,9 +17,8 @@ public class ByteArrayInputStream extends InputStream {
         if (this.pos == this.buf.length) {
             return -1;
         } else {
-            this.pos ++;
-
-            return this.buf[this.pos - 1];
+            // `& 0xFF` to interpret it as unsigned
+            return this.buf[this.pos ++] & 0xFF;
         }
     }
 }
