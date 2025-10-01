@@ -124,7 +124,7 @@ pub(crate) fn run_file(class_data: &[u8], args: Vec<String>, is_jar: bool) {
     let args_array = Value::Object(Some(Object::obj_array(
         context,
         string_class,
-        &program_args,
+        program_args.into_boxed_slice(),
     )));
 
     // Store this on the stack so that GC doesn't decide to collect it

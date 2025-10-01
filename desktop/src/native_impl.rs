@@ -51,11 +51,11 @@ fn internal_init_file_data(context: Context, args: &[Value]) -> Result<Option<Va
     let file_object = args[0].object().unwrap();
     let name_object = args[1].object().unwrap();
 
-    let name_bytes = name_object.get_array_data();
+    let name_bytes = name_object.array_data().as_byte_array();
 
     let mut file_name = Vec::with_capacity(name_bytes.len());
     for value in name_bytes {
-        let byte = value.get().int() as u8;
+        let byte = value.get() as u8;
         file_name.push(byte);
     }
 
@@ -88,12 +88,11 @@ fn file_get_canonical_path(context: Context, args: &[Value]) -> Result<Option<Va
     let name_object = file_object.get_field(0).object().unwrap();
 
     let name_array = name_object.get_field(0).object().unwrap();
-    let name_bytes = name_array.get_array_data();
+    let name_bytes = name_array.array_data().as_char_array();
 
     let mut file_name_data = Vec::with_capacity(name_bytes.len());
     for value in name_bytes {
-        let character = value.get().int() as u16;
-        file_name_data.push(character);
+        file_name_data.push(value.get());
     }
 
     let file_name = String::from_utf16_lossy(&file_name_data);
@@ -137,12 +136,11 @@ fn file_get_absolute_path(context: Context, args: &[Value]) -> Result<Option<Val
     let name_object = file_object.get_field(0).object().unwrap();
 
     let name_array = name_object.get_field(0).object().unwrap();
-    let name_bytes = name_array.get_array_data();
+    let name_bytes = name_array.array_data().as_char_array();
 
     let mut file_name_data = Vec::with_capacity(name_bytes.len());
     for value in name_bytes {
-        let character = value.get().int() as u16;
-        file_name_data.push(character);
+        file_name_data.push(value.get());
     }
 
     let file_name = String::from_utf16_lossy(&file_name_data);
@@ -283,14 +281,14 @@ fn file_stream_read_multi_internal(
         }
     };
 
-    let array_data = write_arr.get_array_data();
+    let array_data = write_arr.array_data().as_byte_array();
 
     for (dest, src) in array_data
         .iter()
         .skip(requested_offset)
         .zip(write_buf.iter())
     {
-        dest.set(Value::Integer(*src as i32));
+        dest.set(*src as i8);
     }
 
     Ok(Some(Value::Integer(bytes_read as i32)))
@@ -334,12 +332,11 @@ fn writeable_descriptor_from_path(
     let path_object = args[0].object().unwrap();
 
     let path_array = path_object.get_field(0).object().unwrap();
-    let path_bytes = path_array.get_array_data();
+    let path_bytes = path_array.array_data().as_char_array();
 
     let mut file_path_data = Vec::with_capacity(path_bytes.len());
     for value in path_bytes {
-        let character = value.get().int() as u16;
-        file_path_data.push(character);
+        file_path_data.push(value.get());
     }
 
     let file_path = String::from_utf16_lossy(&file_path_data);
@@ -372,12 +369,11 @@ fn readable_descriptor_from_path(
     let path_object = args[0].object().unwrap();
 
     let path_array = path_object.get_field(0).object().unwrap();
-    let path_bytes = path_array.get_array_data();
+    let path_bytes = path_array.array_data().as_char_array();
 
     let mut file_path_data = Vec::with_capacity(path_bytes.len());
     for value in path_bytes {
-        let character = value.get().int() as u16;
-        file_path_data.push(character);
+        file_path_data.push(value.get());
     }
 
     let file_path = String::from_utf16_lossy(&file_path_data);

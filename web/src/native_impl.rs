@@ -47,11 +47,11 @@ fn internal_init_file_data(context: Context, args: &[Value]) -> Result<Option<Va
     let file_object = args[0].object().unwrap();
     let name_object = args[1].object().unwrap();
 
-    let name_bytes = name_object.get_array_data();
+    let name_bytes = name_object.array_data().as_byte_array();
 
     let mut file_name = Vec::with_capacity(name_bytes.len());
     for value in name_bytes {
-        let byte = value.get().int() as u8;
+        let byte = value.get() as u8;
         file_name.push(byte);
     }
 
