@@ -323,20 +323,17 @@ impl Context {
     /// Convert a Java String object to a Rust `String`.
     pub fn string_object_to_string(string_obj: Object) -> String {
         let chars = string_obj.get_field(STRING_DATA_FIELD).object().unwrap();
-        let chars = chars.get_array_data();
-        let chars = chars
-            .iter()
-            .map(|c| c.get().int() as u16)
-            .collect::<Vec<_>>();
+        let chars = chars.array_data().as_char_array();
+        let chars = chars.iter().map(|c| c.get()).collect::<Box<_>>();
 
         return String::from_utf16_lossy(&chars);
     }
 
     /// Convert a Rust `JvmString` to a Java String object.
     pub fn jvm_string_to_string(self, string: JvmString) -> Object {
-        let chars = string.chars().map(|c| c as u16).collect::<Vec<_>>();
+        let chars = string.chars().map(|c| c as u16).collect::<Box<_>>();
 
-        let chars_array_object = Object::char_array(self, &chars);
+        let chars_array_object = Object::char_array(self, chars);
 
         let string_class = self
             .lookup_class(self.common.java_lang_string)
@@ -350,7 +347,7 @@ impl Context {
 
     /// Convert a Rust `&[u16]` to a Java String object.
     pub fn create_string(self, chars: &[u16]) -> Object {
-        let chars_array_object = Object::char_array(self, chars);
+        let chars_array_object = Object::char_array(self, Box::from(chars));
 
         let string_class = self
             .lookup_class(self.common.java_lang_string)

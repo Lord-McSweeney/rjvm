@@ -1,3 +1,4 @@
+use super::array::Array;
 use super::class::Class;
 use super::context::Context;
 use super::descriptor::{MethodDescriptor, ResolvedDescriptor};
@@ -67,97 +68,71 @@ impl Object {
         ))
     }
 
-    pub fn byte_array(context: Context, chars: &[u8]) -> Self {
-        let value_list = chars
-            .iter()
-            .map(|b| Cell::new(Value::Integer(*b as i32)))
-            .collect::<Vec<_>>();
+    pub fn byte_array(context: Context, data: Box<[i8]>) -> Self {
+        let class = context
+            .lookup_class(context.common.array_byte_desc)
+            .expect("Should lookup");
+
+        let data = data.into_iter().map(Cell::new).collect::<Box<_>>();
 
         Self(Gc::new(
             context.gc_ctx,
             ObjectData {
-                class: context
-                    .lookup_class(context.common.array_byte_desc)
-                    .expect("Should lookup"),
-                data: FieldOrArrayData::Array(value_list.into_boxed_slice()),
+                class,
+                data: FieldOrArrayData::Array(Array::ByteArray(data)),
             },
         ))
     }
 
-    pub fn char_array(context: Context, chars: &[u16]) -> Self {
-        let value_list = chars
-            .iter()
-            .map(|b| Cell::new(Value::Integer(*b as i32)))
-            .collect::<Vec<_>>();
+    pub fn char_array(context: Context, data: Box<[u16]>) -> Self {
+        let class = context
+            .lookup_class(context.common.array_char_desc)
+            .expect("Should lookup");
+
+        let data = data.into_iter().map(Cell::new).collect::<Box<_>>();
 
         Self(Gc::new(
             context.gc_ctx,
             ObjectData {
-                class: context
-                    .lookup_class(context.common.array_char_desc)
-                    .expect("Should lookup"),
-                data: FieldOrArrayData::Array(value_list.into_boxed_slice()),
+                class,
+                data: FieldOrArrayData::Array(Array::CharArray(data)),
             },
         ))
     }
 
-    pub fn int_array(context: Context, ints: &[i32]) -> Self {
-        let value_list = ints
-            .iter()
-            .map(|b| Cell::new(Value::Integer(*b)))
-            .collect::<Vec<_>>();
+    pub fn int_array(context: Context, data: Box<[i32]>) -> Self {
+        let class = context
+            .lookup_class(context.common.array_int_desc)
+            .expect("Should lookup");
+
+        let data = data.into_iter().map(Cell::new).collect::<Box<_>>();
 
         Self(Gc::new(
             context.gc_ctx,
             ObjectData {
-                class: context
-                    .lookup_class(context.common.array_int_desc)
-                    .expect("Should lookup"),
-                data: FieldOrArrayData::Array(value_list.into_boxed_slice()),
+                class,
+                data: FieldOrArrayData::Array(Array::IntArray(data)),
             },
         ))
     }
 
-    pub fn long_array(context: Context, longs: &[i64]) -> Self {
-        let value_list = longs
-            .iter()
-            .map(|b| Cell::new(Value::Long(*b)))
-            .collect::<Vec<_>>();
+    pub fn long_array(context: Context, data: Box<[i64]>) -> Self {
+        let class = context
+            .lookup_class(context.common.array_long_desc)
+            .expect("Should lookup");
+
+        let data = data.into_iter().map(Cell::new).collect::<Box<_>>();
 
         Self(Gc::new(
             context.gc_ctx,
             ObjectData {
-                class: context
-                    .lookup_class(context.common.array_long_desc)
-                    .expect("Should lookup"),
-                data: FieldOrArrayData::Array(value_list.into_boxed_slice()),
+                class,
+                data: FieldOrArrayData::Array(Array::LongArray(data)),
             },
         ))
     }
 
-    pub fn bool_array(context: Context, bools: &[bool]) -> Self {
-        let value_list = bools
-            .iter()
-            .map(|b| Cell::new(Value::Integer((*b).into())))
-            .collect::<Vec<_>>();
-
-        Self(Gc::new(
-            context.gc_ctx,
-            ObjectData {
-                class: context
-                    .lookup_class(context.common.array_bool_desc)
-                    .expect("Should lookup"),
-                data: FieldOrArrayData::Array(value_list.into_boxed_slice()),
-            },
-        ))
-    }
-
-    pub fn obj_array(context: Context, class: Class, objs: &[Option<Object>]) -> Self {
-        let value_list = objs
-            .iter()
-            .map(|b| Cell::new(Value::Object(*b)))
-            .collect::<Vec<_>>();
-
+    pub fn obj_array(context: Context, class: Class, data: Box<[Option<Object>]>) -> Self {
         // If this is an array of arrays, use an array type for its type instead of a class type
         let descriptor = if class.array_value_type().is_some() {
             ResolvedDescriptor::Array(class)
@@ -165,11 +140,13 @@ impl Object {
             ResolvedDescriptor::Class(class)
         };
 
+        let data = data.into_iter().map(Cell::new).collect::<Box<_>>();
+
         Self(Gc::new(
             context.gc_ctx,
             ObjectData {
                 class: context.array_class_for(descriptor),
-                data: FieldOrArrayData::Array(value_list.into_boxed_slice()),
+                data: FieldOrArrayData::Array(Array::ObjectArray(data)),
             },
         ))
     }
@@ -211,132 +188,17 @@ impl Object {
         }
     }
 
+    pub fn array_data(&self) -> &Array {
+        match &self.0.data {
+            FieldOrArrayData::Fields(_) => panic!("Expected an array"),
+            FieldOrArrayData::Array(array) => array,
+        }
+    }
+
     pub fn array_length(self) -> usize {
         match &self.0.data {
             FieldOrArrayData::Fields(_) => panic!("Cannot get length of object"),
-            FieldOrArrayData::Array(data) => data.len(),
-        }
-    }
-
-    pub fn get_byte_at_index(self, idx: usize) -> u8 {
-        match &self.0.data {
-            FieldOrArrayData::Fields(_) => panic!("Cannot get index of object"),
-            FieldOrArrayData::Array(data) => {
-                let value = data[idx].get();
-                let Value::Integer(byte) = value else {
-                    unreachable!();
-                };
-
-                byte as u8
-            }
-        }
-    }
-
-    pub fn get_char_at_index(self, idx: usize) -> u16 {
-        match &self.0.data {
-            FieldOrArrayData::Fields(_) => panic!("Cannot get index of object"),
-            FieldOrArrayData::Array(data) => {
-                let value = data[idx].get();
-                let Value::Integer(character) = value else {
-                    unreachable!();
-                };
-
-                character as u16
-            }
-        }
-    }
-
-    pub fn get_integer_at_index(self, idx: usize) -> i32 {
-        match &self.0.data {
-            FieldOrArrayData::Fields(_) => panic!("Cannot get index of object"),
-            FieldOrArrayData::Array(data) => {
-                let value = data[idx].get();
-                let Value::Integer(integer) = value else {
-                    unreachable!();
-                };
-
-                integer
-            }
-        }
-    }
-
-    pub fn get_long_at_index(self, idx: usize) -> i64 {
-        match &self.0.data {
-            FieldOrArrayData::Fields(_) => panic!("Cannot get index of object"),
-            FieldOrArrayData::Array(data) => {
-                let value = data[idx].get();
-                let Value::Long(integer) = value else {
-                    unreachable!();
-                };
-
-                integer
-            }
-        }
-    }
-
-    pub fn get_object_at_index(self, idx: usize) -> Option<Object> {
-        match &self.0.data {
-            FieldOrArrayData::Fields(_) => panic!("Cannot get index of object"),
-            FieldOrArrayData::Array(data) => {
-                let value = data[idx].get();
-                let Value::Object(obj) = value else {
-                    unreachable!();
-                };
-
-                obj
-            }
-        }
-    }
-
-    pub fn set_byte_at_index(self, idx: usize, value: u8) {
-        match &self.0.data {
-            FieldOrArrayData::Fields(_) => panic!("Cannot set index of object"),
-            FieldOrArrayData::Array(data) => {
-                data[idx].set(Value::Integer(value as i32));
-            }
-        }
-    }
-
-    pub fn set_char_at_index(self, idx: usize, value: u16) {
-        match &self.0.data {
-            FieldOrArrayData::Fields(_) => panic!("Cannot set index of object"),
-            FieldOrArrayData::Array(data) => {
-                data[idx].set(Value::Integer(value as i32));
-            }
-        }
-    }
-
-    pub fn set_integer_at_index(self, idx: usize, value: i32) {
-        match &self.0.data {
-            FieldOrArrayData::Fields(_) => panic!("Cannot set index of object"),
-            FieldOrArrayData::Array(data) => {
-                data[idx].set(Value::Integer(value));
-            }
-        }
-    }
-
-    pub fn set_long_at_index(self, idx: usize, value: i64) {
-        match &self.0.data {
-            FieldOrArrayData::Fields(_) => panic!("Cannot set index of object"),
-            FieldOrArrayData::Array(data) => {
-                data[idx].set(Value::Long(value));
-            }
-        }
-    }
-
-    pub fn set_object_at_index(self, idx: usize, value: Option<Object>) {
-        match &self.0.data {
-            FieldOrArrayData::Fields(_) => panic!("Cannot set index of object"),
-            FieldOrArrayData::Array(data) => {
-                data[idx].set(Value::Object(value));
-            }
-        }
-    }
-
-    pub fn get_array_data(&self) -> &[Cell<Value>] {
-        match &self.0.data {
-            FieldOrArrayData::Fields(_) => panic!("Cannot get array data of object"),
-            FieldOrArrayData::Array(data) => data,
+            FieldOrArrayData::Array(array) => array.len(),
         }
     }
 
@@ -418,7 +280,7 @@ impl Trace for ObjectData {
 #[derive(Clone, Debug)]
 enum FieldOrArrayData {
     Fields(Box<[Field]>),
-    Array(Box<[Cell<Value>]>),
+    Array(Array),
 }
 
 impl Trace for FieldOrArrayData {

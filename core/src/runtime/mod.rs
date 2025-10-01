@@ -1,3 +1,4 @@
+pub(crate) mod array;
 pub(crate) mod call_stack;
 pub(crate) mod class;
 pub(crate) mod context;

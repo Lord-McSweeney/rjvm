@@ -393,11 +393,12 @@ impl<'a> Interpreter<'a> {
 
         let array = self.stack_pop().object();
         if let Some(array) = array {
-            let length = array.array_length();
-            if index < 0 || index as usize >= length {
+            let array_data = array.array_data().as_int_array();
+
+            if index < 0 || index as usize >= array_data.len() {
                 Err(self.context.array_index_oob_exception())
             } else {
-                let result = array.get_integer_at_index(index as usize);
+                let result = array_data[index as usize].get();
 
                 self.stack_push(Value::Integer(result));
 
@@ -413,11 +414,12 @@ impl<'a> Interpreter<'a> {
 
         let array = self.stack_pop().object();
         if let Some(array) = array {
-            let length = array.array_length();
-            if index < 0 || index as usize >= length {
+            let array_data = array.array_data().as_long_array();
+
+            if index < 0 || index as usize >= array_data.len() {
                 Err(self.context.array_index_oob_exception())
             } else {
-                let result = array.get_long_at_index(index as usize);
+                let result = array_data[index as usize].get();
 
                 self.stack_push(Value::Long(result));
 
@@ -433,11 +435,12 @@ impl<'a> Interpreter<'a> {
 
         let array = self.stack_pop().object();
         if let Some(array) = array {
-            let length = array.array_length();
-            if index < 0 || index as usize >= length {
+            let array_data = array.array_data().as_object_array();
+
+            if index < 0 || index as usize >= array_data.len() {
                 Err(self.context.array_index_oob_exception())
             } else {
-                let result = array.get_object_at_index(index as usize);
+                let result = array_data[index as usize].get();
 
                 self.stack_push(Value::Object(result));
 
@@ -453,11 +456,12 @@ impl<'a> Interpreter<'a> {
 
         let array = self.stack_pop().object();
         if let Some(array) = array {
-            let length = array.array_length();
-            if index < 0 || index as usize >= length {
+            let array_data = array.array_data().as_byte_array();
+
+            if index < 0 || index as usize >= array_data.len() {
                 Err(self.context.array_index_oob_exception())
             } else {
-                let result = array.get_byte_at_index(index as usize);
+                let result = array_data[index as usize].get();
 
                 self.stack_push(Value::Integer(result as i32));
 
@@ -473,11 +477,12 @@ impl<'a> Interpreter<'a> {
 
         let array = self.stack_pop().object();
         if let Some(array) = array {
-            let length = array.array_length();
-            if index < 0 || index as usize >= length {
+            let array_data = array.array_data().as_char_array();
+
+            if index < 0 || index as usize >= array_data.len() {
                 Err(self.context.array_index_oob_exception())
             } else {
-                let result = array.get_char_at_index(index as usize);
+                let result = array_data[index as usize].get();
 
                 self.stack_push(Value::Integer(result as i32));
 
@@ -534,11 +539,12 @@ impl<'a> Interpreter<'a> {
         let array = self.stack_pop().object();
 
         if let Some(array) = array {
-            let length = array.array_length();
-            if index < 0 || index as usize >= length {
+            let array_data = array.array_data().as_int_array();
+
+            if index < 0 || index as usize >= array_data.len() {
                 Err(self.context.array_index_oob_exception())
             } else {
-                array.set_integer_at_index(index as usize, value);
+                array_data[index as usize].set(value);
 
                 Ok(ControlFlow::Continue)
             }
@@ -553,11 +559,12 @@ impl<'a> Interpreter<'a> {
         let array = self.stack_pop().object();
 
         if let Some(array) = array {
-            let length = array.array_length();
-            if index < 0 || index as usize >= length {
+            let array_data = array.array_data().as_long_array();
+
+            if index < 0 || index as usize >= array_data.len() {
                 Err(self.context.array_index_oob_exception())
             } else {
-                array.set_long_at_index(index as usize, value);
+                array_data[index as usize].set(value);
 
                 Ok(ControlFlow::Continue)
             }
@@ -572,11 +579,12 @@ impl<'a> Interpreter<'a> {
         let array = self.stack_pop().object();
 
         if let Some(array) = array {
-            let length = array.array_length();
-            if index < 0 || index as usize >= length {
+            let array_data = array.array_data().as_object_array();
+
+            if index < 0 || index as usize >= array_data.len() {
                 Err(self.context.array_index_oob_exception())
             } else {
-                array.set_object_at_index(index as usize, value);
+                array_data[index as usize].set(value);
 
                 Ok(ControlFlow::Continue)
             }
@@ -591,11 +599,12 @@ impl<'a> Interpreter<'a> {
         let array = self.stack_pop().object();
 
         if let Some(array) = array {
-            let length = array.array_length();
-            if index < 0 || index as usize >= length {
+            let array_data = array.array_data().as_byte_array();
+
+            if index < 0 || index as usize >= array_data.len() {
                 Err(self.context.array_index_oob_exception())
             } else {
-                array.set_byte_at_index(index as usize, value as u8);
+                array_data[index as usize].set(value as i8);
 
                 Ok(ControlFlow::Continue)
             }
@@ -610,11 +619,12 @@ impl<'a> Interpreter<'a> {
         let array = self.stack_pop().object();
 
         if let Some(array) = array {
-            let length = array.array_length();
-            if index < 0 || index as usize >= length {
+            let array_data = array.array_data().as_char_array();
+
+            if index < 0 || index as usize >= array_data.len() {
                 Err(self.context.array_index_oob_exception())
             } else {
-                array.set_char_at_index(index as usize, value as u16);
+                array_data[index as usize].set(value as u16);
 
                 Ok(ControlFlow::Continue)
             }
@@ -1610,27 +1620,27 @@ impl<'a> Interpreter<'a> {
             ArrayType::Char => {
                 let chars = vec![0; array_length];
 
-                Object::char_array(self.context, &chars)
+                Object::char_array(self.context, chars.into_boxed_slice())
             }
             ArrayType::Byte => {
                 let bytes = vec![0; array_length];
 
-                Object::byte_array(self.context, &bytes)
+                Object::byte_array(self.context, bytes.into_boxed_slice())
             }
             ArrayType::Int => {
                 let ints = vec![0; array_length];
 
-                Object::int_array(self.context, &ints)
+                Object::int_array(self.context, ints.into_boxed_slice())
             }
             ArrayType::Long => {
                 let longs = vec![0; array_length];
 
-                Object::long_array(self.context, &longs)
+                Object::long_array(self.context, longs.into_boxed_slice())
             }
             ArrayType::Boolean => {
-                let bools = vec![false; array_length];
+                let bools = vec![0; array_length];
 
-                Object::bool_array(self.context, &bools)
+                Object::byte_array(self.context, bools.into_boxed_slice())
             }
             _ => unimplemented!("Array type {:?} unimplemented", array_type),
         };
@@ -1651,7 +1661,7 @@ impl<'a> Interpreter<'a> {
 
         let nulls = vec![None; array_length as usize];
 
-        let array_object = Object::obj_array(self.context, class, &nulls);
+        let array_object = Object::obj_array(self.context, class, nulls.into_boxed_slice());
         self.stack_push(Value::Object(Some(array_object)));
 
         Ok(ControlFlow::Continue)
@@ -1772,7 +1782,7 @@ impl<'a> Interpreter<'a> {
                 descriptor = ResolvedDescriptor::Array(class);
             }
 
-            Some(Object::obj_array(context, class, &elems))
+            Some(Object::obj_array(context, class, elems.into_boxed_slice()))
         }
 
         let object = recursive_create_array(self.context, class, &dimensions, 0)

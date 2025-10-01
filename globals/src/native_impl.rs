@@ -1,4 +1,8 @@
-use rjvm_core::{Class, Context, Error, JvmString, NativeMethod, Object, PrimitiveType, Value};
+use rjvm_core::{
+    Array, Class, Context, Error, JvmString, NativeMethod, Object, PrimitiveType, Value,
+};
+
+use std::cell::Cell;
 
 pub fn register_native_mappings(context: Context) {
     #[rustfmt::skip]
@@ -34,15 +38,17 @@ fn string_to_utf8(context: Context, args: &[Value]) -> Result<Option<Value>, Err
     // Expecting non-null object
     let string_object = args[0].object().unwrap();
     let char_array = string_object.get_field(0).object().unwrap();
+    let char_array = char_array.array_data().as_char_array();
 
-    let length = char_array.array_length();
+    let length = char_array.len();
     let mut chars_vec = Vec::with_capacity(length);
     for i in 0..length {
-        chars_vec.push(char_array.get_char_at_index(i));
+        chars_vec.push(char_array[i].get());
     }
 
     let string = String::from_utf16_lossy(&chars_vec);
     let bytes = string.as_bytes();
+    let bytes = bytes.iter().copied().map(|b| b as i8).collect::<Box<_>>();
 
     let byte_array = Object::byte_array(context, bytes);
 
@@ -81,24 +87,74 @@ fn array_copy(context: Context, args: &[Value]) -> Result<Option<Value>, Error> 
         return Err(context.array_index_oob_exception());
     }
 
-    let (Some(source_value_type), Some(dest_value_type)) = (
+    let (Some(_), Some(dest_value_type)) = (
         source_arr.class().array_value_type(),
         dest_arr.class().array_value_type(),
     ) else {
         return Err(context.array_store_exception());
     };
 
-    if source_value_type != dest_value_type {
-        // Only throw if either of them is a primitive type; if both are object types,
-        // the type-checking will be in the actual copy loop.
-        if source_value_type.is_primitive() || dest_value_type.is_primitive() {
+    let source_array_data = source_arr.array_data();
+    let dest_array_data = dest_arr.array_data();
+
+    match (source_array_data, dest_array_data) {
+        (Array::ByteArray(source_data), Array::ByteArray(dest_data)) => {
+            primitive_array_copy::<_>(source_data, dest_data, source_start, dest_start, length);
+        }
+        (Array::CharArray(source_data), Array::CharArray(dest_data)) => {
+            primitive_array_copy::<_>(source_data, dest_data, source_start, dest_start, length);
+        }
+        (Array::DoubleArray(source_data), Array::DoubleArray(dest_data)) => {
+            primitive_array_copy::<_>(source_data, dest_data, source_start, dest_start, length);
+        }
+        (Array::FloatArray(source_data), Array::FloatArray(dest_data)) => {
+            primitive_array_copy::<_>(source_data, dest_data, source_start, dest_start, length);
+        }
+        (Array::IntArray(source_data), Array::IntArray(dest_data)) => {
+            primitive_array_copy::<_>(source_data, dest_data, source_start, dest_start, length);
+        }
+        (Array::LongArray(source_data), Array::LongArray(dest_data)) => {
+            primitive_array_copy::<_>(source_data, dest_data, source_start, dest_start, length);
+        }
+        (Array::ShortArray(source_data), Array::ShortArray(dest_data)) => {
+            primitive_array_copy::<_>(source_data, dest_data, source_start, dest_start, length);
+        }
+        (Array::ObjectArray(source_data), Array::ObjectArray(dest_data)) => {
+            let mut temp_arr = Vec::with_capacity(length);
+
+            for i in 0..length {
+                let source_idx = source_start + i;
+                temp_arr.push(source_data[source_idx].get());
+            }
+
+            for i in 0..length {
+                let obj = temp_arr[i];
+                if let Some(obj) = obj {
+                    if !obj.class().matches_descriptor(dest_value_type) {
+                        return Err(context.array_store_exception());
+                    }
+                }
+
+                let dest_idx = dest_start + i;
+                dest_data[dest_idx].set(obj);
+            }
+        }
+        (_, _) => {
             return Err(context.array_store_exception());
         }
     }
 
-    let source_data = source_arr.get_array_data();
-    let dest_data = dest_arr.get_array_data();
+    Ok(None)
+}
 
+fn primitive_array_copy<T: Copy>(
+    source_data: &[Cell<T>],
+    dest_data: &[Cell<T>],
+    source_start: usize,
+    dest_start: usize,
+    length: usize,
+) {
+    // TODO optimize this
     let mut temp_arr = Vec::with_capacity(length);
 
     for i in 0..length {
@@ -107,20 +163,9 @@ fn array_copy(context: Context, args: &[Value]) -> Result<Option<Value>, Error> 
     }
 
     for i in 0..length {
-        let value = temp_arr[i];
-        if let Value::Object(obj) = value {
-            if let Some(obj) = obj {
-                if !obj.class().matches_descriptor(dest_value_type) {
-                    return Err(context.array_store_exception());
-                }
-            }
-        }
-
         let dest_idx = dest_start + i;
-        dest_data[dest_idx].set(value);
+        dest_data[dest_idx].set(temp_arr[i]);
     }
-
-    Ok(None)
 }
 
 // java/lang/Class : boolean isInterface()
@@ -180,17 +225,19 @@ fn get_resource_data(context: Context, args: &[Value]) -> Result<Option<Value>, 
 
     // First argument should never be null
     let resource_name_data = args[1].object().unwrap().get_field(0).object().unwrap();
+    let resource_name_data = resource_name_data.array_data().as_char_array();
 
-    let length = resource_name_data.array_length();
+    let length = resource_name_data.len();
     let mut chars_vec = Vec::with_capacity(length);
     for i in 0..length {
-        chars_vec.push(resource_name_data.get_char_at_index(i));
+        chars_vec.push(resource_name_data[i].get());
     }
 
     let resource_name = String::from_utf16_lossy(&chars_vec);
 
     if let Some(resource_data) = class.load_resource(context, &resource_name) {
-        let resource_bytes = Object::byte_array(context, &resource_data);
+        let resource_data = resource_data.iter().map(|d| *d as i8).collect::<Box<_>>();
+        let resource_bytes = Object::byte_array(context, resource_data);
 
         Ok(Some(Value::Object(Some(resource_bytes))))
     } else {
@@ -292,11 +339,12 @@ fn object_hash_code(_context: Context, args: &[Value]) -> Result<Option<Value>, 
 fn class_for_name_native(context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
     // First argument should never be null
     let class_name_data = args[0].object().unwrap().get_field(0).object().unwrap();
+    let class_name_data = class_name_data.array_data().as_char_array();
 
-    let length = class_name_data.array_length();
+    let length = class_name_data.len();
     let mut chars_vec = Vec::with_capacity(length);
     for i in 0..length {
-        chars_vec.push(class_name_data.get_char_at_index(i));
+        chars_vec.push(class_name_data[i].get());
     }
 
     let class_name = String::from_utf16_lossy(&chars_vec);
@@ -333,7 +381,7 @@ fn get_constructors(context: Context, args: &[Value]) -> Result<Option<Value>, E
         .lookup_class(context.common.java_lang_reflect_constructor)
         .expect("Class class should exist");
 
-    let constructors_arr = Object::obj_array(context, constructor_class, &constructors_arr);
+    let constructors_arr = Object::obj_array(context, constructor_class, constructors_arr);
 
     Ok(Some(Value::Object(Some(constructors_arr))))
 }
@@ -344,10 +392,12 @@ fn new_instance_native(context: Context, args: &[Value]) -> Result<Option<Value>
     let ctor_method = context.get_method_for_java_executable(ctor_obj);
 
     let raw_args = args[1].object().unwrap();
-    let length = raw_args.array_length();
+    let raw_args = raw_args.array_data().as_object_array();
+
+    let length = raw_args.len();
     let mut args_array = Vec::with_capacity(length);
     for i in 0..length {
-        args_array.push(Value::Object(raw_args.get_object_at_index(i)));
+        args_array.push(Value::Object(raw_args[i].get()));
     }
 
     let instance = Object::from_class(context.gc_ctx, ctor_method.class());
