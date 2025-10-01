@@ -68,6 +68,22 @@ impl Object {
         ))
     }
 
+    pub fn bool_array(context: Context, data: Box<[i8]>) -> Self {
+        let class = context
+            .lookup_class(context.common.array_bool_desc)
+            .expect("Should lookup");
+
+        let data = data.into_iter().map(Cell::new).collect::<Box<_>>();
+
+        Self(Gc::new(
+            context.gc_ctx,
+            ObjectData {
+                class,
+                data: FieldOrArrayData::Array(Array::ByteArray(data)),
+            },
+        ))
+    }
+
     pub fn byte_array(context: Context, data: Box<[i8]>) -> Self {
         let class = context
             .lookup_class(context.common.array_byte_desc)

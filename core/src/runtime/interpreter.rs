@@ -1640,7 +1640,7 @@ impl<'a> Interpreter<'a> {
             ArrayType::Boolean => {
                 let bools = vec![0; array_length];
 
-                Object::byte_array(self.context, bools.into_boxed_slice())
+                Object::bool_array(self.context, bools.into_boxed_slice())
             }
             _ => unimplemented!("Array type {:?} unimplemented", array_type),
         };
@@ -1819,7 +1819,7 @@ impl<'a> Interpreter<'a> {
                     ResolvedDescriptor::Short => todo!(),
                     ResolvedDescriptor::Boolean => {
                         let data = vec![0; elem_count];
-                        Some(Object::byte_array(context, data.into_boxed_slice()))
+                        Some(Object::bool_array(context, data.into_boxed_slice()))
                     }
                     ResolvedDescriptor::Array(_) => unreachable!(),
                     ResolvedDescriptor::Void => unreachable!(),
