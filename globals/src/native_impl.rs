@@ -147,7 +147,7 @@ fn array_copy(context: Context, args: &[Value]) -> Result<Option<Value>, Error> 
     Ok(None)
 }
 
-fn primitive_array_copy<T: Copy>(
+fn primitive_array_copy<T: Copy + Default>(
     source_data: &[Cell<T>],
     dest_data: &[Cell<T>],
     source_start: usize,
@@ -155,16 +155,16 @@ fn primitive_array_copy<T: Copy>(
     length: usize,
 ) {
     // TODO optimize this
-    let mut temp_arr = Vec::with_capacity(length);
+    let temp_arr = vec![Cell::new(T::default()); length];
 
     for i in 0..length {
         let source_idx = source_start + i;
-        temp_arr.push(source_data[source_idx].get());
+        temp_arr[i].set(source_data[source_idx].get());
     }
 
     for i in 0..length {
         let dest_idx = dest_start + i;
-        dest_data[dest_idx].set(temp_arr[i]);
+        dest_data[dest_idx].set(temp_arr[i].get());
     }
 }
 
