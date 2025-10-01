@@ -1,6 +1,6 @@
 use super::class::Class;
 use super::context::Context;
-use super::descriptor::{Descriptor, MethodDescriptor};
+use super::descriptor::{Descriptor, MethodDescriptor, ResolvedDescriptor};
 use super::error::{Error, NativeError};
 use super::method::Method;
 
@@ -124,7 +124,7 @@ pub enum Op {
     AThrow,
     CheckCast(Class),
     InstanceOf(Class),
-    MultiANewArray(Class, u8),
+    MultiANewArray(ResolvedDescriptor, u8),
     IfNull(usize),
     IfNonNull(usize),
 }
@@ -1177,28 +1177,33 @@ impl Op {
                 let class_idx = data.read_u16()?;
                 let class_name = constant_pool.get_class(class_idx)?;
 
-                let mut class = context.lookup_class(class_name)?;
-
-                // Get the innermost class of this class if we were given an array class.
-                while let Some(resolved_descriptor) = class.array_value_type() {
-                    if let Some(inner_class) = resolved_descriptor.class() {
-                        class = inner_class;
-                    } else {
-                        return Err(Error::Native(NativeError::VerifyTypeWrong));
-                    }
-                }
-
-                if !class_dependencies.contains(&class) {
-                    class_dependencies.push(class);
-                }
-
                 let dim_count = data.read_u8()?;
 
                 if dim_count == 0 {
                     return Err(Error::Native(NativeError::VerifyCountWrong));
                 }
 
-                Ok(Op::MultiANewArray(class, dim_count))
+                let descriptor = Descriptor::from_string(context.gc_ctx, class_name)
+                    .ok_or(Error::Native(NativeError::InvalidDescriptor))?;
+                let mut resolved_descriptor =
+                    ResolvedDescriptor::from_descriptor(context, descriptor)?;
+
+                for _ in 0..dim_count {
+                    resolved_descriptor = match resolved_descriptor {
+                        ResolvedDescriptor::Array(array_class) => {
+                            array_class.array_value_type().unwrap()
+                        }
+                        _ => return Err(Error::Native(NativeError::VerifyTypeWrong)),
+                    }
+                }
+
+                if let Some(class) = resolved_descriptor.class() {
+                    if !class_dependencies.contains(&class) {
+                        class_dependencies.push(class);
+                    }
+                }
+
+                Ok(Op::MultiANewArray(resolved_descriptor, dim_count))
             }
             IF_NULL => {
                 let offset = data.read_u16()? as i16 as isize;

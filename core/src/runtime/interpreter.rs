@@ -222,8 +222,8 @@ impl<'a> Interpreter<'a> {
                 Op::AThrow => self.op_a_throw(),
                 Op::CheckCast(class) => self.op_check_cast(*class),
                 Op::InstanceOf(class) => self.op_instance_of(*class),
-                Op::MultiANewArray(class, dim_count) => {
-                    self.op_multi_a_new_array(*class, *dim_count)
+                Op::MultiANewArray(resolved_descriptor, dim_count) => {
+                    self.op_multi_a_new_array(*resolved_descriptor, *dim_count)
                 }
                 Op::IfNull(position) => self.op_if_null(*position),
                 Op::IfNonNull(position) => self.op_if_non_null(*position),
@@ -1738,7 +1738,11 @@ impl<'a> Interpreter<'a> {
         Ok(ControlFlow::Continue)
     }
 
-    fn op_multi_a_new_array(&mut self, class: Class, dim_count: u8) -> Result<ControlFlow, Error> {
+    fn op_multi_a_new_array(
+        &mut self,
+        resolved_descriptor: ResolvedDescriptor,
+        dim_count: u8,
+    ) -> Result<ControlFlow, Error> {
         // This does an allocation; we should increment the gc counter
         self.context.increment_gc_counter();
 
@@ -1759,7 +1763,7 @@ impl<'a> Interpreter<'a> {
 
         fn recursive_create_array(
             context: Context,
-            class: Class,
+            resolved_descriptor: ResolvedDescriptor,
             dimensions: &Vec<usize>,
             dim_index: usize,
         ) -> Option<Object> {
@@ -1771,21 +1775,59 @@ impl<'a> Interpreter<'a> {
 
             let mut elems = vec![None; elem_count];
             for elem in elems.iter_mut() {
-                *elem = recursive_create_array(context, class, dimensions, dim_index + 1);
+                *elem =
+                    recursive_create_array(context, resolved_descriptor, dimensions, dim_index + 1);
             }
 
-            let mut descriptor = ResolvedDescriptor::Class(class);
-            let mut class = class;
+            let mut descriptor = resolved_descriptor;
             let levels_left = (dimensions.len() - dim_index) - 1;
             for _ in 0..levels_left {
-                class = context.array_class_for(descriptor);
-                descriptor = ResolvedDescriptor::Array(class);
+                descriptor = ResolvedDescriptor::Array(context.array_class_for(descriptor));
             }
 
-            Some(Object::obj_array(context, class, elems.into_boxed_slice()))
+            if let Some(outer_inner_class) = descriptor.class() {
+                // Not at the last dimension yet
+                Some(Object::obj_array(
+                    context,
+                    outer_inner_class,
+                    elems.into_boxed_slice(),
+                ))
+            } else {
+                // This is the last dimension
+                match resolved_descriptor {
+                    ResolvedDescriptor::Class(class) => {
+                        Some(Object::obj_array(context, class, elems.into_boxed_slice()))
+                    }
+                    ResolvedDescriptor::Byte => {
+                        let data = vec![0; elem_count];
+                        Some(Object::byte_array(context, data.into_boxed_slice()))
+                    }
+                    ResolvedDescriptor::Character => {
+                        let data = vec![0; elem_count];
+                        Some(Object::char_array(context, data.into_boxed_slice()))
+                    }
+                    ResolvedDescriptor::Double => todo!(),
+                    ResolvedDescriptor::Float => todo!(),
+                    ResolvedDescriptor::Integer => {
+                        let data = vec![0; elem_count];
+                        Some(Object::int_array(context, data.into_boxed_slice()))
+                    }
+                    ResolvedDescriptor::Long => {
+                        let data = vec![0; elem_count];
+                        Some(Object::long_array(context, data.into_boxed_slice()))
+                    }
+                    ResolvedDescriptor::Short => todo!(),
+                    ResolvedDescriptor::Boolean => {
+                        let data = vec![0; elem_count];
+                        Some(Object::byte_array(context, data.into_boxed_slice()))
+                    }
+                    ResolvedDescriptor::Array(_) => unreachable!(),
+                    ResolvedDescriptor::Void => unreachable!(),
+                }
+            }
         }
 
-        let object = recursive_create_array(self.context, class, &dimensions, 0)
+        let object = recursive_create_array(self.context, resolved_descriptor, &dimensions, 0)
             .expect("dim_count did not == 0");
         self.stack_push(Value::Object(Some(object)));
 
