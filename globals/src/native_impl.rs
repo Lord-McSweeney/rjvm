@@ -20,6 +20,7 @@ pub fn register_native_mappings(context: Context) {
         ("java/lang/Object.hashCode.()I", object_hash_code),
         ("java/lang/Class.forNameNative.(Ljava/lang/String;)Ljava/lang/Class;", class_for_name_native),
         ("java/lang/Class.getConstructors.()[Ljava/lang/reflect/Constructor;", get_constructors),
+        ("java/lang/reflect/Constructor.newInstanceNative.([Ljava/lang/Object;)Ljava/lang/Object;", new_instance_native),
     ];
 
     context.register_native_mappings(mappings);
@@ -334,4 +335,28 @@ fn get_constructors(context: Context, args: &[Value]) -> Result<Option<Value>, E
     let constructors_arr = Object::obj_array(context, constructor_class, &constructors_arr);
 
     Ok(Some(Value::Object(Some(constructors_arr))))
+}
+
+fn new_instance_native(context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
+    // Receiver should never be null
+    let ctor_obj = args[0].object().unwrap();
+    let ctor_method = context.get_method_for_java_executable(ctor_obj);
+
+    let raw_args = args[1].object().unwrap();
+    let length = raw_args.array_length();
+    let mut args_array = Vec::with_capacity(length);
+    for i in 0..length {
+        args_array.push(Value::Object(raw_args.get_object_at_index(i)));
+    }
+
+    let instance = Object::from_class(context.gc_ctx, ctor_method.class());
+
+    let real_args = crate::reflect::args_for_call(ctor_method, Some(instance), &args_array);
+
+    if let Err(e) = ctor_method.exec(context, &real_args) {
+        // FIXME this should throw `InvocationTargetException`
+        Err(e)
+    } else {
+        Ok(Some(Value::Object(Some(instance))))
+    }
 }
