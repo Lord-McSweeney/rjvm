@@ -79,7 +79,7 @@ public class Scanner {
             // FIXME: `\r`
             // TODO custom delimeters
             if (next == -1 || (char) next == '\n') {
-                return new String(data);
+                return new String(data, 0, position);
             }
 
             if (data.length == position) {
@@ -113,11 +113,11 @@ public class Scanner {
             if (!skippingWhitespace) {
                 if (nextInt == -1) {
                     // Don't backtrack, we're at the end of the stream
-                    return new String(data);
+                    return new String(data, 0, position);
                 }
                 if (next == ' ' || next == '\n' || next == '\r' || next == '\t') {
                     this.backtrack();
-                    return new String(data);
+                    return new String(data, 0, position);
                 }
                 if (data.length == position) {
                     char[] newData = new char[data.length * 2];
