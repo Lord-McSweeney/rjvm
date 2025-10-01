@@ -1,6 +1,6 @@
 // Helper functions for reflection methods
 
-use rjvm_core::{Class, Context, Method, MethodFlags, Object, Value};
+use rjvm_core::{Class, Context, Descriptor, Error, Method, MethodFlags, Object, Value};
 
 pub(crate) fn constructors_for_class(context: Context, class: Class) -> Box<[Method]> {
     class
@@ -19,18 +19,32 @@ pub(crate) fn constructors_for_class(context: Context, class: Class) -> Box<[Met
 }
 
 // Change the provided args into a form suitable for calling the given method.
-pub(crate) fn args_for_call(
-    _method: Method,
-    receiver: Option<Object>,
+pub(crate) fn args_for_instance_call(
+    _context: Context,
+    method: Method,
+    receiver: Object,
     args: &[Value],
-) -> Vec<Value> {
-    let mut result = Vec::with_capacity(args.len() + 1);
+) -> Result<Vec<Value>, Error> {
+    let mut unboxed_args = Vec::with_capacity(args.len() + 1);
+    unboxed_args.push(Value::Object(Some(receiver)));
+    for (i, arg) in args.iter().enumerate() {
+        // All args are passed as objects
+        let arg = arg.object();
 
-    if let Some(receiver) = receiver {
-        result.push(Value::Object(Some(receiver)));
+        // TODO implement more unboxing
+        if matches!(method.descriptor().args()[i], Descriptor::Integer) {
+            if let Some(arg) = arg {
+                // FIXME this is really hacky
+                if *arg.class().name() == "java/lang/Integer" {
+                    unboxed_args.push(arg.get_field(0));
+                    continue;
+                }
+            } else {
+                todo!("Throw an IllegalArgumentException");
+            }
+        }
+        unboxed_args.push(Value::Object(arg));
     }
-    // TODO implement unboxing
-    result.extend_from_slice(args);
 
-    result
+    Ok(unboxed_args)
 }

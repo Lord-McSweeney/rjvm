@@ -351,7 +351,8 @@ fn new_instance_native(context: Context, args: &[Value]) -> Result<Option<Value>
 
     let instance = Object::from_class(context.gc_ctx, ctor_method.class());
 
-    let real_args = crate::reflect::args_for_call(ctor_method, Some(instance), &args_array);
+    let real_args =
+        crate::reflect::args_for_instance_call(context, ctor_method, instance, &args_array)?;
 
     if let Err(e) = ctor_method.exec(context, &real_args) {
         // FIXME this should throw `InvocationTargetException`
