@@ -35,5 +35,6 @@ If you want to replace or edit the classes defined here, be sure to keep the fol
 - `java/lang/Object`
 - `java/lang/String`
 - `java/lang/Throwable`
+- `java/lang/reflect/Constructor`
 
 These are critical to the JVM and it may panic if they are missing.

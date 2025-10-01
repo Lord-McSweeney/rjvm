@@ -35,7 +35,13 @@ pub struct Context {
 
     // A map of class T to the object of type Class<T>.
     class_to_java_class_map: Gc<RefCell<HashMap<Class, Object>>>,
+    // A map of object of type Class<T> to the class T.
     java_class_to_class_map: Gc<RefCell<HashMap<Object, Class>>>,
+
+    // A map of Method to object of type Executable.
+    method_to_java_executable_map: Gc<RefCell<HashMap<Method, Object>>>,
+    // A map of object of type Executable to Method.
+    java_executable_to_method_map: Gc<RefCell<HashMap<Object, Method>>>,
 
     // A map of descriptor D to class [D.
     array_classes: Gc<RefCell<HashMap<ResolvedDescriptor, Class>>>,
@@ -90,6 +96,8 @@ impl Context {
             class_registry: Gc::new(gc_ctx, RefCell::new(HashMap::new())),
             class_to_java_class_map: Gc::new(gc_ctx, RefCell::new(HashMap::new())),
             java_class_to_class_map: Gc::new(gc_ctx, RefCell::new(HashMap::new())),
+            method_to_java_executable_map: Gc::new(gc_ctx, RefCell::new(HashMap::new())),
+            java_executable_to_method_map: Gc::new(gc_ctx, RefCell::new(HashMap::new())),
             array_classes: Gc::new(gc_ctx, RefCell::new(HashMap::new())),
             primitive_classes: Gc::new(gc_ctx, primitive_classes),
             jar_files: Gc::new(gc_ctx, RefCell::new(Vec::new())),
@@ -234,6 +242,34 @@ impl Context {
         } else {
             unreachable!(
                 "Object passed to `get_class_for_java_class` should be a valid java Class<?>"
+            )
+        }
+    }
+
+    pub fn get_or_init_java_constructor_for_method(self, method: Method) -> Object {
+        let mut method_objects = self.method_to_java_executable_map.borrow_mut();
+        let mut methods = self.java_executable_to_method_map.borrow_mut();
+
+        if let Some(method_object) = method_objects.get(&method) {
+            *method_object
+        } else {
+            let object = Object::constructor_object(self);
+
+            method_objects.insert(method, object);
+            methods.insert(object, method);
+
+            object
+        }
+    }
+
+    pub fn get_method_for_java_executable(self, object: Object) -> Method {
+        let methods = self.java_executable_to_method_map.borrow_mut();
+
+        if let Some(method_object) = methods.get(&object) {
+            *method_object
+        } else {
+            unreachable!(
+                "Object passed to `get_method_for_java_executable` should be a valid java Executable"
             )
         }
     }
@@ -510,6 +546,8 @@ impl Trace for Context {
         self.class_registry.trace();
         self.class_to_java_class_map.trace();
         self.java_class_to_class_map.trace();
+        self.method_to_java_executable_map.trace();
+        self.java_executable_to_method_map.trace();
         self.array_classes.trace();
         self.primitive_classes.trace();
         self.jar_files.trace();
@@ -554,6 +592,7 @@ pub struct CommonData {
     pub java_lang_no_such_field_error: JvmString,
     pub java_lang_no_such_method_error: JvmString,
     pub java_lang_null_pointer_exception: JvmString,
+    pub java_lang_reflect_constructor: JvmString,
 
     pub array_byte_desc: JvmString,
     pub array_char_desc: JvmString,
@@ -627,6 +666,10 @@ impl CommonData {
                 gc_ctx,
                 "java/lang/NullPointerException".to_string(),
             ),
+            java_lang_reflect_constructor: JvmString::new(
+                gc_ctx,
+                "java/lang/reflect/Constructor".to_string(),
+            ),
             array_byte_desc: JvmString::new(gc_ctx, "[B".to_string()),
             array_char_desc: JvmString::new(gc_ctx, "[C".to_string()),
             array_int_desc: JvmString::new(gc_ctx, "[I".to_string()),
@@ -658,6 +701,7 @@ impl Trace for CommonData {
         self.java_lang_no_such_field_error.trace();
         self.java_lang_no_such_method_error.trace();
         self.java_lang_null_pointer_exception.trace();
+        self.java_lang_reflect_constructor.trace();
 
         self.array_byte_desc.trace();
         self.array_char_desc.trace();

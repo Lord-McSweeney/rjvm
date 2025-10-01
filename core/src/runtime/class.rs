@@ -5,7 +5,7 @@ use super::field::{Field, FieldRef};
 use super::loader::ResourceLoadType;
 use super::method::Method;
 use super::object::Object;
-use super::vtable::{OverridingVTable, VTable};
+use super::vtable::{InstanceMethodVTable, VTable};
 
 use crate::classfile::class::ClassFile;
 use crate::classfile::flags::{ClassFlags, FieldFlags, MethodFlags};
@@ -61,7 +61,7 @@ struct MethodData {
     static_method_vtable: VTable<(JvmString, MethodDescriptor)>,
     static_methods: Box<[Method]>,
 
-    instance_method_vtable: OverridingVTable<(JvmString, MethodDescriptor), Method>,
+    instance_method_vtable: InstanceMethodVTable,
 }
 
 impl fmt::Debug for Class {
@@ -227,7 +227,7 @@ impl Class {
             static_method_names,
         );
 
-        let instance_method_vtable = OverridingVTable::from_parent_and_keys(
+        let instance_method_vtable = InstanceMethodVTable::from_parent_and_keys(
             context.gc_ctx,
             Some(self),
             super_class.map(|c| *c.instance_method_vtable()),
@@ -267,6 +267,7 @@ impl Class {
         let method_data = MethodData {
             static_method_vtable: VTable::empty(context.gc_ctx),
             static_methods: Box::new([]),
+            // FIXME is this correct?
             instance_method_vtable,
         };
 
@@ -309,7 +310,8 @@ impl Class {
         let method_data = MethodData {
             static_method_vtable: VTable::empty(gc_ctx),
             static_methods: Box::new([]),
-            instance_method_vtable: OverridingVTable::empty(gc_ctx),
+            // FIXME do we need to add any methods to this vtable?
+            instance_method_vtable: InstanceMethodVTable::empty(gc_ctx),
         };
 
         Self(Gc::new(
@@ -394,9 +396,7 @@ impl Class {
         &self.0.static_fields
     }
 
-    pub fn instance_method_vtable(
-        &self,
-    ) -> Ref<OverridingVTable<(JvmString, MethodDescriptor), Method>> {
+    pub fn instance_method_vtable(&self) -> Ref<InstanceMethodVTable> {
         Ref::map(self.0.method_data.borrow(), |data| {
             &data.as_ref().unwrap().instance_method_vtable
         })

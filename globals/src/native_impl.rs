@@ -19,6 +19,7 @@ pub fn register_native_mappings(context: Context) {
         ("java/lang/Class.getPrimitiveClass.(I)Ljava/lang/Class;", get_primitive_class),
         ("java/lang/Object.hashCode.()I", object_hash_code),
         ("java/lang/Class.forNameNative.(Ljava/lang/String;)Ljava/lang/Class;", class_for_name_native),
+        ("java/lang/Class.getConstructors.()[Ljava/lang/reflect/Constructor;", get_constructors),
     ];
 
     context.register_native_mappings(mappings);
@@ -313,4 +314,24 @@ fn class_for_name_native(context: Context, args: &[Value]) -> Result<Option<Valu
         // a `ClassNotFoundException`.
         Ok(Some(Value::Object(None)))
     }
+}
+
+fn get_constructors(context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
+    // Receiver should never be null
+    let class_obj = args[0].object().unwrap();
+    let class = context.get_class_for_java_class(class_obj);
+
+    let constructors = crate::reflect::constructors_for_class(context, class);
+    let constructors_arr = constructors
+        .iter()
+        .map(|m| Some(context.get_or_init_java_constructor_for_method(*m)))
+        .collect::<Box<_>>();
+
+    let constructor_class = context
+        .lookup_class(context.common.java_lang_reflect_constructor)
+        .expect("Class class should exist");
+
+    let constructors_arr = Object::obj_array(context, constructor_class, &constructors_arr);
+
+    Ok(Some(Value::Object(Some(constructors_arr))))
 }

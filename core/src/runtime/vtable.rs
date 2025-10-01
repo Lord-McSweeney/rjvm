@@ -1,6 +1,9 @@
 use super::class::Class;
+use super::descriptor::MethodDescriptor;
+use super::method::Method;
 
 use crate::gc::{Gc, GcCtx, Trace};
+use crate::string::JvmString;
 
 use std::collections::HashMap;
 use std::fmt::Debug;
@@ -111,21 +114,21 @@ where
     }
 }
 
-pub struct OverridingVTable<T, E>(Gc<OverridingVTableData<T, E>>);
+pub struct InstanceMethodVTable(Gc<InstanceMethodVTableData>);
 
-impl<T, E> Clone for OverridingVTable<T, E> {
+impl Clone for InstanceMethodVTable {
     fn clone(&self) -> Self {
         *self
     }
 }
 
-impl<T, E> Copy for OverridingVTable<T, E> {}
+impl Copy for InstanceMethodVTable {}
 
-impl<T: Copy + Debug + Eq + Hash, E: Copy + Debug> OverridingVTable<T, E> {
+impl InstanceMethodVTable {
     pub fn empty(gc_ctx: GcCtx) -> Self {
         Self(Gc::new(
             gc_ctx,
-            OverridingVTableData {
+            InstanceMethodVTableData {
                 class: None,
                 mapping: HashMap::new(),
                 elements: Box::new([]),
@@ -136,8 +139,8 @@ impl<T: Copy + Debug + Eq + Hash, E: Copy + Debug> OverridingVTable<T, E> {
     pub fn from_parent_and_keys(
         gc_ctx: GcCtx,
         class: Option<Class>,
-        parent: Option<OverridingVTable<T, E>>,
-        data: Vec<(T, E)>,
+        parent: Option<InstanceMethodVTable>,
+        data: Vec<((JvmString, MethodDescriptor), Method)>,
     ) -> Self {
         let mut new_mapping = parent.map(|p| p.0.mapping.clone()).unwrap_or_default();
         let mut new_elements = parent
@@ -157,7 +160,7 @@ impl<T: Copy + Debug + Eq + Hash, E: Copy + Debug> OverridingVTable<T, E> {
 
         Self(Gc::new(
             gc_ctx,
-            OverridingVTableData {
+            InstanceMethodVTableData {
                 class,
                 mapping: new_mapping,
                 elements: new_elements.into_boxed_slice(),
@@ -165,34 +168,48 @@ impl<T: Copy + Debug + Eq + Hash, E: Copy + Debug> OverridingVTable<T, E> {
         ))
     }
 
-    pub fn lookup(self, key: T) -> Option<usize> {
+    pub fn lookup(self, key: (JvmString, MethodDescriptor)) -> Option<usize> {
         self.0.mapping.get(&key).copied()
     }
 
-    pub fn get_element(self, index: usize) -> E {
+    pub fn get_element(self, index: usize) -> Method {
         self.0.elements[index]
+    }
+
+    pub fn elements_for_name(self, name: JvmString) -> Box<[Method]> {
+        let mut result_indices = Vec::new();
+        for ((key_name, _), index) in &self.0.mapping {
+            if *key_name == name {
+                result_indices.push(index);
+            }
+        }
+
+        result_indices
+            .iter()
+            .map(|i| self.get_element(**i))
+            .collect::<Box<_>>()
     }
 }
 
-impl<T: Trace, E: Trace> Trace for OverridingVTable<T, E> {
+impl Trace for InstanceMethodVTable {
     fn trace(&self) {
         self.0.trace();
     }
 }
 
-struct OverridingVTableData<T, E> {
+struct InstanceMethodVTableData {
     /// The class that created this vtable. This is entirely optional and
     /// only used for debugging.
     class: Option<Class>,
 
-    /// A mapping of T (a tuple (name, descriptor) ) to slot index.
-    mapping: HashMap<T, usize>,
+    /// A mapping of (name, descriptor) to method index.
+    mapping: HashMap<(JvmString, MethodDescriptor), usize>,
 
     /// The items on this VTable.
-    elements: Box<[E]>,
+    elements: Box<[Method]>,
 }
 
-impl<T: Trace, E: Trace> Trace for OverridingVTableData<T, E> {
+impl Trace for InstanceMethodVTableData {
     fn trace(&self) {
         self.class.trace();
         self.mapping.trace();

@@ -1,8 +1,10 @@
 package java.lang;
 
 import java.lang.reflect.AnnotatedElement;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.GenericDeclaration;
 import java.lang.reflect.Type;
+
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -72,6 +74,8 @@ public final class Class<T> implements AnnotatedElement, GenericDeclaration, Typ
         }
     }
     private static native Class<?> forNameNative(String className);
+
+    public native Constructor<?>[] getConstructors();
 
     public String toString() {
         if (this.isPrimitive()) {

@@ -15,6 +15,7 @@ use crate::string::JvmString;
 
 use std::cell::RefCell;
 use std::fmt;
+use std::hash::{Hash, Hasher};
 
 #[derive(Clone, Copy)]
 pub struct Method(Gc<MethodData>);
@@ -202,6 +203,20 @@ impl Trace for MethodData {
         self.name.trace();
         self.class.trace();
         self.method_info.trace();
+    }
+}
+
+impl PartialEq for Method {
+    fn eq(&self, other: &Self) -> bool {
+        Gc::as_ptr(self.0) == Gc::as_ptr(other.0)
+    }
+}
+
+impl Eq for Method {}
+
+impl Hash for Method {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        Gc::as_ptr(self.0).hash(state);
     }
 }
 

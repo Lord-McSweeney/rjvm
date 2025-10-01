@@ -45,6 +45,28 @@ impl Object {
         ))
     }
 
+    // Creates a new instance of java.lang.reflect.Constructor. The caller is
+    // responsible for making it a valid `Constructor` object (see how
+    // `Context::get_or_init_java_executable_for_method` does it).
+    pub fn constructor_object(context: Context) -> Self {
+        let constructor_class = context
+            .lookup_class(context.common.java_lang_reflect_constructor)
+            .expect("Class class should exist");
+
+        let fields = constructor_class
+            .instance_fields()
+            .to_vec()
+            .into_boxed_slice();
+
+        Self(Gc::new(
+            context.gc_ctx,
+            ObjectData {
+                class: constructor_class,
+                data: FieldOrArrayData::Fields(fields),
+            },
+        ))
+    }
+
     pub fn byte_array(context: Context, chars: &[u8]) -> Self {
         let value_list = chars
             .iter()
