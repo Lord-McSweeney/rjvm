@@ -21,6 +21,7 @@ pub fn register_native_mappings(context: Context) {
         ("java/lang/Class.forNameNative.(Ljava/lang/String;)Ljava/lang/Class;", class_for_name_native),
         ("java/lang/Class.getConstructors.()[Ljava/lang/reflect/Constructor;", get_constructors),
         ("java/lang/reflect/Constructor.newInstanceNative.([Ljava/lang/Object;)Ljava/lang/Object;", new_instance_native),
+        ("java/lang/reflect/Constructor.getParameterCount.()I", ctor_get_parameter_count),
     ];
 
     context.register_native_mappings(mappings);
@@ -360,4 +361,12 @@ fn new_instance_native(context: Context, args: &[Value]) -> Result<Option<Value>
     } else {
         Ok(Some(Value::Object(Some(instance))))
     }
+}
+
+fn ctor_get_parameter_count(context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
+    // Receiver should never be null
+    let ctor_obj = args[0].object().unwrap();
+    let ctor_method = context.get_method_for_java_executable(ctor_obj);
+
+    Ok(Some(Value::Integer(ctor_method.arg_count() as i32)))
 }

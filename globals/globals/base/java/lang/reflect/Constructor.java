@@ -10,4 +10,6 @@ public final class Constructor<T> extends Executable {
     }
 
     private native T newInstanceNative(Object[] args);
+
+    public native int getParameterCount();
 }

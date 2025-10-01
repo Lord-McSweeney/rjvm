@@ -9,6 +9,7 @@ public class Test {
 
     public static void main(String[] args) {
         System.out.println(Test.class.getConstructors().length);
+        System.out.println(Test.class.getConstructors()[0].getParameterCount());
         try {
             Test instance = (Test) Test.class.getConstructors()[0].newInstance(3, Test.class);
             System.out.println(instance.i);

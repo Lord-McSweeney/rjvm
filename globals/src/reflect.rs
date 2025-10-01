@@ -32,6 +32,8 @@ pub(crate) fn args_for_instance_call(
         let arg = arg.object();
 
         // TODO implement more unboxing
+        // NOTE remember to account for the physical vs virtual difference in
+        // args when implementing unboxing for Long and Double
         if matches!(method.descriptor().args()[i], Descriptor::Integer) {
             if let Some(arg) = arg {
                 // FIXME this is really hacky
