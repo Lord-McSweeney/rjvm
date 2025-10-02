@@ -1,10 +1,17 @@
 package java.util;
 
+// FIXME implement capacity
 public class HashSet<E> extends AbstractSet<E> implements Set<E> {
     Object[] data;
 
     public HashSet() {
         this.data = new Object[0];
+    }
+
+    public HashSet(Collection<? extends E> collection) {
+        // FIXME use capacity here
+        this.data = new Object[0];
+        this.addAll(collection);
     }
 
     public boolean add(E element) {
