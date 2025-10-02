@@ -1,7 +1,7 @@
 use super::class::Class;
 use super::context::Context;
 use super::descriptor::{MethodDescriptor, ResolvedDescriptor};
-use super::error::{Error, NativeError};
+use super::error::Error;
 use super::method::{Exception, Method};
 use super::object::Object;
 use super::op::{ArrayType, Op};
@@ -1578,7 +1578,7 @@ impl<'a> Interpreter<'a> {
 
             let method_idx = method_vtable
                 .lookup((method_name, method_descriptor))
-                .ok_or(Error::Native(NativeError::VTableLookupFailed))?;
+                .ok_or_else(|| self.context.no_such_method_error())?;
             let method = method_vtable.get_element(method_idx);
 
             args[0] = Value::Object(Some(receiver));
