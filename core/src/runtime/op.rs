@@ -468,8 +468,7 @@ const IF_NON_NULL: u8 = 0xC7;
 impl Op {
     pub fn read_ops(
         context: Context,
-        current_class: Class,
-        method_return_type: Descriptor,
+        method: Method,
         constant_pool: &ConstantPool,
         data: &mut FileData,
     ) -> Result<(Vec<Op>, HashMap<usize, usize>, Vec<Class>), Error> {
@@ -489,8 +488,7 @@ impl Op {
 
             code.push(Op::read_op(
                 context,
-                current_class,
-                method_return_type,
+                method,
                 constant_pool,
                 data,
                 data.position() - code_start,
@@ -557,8 +555,7 @@ impl Op {
 
     fn read_op(
         context: Context,
-        current_class: Class,
-        method_return_type: Descriptor,
+        method: Method,
         constant_pool: &ConstantPool,
         data: &mut FileData,
         data_position: usize,
@@ -886,8 +883,10 @@ impl Op {
                 Ok(Op::LookupSwitch(pairs.into_boxed_slice(), default_offset))
             }
             I_RETURN => {
+                let return_type = method.descriptor().return_type();
+
                 if !matches!(
-                    method_return_type,
+                    return_type,
                     Descriptor::Boolean
                         | Descriptor::Byte
                         | Descriptor::Character
@@ -900,31 +899,36 @@ impl Op {
                 }
             }
             L_RETURN => {
-                if !matches!(method_return_type, Descriptor::Long) {
+                let return_type = method.descriptor().return_type();
+
+                if !matches!(return_type, Descriptor::Long) {
                     Err(Error::Native(NativeError::WrongReturnType))
                 } else {
                     Ok(Op::LReturn)
                 }
             }
             D_RETURN => {
-                if !matches!(method_return_type, Descriptor::Double) {
+                let return_type = method.descriptor().return_type();
+
+                if !matches!(return_type, Descriptor::Double) {
                     Err(Error::Native(NativeError::WrongReturnType))
                 } else {
                     Ok(Op::DReturn)
                 }
             }
             A_RETURN => {
-                if !matches!(
-                    method_return_type,
-                    Descriptor::Class(_) | Descriptor::Array(_)
-                ) {
+                let return_type = method.descriptor().return_type();
+
+                if !matches!(return_type, Descriptor::Class(_) | Descriptor::Array(_)) {
                     Err(Error::Native(NativeError::WrongReturnType))
                 } else {
                     Ok(Op::AReturn)
                 }
             }
             RETURN => {
-                if !matches!(method_return_type, Descriptor::Void) {
+                let return_type = method.descriptor().return_type();
+
+                if !matches!(return_type, Descriptor::Void) {
                     Err(Error::Native(NativeError::WrongReturnType))
                 } else {
                     Ok(Op::Return)
@@ -1046,6 +1050,8 @@ impl Op {
                 if !class_dependencies.contains(&class) {
                     class_dependencies.push(class);
                 }
+
+                let current_class = method.class();
 
                 // TODO implement rules around when `class` is an interface
                 let real_class = if method_name.as_bytes() != b"<init>"
@@ -1223,7 +1229,12 @@ impl Op {
 
                 Ok(Op::IfNonNull(((data_position as isize) + offset) as usize))
             }
-            other => unimplemented!("Unimplemented opcode {}", other),
+            other => unimplemented!(
+                "Unimplemented opcode {} ({}.{})",
+                other,
+                method.class().name(),
+                method.name()
+            ),
         }
     }
 

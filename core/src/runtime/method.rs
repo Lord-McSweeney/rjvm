@@ -147,7 +147,7 @@ impl Method {
 
                 // Clone again...
                 let bytecode_method_info =
-                    BytecodeMethodInfo::from_code_data(context, self, self.class(), cloned_data)?;
+                    BytecodeMethodInfo::from_code_data(context, self, cloned_data)?;
 
                 Some(MethodInfo::Bytecode(bytecode_method_info))
             }
@@ -273,24 +273,17 @@ impl Trace for Exception {
 }
 
 impl BytecodeMethodInfo {
-    pub fn from_code_data(
-        context: Context,
-        method: Method,
-        class: Class,
-        data: Vec<u8>,
-    ) -> Result<Self, Error> {
+    pub fn from_code_data(context: Context, method: Method, data: Vec<u8>) -> Result<Self, Error> {
         let mut reader = FileData::new(data);
 
-        let return_type = method.descriptor().return_type();
-
-        let class_file = class.class_file().unwrap();
+        let class_file = method.class().class_file().unwrap();
         let constant_pool = class_file.constant_pool();
 
         let max_stack = reader.read_u16()?;
         let max_locals = reader.read_u16()?;
 
         let (code, offset_to_idx_map, class_dependencies) =
-            Op::read_ops(context, class, return_type, constant_pool, &mut reader)?;
+            Op::read_ops(context, method, constant_pool, &mut reader)?;
 
         let exception_count = reader.read_u16()?;
         let mut exceptions = Vec::with_capacity(exception_count as usize);
