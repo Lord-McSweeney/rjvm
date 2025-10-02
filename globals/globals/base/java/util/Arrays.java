@@ -6,27 +6,11 @@ public class Arrays {
     }
 }
 
-class ArrayBackedList<E> implements List<E> {
+class ArrayBackedList<E> extends AbstractList<E> {
     private Object[] data;
 
     ArrayBackedList(Object[] data) {
         this.data = data;
-    }
-
-    public boolean add(E e) {
-        throw new UnsupportedOperationException();
-    }
-
-    public void add(int index, E element) {
-        throw new UnsupportedOperationException();
-    }
-
-    public boolean addAll(Collection<? extends E> collection) {
-        throw new UnsupportedOperationException();
-    }
-
-    public boolean addAll(int index, Collection<? extends E> collection) {
-        throw new UnsupportedOperationException();
     }
 
     public E get(int index) {
@@ -39,23 +23,17 @@ class ArrayBackedList<E> implements List<E> {
         return prev;
     }
 
-    public E remove(int index) {
-        throw new UnsupportedOperationException();
-    }
-
     public int size() {
         return this.data.length;
     }
 
     public void clear() {
+        // TODO remove this once `AbstractList.clear` is implemented
         throw new UnsupportedOperationException();
     }
 
-    public boolean isEmpty() {
-        return this.data.length == 0;
-    }
-
     public Iterator<E> iterator() {
+        // TODO remove this once `AbstractList.iterator` is implemented
         return new ArrayIterator<E>(this.data);
     }
 }

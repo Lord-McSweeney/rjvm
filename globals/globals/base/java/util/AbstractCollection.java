@@ -29,7 +29,7 @@ public abstract class AbstractCollection<E> implements Collection<E> {
     public abstract int size();
 
     public boolean isEmpty() {
-        return size() == 0;
+        return this.size() == 0;
     }
 
     public String toString() {

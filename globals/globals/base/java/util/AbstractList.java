@@ -13,8 +13,19 @@ public abstract class AbstractList<E> extends AbstractCollection<E> implements L
     }
 
     public boolean addAll(int index, Collection<? extends E> collection) {
-        // TODO implement
-        return false;
+        boolean added = false;
+        int curIndex = index;
+
+        Iterator<? extends E> iterator = collection.iterator();
+        while (iterator.hasNext()) {
+            E next = (E) iterator.next();
+            this.add(index, next);
+
+            added = true;
+            index += 1;
+        }
+
+        return added;
     }
 
     public abstract E get(int index);
