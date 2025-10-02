@@ -29,7 +29,7 @@ struct ClassFileData {
 
 impl ClassFile {
     pub fn from_data(gc_ctx: GcCtx, data: Vec<u8>) -> Result<Self, Error> {
-        let mut reader = FileData::new(data);
+        let mut reader = FileData::new(&data);
 
         let magic = reader.read_u32()?;
         if magic != 0xCAFEBABE {

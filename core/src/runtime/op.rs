@@ -470,7 +470,7 @@ impl Op {
         context: Context,
         method: Method,
         constant_pool: &ConstantPool,
-        data: &mut FileData,
+        data: &mut FileData<'_>,
     ) -> Result<(Vec<Op>, HashMap<usize, usize>, Vec<Class>), Error> {
         // TODO: Should current_class be None if this is a static method?
 
@@ -557,7 +557,7 @@ impl Op {
         context: Context,
         method: Method,
         constant_pool: &ConstantPool,
-        data: &mut FileData,
+        data: &mut FileData<'_>,
         data_position: usize,
         class_dependencies: &mut Vec<Class>,
     ) -> Result<Op, Error> {

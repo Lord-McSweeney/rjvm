@@ -359,7 +359,7 @@ impl Trace for ConstantPoolEntry {
 
 fn read_constant_pool_entry(
     gc_ctx: GcCtx,
-    data: &mut FileData,
+    data: &mut FileData<'_>,
 ) -> Result<ConstantPoolEntry, Error> {
     let tag = data.read_u8()?;
     match tag {
@@ -486,7 +486,7 @@ fn read_constant_pool_entry(
     }
 }
 
-pub fn read_constant_pool(gc_ctx: GcCtx, data: &mut FileData) -> Result<ConstantPool, Error> {
+pub fn read_constant_pool(gc_ctx: GcCtx, data: &mut FileData<'_>) -> Result<ConstantPool, Error> {
     let entry_count = match data.read_u16()? {
         0 => return Err(Error::ExpectedNonZero),
         entry_count => entry_count - 1,

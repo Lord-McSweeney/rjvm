@@ -1,12 +1,12 @@
 use super::error::Error;
 
-pub struct FileData {
-    data: Vec<u8>,
+pub struct FileData<'a> {
+    data: &'a [u8],
     position: usize,
 }
 
-impl FileData {
-    pub fn new(data: Vec<u8>) -> Self {
+impl<'a> FileData<'a> {
+    pub fn new(data: &'a [u8]) -> Self {
         FileData { data, position: 0 }
     }
 }
@@ -22,7 +22,7 @@ pub trait Reader {
     fn position(&self) -> usize;
 }
 
-impl Reader for FileData {
+impl Reader for FileData<'_> {
     fn read_u8(&mut self) -> Result<u8, Error> {
         let pos = self.position;
 

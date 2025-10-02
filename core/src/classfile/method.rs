@@ -16,7 +16,7 @@ pub struct Method {
 }
 
 impl Method {
-    pub fn read_from(data: &mut FileData, constant_pool: &ConstantPool) -> Result<Self, Error> {
+    pub fn read_from(data: &mut FileData<'_>, constant_pool: &ConstantPool) -> Result<Self, Error> {
         let flag_bits = data.read_u16()?;
         let flags = MethodFlags::from_bits_truncate(flag_bits);
 

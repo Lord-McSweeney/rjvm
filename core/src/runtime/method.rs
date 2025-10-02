@@ -141,19 +141,16 @@ impl Method {
 
         let new_method_info = match &*borrow {
             MethodInfo::BytecodeUnparsed(code_data) => {
-                let cloned_data = code_data.clone();
-
-                drop(borrow);
-
-                // Clone again...
                 let bytecode_method_info =
-                    BytecodeMethodInfo::from_code_data(context, self, cloned_data)?;
+                    BytecodeMethodInfo::from_code_data(context, self, &*code_data)?;
 
                 Some(MethodInfo::Bytecode(bytecode_method_info))
             }
             // None of the other method info types need (re-)parsing
             _ => None,
         };
+
+        drop(borrow);
 
         if let Some(new_method_info) = new_method_info {
             *self.0.method_info.borrow_mut() = new_method_info;
@@ -273,7 +270,7 @@ impl Trace for Exception {
 }
 
 impl BytecodeMethodInfo {
-    pub fn from_code_data(context: Context, method: Method, data: Vec<u8>) -> Result<Self, Error> {
+    pub fn from_code_data(context: Context, method: Method, data: &[u8]) -> Result<Self, Error> {
         let mut reader = FileData::new(data);
 
         let class_file = method.class().class_file().unwrap();

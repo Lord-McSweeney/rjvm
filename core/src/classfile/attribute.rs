@@ -12,7 +12,7 @@ pub struct Attribute {
 }
 
 impl Attribute {
-    pub fn read_from(data: &mut FileData, constant_pool: &ConstantPool) -> Result<Self, Error> {
+    pub fn read_from(data: &mut FileData<'_>, constant_pool: &ConstantPool) -> Result<Self, Error> {
         let name_idx = data.read_u16()?;
         let name = constant_pool.get_utf8(name_idx)?;
 
