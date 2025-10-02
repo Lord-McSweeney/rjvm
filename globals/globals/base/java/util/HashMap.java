@@ -30,9 +30,7 @@ public class HashMap<K, V> extends AbstractMap<K, V> {
     }
 
     public Collection<V> values() {
-        Todo.warnNotImpl("java.util.HashMap.values");
-
-        return null;
+        return Arrays.asList((V[]) this.values);
     }
 
     public boolean containsKey(K key) {
