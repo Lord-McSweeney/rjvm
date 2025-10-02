@@ -4,6 +4,19 @@ import java.nio.CharBuffer;
 import rjvm.internal.Todo;
 
 public abstract class Reader implements Closeable, Readable {
+    protected Object lock;
+
+    protected Reader() {
+        this.lock = this;
+    }
+
+    protected Reader(Object lock) {
+        if (lock == null) {
+            throw new NullPointerException();
+        }
+        this.lock = lock;
+    }
+
     public abstract void close() throws IOException;
 
     public int read(CharBuffer target) throws IOException {

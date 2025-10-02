@@ -3,6 +3,16 @@ package java.io;
 import rjvm.internal.Todo;
 
 public class InputStreamReader extends Reader {
+    public InputStreamReader(InputStream stream) {
+        super(stream);
+        // TODO implement
+    }
+
+    public String getEncoding() {
+        // TODO implement
+        return "UTF8";
+    }
+
     public void close() throws IOException {
         Todo.warnNotImpl("java.io.InputStreamReader.close");
     }
