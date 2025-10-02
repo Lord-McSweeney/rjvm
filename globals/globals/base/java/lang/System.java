@@ -37,7 +37,7 @@ public final class System {
 
         Todo.warnNotImpl("java.lang.System.getProperty");
 
-        return null;
+        return "";
     }
 
     public static String getProperty(String propName, String defaultValue) {
@@ -57,7 +57,7 @@ public final class System {
 
         Todo.warnNotImpl("java.lang.System.setProperty");
 
-        return null;
+        return "";
     }
 
     public static native long currentTimeMillis();

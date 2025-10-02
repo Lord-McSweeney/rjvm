@@ -5,8 +5,10 @@ import java.nio.charset.Charset;
 public class File {
     // TODO get this from system properties
     public static final char separatorChar = '/';
-
     public static final String separator = "" + File.separatorChar;
+
+    public static final char pathSeparatorChar = ':';
+    public static final String pathSeparator = "" + File.pathSeparatorChar;
 
     private String normalizedPath;
     private boolean exists;
