@@ -10,4 +10,8 @@ public interface Collection<E> extends Iterable<E> {
     int size();
 
     boolean isEmpty();
+
+    Object[] toArray();
+
+    <T> T[] toArray(T[] a);
 }

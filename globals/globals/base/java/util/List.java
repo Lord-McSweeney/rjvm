@@ -16,4 +16,8 @@ public interface List<E> extends Collection<E> {
     E remove(int index);
 
     int size();
+
+    Object[] toArray();
+
+    <T> T[] toArray(T[] a);
 }

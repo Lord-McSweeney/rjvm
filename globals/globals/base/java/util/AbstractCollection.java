@@ -51,4 +51,41 @@ public abstract class AbstractCollection<E> implements Collection<E> {
 
         return builder.toString();
     }
+
+    public Object[] toArray() {
+        // FIXME handle case when iterator gives more or less elements than size
+        Object[] array = new Object[this.size()];
+
+        Iterator<E> iterator = this.iterator();
+        for (int i = 0; i < array.length; i ++) {
+            array[i] = iterator.next();
+        }
+
+        return array;
+    }
+
+    public <T> T[] toArray(T[] passedArray) {
+        // FIXME handle case when iterator gives more or less elements than size
+        // FIXME optimize for perf?
+        Object[] array = new Object[this.size()];
+
+        Iterator<E> iterator = this.iterator();
+        for (int i = 0; i < array.length; i ++) {
+            array[i] = iterator.next();
+        }
+
+        if (array.length == passedArray.length) {
+            System.arraycopy(array, 0, passedArray, 0, array.length);
+            return passedArray;
+        } else if (array.length < passedArray.length) {
+            System.arraycopy(array, 0, passedArray, 0, array.length);
+            passedArray[array.length] = null;
+            return passedArray;
+        } else {
+            // FIXME we need to allocate an array of the same type as the passed array
+            Object[] newPassedArray = new Object[array.length];
+            System.arraycopy(array, 0, newPassedArray, 0, newPassedArray.length);
+            return (T[]) newPassedArray;
+        }
+    }
 }
