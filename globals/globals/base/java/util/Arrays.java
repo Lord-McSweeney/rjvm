@@ -4,6 +4,20 @@ public class Arrays {
     public static <E> List<E> asList​(E... arr) {
         return new ArrayBackedList<E>(arr);
     }
+
+    public static <T> T[] copyOf​(T[] original, int newLength) {
+        Object[] newArray = new Object[newLength];
+
+        int usedLength;
+        if (newLength < original.length) {
+            usedLength = newLength;
+        } else {
+            usedLength = original.length;
+        }
+
+        System.arraycopy(original, 0, newArray, 0, usedLength);
+        return (T[]) newArray;
+    }
 }
 
 class ArrayBackedList<E> extends AbstractList<E> {
