@@ -70,15 +70,13 @@ impl Method {
         } else if method.flags().contains(MethodFlags::NATIVE) {
             let native_method = context.get_native_method(class.name(), method.name(), descriptor);
 
-            let Some(native_method) = native_method else {
-                panic!(
-                    "associated native method for {}.{} not found",
-                    class.name(),
-                    method.name()
-                );
-            };
-
-            MethodInfo::Native(native_method)
+            if let Some(native_method) = native_method {
+                MethodInfo::Native(native_method)
+            } else {
+                // We don't want to panic right away, as the method might not
+                // end up getting called at all
+                MethodInfo::NativeNotFound
+            }
         } else {
             MethodInfo::Empty
         };
@@ -121,7 +119,14 @@ impl Method {
                 }
                 MethodInfo::BytecodeUnparsed(_) => unreachable!(),
                 MethodInfo::Native(native_method) => native_method(context, &args),
-                MethodInfo::Empty => Ok(None),
+                MethodInfo::NativeNotFound => {
+                    panic!(
+                        "associated native method for {}.{} not found",
+                        self.class().name(),
+                        self.name()
+                    );
+                }
+                MethodInfo::Empty => panic!("cannot call method without body"),
             }
         };
 
@@ -224,6 +229,7 @@ enum MethodInfo {
     Bytecode(BytecodeMethodInfo),
     BytecodeUnparsed(Vec<u8>),
     Native(NativeMethod),
+    NativeNotFound,
     Empty,
 }
 
