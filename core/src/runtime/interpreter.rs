@@ -222,6 +222,8 @@ impl<'a> Interpreter<'a> {
                 Op::AThrow => self.op_a_throw(),
                 Op::CheckCast(class) => self.op_check_cast(*class),
                 Op::InstanceOf(class) => self.op_instance_of(*class),
+                Op::MonitorEnter => self.op_monitor_enter(),
+                Op::MonitorExit => self.op_monitor_exit(),
                 Op::MultiANewArray(resolved_descriptor, dim_count) => {
                     self.op_multi_a_new_array(*resolved_descriptor, *dim_count)
                 }
@@ -1736,6 +1738,30 @@ impl<'a> Interpreter<'a> {
         }
 
         Ok(ControlFlow::Continue)
+    }
+
+    fn op_monitor_enter(&mut self) -> Result<ControlFlow, Error> {
+        let obj = self.stack_pop().object();
+
+        if let Some(_obj) = obj {
+            // FIXME implement this when we implement multithreading
+
+            Ok(ControlFlow::Continue)
+        } else {
+            Err(self.context.null_pointer_exception())
+        }
+    }
+
+    fn op_monitor_exit(&mut self) -> Result<ControlFlow, Error> {
+        let obj = self.stack_pop().object();
+
+        if let Some(_obj) = obj {
+            // FIXME implement this when we implement multithreading
+
+            Ok(ControlFlow::Continue)
+        } else {
+            Err(self.context.null_pointer_exception())
+        }
     }
 
     fn op_multi_a_new_array(

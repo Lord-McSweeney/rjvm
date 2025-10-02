@@ -124,6 +124,8 @@ pub enum Op {
     AThrow,
     CheckCast(Class),
     InstanceOf(Class),
+    MonitorEnter,
+    MonitorExit,
     MultiANewArray(ResolvedDescriptor, u8),
     IfNull(usize),
     IfNonNull(usize),
@@ -283,6 +285,8 @@ impl Trace for Op {
             Op::InstanceOf(class) => {
                 class.trace();
             }
+            Op::MonitorEnter => {}
+            Op::MonitorExit => {}
             Op::MultiANewArray(class, _) => {
                 class.trace();
             }
@@ -455,6 +459,8 @@ const ARRAY_LENGTH: u8 = 0xBE;
 const A_THROW: u8 = 0xBF;
 const CHECK_CAST: u8 = 0xC0;
 const INSTANCE_OF: u8 = 0xC1;
+const MONITOR_ENTER: u8 = 0xC2;
+const MONITOR_EXIT: u8 = 0xC3;
 const MULTI_A_NEW_ARRAY: u8 = 0xC5;
 const IF_NULL: u8 = 0xC6;
 const IF_NON_NULL: u8 = 0xC7;
@@ -1173,6 +1179,8 @@ impl Op {
 
                 Ok(Op::InstanceOf(class))
             }
+            MONITOR_ENTER => Ok(Op::MonitorEnter),
+            MONITOR_EXIT => Ok(Op::MonitorExit),
             MULTI_A_NEW_ARRAY => {
                 let class_idx = data.read_u16()?;
                 let class_name = constant_pool.get_class(class_idx)?;
@@ -1247,6 +1255,8 @@ impl Op {
                 | Op::ArrayLength
                 | Op::AThrow
                 | Op::CheckCast(_)
+                | Op::MonitorEnter
+                | Op::MonitorExit
                 | Op::MultiANewArray(_, _)
         )
     }
