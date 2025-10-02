@@ -81,12 +81,6 @@ fn array_copy(context: Context, args: &[Value]) -> Result<Option<Value>, Error> 
     let dest_start = dest_start as usize;
     let length = length as usize;
 
-    if source_start + length > source_arr.array_length()
-        || dest_start + length > dest_arr.array_length()
-    {
-        return Err(context.array_index_oob_exception());
-    }
-
     let (Some(_), Some(dest_value_type)) = (
         source_arr.class().array_value_type(),
         dest_arr.class().array_value_type(),
@@ -96,6 +90,12 @@ fn array_copy(context: Context, args: &[Value]) -> Result<Option<Value>, Error> 
 
     let source_array_data = source_arr.array_data();
     let dest_array_data = dest_arr.array_data();
+
+    if source_start + length > source_array_data.len()
+        || dest_start + length > dest_array_data.len()
+    {
+        return Err(context.array_index_oob_exception());
+    }
 
     match (source_array_data, dest_array_data) {
         (Array::ByteArray(source_data), Array::ByteArray(dest_data)) => {
