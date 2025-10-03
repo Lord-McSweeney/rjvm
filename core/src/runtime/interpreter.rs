@@ -96,8 +96,22 @@ impl<'a> Interpreter<'a> {
         self.context.frame_index.set(prev + 1);
     }
 
+    fn stack_push_wide(&self, value: Value) {
+        let prev = self.context.frame_index.get();
+        self.frame_reference[prev].set(value);
+        self.context.frame_index.set(prev + 2);
+    }
+
     fn stack_pop(&self) -> Value {
         let new = self.context.frame_index.get() - 1;
+        let result = self.frame_reference[new].get();
+        self.context.frame_index.set(new);
+
+        result
+    }
+
+    fn stack_pop_wide(&self) -> Value {
+        let new = self.context.frame_index.get() - 2;
         let result = self.frame_reference[new].get();
         self.context.frame_index.set(new);
 
@@ -297,7 +311,7 @@ impl<'a> Interpreter<'a> {
     }
 
     fn op_l_const(&mut self, value: i8) -> Result<ControlFlow, Error> {
-        self.stack_push(Value::Long(value as i64));
+        self.stack_push_wide(Value::Long(value as i64));
 
         Ok(ControlFlow::Continue)
     }
@@ -309,7 +323,7 @@ impl<'a> Interpreter<'a> {
     }
 
     fn op_d_const(&mut self, value: f64) -> Result<ControlFlow, Error> {
-        self.stack_push(Value::Double(value));
+        self.stack_push_wide(Value::Double(value));
 
         Ok(ControlFlow::Continue)
     }
@@ -318,7 +332,7 @@ impl<'a> Interpreter<'a> {
         let class_file = self.method.class().class_file().unwrap();
         let constant_pool = class_file.constant_pool();
 
-        let pushed_value = match constant_pool_entry {
+        match constant_pool_entry {
             ConstantPoolEntry::String { string_idx } => {
                 let string = constant_pool
                     .get_utf8(string_idx)
@@ -326,10 +340,16 @@ impl<'a> Interpreter<'a> {
 
                 let string_chars = string.encode_utf16().collect::<Vec<_>>();
 
-                Value::Object(Some(self.context.create_string(&string_chars)))
+                self.stack_push(Value::Object(Some(
+                    self.context.create_string(&string_chars),
+                )));
             }
-            ConstantPoolEntry::Integer { value } => Value::Integer(value),
-            ConstantPoolEntry::Float { value } => Value::Float(value),
+            ConstantPoolEntry::Integer { value } => {
+                self.stack_push(Value::Integer(value));
+            }
+            ConstantPoolEntry::Float { value } => {
+                self.stack_push(Value::Float(value));
+            }
             ConstantPoolEntry::Class { name_idx } => {
                 let class_name = constant_pool
                     .get_utf8(name_idx)
@@ -338,14 +358,18 @@ impl<'a> Interpreter<'a> {
                 // TODO should this be a verify-time error?
                 let class = self.context.lookup_class(class_name)?;
 
-                Value::Object(Some(self.context.get_or_init_java_class_for_class(class)))
+                self.stack_push(Value::Object(Some(
+                    self.context.get_or_init_java_class_for_class(class),
+                )));
             }
-            ConstantPoolEntry::Double { value } => Value::Double(value),
-            ConstantPoolEntry::Long { value } => Value::Long(value),
+            ConstantPoolEntry::Double { value } => {
+                self.stack_push_wide(Value::Double(value));
+            }
+            ConstantPoolEntry::Long { value } => {
+                self.stack_push_wide(Value::Long(value));
+            }
             _ => unimplemented!(),
-        };
-
-        self.stack_push(pushed_value);
+        }
 
         Ok(ControlFlow::Continue)
     }
@@ -361,7 +385,7 @@ impl<'a> Interpreter<'a> {
     fn op_l_load(&mut self, index: usize) -> Result<ControlFlow, Error> {
         let loaded = self.local_reg(index);
 
-        self.stack_push(loaded);
+        self.stack_push_wide(loaded);
 
         Ok(ControlFlow::Continue)
     }
@@ -377,7 +401,7 @@ impl<'a> Interpreter<'a> {
     fn op_d_load(&mut self, index: usize) -> Result<ControlFlow, Error> {
         let loaded = self.local_reg(index);
 
-        self.stack_push(loaded);
+        self.stack_push_wide(loaded);
 
         Ok(ControlFlow::Continue)
     }
@@ -423,7 +447,7 @@ impl<'a> Interpreter<'a> {
             } else {
                 let result = array_data[index as usize].get();
 
-                self.stack_push(Value::Long(result));
+                self.stack_push_wide(Value::Long(result));
 
                 Ok(ControlFlow::Continue)
             }
@@ -504,7 +528,7 @@ impl<'a> Interpreter<'a> {
     }
 
     fn op_l_store(&mut self, index: usize) -> Result<ControlFlow, Error> {
-        let value = self.stack_pop();
+        let value = self.stack_pop_wide();
 
         self.set_local_reg(index, value);
 
@@ -520,7 +544,7 @@ impl<'a> Interpreter<'a> {
     }
 
     fn op_d_store(&mut self, index: usize) -> Result<ControlFlow, Error> {
-        let value = self.stack_pop();
+        let value = self.stack_pop_wide();
 
         self.set_local_reg(index, value);
 
@@ -556,7 +580,7 @@ impl<'a> Interpreter<'a> {
     }
 
     fn op_la_store(&mut self) -> Result<ControlFlow, Error> {
-        let value = self.stack_pop().long();
+        let value = self.stack_pop_wide().long();
         let index = self.stack_pop().int();
         let array = self.stack_pop().object();
 
@@ -662,16 +686,11 @@ impl<'a> Interpreter<'a> {
 
     fn op_dup_2(&mut self) -> Result<ControlFlow, Error> {
         let value = self.stack_pop();
-        if value.is_wide() {
-            self.stack_push(value);
-            self.stack_push(value);
-        } else {
-            let value2 = self.stack_pop();
-            self.stack_push(value2);
-            self.stack_push(value);
-            self.stack_push(value2);
-            self.stack_push(value);
-        }
+        let value2 = self.stack_pop();
+        self.stack_push(value2);
+        self.stack_push(value);
+        self.stack_push(value2);
+        self.stack_push(value);
 
         Ok(ControlFlow::Continue)
     }
@@ -686,19 +705,19 @@ impl<'a> Interpreter<'a> {
     }
 
     fn op_l_add(&mut self) -> Result<ControlFlow, Error> {
-        let int1 = self.stack_pop().long();
-        let int2 = self.stack_pop().long();
+        let int1 = self.stack_pop_wide().long();
+        let int2 = self.stack_pop_wide().long();
 
-        self.stack_push(Value::Long(int1 + int2));
+        self.stack_push_wide(Value::Long(int1 + int2));
 
         Ok(ControlFlow::Continue)
     }
 
     fn op_d_add(&mut self) -> Result<ControlFlow, Error> {
-        let int1 = self.stack_pop().double();
-        let int2 = self.stack_pop().double();
+        let int1 = self.stack_pop_wide().double();
+        let int2 = self.stack_pop_wide().double();
 
-        self.stack_push(Value::Double(int1 + int2));
+        self.stack_push_wide(Value::Double(int1 + int2));
 
         Ok(ControlFlow::Continue)
     }
@@ -713,19 +732,19 @@ impl<'a> Interpreter<'a> {
     }
 
     fn op_l_sub(&mut self) -> Result<ControlFlow, Error> {
-        let int1 = self.stack_pop().long();
-        let int2 = self.stack_pop().long();
+        let int1 = self.stack_pop_wide().long();
+        let int2 = self.stack_pop_wide().long();
 
-        self.stack_push(Value::Long(int2 - int1));
+        self.stack_push_wide(Value::Long(int2 - int1));
 
         Ok(ControlFlow::Continue)
     }
 
     fn op_d_sub(&mut self) -> Result<ControlFlow, Error> {
-        let int1 = self.stack_pop().double();
-        let int2 = self.stack_pop().double();
+        let int1 = self.stack_pop_wide().double();
+        let int2 = self.stack_pop_wide().double();
 
-        self.stack_push(Value::Double(int2 - int1));
+        self.stack_push_wide(Value::Double(int2 - int1));
 
         Ok(ControlFlow::Continue)
     }
@@ -740,19 +759,19 @@ impl<'a> Interpreter<'a> {
     }
 
     fn op_l_mul(&mut self) -> Result<ControlFlow, Error> {
-        let int1 = self.stack_pop().long();
-        let int2 = self.stack_pop().long();
+        let int1 = self.stack_pop_wide().long();
+        let int2 = self.stack_pop_wide().long();
 
-        self.stack_push(Value::Long(int1 * int2));
+        self.stack_push_wide(Value::Long(int1 * int2));
 
         Ok(ControlFlow::Continue)
     }
 
     fn op_d_mul(&mut self) -> Result<ControlFlow, Error> {
-        let int1 = self.stack_pop().double();
-        let int2 = self.stack_pop().double();
+        let int1 = self.stack_pop_wide().double();
+        let int2 = self.stack_pop_wide().double();
 
-        self.stack_push(Value::Double(int1 * int2));
+        self.stack_push_wide(Value::Double(int1 * int2));
 
         Ok(ControlFlow::Continue)
     }
@@ -771,23 +790,23 @@ impl<'a> Interpreter<'a> {
     }
 
     fn op_l_div(&mut self) -> Result<ControlFlow, Error> {
-        let long1 = self.stack_pop().long();
-        let long2 = self.stack_pop().long();
+        let long1 = self.stack_pop_wide().long();
+        let long2 = self.stack_pop_wide().long();
 
         if long1 == 0 {
             Err(self.context.arithmetic_exception())
         } else {
-            self.stack_push(Value::Long(long2 / long1));
+            self.stack_push_wide(Value::Long(long2 / long1));
 
             Ok(ControlFlow::Continue)
         }
     }
 
     fn op_d_div(&mut self) -> Result<ControlFlow, Error> {
-        let int1 = self.stack_pop().double();
-        let int2 = self.stack_pop().double();
+        let int1 = self.stack_pop_wide().double();
+        let int2 = self.stack_pop_wide().double();
 
-        self.stack_push(Value::Double(int2 / int1));
+        self.stack_push_wide(Value::Double(int2 / int1));
 
         Ok(ControlFlow::Continue)
     }
@@ -806,23 +825,23 @@ impl<'a> Interpreter<'a> {
     }
 
     fn op_l_rem(&mut self) -> Result<ControlFlow, Error> {
-        let long1 = self.stack_pop().long();
-        let long2 = self.stack_pop().long();
+        let long1 = self.stack_pop_wide().long();
+        let long2 = self.stack_pop_wide().long();
 
         if long1 == 0 {
             Err(self.context.arithmetic_exception())
         } else {
-            self.stack_push(Value::Long(long2 % long1));
+            self.stack_push_wide(Value::Long(long2 % long1));
 
             Ok(ControlFlow::Continue)
         }
     }
 
     fn op_d_rem(&mut self) -> Result<ControlFlow, Error> {
-        let double1 = self.stack_pop().double();
-        let double2 = self.stack_pop().double();
+        let double1 = self.stack_pop_wide().double();
+        let double2 = self.stack_pop_wide().double();
 
-        self.stack_push(Value::Double(double2 % double1));
+        self.stack_push_wide(Value::Double(double2 % double1));
 
         Ok(ControlFlow::Continue)
     }
@@ -836,17 +855,17 @@ impl<'a> Interpreter<'a> {
     }
 
     fn op_l_neg(&mut self) -> Result<ControlFlow, Error> {
-        let long = self.stack_pop().long();
+        let long = self.stack_pop_wide().long();
 
-        self.stack_push(Value::Long(-long));
+        self.stack_push_wide(Value::Long(-long));
 
         Ok(ControlFlow::Continue)
     }
 
     fn op_d_neg(&mut self) -> Result<ControlFlow, Error> {
-        let double = self.stack_pop().double();
+        let double = self.stack_pop_wide().double();
 
-        self.stack_push(Value::Double(-double));
+        self.stack_push_wide(Value::Double(-double));
 
         Ok(ControlFlow::Continue)
     }
@@ -862,9 +881,9 @@ impl<'a> Interpreter<'a> {
 
     fn op_l_shl(&mut self) -> Result<ControlFlow, Error> {
         let int1 = self.stack_pop().int();
-        let int2 = self.stack_pop().long();
+        let int2 = self.stack_pop_wide().long();
 
-        self.stack_push(Value::Long(int2 << (int1 & 0x3F)));
+        self.stack_push_wide(Value::Long(int2 << (int1 & 0x3F)));
 
         Ok(ControlFlow::Continue)
     }
@@ -880,9 +899,9 @@ impl<'a> Interpreter<'a> {
 
     fn op_l_shr(&mut self) -> Result<ControlFlow, Error> {
         let int1 = self.stack_pop().int();
-        let int2 = self.stack_pop().long();
+        let int2 = self.stack_pop_wide().long();
 
-        self.stack_push(Value::Long(int2 >> (int1 & 0x1F)));
+        self.stack_push_wide(Value::Long(int2 >> (int1 & 0x1F)));
 
         Ok(ControlFlow::Continue)
     }
@@ -898,9 +917,9 @@ impl<'a> Interpreter<'a> {
 
     fn op_l_ushr(&mut self) -> Result<ControlFlow, Error> {
         let int1 = self.stack_pop().int();
-        let int2 = self.stack_pop().long() as u64;
+        let int2 = self.stack_pop_wide().long() as u64;
 
-        self.stack_push(Value::Long((int2 >> (int1 & 0x3F)) as i64));
+        self.stack_push_wide(Value::Long((int2 >> (int1 & 0x3F)) as i64));
 
         Ok(ControlFlow::Continue)
     }
@@ -915,10 +934,10 @@ impl<'a> Interpreter<'a> {
     }
 
     fn op_l_and(&mut self) -> Result<ControlFlow, Error> {
-        let int1 = self.stack_pop().long();
-        let int2 = self.stack_pop().long();
+        let int1 = self.stack_pop_wide().long();
+        let int2 = self.stack_pop_wide().long();
 
-        self.stack_push(Value::Long(int1 & int2));
+        self.stack_push_wide(Value::Long(int1 & int2));
 
         Ok(ControlFlow::Continue)
     }
@@ -933,10 +952,10 @@ impl<'a> Interpreter<'a> {
     }
 
     fn op_l_or(&mut self) -> Result<ControlFlow, Error> {
-        let int1 = self.stack_pop().long();
-        let int2 = self.stack_pop().long();
+        let int1 = self.stack_pop_wide().long();
+        let int2 = self.stack_pop_wide().long();
 
-        self.stack_push(Value::Long(int1 | int2));
+        self.stack_push_wide(Value::Long(int1 | int2));
 
         Ok(ControlFlow::Continue)
     }
@@ -951,10 +970,10 @@ impl<'a> Interpreter<'a> {
     }
 
     fn op_l_xor(&mut self) -> Result<ControlFlow, Error> {
-        let int1 = self.stack_pop().long();
-        let int2 = self.stack_pop().long();
+        let int1 = self.stack_pop_wide().long();
+        let int2 = self.stack_pop_wide().long();
 
-        self.stack_push(Value::Long(int1 ^ int2));
+        self.stack_push_wide(Value::Long(int1 ^ int2));
 
         Ok(ControlFlow::Continue)
     }
@@ -970,7 +989,7 @@ impl<'a> Interpreter<'a> {
     fn op_i2l(&mut self) -> Result<ControlFlow, Error> {
         let int = self.stack_pop().int();
 
-        self.stack_push(Value::Long(int as i64));
+        self.stack_push_wide(Value::Long(int as i64));
 
         Ok(ControlFlow::Continue)
     }
@@ -986,13 +1005,13 @@ impl<'a> Interpreter<'a> {
     fn op_i2d(&mut self) -> Result<ControlFlow, Error> {
         let int = self.stack_pop().int();
 
-        self.stack_push(Value::Double(int as f64));
+        self.stack_push_wide(Value::Double(int as f64));
 
         Ok(ControlFlow::Continue)
     }
 
     fn op_l2i(&mut self) -> Result<ControlFlow, Error> {
-        let long = self.stack_pop().long();
+        let long = self.stack_pop_wide().long();
 
         self.stack_push(Value::Integer(long as i32));
 
@@ -1008,7 +1027,7 @@ impl<'a> Interpreter<'a> {
     }
 
     fn op_d2i(&mut self) -> Result<ControlFlow, Error> {
-        let double = self.stack_pop().double();
+        let double = self.stack_pop_wide().double();
 
         self.stack_push(Value::Integer(double as i32));
 
@@ -1040,8 +1059,8 @@ impl<'a> Interpreter<'a> {
     }
 
     fn op_l_cmp(&mut self) -> Result<ControlFlow, Error> {
-        let long2 = self.stack_pop().long();
-        let long1 = self.stack_pop().long();
+        let long2 = self.stack_pop_wide().long();
+        let long1 = self.stack_pop_wide().long();
 
         match long1.cmp(&long2) {
             Ordering::Greater => {
@@ -1059,8 +1078,8 @@ impl<'a> Interpreter<'a> {
     }
 
     fn op_d_cmp_l(&mut self) -> Result<ControlFlow, Error> {
-        let double2 = self.stack_pop().double();
-        let double1 = self.stack_pop().double();
+        let double2 = self.stack_pop_wide().double();
+        let double1 = self.stack_pop_wide().double();
 
         let cmp = double1.partial_cmp(&double2);
 
@@ -1077,7 +1096,7 @@ impl<'a> Interpreter<'a> {
                 }
             }
         } else {
-            // Double comparison
+            // NaN comparison
             self.stack_push(Value::Integer(-1));
         }
 
@@ -1085,8 +1104,8 @@ impl<'a> Interpreter<'a> {
     }
 
     fn op_d_cmp_g(&mut self) -> Result<ControlFlow, Error> {
-        let double2 = self.stack_pop().double();
-        let double1 = self.stack_pop().double();
+        let double2 = self.stack_pop_wide().double();
+        let double1 = self.stack_pop_wide().double();
 
         let cmp = double1.partial_cmp(&double2);
 
@@ -1103,7 +1122,7 @@ impl<'a> Interpreter<'a> {
                 }
             }
         } else {
-            // Double comparison
+            // NaN comparison
             self.stack_push(Value::Integer(1));
         }
 
@@ -1337,13 +1356,13 @@ impl<'a> Interpreter<'a> {
     }
 
     fn op_l_return(&mut self) -> Result<ControlFlow, Error> {
-        let value = self.stack_pop();
+        let value = self.stack_pop_wide();
 
         Ok(ControlFlow::Return(Some(value)))
     }
 
     fn op_d_return(&mut self) -> Result<ControlFlow, Error> {
-        let value = self.stack_pop();
+        let value = self.stack_pop_wide();
 
         Ok(ControlFlow::Return(Some(value)))
     }
@@ -1360,8 +1379,13 @@ impl<'a> Interpreter<'a> {
         static_field_idx: usize,
     ) -> Result<ControlFlow, Error> {
         let static_field = class.static_fields()[static_field_idx];
+        let value = static_field.value();
 
-        self.stack_push(static_field.value());
+        if static_field.descriptor().is_wide() {
+            self.stack_push_wide(value);
+        } else {
+            self.stack_push(value);
+        }
 
         Ok(ControlFlow::Continue)
     }
@@ -1371,9 +1395,13 @@ impl<'a> Interpreter<'a> {
         class: Class,
         static_field_idx: usize,
     ) -> Result<ControlFlow, Error> {
-        let value = self.stack_pop();
-
         let static_field = class.static_fields()[static_field_idx];
+
+        let value = if static_field.descriptor().is_wide() {
+            self.stack_pop_wide()
+        } else {
+            self.stack_pop()
+        };
 
         static_field.set_value(value);
 
@@ -1389,7 +1417,14 @@ impl<'a> Interpreter<'a> {
                 panic!("Object on stack was of wrong Class");
             }
 
-            self.stack_push(object.get_field(field_idx));
+            let field = object.field_at(field_idx);
+            let value = field.value();
+
+            if field.descriptor().is_wide() {
+                self.stack_push_wide(value);
+            } else {
+                self.stack_push(value);
+            }
 
             Ok(ControlFlow::Continue)
         } else {
@@ -1398,7 +1433,13 @@ impl<'a> Interpreter<'a> {
     }
 
     fn op_put_field(&mut self, class: Class, field_idx: usize) -> Result<ControlFlow, Error> {
-        let value = self.stack_pop();
+        let is_wide = class.instance_fields()[field_idx].descriptor().is_wide();
+
+        let value = if is_wide {
+            self.stack_pop_wide()
+        } else {
+            self.stack_pop()
+        };
 
         let object = self.stack_pop().object();
 
@@ -1433,20 +1474,8 @@ impl<'a> Interpreter<'a> {
             .descriptor();
 
         let mut args = vec![Value::Object(None); method_descriptor.physical_arg_count() + 1];
-        let args_len = args.len();
-
-        // FIXME fix this mess sometime...
-        let mut i = 0;
-        while i < args.len() - 1 {
-            let popped = self.stack_pop();
-
-            if popped.is_wide() {
-                args[args_len - i - 2] = popped;
-                i += 2;
-            } else {
-                args[args_len - i - 1] = popped;
-                i += 1;
-            }
+        for arg in args.iter_mut().skip(1).rev() {
+            *arg = self.stack_pop();
         }
 
         let receiver = self.stack_pop().object();
@@ -1466,7 +1495,11 @@ impl<'a> Interpreter<'a> {
 
             let result = method.exec(self.context, &args)?;
             if let Some(result) = result {
-                self.stack_push(result);
+                if method_descriptor.return_type().is_wide() {
+                    self.stack_push_wide(result);
+                } else {
+                    self.stack_push(result);
+                }
             }
 
             Ok(ControlFlow::Continue)
@@ -1480,20 +1513,8 @@ impl<'a> Interpreter<'a> {
         self.context.increment_gc_counter();
 
         let mut args = vec![Value::Integer(0); method.physical_arg_count() + 1];
-        let args_len = args.len();
-
-        // FIXME fix this mess sometime...
-        let mut i = 0;
-        while i < args.len() - 1 {
-            let popped = self.stack_pop();
-
-            if popped.is_wide() {
-                args[args_len - i - 2] = popped;
-                i += 2;
-            } else {
-                args[args_len - i - 1] = popped;
-                i += 1;
-            }
+        for arg in args.iter_mut().skip(1).rev() {
+            *arg = self.stack_pop();
         }
 
         let receiver = self.stack_pop().object();
@@ -1507,7 +1528,11 @@ impl<'a> Interpreter<'a> {
 
             let result = method.exec(self.context, &args)?;
             if let Some(result) = result {
-                self.stack_push(result);
+                if method.descriptor().return_type().is_wide() {
+                    self.stack_push_wide(result);
+                } else {
+                    self.stack_push(result);
+                }
             }
 
             Ok(ControlFlow::Continue)
@@ -1521,25 +1546,17 @@ impl<'a> Interpreter<'a> {
         self.context.increment_gc_counter();
 
         let mut args = vec![Value::Integer(0); method.physical_arg_count()];
-        let args_len = args.len();
-
-        // FIXME fix this mess sometime...
-        let mut i = 0;
-        while i < args.len() {
-            let popped = self.stack_pop();
-
-            if popped.is_wide() {
-                args[args_len - i - 2] = popped;
-                i += 2;
-            } else {
-                args[args_len - i - 1] = popped;
-                i += 1;
-            }
+        for arg in args.iter_mut().rev() {
+            *arg = self.stack_pop();
         }
 
         let result = method.exec(self.context, &args)?;
         if let Some(result) = result {
-            self.stack_push(result);
+            if method.descriptor().return_type().is_wide() {
+                self.stack_push_wide(result);
+            } else {
+                self.stack_push(result);
+            }
         }
 
         Ok(ControlFlow::Continue)
@@ -1555,20 +1572,8 @@ impl<'a> Interpreter<'a> {
         self.context.increment_gc_counter();
 
         let mut args = vec![Value::Integer(0); method_descriptor.physical_arg_count() + 1];
-        let args_len = args.len();
-
-        // FIXME fix this mess sometime...
-        let mut i = 0;
-        while i < args.len() - 1 {
-            let popped = self.stack_pop();
-
-            if popped.is_wide() {
-                args[args_len - i - 2] = popped;
-                i += 2;
-            } else {
-                args[args_len - i - 1] = popped;
-                i += 1;
-            }
+        for arg in args.iter_mut().skip(1).rev() {
+            *arg = self.stack_pop();
         }
 
         let receiver = self.stack_pop().object();
@@ -1587,7 +1592,11 @@ impl<'a> Interpreter<'a> {
 
             let result = method.exec(self.context, &args)?;
             if let Some(result) = result {
-                self.stack_push(result);
+                if method_descriptor.return_type().is_wide() {
+                    self.stack_push_wide(result);
+                } else {
+                    self.stack_push(result);
+                }
             }
 
             Ok(ControlFlow::Continue)

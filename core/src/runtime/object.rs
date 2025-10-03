@@ -183,6 +183,13 @@ impl Object {
         self.0.class
     }
 
+    pub fn field_at(&self, field_idx: usize) -> &Field {
+        match &self.0.data {
+            FieldOrArrayData::Fields(fields) => &fields[field_idx],
+            FieldOrArrayData::Array(_) => panic!("Cannot get field of array"),
+        }
+    }
+
     pub fn get_field(self, field_idx: usize) -> Value {
         match &self.0.data {
             FieldOrArrayData::Fields(fields) => {
