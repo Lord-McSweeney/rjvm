@@ -688,14 +688,45 @@ fn verify_block<'a>(
 
                 if top_value.is_wide() || under_value.is_wide() {
                     return Err(Error::Native(NativeError::VerifyTypeWrong));
-                } else {
+                }
+
+                stack.push(top_value);
+                stack.push(under_value);
+                stack.push(top_value);
+
+                if stack.len() > max_stack {
+                    return Err(Error::Native(NativeError::VerifyCountWrong));
+                }
+            }
+            Op::DupX2 => {
+                let top_value = stack
+                    .pop()
+                    .ok_or(Error::Native(NativeError::VerifyCountWrong))?;
+
+                if top_value.is_wide() {
+                    return Err(Error::Native(NativeError::VerifyTypeWrong));
+                }
+
+                let under_value = stack
+                    .pop()
+                    .ok_or(Error::Native(NativeError::VerifyCountWrong))?;
+
+                if under_value.is_wide() {
                     stack.push(top_value);
                     stack.push(under_value);
                     stack.push(top_value);
+                } else {
+                    let under_value_2 = stack
+                        .pop()
+                        .ok_or(Error::Native(NativeError::VerifyCountWrong))?;
+                    stack.push(top_value);
+                    stack.push(under_value_2);
+                    stack.push(under_value);
+                    stack.push(top_value);
+                }
 
-                    if stack.len() > max_stack {
-                        return Err(Error::Native(NativeError::VerifyCountWrong));
-                    }
+                if stack.len() > max_stack {
+                    return Err(Error::Native(NativeError::VerifyCountWrong));
                 }
             }
             Op::Dup2 => {

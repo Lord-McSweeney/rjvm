@@ -178,6 +178,7 @@ impl<'a> Interpreter<'a> {
                 Op::Pop2 => self.op_pop_2(),
                 Op::Dup => self.op_dup(),
                 Op::DupX1 => self.op_dup_x1(),
+                Op::DupX2 => self.op_dup_x2(),
                 Op::Dup2 => self.op_dup_2(),
                 Op::Swap => self.op_swap(),
                 Op::IAdd => self.op_i_add(),
@@ -816,6 +817,19 @@ impl<'a> Interpreter<'a> {
         let under_value = self.stack_pop();
 
         self.stack_push(top_value);
+        self.stack_push(under_value);
+        self.stack_push(top_value);
+
+        Ok(ControlFlow::Continue)
+    }
+
+    fn op_dup_x2(&mut self) -> Result<ControlFlow, Error> {
+        let top_value = self.stack_pop();
+        let under_value = self.stack_pop();
+        let under_value_2 = self.stack_pop();
+
+        self.stack_push(top_value);
+        self.stack_push(under_value_2);
         self.stack_push(under_value);
         self.stack_push(top_value);
 

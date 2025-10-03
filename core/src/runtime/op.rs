@@ -50,6 +50,7 @@ pub enum Op {
     Pop2,
     Dup,
     DupX1,
+    DupX2,
     Dup2,
     Swap,
     IAdd,
@@ -192,6 +193,7 @@ impl Trace for Op {
             Op::Pop2 => {}
             Op::Dup => {}
             Op::DupX1 => {}
+            Op::DupX2 => {}
             Op::Dup2 => {}
             Op::Swap => {}
             Op::IAdd => {}
@@ -401,6 +403,7 @@ const POP: u8 = 0x57;
 const POP_2: u8 = 0x58;
 const DUP: u8 = 0x59;
 const DUP_X1: u8 = 0x5A;
+const DUP_X2: u8 = 0x5B;
 const DUP_2: u8 = 0x5C;
 const SWAP: u8 = 0x5F;
 const I_ADD: u8 = 0x60;
@@ -733,6 +736,7 @@ impl Op {
             POP_2 => Ok(Op::Pop2),
             DUP => Ok(Op::Dup),
             DUP_X1 => Ok(Op::DupX1),
+            DUP_X2 => Ok(Op::DupX2),
             DUP_2 => Ok(Op::Dup2),
             SWAP => Ok(Op::Swap),
             I_ADD => Ok(Op::IAdd),
