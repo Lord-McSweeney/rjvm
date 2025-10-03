@@ -6,7 +6,7 @@
 - ability to run Java on the browser through WASM
 
 ## Upcoming features
-- Implementations for the remaining float, array, and stack operations
+- Implementations for the remaining float and stack operations
 - Proper `ClassLoader`s
     - Finding classes in the current directory when running a class
 - Array type verification in verifier
