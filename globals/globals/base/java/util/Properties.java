@@ -104,6 +104,20 @@ public class Properties extends Hashtable<Object, Object> {
     }
 
     public String getProperty(String key) {
-        return (String) super.get(key);
+        return this.getProperty(key, null);
+    }
+
+    public String getProperty(String key, String defaultValue) {
+        Object result = super.get(key);
+        if (result == null) {
+            // `Hashtable` only returns `null` when the property isn't found
+            return defaultValue;
+        } else {
+            return (String) result;
+        }
+    }
+
+    public Object setProperty(String key, String value) {
+        return super.put(key, value);
     }
 }

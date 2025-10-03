@@ -8,14 +8,18 @@ import java.io.InputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
+import java.util.Properties;
 
 public final class System {
-    private System() { }
+    private static Properties properties = null;
 
     public static InputStream in = null;
     public static PrintStream out = null;
     public static PrintStream err = null;
 
+    private System() { }
+
+    // Stream code
     public static void setIn(InputStream in) {
         System.in = in;
     }
@@ -28,16 +32,12 @@ public final class System {
         System.err = err;
     }
 
+    // arraycopy
     public static native void arraycopy(Object src, int srcPos, Object dest, int destPos, int length);
 
+    // Properties code
     public static String getProperty(String propName) {
-        if (propName == null) {
-            throw new NullPointerException();
-        }
-
-        Todo.warnNotImpl("java.lang.System.getProperty");
-
-        return "";
+        return System.getProperty(propName, null);
     }
 
     public static String getProperty(String propName, String defaultValue) {
@@ -45,9 +45,11 @@ public final class System {
             throw new NullPointerException();
         }
 
-        Todo.warnPartialImpl("java.lang.System.getProperty");
+        if (propName == "") {
+            throw new IllegalArgumentException();
+        }
 
-        return defaultValue;
+        return System.properties.getProperty(propName, defaultValue);
     }
 
     public static String setProperty(String propName, String newValue) {
@@ -55,11 +57,14 @@ public final class System {
             throw new NullPointerException();
         }
 
-        Todo.warnNotImpl("java.lang.System.setProperty");
+        if (propName == "") {
+            throw new IllegalArgumentException();
+        }
 
-        return "";
+        return (String) System.properties.setProperty(propName, newValue);
     }
 
+    // Misc native functions
     public static native long currentTimeMillis();
 
     public static long nanoTime() {
@@ -71,7 +76,14 @@ public final class System {
         Runtime.getRuntime().exit(status);
     }
 
+    // Initialize class
     static {
+        properties = new Properties();
+        // TODO initialize these natively
+        properties.setProperty("file.separator", "/");
+        properties.setProperty("path.separator", ":");
+        properties.setProperty("line.separator", "\n");
+
         in = new FileInputStream(FileDescriptor.in);
         // Enable `autoFlush` on these streams. If we don't, reading from stdin
         // after writing to stdout without writing a newline to flush the
