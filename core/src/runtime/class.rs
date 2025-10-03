@@ -439,6 +439,24 @@ impl Class {
             .any(|i| *i == checked_interface)
     }
 
+    /// Implements the JVM `checkcast` instruction, returning true if the cast
+    /// was successful and false if an error should be thrown.
+    pub fn check_cast(self, checked_class: Class) -> bool {
+        if let (Some(our_inner), Some(other_inner)) =
+            (self.array_value_type(), checked_class.array_value_type())
+        {
+            if let (Some(our_inner), Some(other_inner)) = (our_inner.class(), other_inner.class()) {
+                // Recursively look into the next inner type
+                return our_inner.check_cast(other_inner);
+            } else {
+                // >=1 of the descriptors is primitive, just check descriptor equality
+                return our_inner == other_inner;
+            }
+        }
+
+        self.matches_class(checked_class) || self.implements_interface(checked_class)
+    }
+
     pub fn matches_descriptor(self, descriptor: ResolvedDescriptor) -> bool {
         match descriptor {
             ResolvedDescriptor::Class(class) => self.matches_class(class),

@@ -175,10 +175,6 @@ impl Object {
         self.class().matches_class(class)
     }
 
-    pub fn implements_interface(self, interface: Class) -> bool {
-        self.class().implements_interface(interface)
-    }
-
     pub fn class(self) -> Class {
         self.0.class
     }

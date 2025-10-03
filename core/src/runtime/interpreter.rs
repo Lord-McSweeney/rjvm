@@ -1734,10 +1734,8 @@ impl<'a> Interpreter<'a> {
     fn op_check_cast(&mut self, class: Class) -> Result<ControlFlow, Error> {
         let obj = self.stack_pop().object();
 
-        // TODO: Special rules around handling arrays, see comment in op_instance_of
-
         if let Some(obj) = obj {
-            if !obj.is_of_class(class) && !obj.implements_interface(class) {
+            if !obj.class().check_cast(class) {
                 return Err(self.context.class_cast_exception());
             }
         }
@@ -1750,12 +1748,8 @@ impl<'a> Interpreter<'a> {
     fn op_instance_of(&mut self, class: Class) -> Result<ControlFlow, Error> {
         let obj = self.stack_pop().object();
 
-        // TODO: Special rules around handling arrays; currently, we have all
-        // arrays extend Object, so only Object and the array class itself
-        // will pass these tests. See JVMS 6.5.
-
         if let Some(obj) = obj {
-            if obj.is_of_class(class) || obj.implements_interface(class) {
+            if obj.class().check_cast(class) {
                 self.stack_push(Value::Integer(1));
             } else {
                 self.stack_push(Value::Integer(0));
