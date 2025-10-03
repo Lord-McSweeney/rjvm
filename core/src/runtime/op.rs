@@ -30,6 +30,7 @@ pub enum Op {
     AaLoad,
     BaLoad,
     CaLoad,
+    SaLoad,
     IStore(usize),
     LStore(usize),
     FStore(usize),
@@ -40,6 +41,7 @@ pub enum Op {
     AaStore,
     BaStore,
     CaStore,
+    SaStore,
     Pop,
     Pop2,
     Dup,
@@ -166,6 +168,7 @@ impl Trace for Op {
             Op::AaLoad => {}
             Op::BaLoad => {}
             Op::CaLoad => {}
+            Op::SaLoad => {}
             Op::IStore(_) => {}
             Op::LStore(_) => {}
             Op::FStore(_) => {}
@@ -176,6 +179,7 @@ impl Trace for Op {
             Op::AaStore => {}
             Op::BaStore => {}
             Op::CaStore => {}
+            Op::SaStore => {}
             Op::Pop => {}
             Op::Pop2 => {}
             Op::Dup => {}
@@ -350,6 +354,7 @@ const LA_LOAD: u8 = 0x2F;
 const AA_LOAD: u8 = 0x32;
 const BA_LOAD: u8 = 0x33;
 const CA_LOAD: u8 = 0x34;
+const SA_LOAD: u8 = 0x35;
 const I_STORE: u8 = 0x36;
 const L_STORE: u8 = 0x37;
 const D_STORE: u8 = 0x39;
@@ -379,6 +384,7 @@ const LA_STORE: u8 = 0x50;
 const AA_STORE: u8 = 0x53;
 const BA_STORE: u8 = 0x54;
 const CA_STORE: u8 = 0x55;
+const SA_STORE: u8 = 0x56;
 const POP: u8 = 0x57;
 const POP_2: u8 = 0x58;
 const DUP: u8 = 0x59;
@@ -660,6 +666,7 @@ impl Op {
             AA_LOAD => Ok(Op::AaLoad),
             BA_LOAD => Ok(Op::BaLoad),
             CA_LOAD => Ok(Op::CaLoad),
+            SA_LOAD => Ok(Op::SaLoad),
             I_STORE => {
                 let local_idx = data.read_u8()?;
 
@@ -705,6 +712,7 @@ impl Op {
             AA_STORE => Ok(Op::AaStore),
             BA_STORE => Ok(Op::BaStore),
             CA_STORE => Ok(Op::CaStore),
+            SA_STORE => Ok(Op::SaStore),
             POP => Ok(Op::Pop),
             POP_2 => Ok(Op::Pop2),
             DUP => Ok(Op::Dup),
@@ -1252,11 +1260,13 @@ impl Op {
                 | Op::AaLoad
                 | Op::BaLoad
                 | Op::CaLoad
+                | Op::SaLoad
                 | Op::IaStore
                 | Op::LaStore
                 | Op::AaStore
                 | Op::BaStore
                 | Op::CaStore
+                | Op::SaStore
                 | Op::IDiv
                 | Op::LDiv
                 | Op::IRem

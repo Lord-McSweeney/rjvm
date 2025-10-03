@@ -565,7 +565,7 @@ fn verify_block<'a>(
                 expect_local!(*index, Reference);
                 push_stack!(Reference);
             }
-            Op::IaLoad => {
+            Op::IaLoad | Op::BaLoad | Op::CaLoad | Op::SaLoad => {
                 expect_pop_stack!(Integer);
                 expect_pop_stack!(Reference);
                 push_stack!(Integer);
@@ -579,16 +579,6 @@ fn verify_block<'a>(
                 expect_pop_stack!(Integer);
                 expect_pop_stack!(Reference);
                 push_stack!(Reference);
-            }
-            Op::BaLoad => {
-                expect_pop_stack!(Integer);
-                expect_pop_stack!(Reference);
-                push_stack!(Integer);
-            }
-            Op::CaLoad => {
-                expect_pop_stack!(Integer);
-                expect_pop_stack!(Reference);
-                push_stack!(Integer);
             }
             Op::IStore(index) => {
                 expect_pop_stack!(Integer);
@@ -616,7 +606,7 @@ fn verify_block<'a>(
                 expect_pop_stack!(Reference);
                 set_local!(*index, Reference);
             }
-            Op::IaStore => {
+            Op::IaStore | Op::BaStore | Op::CaStore | Op::SaStore => {
                 expect_pop_stack!(Integer);
                 expect_pop_stack!(Integer);
                 expect_pop_stack!(Reference);
@@ -628,16 +618,6 @@ fn verify_block<'a>(
             }
             Op::AaStore => {
                 expect_pop_stack!(Reference);
-                expect_pop_stack!(Integer);
-                expect_pop_stack!(Reference);
-            }
-            Op::BaStore => {
-                expect_pop_stack!(Integer);
-                expect_pop_stack!(Integer);
-                expect_pop_stack!(Reference);
-            }
-            Op::CaStore => {
-                expect_pop_stack!(Integer);
                 expect_pop_stack!(Integer);
                 expect_pop_stack!(Reference);
             }
