@@ -116,6 +116,38 @@ impl Object {
         ))
     }
 
+    pub fn double_array(context: Context, data: Box<[f64]>) -> Self {
+        let class = context
+            .lookup_class(context.common.array_double_desc)
+            .expect("Should lookup");
+
+        let data = data.into_iter().map(Cell::new).collect::<Box<_>>();
+
+        Self(Gc::new(
+            context.gc_ctx,
+            ObjectData {
+                class,
+                data: FieldOrArrayData::Array(Array::DoubleArray(data)),
+            },
+        ))
+    }
+
+    pub fn float_array(context: Context, data: Box<[f32]>) -> Self {
+        let class = context
+            .lookup_class(context.common.array_float_desc)
+            .expect("Should lookup");
+
+        let data = data.into_iter().map(Cell::new).collect::<Box<_>>();
+
+        Self(Gc::new(
+            context.gc_ctx,
+            ObjectData {
+                class,
+                data: FieldOrArrayData::Array(Array::FloatArray(data)),
+            },
+        ))
+    }
+
     pub fn int_array(context: Context, data: Box<[i32]>) -> Self {
         let class = context
             .lookup_class(context.common.array_int_desc)
@@ -144,6 +176,22 @@ impl Object {
             ObjectData {
                 class,
                 data: FieldOrArrayData::Array(Array::LongArray(data)),
+            },
+        ))
+    }
+
+    pub fn short_array(context: Context, data: Box<[i16]>) -> Self {
+        let class = context
+            .lookup_class(context.common.array_short_desc)
+            .expect("Should lookup");
+
+        let data = data.into_iter().map(Cell::new).collect::<Box<_>>();
+
+        Self(Gc::new(
+            context.gc_ctx,
+            ObjectData {
+                class,
+                data: FieldOrArrayData::Array(Array::ShortArray(data)),
             },
         ))
     }

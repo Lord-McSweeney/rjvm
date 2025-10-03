@@ -593,8 +593,11 @@ pub struct CommonData {
 
     pub array_byte_desc: JvmString,
     pub array_char_desc: JvmString,
+    pub array_double_desc: JvmString,
+    pub array_float_desc: JvmString,
     pub array_int_desc: JvmString,
     pub array_long_desc: JvmString,
+    pub array_short_desc: JvmString,
     pub array_bool_desc: JvmString,
 
     pub init_name: JvmString,
@@ -669,8 +672,11 @@ impl CommonData {
             ),
             array_byte_desc: JvmString::new(gc_ctx, "[B".to_string()),
             array_char_desc: JvmString::new(gc_ctx, "[C".to_string()),
+            array_double_desc: JvmString::new(gc_ctx, "[D".to_string()),
+            array_float_desc: JvmString::new(gc_ctx, "[F".to_string()),
             array_int_desc: JvmString::new(gc_ctx, "[I".to_string()),
             array_long_desc: JvmString::new(gc_ctx, "[J".to_string()),
+            array_short_desc: JvmString::new(gc_ctx, "[S".to_string()),
             array_bool_desc: JvmString::new(gc_ctx, "[Z".to_string()),
             init_name: JvmString::new(gc_ctx, "<init>".to_string()),
             clinit_name: JvmString::new(gc_ctx, "<clinit>".to_string()),
@@ -702,8 +708,11 @@ impl Trace for CommonData {
 
         self.array_byte_desc.trace();
         self.array_char_desc.trace();
+        self.array_double_desc.trace();
+        self.array_float_desc.trace();
         self.array_int_desc.trace();
         self.array_long_desc.trace();
+        self.array_short_desc.trace();
         self.array_bool_desc.trace();
 
         self.init_name.trace();

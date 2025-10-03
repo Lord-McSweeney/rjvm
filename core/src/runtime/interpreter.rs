@@ -1656,6 +1656,16 @@ impl<'a> Interpreter<'a> {
 
                 Object::byte_array(self.context, bytes.into_boxed_slice())
             }
+            ArrayType::Double => {
+                let doubles = vec![0.0; array_length];
+
+                Object::double_array(self.context, doubles.into_boxed_slice())
+            }
+            ArrayType::Float => {
+                let floats = vec![0.0; array_length];
+
+                Object::float_array(self.context, floats.into_boxed_slice())
+            }
             ArrayType::Int => {
                 let ints = vec![0; array_length];
 
@@ -1666,12 +1676,16 @@ impl<'a> Interpreter<'a> {
 
                 Object::long_array(self.context, longs.into_boxed_slice())
             }
+            ArrayType::Short => {
+                let shorts = vec![0; array_length];
+
+                Object::short_array(self.context, shorts.into_boxed_slice())
+            }
             ArrayType::Boolean => {
                 let bools = vec![0; array_length];
 
                 Object::bool_array(self.context, bools.into_boxed_slice())
             }
-            _ => unimplemented!("Array type {:?} unimplemented", array_type),
         };
 
         self.stack_push(Value::Object(Some(array_object)));
@@ -1853,8 +1867,14 @@ impl<'a> Interpreter<'a> {
                         let data = vec![0; elem_count];
                         Some(Object::char_array(context, data.into_boxed_slice()))
                     }
-                    ResolvedDescriptor::Double => todo!(),
-                    ResolvedDescriptor::Float => todo!(),
+                    ResolvedDescriptor::Double => {
+                        let data = vec![0.0; elem_count];
+                        Some(Object::double_array(context, data.into_boxed_slice()))
+                    }
+                    ResolvedDescriptor::Float => {
+                        let data = vec![0.0; elem_count];
+                        Some(Object::float_array(context, data.into_boxed_slice()))
+                    }
                     ResolvedDescriptor::Integer => {
                         let data = vec![0; elem_count];
                         Some(Object::int_array(context, data.into_boxed_slice()))
@@ -1863,13 +1883,16 @@ impl<'a> Interpreter<'a> {
                         let data = vec![0; elem_count];
                         Some(Object::long_array(context, data.into_boxed_slice()))
                     }
-                    ResolvedDescriptor::Short => todo!(),
+                    ResolvedDescriptor::Short => {
+                        let data = vec![0; elem_count];
+                        Some(Object::short_array(context, data.into_boxed_slice()))
+                    }
                     ResolvedDescriptor::Boolean => {
                         let data = vec![0; elem_count];
                         Some(Object::bool_array(context, data.into_boxed_slice()))
                     }
                     ResolvedDescriptor::Array(_) => unreachable!(),
-                    ResolvedDescriptor::Void => unreachable!(),
+                    ResolvedDescriptor::Void => panic!("Didn't expect void descriptor"),
                 }
             }
         }
