@@ -28,6 +28,7 @@ pub enum Op {
     IaLoad,
     LaLoad,
     FaLoad,
+    DaLoad,
     AaLoad,
     BaLoad,
     CaLoad,
@@ -40,6 +41,7 @@ pub enum Op {
     IaStore,
     LaStore,
     FaStore,
+    DaStore,
     AaStore,
     BaStore,
     CaStore,
@@ -168,6 +170,7 @@ impl Trace for Op {
             Op::IaLoad => {}
             Op::LaLoad => {}
             Op::FaLoad => {}
+            Op::DaLoad => {}
             Op::AaLoad => {}
             Op::BaLoad => {}
             Op::CaLoad => {}
@@ -180,6 +183,7 @@ impl Trace for Op {
             Op::IaStore => {}
             Op::LaStore => {}
             Op::FaStore => {}
+            Op::DaStore => {}
             Op::AaStore => {}
             Op::BaStore => {}
             Op::CaStore => {}
@@ -356,6 +360,7 @@ const A_LOAD_3: u8 = 0x2D;
 const IA_LOAD: u8 = 0x2E;
 const LA_LOAD: u8 = 0x2F;
 const FA_LOAD: u8 = 0x30;
+const DA_LOAD: u8 = 0x31;
 const AA_LOAD: u8 = 0x32;
 const BA_LOAD: u8 = 0x33;
 const CA_LOAD: u8 = 0x34;
@@ -387,6 +392,7 @@ const A_STORE_3: u8 = 0x4E;
 const IA_STORE: u8 = 0x4F;
 const LA_STORE: u8 = 0x50;
 const FA_STORE: u8 = 0x51;
+const DA_STORE: u8 = 0x52;
 const AA_STORE: u8 = 0x53;
 const BA_STORE: u8 = 0x54;
 const CA_STORE: u8 = 0x55;
@@ -670,6 +676,7 @@ impl Op {
             IA_LOAD => Ok(Op::IaLoad),
             LA_LOAD => Ok(Op::LaLoad),
             FA_LOAD => Ok(Op::FaLoad),
+            DA_LOAD => Ok(Op::DaLoad),
             AA_LOAD => Ok(Op::AaLoad),
             BA_LOAD => Ok(Op::BaLoad),
             CA_LOAD => Ok(Op::CaLoad),
@@ -717,6 +724,7 @@ impl Op {
             IA_STORE => Ok(Op::IaStore),
             LA_STORE => Ok(Op::LaStore),
             FA_STORE => Ok(Op::FaStore),
+            DA_STORE => Ok(Op::DaStore),
             AA_STORE => Ok(Op::AaStore),
             BA_STORE => Ok(Op::BaStore),
             CA_STORE => Ok(Op::CaStore),
@@ -1266,6 +1274,7 @@ impl Op {
             Op::IaLoad
                 | Op::LaLoad
                 | Op::FaLoad
+                | Op::DaLoad
                 | Op::AaLoad
                 | Op::BaLoad
                 | Op::CaLoad
@@ -1273,6 +1282,7 @@ impl Op {
                 | Op::IaStore
                 | Op::LaStore
                 | Op::FaStore
+                | Op::DaStore
                 | Op::AaStore
                 | Op::BaStore
                 | Op::CaStore
