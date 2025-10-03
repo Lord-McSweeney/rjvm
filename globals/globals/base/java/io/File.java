@@ -3,7 +3,8 @@ package java.io;
 import java.nio.charset.Charset;
 
 public class File {
-    // TODO get this from system properties
+    // TODO get this from system properties- somehow we need to ensure
+    // `System.properties` is initialized before anything else
     public static final char separatorChar = '/';
     public static final String separator = "" + File.separatorChar;
 
