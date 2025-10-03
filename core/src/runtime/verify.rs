@@ -498,6 +498,7 @@ fn verify_block<'a>(
 
     for op in ops {
         match op {
+            Op::Nop => {}
             Op::AConstNull => {
                 push_stack!(Reference);
             }

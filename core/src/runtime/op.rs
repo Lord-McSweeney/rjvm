@@ -13,6 +13,7 @@ use std::collections::HashMap;
 
 #[derive(Clone, Debug)]
 pub enum Op {
+    Nop,
     AConstNull,
     IConst(i32),
     LConst(i8),
@@ -155,6 +156,7 @@ pub enum ArrayType {
 impl Trace for Op {
     fn trace(&self) {
         match self {
+            Op::Nop => {}
             Op::AConstNull => {}
             Op::IConst(_) => {}
             Op::LConst(_) => {}
@@ -314,6 +316,7 @@ impl Trace for Op {
     }
 }
 
+const NOP: u8 = 0x00;
 const A_CONST_NULL: u8 = 0x01;
 const I_CONST_M1: u8 = 0x02;
 const I_CONST_0: u8 = 0x03;
@@ -369,6 +372,7 @@ const CA_LOAD: u8 = 0x34;
 const SA_LOAD: u8 = 0x35;
 const I_STORE: u8 = 0x36;
 const L_STORE: u8 = 0x37;
+const F_STORE: u8 = 0x38;
 const D_STORE: u8 = 0x39;
 const A_STORE: u8 = 0x3A;
 const I_STORE_0: u8 = 0x3B;
@@ -588,6 +592,7 @@ impl Op {
     ) -> Result<Op, Error> {
         let opcode = data.read_u8()?;
         match opcode {
+            NOP => Ok(Op::Nop),
             A_CONST_NULL => Ok(Op::AConstNull),
             I_CONST_M1 => Ok(Op::IConst(-1)),
             I_CONST_0 => Ok(Op::IConst(0)),
@@ -693,6 +698,11 @@ impl Op {
                 let local_idx = data.read_u8()?;
 
                 Ok(Op::LStore(local_idx as usize))
+            }
+            F_STORE => {
+                let local_idx = data.read_u8()?;
+
+                Ok(Op::FStore(local_idx as usize))
             }
             D_STORE => {
                 let local_idx = data.read_u8()?;

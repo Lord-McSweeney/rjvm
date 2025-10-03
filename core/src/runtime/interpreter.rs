@@ -140,6 +140,7 @@ impl<'a> Interpreter<'a> {
         while self.ip < ops.len() {
             let op = &ops[self.ip];
             let control_flow = match op {
+                Op::Nop => Ok(ControlFlow::Continue),
                 Op::AConstNull => self.op_a_const_null(),
                 Op::IConst(val) => self.op_i_const(*val),
                 Op::LConst(val) => self.op_l_const(*val),
