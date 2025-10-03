@@ -155,6 +155,7 @@ impl<'a> Interpreter<'a> {
                 Op::ALoad(index) => self.op_a_load(*index),
                 Op::IaLoad => self.op_ia_load(),
                 Op::LaLoad => self.op_la_load(),
+                Op::FaLoad => self.op_fa_load(),
                 Op::AaLoad => self.op_aa_load(),
                 Op::BaLoad => self.op_ba_load(),
                 Op::CaLoad => self.op_ca_load(),
@@ -166,6 +167,7 @@ impl<'a> Interpreter<'a> {
                 Op::AStore(index) => self.op_a_store(*index),
                 Op::IaStore => self.op_ia_store(),
                 Op::LaStore => self.op_la_store(),
+                Op::FaStore => self.op_fa_store(),
                 Op::AaStore => self.op_aa_store(),
                 Op::BaStore => self.op_ba_store(),
                 Op::CaStore => self.op_ca_store(),
@@ -460,6 +462,27 @@ impl<'a> Interpreter<'a> {
         }
     }
 
+    fn op_fa_load(&mut self) -> Result<ControlFlow, Error> {
+        let index = self.stack_pop().int();
+
+        let array = self.stack_pop().object();
+        if let Some(array) = array {
+            let array_data = array.array_data().as_float_array();
+
+            if index < 0 || index as usize >= array_data.len() {
+                Err(self.context.array_index_oob_exception())
+            } else {
+                let result = array_data[index as usize].get();
+
+                self.stack_push(Value::Float(result));
+
+                Ok(ControlFlow::Continue)
+            }
+        } else {
+            Err(self.context.null_pointer_exception())
+        }
+    }
+
     fn op_aa_load(&mut self) -> Result<ControlFlow, Error> {
         let index = self.stack_pop().int();
 
@@ -611,6 +634,26 @@ impl<'a> Interpreter<'a> {
 
         if let Some(array) = array {
             let array_data = array.array_data().as_long_array();
+
+            if index < 0 || index as usize >= array_data.len() {
+                Err(self.context.array_index_oob_exception())
+            } else {
+                array_data[index as usize].set(value);
+
+                Ok(ControlFlow::Continue)
+            }
+        } else {
+            Err(self.context.null_pointer_exception())
+        }
+    }
+
+    fn op_fa_store(&mut self) -> Result<ControlFlow, Error> {
+        let value = self.stack_pop().float();
+        let index = self.stack_pop().int();
+        let array = self.stack_pop().object();
+
+        if let Some(array) = array {
+            let array_data = array.array_data().as_float_array();
 
             if index < 0 || index as usize >= array_data.len() {
                 Err(self.context.array_index_oob_exception())

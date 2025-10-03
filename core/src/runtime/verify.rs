@@ -575,6 +575,11 @@ fn verify_block<'a>(
                 expect_pop_stack!(Reference);
                 push_stack!(Long);
             }
+            Op::FaLoad => {
+                expect_pop_stack!(Integer);
+                expect_pop_stack!(Reference);
+                push_stack!(Float);
+            }
             Op::AaLoad => {
                 expect_pop_stack!(Integer);
                 expect_pop_stack!(Reference);
@@ -613,6 +618,11 @@ fn verify_block<'a>(
             }
             Op::LaStore => {
                 expect_pop_stack!(Long);
+                expect_pop_stack!(Integer);
+                expect_pop_stack!(Reference);
+            }
+            Op::FaStore => {
+                expect_pop_stack!(Float);
                 expect_pop_stack!(Integer);
                 expect_pop_stack!(Reference);
             }

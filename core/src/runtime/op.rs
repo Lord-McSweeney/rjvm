@@ -27,6 +27,7 @@ pub enum Op {
     ALoad(usize),
     IaLoad,
     LaLoad,
+    FaLoad,
     AaLoad,
     BaLoad,
     CaLoad,
@@ -38,6 +39,7 @@ pub enum Op {
     AStore(usize),
     IaStore,
     LaStore,
+    FaStore,
     AaStore,
     BaStore,
     CaStore,
@@ -165,6 +167,7 @@ impl Trace for Op {
             Op::ALoad(_) => {}
             Op::IaLoad => {}
             Op::LaLoad => {}
+            Op::FaLoad => {}
             Op::AaLoad => {}
             Op::BaLoad => {}
             Op::CaLoad => {}
@@ -176,6 +179,7 @@ impl Trace for Op {
             Op::AStore(_) => {}
             Op::IaStore => {}
             Op::LaStore => {}
+            Op::FaStore => {}
             Op::AaStore => {}
             Op::BaStore => {}
             Op::CaStore => {}
@@ -351,6 +355,7 @@ const A_LOAD_2: u8 = 0x2C;
 const A_LOAD_3: u8 = 0x2D;
 const IA_LOAD: u8 = 0x2E;
 const LA_LOAD: u8 = 0x2F;
+const FA_LOAD: u8 = 0x30;
 const AA_LOAD: u8 = 0x32;
 const BA_LOAD: u8 = 0x33;
 const CA_LOAD: u8 = 0x34;
@@ -381,6 +386,7 @@ const A_STORE_2: u8 = 0x4D;
 const A_STORE_3: u8 = 0x4E;
 const IA_STORE: u8 = 0x4F;
 const LA_STORE: u8 = 0x50;
+const FA_STORE: u8 = 0x51;
 const AA_STORE: u8 = 0x53;
 const BA_STORE: u8 = 0x54;
 const CA_STORE: u8 = 0x55;
@@ -663,6 +669,7 @@ impl Op {
             A_LOAD_3 => Ok(Op::ALoad(3)),
             IA_LOAD => Ok(Op::IaLoad),
             LA_LOAD => Ok(Op::LaLoad),
+            FA_LOAD => Ok(Op::FaLoad),
             AA_LOAD => Ok(Op::AaLoad),
             BA_LOAD => Ok(Op::BaLoad),
             CA_LOAD => Ok(Op::CaLoad),
@@ -709,6 +716,7 @@ impl Op {
             A_STORE_3 => Ok(Op::AStore(3)),
             IA_STORE => Ok(Op::IaStore),
             LA_STORE => Ok(Op::LaStore),
+            FA_STORE => Ok(Op::FaStore),
             AA_STORE => Ok(Op::AaStore),
             BA_STORE => Ok(Op::BaStore),
             CA_STORE => Ok(Op::CaStore),
@@ -1257,12 +1265,14 @@ impl Op {
             self,
             Op::IaLoad
                 | Op::LaLoad
+                | Op::FaLoad
                 | Op::AaLoad
                 | Op::BaLoad
                 | Op::CaLoad
                 | Op::SaLoad
                 | Op::IaStore
                 | Op::LaStore
+                | Op::FaStore
                 | Op::AaStore
                 | Op::BaStore
                 | Op::CaStore
