@@ -90,6 +90,34 @@ impl<'a> Interpreter<'a> {
         }
     }
 
+    fn stack_push(&self, value: Value) {
+        let prev = self.context.frame_index.get();
+        self.frame_reference[prev].set(value);
+        self.context.frame_index.set(prev + 1);
+    }
+
+    fn stack_pop(&self) -> Value {
+        let new = self.context.frame_index.get() - 1;
+        let result = self.frame_reference[new].get();
+        self.context.frame_index.set(new);
+
+        result
+    }
+
+    fn stack_clear(&self) {
+        self.context
+            .frame_index
+            .set(self.local_base + self.local_count);
+    }
+
+    fn local_reg(&self, index: usize) -> Value {
+        self.frame_reference[self.local_base + index].get()
+    }
+
+    fn set_local_reg(&self, index: usize, value: Value) {
+        self.frame_reference[self.local_base + index].set(value);
+    }
+
     pub fn interpret_ops(
         &mut self,
         ops: &[Op],
@@ -254,34 +282,6 @@ impl<'a> Interpreter<'a> {
         }
 
         panic!("Execution should never fall off function")
-    }
-
-    fn stack_push(&self, value: Value) {
-        let prev = self.context.frame_index.get();
-        self.frame_reference[prev].set(value);
-        self.context.frame_index.set(prev + 1);
-    }
-
-    fn stack_pop(&self) -> Value {
-        let new = self.context.frame_index.get() - 1;
-        let result = self.frame_reference[new].get();
-        self.context.frame_index.set(new);
-
-        result
-    }
-
-    fn stack_clear(&self) {
-        self.context
-            .frame_index
-            .set(self.local_base + self.local_count);
-    }
-
-    fn local_reg(&self, index: usize) -> Value {
-        self.frame_reference[self.local_base + index].get()
-    }
-
-    fn set_local_reg(&self, index: usize, value: Value) {
-        self.frame_reference[self.local_base + index].set(value);
     }
 
     fn op_a_const_null(&mut self) -> Result<ControlFlow, Error> {
