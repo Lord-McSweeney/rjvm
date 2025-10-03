@@ -650,6 +650,17 @@ fn verify_block<'a>(
                     return Err(Error::Native(NativeError::VerifyTypeWrong));
                 }
             }
+            Op::Pop2 => {
+                let value = stack
+                    .pop()
+                    .ok_or(Error::Native(NativeError::VerifyCountWrong))?;
+
+                if !value.is_wide() {
+                    stack
+                        .pop()
+                        .ok_or(Error::Native(NativeError::VerifyCountWrong))?;
+                }
+            }
             Op::Dup => {
                 let value = stack
                     .pop()
@@ -713,6 +724,26 @@ fn verify_block<'a>(
                 if stack.len() > max_stack {
                     return Err(Error::Native(NativeError::VerifyCountWrong));
                 }
+            }
+            Op::Swap => {
+                let first_value = stack
+                    .pop()
+                    .ok_or(Error::Native(NativeError::VerifyCountWrong))?;
+
+                if first_value.is_wide() {
+                    return Err(Error::Native(NativeError::VerifyTypeWrong));
+                }
+
+                let second_value = stack
+                    .pop()
+                    .ok_or(Error::Native(NativeError::VerifyCountWrong))?;
+
+                if second_value.is_wide() {
+                    return Err(Error::Native(NativeError::VerifyTypeWrong));
+                }
+
+                stack.push(first_value);
+                stack.push(second_value);
             }
             Op::IAdd | Op::ISub | Op::IMul | Op::IDiv | Op::IRem => {
                 expect_pop_stack!(Integer);

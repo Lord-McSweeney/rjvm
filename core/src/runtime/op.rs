@@ -41,9 +41,11 @@ pub enum Op {
     BaStore,
     CaStore,
     Pop,
+    Pop2,
     Dup,
     DupX1,
     Dup2,
+    Swap,
     IAdd,
     LAdd,
     DAdd,
@@ -175,9 +177,11 @@ impl Trace for Op {
             Op::BaStore => {}
             Op::CaStore => {}
             Op::Pop => {}
+            Op::Pop2 => {}
             Op::Dup => {}
             Op::DupX1 => {}
             Op::Dup2 => {}
+            Op::Swap => {}
             Op::IAdd => {}
             Op::LAdd => {}
             Op::DAdd => {}
@@ -376,9 +380,11 @@ const AA_STORE: u8 = 0x53;
 const BA_STORE: u8 = 0x54;
 const CA_STORE: u8 = 0x55;
 const POP: u8 = 0x57;
+const POP_2: u8 = 0x58;
 const DUP: u8 = 0x59;
 const DUP_X1: u8 = 0x5A;
 const DUP_2: u8 = 0x5C;
+const SWAP: u8 = 0x5F;
 const I_ADD: u8 = 0x60;
 const L_ADD: u8 = 0x61;
 const D_ADD: u8 = 0x63;
@@ -702,9 +708,11 @@ impl Op {
             BA_STORE => Ok(Op::BaStore),
             CA_STORE => Ok(Op::CaStore),
             POP => Ok(Op::Pop),
+            POP_2 => Ok(Op::Pop2),
             DUP => Ok(Op::Dup),
             DUP_X1 => Ok(Op::DupX1),
             DUP_2 => Ok(Op::Dup2),
+            SWAP => Ok(Op::Swap),
             I_ADD => Ok(Op::IAdd),
             L_ADD => Ok(Op::LAdd),
             D_ADD => Ok(Op::DAdd),

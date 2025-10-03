@@ -169,9 +169,11 @@ impl<'a> Interpreter<'a> {
                 Op::BaStore => self.op_ba_store(),
                 Op::CaStore => self.op_ca_store(),
                 Op::Pop => self.op_pop(),
+                Op::Pop2 => self.op_pop_2(),
                 Op::Dup => self.op_dup(),
                 Op::DupX1 => self.op_dup_x1(),
                 Op::Dup2 => self.op_dup_2(),
+                Op::Swap => self.op_swap(),
                 Op::IAdd => self.op_i_add(),
                 Op::LAdd => self.op_l_add(),
                 Op::DAdd => self.op_d_add(),
@@ -665,6 +667,13 @@ impl<'a> Interpreter<'a> {
         Ok(ControlFlow::Continue)
     }
 
+    fn op_pop_2(&mut self) -> Result<ControlFlow, Error> {
+        self.stack_pop();
+        self.stack_pop();
+
+        Ok(ControlFlow::Continue)
+    }
+
     fn op_dup(&mut self) -> Result<ControlFlow, Error> {
         let value = self.stack_pop();
         self.stack_push(value);
@@ -691,6 +700,15 @@ impl<'a> Interpreter<'a> {
         self.stack_push(value);
         self.stack_push(value2);
         self.stack_push(value);
+
+        Ok(ControlFlow::Continue)
+    }
+
+    fn op_swap(&mut self) -> Result<ControlFlow, Error> {
+        let value = self.stack_pop();
+        let value2 = self.stack_pop();
+        self.stack_push(value);
+        self.stack_push(value2);
 
         Ok(ControlFlow::Continue)
     }
