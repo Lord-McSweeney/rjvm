@@ -41,6 +41,7 @@ struct PassedOptions {
     file_name: String,
 
     linked_jars: Vec<String>,
+    load_globals: bool,
 
     program_args: Vec<String>,
 }
@@ -58,6 +59,7 @@ impl PassedOptions {
         let mut file_type = FileType::Unknown;
         let mut file_name = None;
         let mut linked_jars = Vec::new();
+        let mut load_globals = true;
         let mut program_args = Vec::new();
 
         let mut started_args = false;
@@ -109,6 +111,8 @@ impl PassedOptions {
                     linked_jars.push(args[i + 1].clone());
 
                     i += 1;
+                } else if arg == "--no-globals" {
+                    load_globals = false;
                 } else if arg.starts_with("--") {
                     return Err(format!("Unknown flag {}", arg));
                 } else {
@@ -127,6 +131,7 @@ impl PassedOptions {
                 file_type,
                 file_name,
                 linked_jars,
+                load_globals,
                 program_args,
             }))
         } else {
@@ -228,7 +233,8 @@ Options:
 --jar-with-main file.jar com.example.MainClass: Run a JAR file with an explicitly specified main class
 
 Link options:
---link library.jar: Load a JAR file when loading this code");
+--link library.jar: Load a JAR file when loading this code
+--no-globals: (advanced option) Don't load any builtin global classes");
             return;
         }
         Err(error) => {
@@ -250,15 +256,17 @@ Link options:
     let context = Context::new(Box::new(loader));
 
     // Load globals
-    let globals_base_jar = Jar::from_bytes(context.gc_ctx, GLOBALS_BASE_JAR.to_vec())
-        .expect("Builtin globals should be valid");
-    context.add_jar(globals_base_jar);
-    let globals_desktop_jar = Jar::from_bytes(context.gc_ctx, GLOBALS_DESKTOP_JAR.to_vec())
-        .expect("Builtin globals should be valid");
-    context.add_jar(globals_desktop_jar);
+    if options.load_globals {
+        let globals_base_jar = Jar::from_bytes(context.gc_ctx, GLOBALS_BASE_JAR.to_vec())
+            .expect("Builtin globals should be valid");
+        context.add_jar(globals_base_jar);
+        let globals_desktop_jar = Jar::from_bytes(context.gc_ctx, GLOBALS_DESKTOP_JAR.to_vec())
+            .expect("Builtin globals should be valid");
+        context.add_jar(globals_desktop_jar);
 
-    base_native_impl::register_native_mappings(context);
-    native_impl::register_native_mappings(context);
+        base_native_impl::register_native_mappings(context);
+        native_impl::register_native_mappings(context);
+    }
 
     // Load linked JARs
     for linked_jar_name in &options.linked_jars {
