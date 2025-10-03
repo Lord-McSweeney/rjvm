@@ -33,7 +33,6 @@ impl fmt::Debug for Descriptor {
 }
 
 impl Descriptor {
-    // TODO: This function allocates and should not be used in hot code
     fn from_data_counting(
         gc_ctx: GcCtx,
         descriptor: &[u8],

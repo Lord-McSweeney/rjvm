@@ -478,8 +478,6 @@ impl Op {
         constant_pool: &ConstantPool,
         data: &mut FileData<'_>,
     ) -> Result<(Vec<Op>, HashMap<usize, usize>, Vec<Class>), Error> {
-        // TODO: Should current_class be None if this is a static method?
-
         let code_length = data.read_u32()? as usize;
         let code_start = data.position();
         let mut code = Vec::with_capacity(code_length / 2);
