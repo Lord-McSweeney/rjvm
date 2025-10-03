@@ -135,12 +135,12 @@ impl Class {
 
         for field in fields {
             if field.flags().contains(FieldFlags::STATIC) {
-                let created_field = FieldRef::from_field(context.gc_ctx, field)?;
+                let created_field = FieldRef::from_field(context, class_file, field)?;
 
                 static_field_names.push((field.name(), created_field.descriptor()));
                 static_fields.push(created_field);
             } else {
-                let created_field = Field::from_field(context.gc_ctx, field)?;
+                let created_field = Field::from_field(context, class_file, field)?;
 
                 instance_field_names.push((field.name(), created_field.descriptor()));
                 instance_fields.push(created_field);

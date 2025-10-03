@@ -1,9 +1,13 @@
+use super::context::Context;
 use super::descriptor::Descriptor;
 use super::error::{Error, NativeError};
 use super::value::Value;
 
+use crate::classfile::class::ClassFile;
+use crate::classfile::constant_pool::ConstantPoolEntry;
 use crate::classfile::field::Field as ClassFileField;
-use crate::gc::{Gc, GcCtx, Trace};
+use crate::classfile::reader::{FileData, Reader};
+use crate::gc::{Gc, Trace};
 use crate::string::JvmString;
 
 use std::cell::Cell;
@@ -18,15 +22,25 @@ pub struct Field {
 }
 
 impl Field {
-    pub fn from_field(gc_ctx: GcCtx, field: &ClassFileField) -> Result<Self, Error> {
+    pub fn from_field(
+        context: Context,
+        class_file: ClassFile,
+        field: &ClassFileField,
+    ) -> Result<Self, Error> {
         let descriptor_name = field.descriptor();
 
-        let descriptor = Descriptor::from_string(gc_ctx, descriptor_name)
+        let descriptor = Descriptor::from_string(context.gc_ctx, descriptor_name)
             .ok_or(Error::Native(NativeError::InvalidDescriptor))?;
 
         let name = field.name();
 
-        let value = descriptor.default_value();
+        let constant_value = field_constant_value(context, class_file, field)?;
+
+        let value = if let Some(constant_value) = constant_value {
+            constant_value
+        } else {
+            descriptor.default_value()
+        };
 
         Ok(Self {
             descriptor,
@@ -74,18 +88,28 @@ struct FieldRefData {
 }
 
 impl FieldRef {
-    pub fn from_field(gc_ctx: GcCtx, field: &ClassFileField) -> Result<Self, Error> {
+    pub fn from_field(
+        context: Context,
+        class_file: ClassFile,
+        field: &ClassFileField,
+    ) -> Result<Self, Error> {
         let descriptor_name = field.descriptor();
 
-        let descriptor = Descriptor::from_string(gc_ctx, descriptor_name)
+        let descriptor = Descriptor::from_string(context.gc_ctx, descriptor_name)
             .ok_or(Error::Native(NativeError::InvalidDescriptor))?;
 
         let name = field.name();
 
-        let value = descriptor.default_value();
+        let constant_value = field_constant_value(context, class_file, field)?;
+
+        let value = if let Some(constant_value) = constant_value {
+            constant_value
+        } else {
+            descriptor.default_value()
+        };
 
         Ok(Self(Gc::new(
-            gc_ctx,
+            context.gc_ctx,
             FieldRefData {
                 descriptor,
                 name,
@@ -124,4 +148,44 @@ impl Trace for FieldRefData {
         self.name.trace();
         self.value.trace();
     }
+}
+
+fn field_constant_value(
+    context: Context,
+    class_file: ClassFile,
+    field: &ClassFileField,
+) -> Result<Option<Value>, Error> {
+    for attribute in field.attributes() {
+        if attribute.name().as_bytes() == b"ConstantValue" {
+            let mut data = FileData::new(attribute.data());
+            let cpool_index = data.read_u16()?;
+            let constant_pool = class_file.constant_pool();
+            let cpool_entry = constant_pool.entry(cpool_index)?;
+
+            // TODO validate that this matches the descriptor
+            let cpool_value = match cpool_entry {
+                ConstantPoolEntry::String { string_idx } => {
+                    let string = constant_pool
+                        .get_utf8(string_idx)
+                        .expect("Should refer to valid entry");
+
+                    let string_chars = string.encode_utf16().collect::<Vec<_>>();
+
+                    Value::Object(Some(context.create_string(&string_chars)))
+                }
+                ConstantPoolEntry::Integer { value } => Value::Integer(value),
+                ConstantPoolEntry::Float { value } => Value::Float(value),
+                ConstantPoolEntry::Double { value } => Value::Double(value),
+                ConstantPoolEntry::Long { value } => Value::Long(value),
+                _ => {
+                    // TODO implement proper error handling here
+                    panic!("ConstantValue was of unexpected constant pool entry type")
+                }
+            };
+
+            return Ok(Some(cpool_value));
+        }
+    }
+
+    Ok(None)
 }
