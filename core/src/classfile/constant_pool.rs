@@ -93,14 +93,35 @@ impl ConstantPool {
                         self.ensure_entry_type(cpool_idx, FIELD_REF)?;
                     }
                     MethodHandle::InvokeVirtual(cpool_idx)
-                    | MethodHandle::InvokeStatic(cpool_idx)
-                    | MethodHandle::InvokeSpecial(cpool_idx) => {
+                    | MethodHandle::InvokeStatic(cpool_idx) => {
                         self.ensure_entry_type(cpool_idx, METHOD_REF)?;
 
                         let method_name = self
                             .get_method_ref(cpool_idx)
                             .expect("Just checked it to be MethodRef")
                             .1;
+
+                        if *method_name == "<init>" || *method_name == "<clinit>" {
+                            return Err(Error::ConstantPoolVerifyError);
+                        }
+                    }
+                    MethodHandle::InvokeSpecial(cpool_idx) => {
+                        // NOTE JVMS is wrong here- it says it needs to be a
+                        // MethodRef, but javac can also generate an
+                        // InterfaceMethodRef
+                        let tag = self.entry(cpool_idx)?.tag();
+                        if tag != METHOD_REF && tag != INTERFACE_METHOD_REF {
+                            return Err(Error::ConstantPoolTypeMismatch);
+                        }
+
+                        let method_info = if tag == METHOD_REF {
+                            self.get_method_ref(cpool_idx)
+                                .expect("Just checked it to be MethodRef")
+                        } else {
+                            self.get_interface_method_ref(cpool_idx)
+                                .expect("Just checked it to be InterfaceMethodRef")
+                        };
+                        let method_name = method_info.1;
 
                         if *method_name == "<init>" || *method_name == "<clinit>" {
                             return Err(Error::ConstantPoolVerifyError);
