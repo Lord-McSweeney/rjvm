@@ -56,21 +56,27 @@ pub enum Op {
     Swap,
     IAdd,
     LAdd,
+    FAdd,
     DAdd,
     ISub,
     LSub,
+    FSub,
     DSub,
     IMul,
     LMul,
+    FMul,
     DMul,
     IDiv,
     LDiv,
+    FDiv,
     DDiv,
     IRem,
     LRem,
+    FRem,
     DRem,
     INeg,
     LNeg,
+    FNeg,
     DNeg,
     IShl,
     LShl,
@@ -95,6 +101,8 @@ pub enum Op {
     I2C,
     I2S,
     LCmp,
+    FCmpL,
+    FCmpG,
     DCmpL,
     DCmpG,
     IfEq(usize),
@@ -200,21 +208,27 @@ impl Trace for Op {
             Op::Swap => {}
             Op::IAdd => {}
             Op::LAdd => {}
+            Op::FAdd => {}
             Op::DAdd => {}
             Op::ISub => {}
             Op::LSub => {}
+            Op::FSub => {}
             Op::DSub => {}
             Op::IMul => {}
             Op::LMul => {}
+            Op::FMul => {}
             Op::DMul => {}
             Op::IDiv => {}
             Op::LDiv => {}
+            Op::FDiv => {}
             Op::DDiv => {}
             Op::IRem => {}
             Op::LRem => {}
+            Op::FRem => {}
             Op::DRem => {}
             Op::INeg => {}
             Op::LNeg => {}
+            Op::FNeg => {}
             Op::DNeg => {}
             Op::IShl => {}
             Op::LShl => {}
@@ -239,6 +253,8 @@ impl Trace for Op {
             Op::I2C => {}
             Op::I2S => {}
             Op::LCmp => {}
+            Op::FCmpL => {}
+            Op::FCmpG => {}
             Op::DCmpL => {}
             Op::DCmpG => {}
             Op::IfEq(_) => {}
@@ -412,21 +428,27 @@ const DUP_2: u8 = 0x5C;
 const SWAP: u8 = 0x5F;
 const I_ADD: u8 = 0x60;
 const L_ADD: u8 = 0x61;
+const F_ADD: u8 = 0x62;
 const D_ADD: u8 = 0x63;
 const I_SUB: u8 = 0x64;
 const L_SUB: u8 = 0x65;
+const F_SUB: u8 = 0x66;
 const D_SUB: u8 = 0x67;
 const I_MUL: u8 = 0x68;
 const L_MUL: u8 = 0x69;
+const F_MUL: u8 = 0x6A;
 const D_MUL: u8 = 0x6B;
 const I_DIV: u8 = 0x6C;
 const L_DIV: u8 = 0x6D;
+const F_DIV: u8 = 0x6E;
 const D_DIV: u8 = 0x6F;
 const I_REM: u8 = 0x70;
 const L_REM: u8 = 0x71;
+const F_REM: u8 = 0x72;
 const D_REM: u8 = 0x73;
 const I_NEG: u8 = 0x74;
 const L_NEG: u8 = 0x75;
+const F_NEG: u8 = 0x76;
 const D_NEG: u8 = 0x77;
 const I_SHL: u8 = 0x78;
 const L_SHL: u8 = 0x79;
@@ -451,6 +473,8 @@ const I2B: u8 = 0x91;
 const I2C: u8 = 0x92;
 const I2S: u8 = 0x93;
 const L_CMP: u8 = 0x94;
+const F_CMP_L: u8 = 0x95;
+const F_CMP_G: u8 = 0x96;
 const D_CMP_L: u8 = 0x97;
 const D_CMP_G: u8 = 0x98;
 const IF_EQ: u8 = 0x99;
@@ -751,21 +775,27 @@ impl Op {
             SWAP => Ok(Op::Swap),
             I_ADD => Ok(Op::IAdd),
             L_ADD => Ok(Op::LAdd),
+            F_ADD => Ok(Op::FAdd),
             D_ADD => Ok(Op::DAdd),
             I_SUB => Ok(Op::ISub),
             L_SUB => Ok(Op::LSub),
+            F_SUB => Ok(Op::FSub),
             D_SUB => Ok(Op::DSub),
             I_MUL => Ok(Op::IMul),
             L_MUL => Ok(Op::LMul),
+            F_MUL => Ok(Op::FMul),
             D_MUL => Ok(Op::DMul),
             I_DIV => Ok(Op::IDiv),
             L_DIV => Ok(Op::LDiv),
+            F_DIV => Ok(Op::FDiv),
             D_DIV => Ok(Op::DDiv),
             I_REM => Ok(Op::IRem),
             L_REM => Ok(Op::LRem),
+            F_REM => Ok(Op::FRem),
             D_REM => Ok(Op::DRem),
             I_NEG => Ok(Op::INeg),
             L_NEG => Ok(Op::LNeg),
+            F_NEG => Ok(Op::FNeg),
             D_NEG => Ok(Op::DNeg),
             I_SHL => Ok(Op::IShl),
             L_SHL => Ok(Op::LShl),
@@ -795,6 +825,8 @@ impl Op {
             I2C => Ok(Op::I2C),
             I2S => Ok(Op::I2S),
             L_CMP => Ok(Op::LCmp),
+            F_CMP_L => Ok(Op::FCmpL),
+            F_CMP_G => Ok(Op::FCmpG),
             D_CMP_L => Ok(Op::DCmpL),
             D_CMP_G => Ok(Op::DCmpG),
             IF_EQ => {

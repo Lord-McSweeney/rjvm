@@ -184,21 +184,27 @@ impl<'a> Interpreter<'a> {
                 Op::Swap => self.op_swap(),
                 Op::IAdd => self.op_i_add(),
                 Op::LAdd => self.op_l_add(),
+                Op::FAdd => self.op_f_add(),
                 Op::DAdd => self.op_d_add(),
                 Op::ISub => self.op_i_sub(),
                 Op::LSub => self.op_l_sub(),
+                Op::FSub => self.op_f_sub(),
                 Op::DSub => self.op_d_sub(),
                 Op::IMul => self.op_i_mul(),
                 Op::LMul => self.op_l_mul(),
+                Op::FMul => self.op_f_mul(),
                 Op::DMul => self.op_d_mul(),
                 Op::IDiv => self.op_i_div(),
                 Op::LDiv => self.op_l_div(),
+                Op::FDiv => self.op_f_div(),
                 Op::DDiv => self.op_d_div(),
                 Op::IRem => self.op_i_rem(),
                 Op::LRem => self.op_l_rem(),
+                Op::FRem => self.op_f_rem(),
                 Op::DRem => self.op_d_rem(),
                 Op::INeg => self.op_i_neg(),
                 Op::LNeg => self.op_l_neg(),
+                Op::FNeg => self.op_f_neg(),
                 Op::DNeg => self.op_d_neg(),
                 Op::IShl => self.op_i_shl(),
                 Op::LShl => self.op_l_shl(),
@@ -223,6 +229,8 @@ impl<'a> Interpreter<'a> {
                 Op::I2C => self.op_i2c(),
                 Op::I2S => self.op_i2s(),
                 Op::LCmp => self.op_l_cmp(),
+                Op::FCmpL => self.op_f_cmp_l(),
+                Op::FCmpG => self.op_f_cmp_g(),
                 Op::DCmpL => self.op_d_cmp_l(),
                 Op::DCmpG => self.op_d_cmp_g(),
                 Op::IfEq(position) => self.op_if_eq(*position),
@@ -875,6 +883,15 @@ impl<'a> Interpreter<'a> {
         Ok(ControlFlow::Continue)
     }
 
+    fn op_f_add(&mut self) -> Result<ControlFlow, Error> {
+        let int1 = self.stack_pop().float();
+        let int2 = self.stack_pop().float();
+
+        self.stack_push(Value::Float(int1 + int2));
+
+        Ok(ControlFlow::Continue)
+    }
+
     fn op_d_add(&mut self) -> Result<ControlFlow, Error> {
         let int1 = self.stack_pop_wide().double();
         let int2 = self.stack_pop_wide().double();
@@ -902,6 +919,15 @@ impl<'a> Interpreter<'a> {
         Ok(ControlFlow::Continue)
     }
 
+    fn op_f_sub(&mut self) -> Result<ControlFlow, Error> {
+        let int1 = self.stack_pop().float();
+        let int2 = self.stack_pop().float();
+
+        self.stack_push(Value::Float(int2 - int1));
+
+        Ok(ControlFlow::Continue)
+    }
+
     fn op_d_sub(&mut self) -> Result<ControlFlow, Error> {
         let int1 = self.stack_pop_wide().double();
         let int2 = self.stack_pop_wide().double();
@@ -925,6 +951,15 @@ impl<'a> Interpreter<'a> {
         let int2 = self.stack_pop_wide().long();
 
         self.stack_push_wide(Value::Long(int1 * int2));
+
+        Ok(ControlFlow::Continue)
+    }
+
+    fn op_f_mul(&mut self) -> Result<ControlFlow, Error> {
+        let int1 = self.stack_pop().float();
+        let int2 = self.stack_pop().float();
+
+        self.stack_push(Value::Float(int1 * int2));
 
         Ok(ControlFlow::Continue)
     }
@@ -964,6 +999,15 @@ impl<'a> Interpreter<'a> {
         }
     }
 
+    fn op_f_div(&mut self) -> Result<ControlFlow, Error> {
+        let int1 = self.stack_pop().float();
+        let int2 = self.stack_pop().float();
+
+        self.stack_push(Value::Float(int2 / int1));
+
+        Ok(ControlFlow::Continue)
+    }
+
     fn op_d_div(&mut self) -> Result<ControlFlow, Error> {
         let int1 = self.stack_pop_wide().double();
         let int2 = self.stack_pop_wide().double();
@@ -999,6 +1043,15 @@ impl<'a> Interpreter<'a> {
         }
     }
 
+    fn op_f_rem(&mut self) -> Result<ControlFlow, Error> {
+        let float1 = self.stack_pop().float();
+        let float2 = self.stack_pop().float();
+
+        self.stack_push(Value::Float(float2 % float1));
+
+        Ok(ControlFlow::Continue)
+    }
+
     fn op_d_rem(&mut self) -> Result<ControlFlow, Error> {
         let double1 = self.stack_pop_wide().double();
         let double2 = self.stack_pop_wide().double();
@@ -1020,6 +1073,14 @@ impl<'a> Interpreter<'a> {
         let long = self.stack_pop_wide().long();
 
         self.stack_push_wide(Value::Long(-long));
+
+        Ok(ControlFlow::Continue)
+    }
+
+    fn op_f_neg(&mut self) -> Result<ControlFlow, Error> {
+        let float = self.stack_pop().float();
+
+        self.stack_push(Value::Float(-float));
 
         Ok(ControlFlow::Continue)
     }
@@ -1234,6 +1295,58 @@ impl<'a> Interpreter<'a> {
             Ordering::Less => {
                 self.stack_push(Value::Integer(-1));
             }
+        }
+
+        Ok(ControlFlow::Continue)
+    }
+
+    fn op_f_cmp_l(&mut self) -> Result<ControlFlow, Error> {
+        let float2 = self.stack_pop().float();
+        let float1 = self.stack_pop().float();
+
+        let cmp = float1.partial_cmp(&float2);
+
+        if let Some(cmp) = cmp {
+            match cmp {
+                Ordering::Greater => {
+                    self.stack_push(Value::Integer(1));
+                }
+                Ordering::Equal => {
+                    self.stack_push(Value::Integer(0));
+                }
+                Ordering::Less => {
+                    self.stack_push(Value::Integer(-1));
+                }
+            }
+        } else {
+            // NaN comparison
+            self.stack_push(Value::Integer(-1));
+        }
+
+        Ok(ControlFlow::Continue)
+    }
+
+    fn op_f_cmp_g(&mut self) -> Result<ControlFlow, Error> {
+        let float2 = self.stack_pop().float();
+        let float1 = self.stack_pop().float();
+
+        let cmp = float1.partial_cmp(&float2);
+
+        if let Some(cmp) = cmp {
+            match cmp {
+                Ordering::Greater => {
+                    self.stack_push(Value::Integer(1));
+                }
+                Ordering::Equal => {
+                    self.stack_push(Value::Integer(0));
+                }
+                Ordering::Less => {
+                    self.stack_push(Value::Integer(-1));
+                }
+            }
+        } else {
+            // NaN comparison
+            self.stack_push(Value::Integer(1));
         }
 
         Ok(ControlFlow::Continue)
