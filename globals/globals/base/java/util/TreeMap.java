@@ -123,6 +123,8 @@ public class TreeMap<K, V> extends AbstractMap<K, V> {
         Comparable<K> comparableKey = (Comparable<K>) key;
 
         if (this.root == null) {
+            this.size += 1;
+
             Entry<K, V> entry = new Entry<K, V>(key, value);
             this.root = entry;
 
@@ -137,6 +139,8 @@ public class TreeMap<K, V> extends AbstractMap<K, V> {
                     return previousValue;
                 } else if (result > 0) {
                     if (current.right == null) {
+                        this.size += 1;
+
                         Entry<K, V> entry = new Entry<K, V>(key, value);
                         current.right = entry;
 
@@ -146,6 +150,8 @@ public class TreeMap<K, V> extends AbstractMap<K, V> {
                     }
                 } else {
                     if (current.left == null) {
+                        this.size += 1;
+
                         Entry<K, V> entry = new Entry<K, V>(key, value);
                         current.left = entry;
 
@@ -178,9 +184,7 @@ public class TreeMap<K, V> extends AbstractMap<K, V> {
         }
 
         public int size() {
-            Todo.warnNotImpl("java.util.TreeMap.EntrySet.size");
-
-            return 0;
+            return map.size;
         }
     }
 
