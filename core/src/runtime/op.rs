@@ -124,6 +124,7 @@ pub enum Op {
     LookupSwitch(Box<[(i32, usize)]>, usize),
     IReturn,
     LReturn,
+    FReturn,
     DReturn,
     AReturn,
     Return,
@@ -276,6 +277,7 @@ impl Trace for Op {
             Op::LookupSwitch(_, _) => {}
             Op::IReturn => {}
             Op::LReturn => {}
+            Op::FReturn => {}
             Op::DReturn => {}
             Op::AReturn => {}
             Op::Return => {}
@@ -496,6 +498,7 @@ const TABLE_SWITCH: u8 = 0xAA;
 const LOOKUP_SWITCH: u8 = 0xAB;
 const I_RETURN: u8 = 0xAC;
 const L_RETURN: u8 = 0xAD;
+const F_RETURN: u8 = 0xAE;
 const D_RETURN: u8 = 0xAF;
 const A_RETURN: u8 = 0xB0;
 const RETURN: u8 = 0xB1;
@@ -981,6 +984,15 @@ impl Op {
                     Err(Error::Native(NativeError::WrongReturnType))
                 } else {
                     Ok(Op::LReturn)
+                }
+            }
+            F_RETURN => {
+                let return_type = method.descriptor().return_type();
+
+                if !matches!(return_type, Descriptor::Float) {
+                    Err(Error::Native(NativeError::WrongReturnType))
+                } else {
+                    Ok(Op::FReturn)
                 }
             }
             D_RETURN => {
