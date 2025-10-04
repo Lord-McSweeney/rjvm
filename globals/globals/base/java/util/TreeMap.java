@@ -63,6 +63,62 @@ public class TreeMap<K, V> extends AbstractMap<K, V> {
         return null;
     }
 
+    public boolean containsKey(Object key) {
+        Comparable<K> comparableKey = (Comparable<K>) key;
+
+        if (this.root == null) {
+            return false;
+        } else {
+            Entry<K, V> current = this.root;
+            while (true) {
+                int result = comparableKey.compareTo(current.key);
+                if (result == 0) {
+                    return true;
+                } else if (result > 0) {
+                    if (current.right == null) {
+                        return false;
+                    } else {
+                        current = current.right;
+                    }
+                } else {
+                    if (current.left == null) {
+                        return false;
+                    } else {
+                        current = current.left;
+                    }
+                }
+            }
+        }
+    }
+
+    public V get(Object key) {
+        Comparable<K> comparableKey = (Comparable<K>) key;
+
+        if (this.root == null) {
+            return null;
+        } else {
+            Entry<K, V> current = this.root;
+            while (true) {
+                int result = comparableKey.compareTo(current.key);
+                if (result == 0) {
+                    return current.value;
+                } else if (result > 0) {
+                    if (current.right == null) {
+                        return null;
+                    } else {
+                        current = current.right;
+                    }
+                } else {
+                    if (current.left == null) {
+                        return null;
+                    } else {
+                        current = current.left;
+                    }
+                }
+            }
+        }
+    }
+
     public V put(K key, V value) {
         Comparable<K> comparableKey = (Comparable<K>) key;
 
