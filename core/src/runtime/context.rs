@@ -305,6 +305,10 @@ impl Context {
         *self.primitive_classes.get(&primitive_type).unwrap()
     }
 
+    pub fn call_stack_size(self) -> usize {
+        self.call_stack.borrow().len()
+    }
+
     pub fn push_call(self, method: Method) {
         self.call_stack.borrow_mut().push_call(method);
     }

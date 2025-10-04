@@ -243,7 +243,7 @@ impl Trace for ResolvedDescriptor {
     }
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy)]
 pub struct MethodDescriptor(Gc<MethodDescriptorData>);
 
 impl PartialEq for MethodDescriptor {
@@ -260,7 +260,7 @@ impl Hash for MethodDescriptor {
     }
 }
 
-#[derive(Debug, Eq, Hash, PartialEq)]
+#[derive(Eq, Hash, PartialEq)]
 struct MethodDescriptorData {
     args: Box<[Descriptor]>,
     physical_arg_count: usize,
@@ -344,5 +344,19 @@ impl Trace for MethodDescriptorData {
     fn trace(&self) {
         self.args.trace();
         self.return_type.trace();
+    }
+}
+
+impl fmt::Debug for MethodDescriptor {
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        let mut result = String::new();
+        result.push('(');
+        for arg in &self.0.args {
+            result.push_str(&arg.to_string());
+        }
+        result.push(')');
+        result.push_str(&self.0.return_type.to_string());
+
+        write!(f, "{}", result)
     }
 }

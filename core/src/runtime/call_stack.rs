@@ -13,6 +13,10 @@ impl CallStack {
         }
     }
 
+    pub fn len(&self) -> usize {
+        self.entries.len()
+    }
+
     pub fn push_call(&mut self, entry: Method) {
         self.entries.push(entry);
     }
