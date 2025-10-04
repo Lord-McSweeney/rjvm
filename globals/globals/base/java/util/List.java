@@ -17,6 +17,8 @@ public interface List<E> extends Collection<E> {
 
     int size();
 
+    List<E> subList(int fromIndex, int toIndex);
+
     Object[] toArray();
 
     <T> T[] toArray(T[] a);

@@ -8,6 +8,11 @@ public class HashSet<E> extends AbstractSet<E> implements Set<E> {
         this.data = new Object[0];
     }
 
+    public HashSet(int capacity) {
+        // TODO implement
+        this.data = new Object[0];
+    }
+
     public HashSet(Collection<? extends E> collection) {
         // FIXME use capacity here
         this.data = new Object[0];

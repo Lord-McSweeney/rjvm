@@ -15,8 +15,13 @@ public abstract class Charset {
     }
 
     public final CharBuffer decode(ByteBuffer buf) {
-        // TODO implement
-        return CharBuffer.wrap(new char[0]);
+        // TODO implement properly
+        byte[] data = buf.array();
+        char[] newData = new char[data.length];
+        for (int i = 0; i < data.length; i ++) {
+            newData[i] = (char) data[i];
+        }
+        return CharBuffer.wrap(newData);
     }
 
     public final ByteBuffer encode(CharBuffer buf) {

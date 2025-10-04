@@ -42,8 +42,46 @@ public abstract class AbstractList<E> extends AbstractCollection<E> implements L
         // TODO implement
     }
 
+    public List<E> subList(int fromIndex, int toIndex) {
+        if (fromIndex < 0 || toIndex > this.size()) {
+            throw new IndexOutOfBoundsException();
+        }
+        if (fromIndex > toIndex) {
+            throw new IllegalArgumentException();
+        }
+
+        int size = toIndex - fromIndex;
+        return new SubList<E>(this, fromIndex, size);
+    }
+
     public Iterator<E> iterator() {
         // TODO implement
         return null;
+    }
+}
+
+class SubList<E> extends AbstractList<E> {
+    private AbstractList<E> backingList;
+    private int start;
+    private int size;
+
+    SubList(AbstractList<E> backingList, int start, int size) {
+        this.backingList = backingList;
+        this.start = start;
+        this.size = size;
+    }
+
+    public E get(int index) {
+        return this.backingList.get(this.start + index);
+    }
+
+    public E set(int index, E element) {
+        return this.backingList.set(this.start + index, element);
+    }
+
+    // Other methods are TODO
+
+    public int size() {
+        return this.size;
     }
 }
