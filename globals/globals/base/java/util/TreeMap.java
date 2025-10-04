@@ -2,16 +2,33 @@ package java.util;
 
 import rjvm.internal.Todo;
 
-public class TreeMap<K, V> extends AbstractMap<K, V> {
+public class TreeMap<K, V> extends AbstractMap<K, V> implements Cloneable {
     Entry<K, V> root;
     int size;
 
-    // The comparator we're using, or `null` if we use default comparison
-    Comparator<? super K> comparator;
+    // The comparator we're using
+    Comparator comparator;
+
+    private static Comparator naturalComparator;
+    static {
+        TreeMap.naturalComparator = new Comparator() {
+            public int compare(Object o1, Object o2) {
+                Comparable comparableO1 = (Comparable) o1;
+                return comparableO1.compareTo(o2);
+            }
+
+            public boolean equals(Object other) {
+                // TODO ???
+                return this == other;
+            }
+        };
+    }
+
+    public TreeMap() {
+        this(TreeMap.naturalComparator);
+    }
 
     public TreeMap(Comparator<? super K> comparator) {
-        Todo.warnNotImpl("java.util.TreeMap(comparator)");
-
         this.comparator = comparator;
     }
 
@@ -19,7 +36,7 @@ public class TreeMap<K, V> extends AbstractMap<K, V> {
         return new EntrySet(this);
     }
 
-    public K firstKey() {
+    public Map.Entry<K, V> firstEntry() {
         if (this.root == null) {
             return null;
         }
@@ -29,7 +46,16 @@ public class TreeMap<K, V> extends AbstractMap<K, V> {
             current = current.left;
         }
 
-        return current.key;
+        return current;
+    }
+
+    public K firstKey() {
+        Map.Entry<K, V> entry = this.firstEntry();
+        if (entry != null) {
+            return entry.getKey();
+        } else {
+            return null;
+        }
     }
 
     public K lastKey() {
@@ -71,7 +97,7 @@ public class TreeMap<K, V> extends AbstractMap<K, V> {
         } else {
             Entry<K, V> current = this.root;
             while (true) {
-                int result = comparableKey.compareTo(current.key);
+                int result = this.comparator.compare(comparableKey, current.key);
                 if (result == 0) {
                     return true;
                 } else if (result > 0) {
@@ -99,7 +125,7 @@ public class TreeMap<K, V> extends AbstractMap<K, V> {
         } else {
             Entry<K, V> current = this.root;
             while (true) {
-                int result = comparableKey.compareTo(current.key);
+                int result = this.comparator.compare(comparableKey, current.key);
                 if (result == 0) {
                     return current.value;
                 } else if (result > 0) {
@@ -132,7 +158,7 @@ public class TreeMap<K, V> extends AbstractMap<K, V> {
         } else {
             Entry<K, V> current = this.root;
             while (true) {
-                int result = comparableKey.compareTo(current.key);
+                int result = this.comparator.compare(comparableKey, current.key);
                 if (result == 0) {
                     V previousValue = current.value;
                     current.value = value;
@@ -143,6 +169,7 @@ public class TreeMap<K, V> extends AbstractMap<K, V> {
 
                         Entry<K, V> entry = new Entry<K, V>(key, value);
                         current.right = entry;
+                        entry.parent = current;
 
                         return null;
                     } else {
@@ -154,6 +181,7 @@ public class TreeMap<K, V> extends AbstractMap<K, V> {
 
                         Entry<K, V> entry = new Entry<K, V>(key, value);
                         current.left = entry;
+                        entry.parent = current;
 
                         return null;
                     } else {
@@ -166,6 +194,25 @@ public class TreeMap<K, V> extends AbstractMap<K, V> {
 
     public void clear() {
         this.root = null;
+    }
+
+    // Given an entry, return the next entry. For use by `TreeSet`
+    static TreeMap.Entry findNextEntry(TreeMap.Entry current) {
+        if (current.right != null) {
+            TreeMap.Entry currentLeft = current.right;
+            while (currentLeft.left != null) {
+                currentLeft = currentLeft.left;
+            }
+            return currentLeft;
+        } else {
+            TreeMap.Entry currentParent = current.parent;
+            TreeMap.Entry currentNode = current;
+            while (currentParent != null && currentParent.right == currentNode) {
+                currentNode = currentParent;
+                currentParent = currentParent.parent;
+            }
+            return currentParent;
+        }
     }
 
     class EntrySet extends AbstractSet<Map.Entry<K, V>> {
