@@ -71,6 +71,14 @@ public final class StringBuilder {
         return this.append(stringified);
     }
 
+    public StringBuilder append(boolean b) {
+        if (b) {
+            return this.append("true");
+        } else {
+            return this.append("false");
+        }
+    }
+
     public int length() {
         return this.data.length;
     }
