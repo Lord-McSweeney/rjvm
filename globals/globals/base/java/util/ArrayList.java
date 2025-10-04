@@ -141,9 +141,7 @@ public class ArrayList<E> extends AbstractList<E> implements List<E> {
             throw new IndexOutOfBoundsException();
         }
 
-        Todo.warnNotImpl("java.util.ArrayList.listIterator");
-
-        return null;
+        return new ArrayListIterator<E>(this, index);
     }
 
     public int size() {
