@@ -1,3 +1,4 @@
+use super::builtins::BuiltinClasses;
 use super::call_stack::CallStack;
 use super::class::{Class, PrimitiveType};
 use super::descriptor::{Descriptor, MethodDescriptor, ResolvedDescriptor};
@@ -12,7 +13,7 @@ use crate::gc::{Gc, GcCtx, Trace};
 use crate::jar::Jar;
 use crate::string::JvmString;
 
-use std::cell::{Cell, RefCell};
+use std::cell::{Cell, OnceCell, Ref, RefCell};
 use std::collections::HashMap;
 
 // Various magic fields
@@ -71,6 +72,14 @@ pub struct Context {
     // The number of allocation operations before the GC runs.
     gc_threshold: Gc<Cell<u32>>,
 
+    // The class `java.lang.Object`. This is critical for all class loading,
+    // so we store it separately.
+    object_class: Gc<OnceCell<Class>>,
+
+    // Builtin classes, such as `NoClassDefFoundError`, that the VM needs to
+    // access quickly
+    builtins: Gc<RefCell<Option<BuiltinClasses>>>,
+
     // Common strings and descriptors.
     pub common: CommonData,
 
@@ -107,6 +116,8 @@ impl Context {
             call_stack: Gc::new(gc_ctx, RefCell::new(CallStack::empty())),
             gc_counter: Gc::new(gc_ctx, Cell::new(0)),
             gc_threshold: Gc::new(gc_ctx, Cell::new(DEFAULT_GC_THRESHOLD)),
+            object_class: Gc::new(gc_ctx, OnceCell::new()),
+            builtins: Gc::new(gc_ctx, RefCell::new(None)),
             common: CommonData::new(gc_ctx),
             gc_ctx,
         }
@@ -335,9 +346,7 @@ impl Context {
 
         let chars_array_object = Object::char_array(self, chars);
 
-        let string_class = self
-            .lookup_class(self.common.java_lang_string)
-            .expect("String class should exist");
+        let string_class = self.builtins().java_lang_string;
 
         let string_instance = string_class.new_instance(self.gc_ctx);
         string_instance.set_field(STRING_DATA_FIELD, Value::Object(Some(chars_array_object)));
@@ -349,9 +358,7 @@ impl Context {
     pub fn create_string(self, chars: &[u16]) -> Object {
         let chars_array_object = Object::char_array(self, Box::from(chars));
 
-        let string_class = self
-            .lookup_class(self.common.java_lang_string)
-            .expect("String class should exist");
+        let string_class = self.builtins().java_lang_string;
 
         let string_instance = string_class.new_instance(self.gc_ctx);
         string_instance.set_field(STRING_DATA_FIELD, Value::Object(Some(chars_array_object)));
@@ -359,10 +366,36 @@ impl Context {
         string_instance
     }
 
+    pub fn object_class(&self) -> Class {
+        self.object_class
+            .get()
+            .copied()
+            .expect("Builtin classes have been loaded")
+    }
+
+    pub fn builtins(&self) -> Ref<'_, BuiltinClasses> {
+        let builtins = self.builtins.borrow();
+        Ref::map(builtins, |b| {
+            b.as_ref().expect("Builtin classes have been loaded")
+        })
+    }
+
+    pub fn load_builtins(&self) {
+        let object_class_name = "java/lang/Object".to_string();
+        let object_class_name = JvmString::new(self.gc_ctx, object_class_name);
+
+        let object_class = self
+            .lookup_class(object_class_name)
+            .expect("Object class did not exist");
+
+        let _ = self.object_class.set(object_class);
+
+        let builtin_classes = BuiltinClasses::new(*self);
+        *self.builtins.borrow_mut() = Some(builtin_classes);
+    }
+
     pub fn arithmetic_exception(&self) -> Error {
-        let exception_class = self
-            .lookup_class(self.common.java_lang_arithmetic_exception)
-            .expect("ArithmeticException class should exist");
+        let exception_class = self.builtins().java_lang_arithmetic_exception;
 
         let exception_instance = exception_class.new_instance(self.gc_ctx);
         exception_instance
@@ -377,9 +410,7 @@ impl Context {
     }
 
     pub fn array_index_oob_exception(&self) -> Error {
-        let exception_class = self
-            .lookup_class(self.common.java_lang_array_index_oob_exception)
-            .expect("ArrayIndexOutOfBoundsException class should exist");
+        let exception_class = self.builtins().java_lang_array_index_oob_exception;
 
         let exception_instance = exception_class.new_instance(self.gc_ctx);
         exception_instance
@@ -394,9 +425,7 @@ impl Context {
     }
 
     pub fn array_store_exception(&self) -> Error {
-        let exception_class = self
-            .lookup_class(self.common.java_lang_array_store_exception)
-            .expect("ArrayStoreException class should exist");
+        let exception_class = self.builtins().java_lang_array_store_exception;
 
         let exception_instance = exception_class.new_instance(self.gc_ctx);
         exception_instance
@@ -411,9 +440,7 @@ impl Context {
     }
 
     pub fn class_cast_exception(&self) -> Error {
-        let exception_class = self
-            .lookup_class(self.common.java_lang_class_cast_exception)
-            .expect("ClassCastException class should exist");
+        let exception_class = self.builtins().java_lang_class_cast_exception;
 
         let exception_instance = exception_class.new_instance(self.gc_ctx);
         exception_instance
@@ -428,9 +455,7 @@ impl Context {
     }
 
     pub fn clone_not_supported_exception(&self) -> Error {
-        let exception_class = self
-            .lookup_class(self.common.java_lang_clone_not_supported_exception)
-            .expect("CloneNotSupportedException class should exist");
+        let exception_class = self.builtins().java_lang_clone_not_supported_exception;
 
         let exception_instance = exception_class.new_instance(self.gc_ctx);
         exception_instance
@@ -445,9 +470,7 @@ impl Context {
     }
 
     pub fn negative_array_size_exception(&self) -> Error {
-        let exception_class = self
-            .lookup_class(self.common.java_lang_negative_array_size_exception)
-            .expect("NegativeArraySizeException class should exist");
+        let exception_class = self.builtins().java_lang_negative_array_size_exception;
 
         let exception_instance = exception_class.new_instance(self.gc_ctx);
         exception_instance
@@ -462,9 +485,7 @@ impl Context {
     }
 
     pub fn no_class_def_found_error(&self, class_name: JvmString) -> Error {
-        let error_class = self
-            .lookup_class(self.common.java_lang_no_class_def_found_error)
-            .expect("NoClassDefFoundError class should exist");
+        let error_class = self.builtins().java_lang_no_class_def_found_error;
 
         let error_instance = error_class.new_instance(self.gc_ctx);
         error_instance
@@ -485,9 +506,7 @@ impl Context {
     }
 
     pub fn no_such_field_error(&self) -> Error {
-        let error_class = self
-            .lookup_class(self.common.java_lang_no_such_field_error)
-            .expect("NoSuchFieldError class should exist");
+        let error_class = self.builtins().java_lang_no_such_field_error;
 
         let error_instance = error_class.new_instance(self.gc_ctx);
         error_instance
@@ -502,9 +521,7 @@ impl Context {
     }
 
     pub fn no_such_method_error(&self) -> Error {
-        let error_class = self
-            .lookup_class(self.common.java_lang_no_such_method_error)
-            .expect("NoSuchMethodError class should exist");
+        let error_class = self.builtins().java_lang_no_such_method_error;
 
         let error_instance = error_class.new_instance(self.gc_ctx);
         error_instance
@@ -519,9 +536,7 @@ impl Context {
     }
 
     pub fn null_pointer_exception(&self) -> Error {
-        let exception_class = self
-            .lookup_class(self.common.java_lang_null_pointer_exception)
-            .expect("NullPointerException class should exist");
+        let exception_class = self.builtins().java_lang_null_pointer_exception;
 
         let exception_instance = exception_class.new_instance(self.gc_ctx);
         exception_instance
@@ -567,39 +582,14 @@ impl Trace for Context {
         self.gc_counter.trace();
         self.gc_threshold.trace();
 
+        self.object_class.trace();
+        self.builtins.trace();
         self.common.trace();
     }
 }
 
 #[derive(Clone, Copy)]
 pub struct CommonData {
-    pub java_lang_class: JvmString,
-    pub java_lang_object: JvmString,
-    pub java_lang_string: JvmString,
-    pub java_lang_throwable: JvmString,
-
-    pub java_lang_arithmetic_exception: JvmString,
-    pub java_lang_array_index_oob_exception: JvmString,
-    pub java_lang_array_store_exception: JvmString,
-    pub java_lang_class_cast_exception: JvmString,
-    pub java_lang_clone_not_supported_exception: JvmString,
-    pub java_lang_cloneable: JvmString,
-    pub java_lang_negative_array_size_exception: JvmString,
-    pub java_lang_no_class_def_found_error: JvmString,
-    pub java_lang_no_such_field_error: JvmString,
-    pub java_lang_no_such_method_error: JvmString,
-    pub java_lang_null_pointer_exception: JvmString,
-    pub java_lang_reflect_constructor: JvmString,
-
-    pub array_byte_desc: JvmString,
-    pub array_char_desc: JvmString,
-    pub array_double_desc: JvmString,
-    pub array_float_desc: JvmString,
-    pub array_int_desc: JvmString,
-    pub array_long_desc: JvmString,
-    pub array_short_desc: JvmString,
-    pub array_bool_desc: JvmString,
-
     pub init_name: JvmString,
     pub clinit_name: JvmString,
 
@@ -621,63 +611,6 @@ impl CommonData {
                 .expect("Valid descriptor");
 
         Self {
-            java_lang_class: JvmString::new(gc_ctx, "java/lang/Class".to_string()),
-            java_lang_object: JvmString::new(gc_ctx, "java/lang/Object".to_string()),
-            java_lang_string: JvmString::new(gc_ctx, "java/lang/String".to_string()),
-            java_lang_throwable: JvmString::new(gc_ctx, "java/lang/Throwable".to_string()),
-            java_lang_arithmetic_exception: JvmString::new(
-                gc_ctx,
-                "java/lang/ArithmeticException".to_string(),
-            ),
-            java_lang_array_index_oob_exception: JvmString::new(
-                gc_ctx,
-                "java/lang/ArrayIndexOutOfBoundsException".to_string(),
-            ),
-            java_lang_array_store_exception: JvmString::new(
-                gc_ctx,
-                "java/lang/ArrayStoreException".to_string(),
-            ),
-            java_lang_class_cast_exception: JvmString::new(
-                gc_ctx,
-                "java/lang/ClassCastException".to_string(),
-            ),
-            java_lang_clone_not_supported_exception: JvmString::new(
-                gc_ctx,
-                "java/lang/CloneNotSupportedException".to_string(),
-            ),
-            java_lang_cloneable: JvmString::new(gc_ctx, "java/lang/Cloneable".to_string()),
-            java_lang_negative_array_size_exception: JvmString::new(
-                gc_ctx,
-                "java/lang/NegativeArraySizeException".to_string(),
-            ),
-            java_lang_no_class_def_found_error: JvmString::new(
-                gc_ctx,
-                "java/lang/NoClassDefFoundError".to_string(),
-            ),
-            java_lang_no_such_field_error: JvmString::new(
-                gc_ctx,
-                "java/lang/NoSuchFieldError".to_string(),
-            ),
-            java_lang_no_such_method_error: JvmString::new(
-                gc_ctx,
-                "java/lang/NoSuchMethodError".to_string(),
-            ),
-            java_lang_null_pointer_exception: JvmString::new(
-                gc_ctx,
-                "java/lang/NullPointerException".to_string(),
-            ),
-            java_lang_reflect_constructor: JvmString::new(
-                gc_ctx,
-                "java/lang/reflect/Constructor".to_string(),
-            ),
-            array_byte_desc: JvmString::new(gc_ctx, "[B".to_string()),
-            array_char_desc: JvmString::new(gc_ctx, "[C".to_string()),
-            array_double_desc: JvmString::new(gc_ctx, "[D".to_string()),
-            array_float_desc: JvmString::new(gc_ctx, "[F".to_string()),
-            array_int_desc: JvmString::new(gc_ctx, "[I".to_string()),
-            array_long_desc: JvmString::new(gc_ctx, "[J".to_string()),
-            array_short_desc: JvmString::new(gc_ctx, "[S".to_string()),
-            array_bool_desc: JvmString::new(gc_ctx, "[Z".to_string()),
             init_name: JvmString::new(gc_ctx, "<init>".to_string()),
             clinit_name: JvmString::new(gc_ctx, "<clinit>".to_string()),
             noargs_void_desc,
@@ -688,33 +621,6 @@ impl CommonData {
 
 impl Trace for CommonData {
     fn trace(&self) {
-        self.java_lang_class.trace();
-        self.java_lang_object.trace();
-        self.java_lang_string.trace();
-        self.java_lang_throwable.trace();
-
-        self.java_lang_arithmetic_exception.trace();
-        self.java_lang_array_index_oob_exception.trace();
-        self.java_lang_array_store_exception.trace();
-        self.java_lang_class_cast_exception.trace();
-        self.java_lang_clone_not_supported_exception.trace();
-        self.java_lang_cloneable.trace();
-        self.java_lang_negative_array_size_exception.trace();
-        self.java_lang_no_class_def_found_error.trace();
-        self.java_lang_no_such_field_error.trace();
-        self.java_lang_no_such_method_error.trace();
-        self.java_lang_null_pointer_exception.trace();
-        self.java_lang_reflect_constructor.trace();
-
-        self.array_byte_desc.trace();
-        self.array_char_desc.trace();
-        self.array_double_desc.trace();
-        self.array_float_desc.trace();
-        self.array_int_desc.trace();
-        self.array_long_desc.trace();
-        self.array_short_desc.trace();
-        self.array_bool_desc.trace();
-
         self.init_name.trace();
         self.clinit_name.trace();
 

@@ -31,9 +31,7 @@ impl Object {
     // making it a valid `Class` object (see how
     // `Context::get_or_init_java_class_for_class` does it).
     pub fn class_object(context: Context) -> Self {
-        let class_class = context
-            .lookup_class(context.common.java_lang_class)
-            .expect("Class class should exist");
+        let class_class = context.builtins().java_lang_class;
 
         let fields = class_class.instance_fields().to_vec().into_boxed_slice();
 
@@ -50,9 +48,7 @@ impl Object {
     // responsible for making it a valid `Constructor` object (see how
     // `Context::get_or_init_java_executable_for_method` does it).
     pub fn constructor_object(context: Context) -> Self {
-        let constructor_class = context
-            .lookup_class(context.common.java_lang_reflect_constructor)
-            .expect("Class class should exist");
+        let constructor_class = context.builtins().java_lang_reflect_constructor;
 
         let fields = constructor_class
             .instance_fields()
@@ -69,9 +65,7 @@ impl Object {
     }
 
     pub fn bool_array(context: Context, data: Box<[i8]>) -> Self {
-        let class = context
-            .lookup_class(context.common.array_bool_desc)
-            .expect("Should lookup");
+        let class = context.builtins().array_bool;
 
         let data = data.into_iter().map(Cell::new).collect::<Box<_>>();
 
@@ -85,9 +79,7 @@ impl Object {
     }
 
     pub fn byte_array(context: Context, data: Box<[i8]>) -> Self {
-        let class = context
-            .lookup_class(context.common.array_byte_desc)
-            .expect("Should lookup");
+        let class = context.builtins().array_byte;
 
         let data = data.into_iter().map(Cell::new).collect::<Box<_>>();
 
@@ -101,9 +93,7 @@ impl Object {
     }
 
     pub fn char_array(context: Context, data: Box<[u16]>) -> Self {
-        let class = context
-            .lookup_class(context.common.array_char_desc)
-            .expect("Should lookup");
+        let class = context.builtins().array_char;
 
         let data = data.into_iter().map(Cell::new).collect::<Box<_>>();
 
@@ -117,9 +107,7 @@ impl Object {
     }
 
     pub fn double_array(context: Context, data: Box<[f64]>) -> Self {
-        let class = context
-            .lookup_class(context.common.array_double_desc)
-            .expect("Should lookup");
+        let class = context.builtins().array_double;
 
         let data = data.into_iter().map(Cell::new).collect::<Box<_>>();
 
@@ -133,9 +121,7 @@ impl Object {
     }
 
     pub fn float_array(context: Context, data: Box<[f32]>) -> Self {
-        let class = context
-            .lookup_class(context.common.array_float_desc)
-            .expect("Should lookup");
+        let class = context.builtins().array_float;
 
         let data = data.into_iter().map(Cell::new).collect::<Box<_>>();
 
@@ -149,9 +135,7 @@ impl Object {
     }
 
     pub fn int_array(context: Context, data: Box<[i32]>) -> Self {
-        let class = context
-            .lookup_class(context.common.array_int_desc)
-            .expect("Should lookup");
+        let class = context.builtins().array_int;
 
         let data = data.into_iter().map(Cell::new).collect::<Box<_>>();
 
@@ -165,9 +149,7 @@ impl Object {
     }
 
     pub fn long_array(context: Context, data: Box<[i64]>) -> Self {
-        let class = context
-            .lookup_class(context.common.array_long_desc)
-            .expect("Should lookup");
+        let class = context.builtins().array_long;
 
         let data = data.into_iter().map(Cell::new).collect::<Box<_>>();
 
@@ -181,9 +163,7 @@ impl Object {
     }
 
     pub fn short_array(context: Context, data: Box<[i16]>) -> Self {
-        let class = context
-            .lookup_class(context.common.array_short_desc)
-            .expect("Should lookup");
+        let class = context.builtins().array_short;
 
         let data = data.into_iter().map(Cell::new).collect::<Box<_>>();
 

@@ -257,10 +257,7 @@ impl Class {
     /// DO NOT USE THIS TO GET ARRAY CLASSES! It WILL create duplicate classes
     /// for the same `array_type`! Use `Context::array_class_for` instead.
     pub fn for_array(context: Context, array_type: ResolvedDescriptor) -> Self {
-        let object_class_name = context.common.java_lang_object;
-        let object_class = context
-            .lookup_class(object_class_name)
-            .expect("Object class should exist");
+        let object_class = context.object_class();
 
         let instance_method_vtable = *object_class.instance_method_vtable();
 

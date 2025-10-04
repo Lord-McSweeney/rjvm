@@ -288,6 +288,10 @@ Link options:
         }
     }
 
+    // We can't do this after the "Load globals" stage because the user could
+    // have passed `--no-globals --link rt.jar`
+    context.load_builtins();
+
     // Load program args
     let mut program_args = Vec::new();
     for arg in &options.program_args {
@@ -307,10 +311,7 @@ Link options:
         }
     };
 
-    let string_class = context
-        .lookup_class(context.common.java_lang_string)
-        .expect("String class should exist");
-
+    let string_class = context.builtins().java_lang_string;
     let args_array = Value::Object(Some(Object::obj_array(
         context,
         string_class,

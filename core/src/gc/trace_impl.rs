@@ -1,4 +1,4 @@
-use std::cell::{Cell, RefCell};
+use std::cell::{Cell, OnceCell, RefCell};
 use std::collections::{HashMap, VecDeque};
 
 use super::gc::Trace;
@@ -107,6 +107,18 @@ where
     #[inline(always)]
     fn trace(&self) {
         self.borrow().trace();
+    }
+}
+
+impl<T> Trace for OnceCell<T>
+where
+    T: Trace,
+{
+    #[inline(always)]
+    fn trace(&self) {
+        if let Some(inner) = self.get() {
+            inner.trace();
+        }
     }
 }
 

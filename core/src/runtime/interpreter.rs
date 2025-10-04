@@ -1872,13 +1872,8 @@ impl<'a> Interpreter<'a> {
         let object = self.stack_pop().object();
 
         if let Some(object) = object {
-            let throwable_class_name = self.context.common.java_lang_throwable;
-            let throwable_class = self
-                .context
-                .lookup_class(throwable_class_name)
-                .expect("Throwable class should exist");
-
             // TODO do this verification in the verifier
+            let throwable_class = self.context.builtins().java_lang_throwable;
             if !object.is_of_class(throwable_class) {
                 panic!("Class of object on stack should extend or be Throwable");
             }

@@ -307,9 +307,7 @@ impl BytecodeMethodInfo {
                 let class_name = constant_pool.get_class(class_idx)?;
                 let class = context.lookup_class(class_name)?;
 
-                let throwable_class = context
-                    .lookup_class(context.common.java_lang_throwable)
-                    .expect("Throwable class should exist");
+                let throwable_class = context.builtins().java_lang_throwable;
                 if !class.matches_class(throwable_class) {
                     return Err(Error::Native(NativeError::ErrorClassNotThrowable));
                 }

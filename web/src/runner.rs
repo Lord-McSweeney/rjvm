@@ -97,6 +97,8 @@ pub(crate) fn run_file(class_data: &[u8], args: Vec<String>, is_jar: bool) {
     base_native_impl::register_native_mappings(context);
     native_impl::register_native_mappings(context);
 
+    context.load_builtins();
+
     // Load the main class from options
     let main_class = match init_main_class(context, class_data.to_vec(), is_jar) {
         Ok(class) => class,
@@ -106,10 +108,6 @@ pub(crate) fn run_file(class_data: &[u8], args: Vec<String>, is_jar: bool) {
             return;
         }
     };
-
-    let string_class = context
-        .lookup_class(context.common.java_lang_string)
-        .expect("String class should exist");
 
     // Load program args
     let mut program_args = Vec::new();
@@ -121,6 +119,7 @@ pub(crate) fn run_file(class_data: &[u8], args: Vec<String>, is_jar: bool) {
         program_args.push(Some(string));
     }
 
+    let string_class = context.builtins().java_lang_string;
     let args_array = Value::Object(Some(Object::obj_array(
         context,
         string_class,

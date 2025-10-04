@@ -277,10 +277,7 @@ fn object_clone(context: Context, args: &[Value]) -> Result<Option<Value>, Error
     let this = args[0].object().unwrap();
     let this_class = this.class();
 
-    let cloneable_iface = context
-        .lookup_class(context.common.java_lang_cloneable)
-        .expect("Cloneable class should exist");
-
+    let cloneable_iface = context.builtins().java_lang_cloneable;
     let implements_cloneable = this_class.implements_interface(cloneable_iface);
 
     if implements_cloneable || this_class.array_value_type().is_some() {
@@ -377,10 +374,7 @@ fn get_constructors(context: Context, args: &[Value]) -> Result<Option<Value>, E
         .map(|m| Some(context.get_or_init_java_constructor_for_method(*m)))
         .collect::<Box<_>>();
 
-    let constructor_class = context
-        .lookup_class(context.common.java_lang_reflect_constructor)
-        .expect("Class class should exist");
-
+    let constructor_class = context.builtins().java_lang_reflect_constructor;
     let constructors_arr = Object::obj_array(context, constructor_class, constructors_arr);
 
     Ok(Some(Value::Object(Some(constructors_arr))))
