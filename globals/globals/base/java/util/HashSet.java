@@ -9,7 +9,7 @@ public class HashSet<E> extends AbstractSet<E> implements Set<E> {
     }
 
     public HashSet(int capacity) {
-        // TODO implement
+        // TODO implement capacity
         this.data = new Object[0];
     }
 

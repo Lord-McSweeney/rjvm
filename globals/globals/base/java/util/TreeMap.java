@@ -36,6 +36,11 @@ public class TreeMap<K, V> extends AbstractMap<K, V> implements Cloneable {
         return new EntrySet(this);
     }
 
+    public Set<K> keySet() {
+        // Return a non-writeable TreeMapKeySet
+        return new TreeMapKeySet<K>(this, false);
+    }
+
     public Map.Entry<K, V> firstEntry() {
         if (this.root == null) {
             return null;
@@ -216,7 +221,7 @@ public class TreeMap<K, V> extends AbstractMap<K, V> implements Cloneable {
     }
 
     class EntrySet extends AbstractSet<Map.Entry<K, V>> {
-        // TODO implement
+        // TODO implement this class
 
         TreeMap map;
 
@@ -236,8 +241,6 @@ public class TreeMap<K, V> extends AbstractMap<K, V> implements Cloneable {
     }
 
     static class Entry<K, V> implements Map.Entry<K, V> {
-        // TODO implement
-
         K key;
         V value;
 

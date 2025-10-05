@@ -1,5 +1,7 @@
 package java.lang;
 
+import rjvm.internal.Todo;
+
 public abstract class Enum<E extends Enum<E>> {
     private int ordinal;
 
@@ -13,7 +15,8 @@ public abstract class Enum<E extends Enum<E>> {
     }
 
     public static <T extends Enum<T>> T valueOf(Class<T> enumType, String name) {
-        // TODO implement
+        Todo.warnNotImpl("java.lang.Enum.valueOf");
+
         return null;
     }
 }

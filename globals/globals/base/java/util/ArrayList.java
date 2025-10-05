@@ -15,7 +15,7 @@ public class ArrayList<E> extends AbstractList<E> implements List<E> {
     }
 
     public ArrayList(int capacity) {
-        // TODO implement
+        // TODO implement capacity
         this.data = new Object[0];
     }
 
