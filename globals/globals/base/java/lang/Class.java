@@ -55,7 +55,7 @@ public final class Class<T> implements AnnotatedElement, GenericDeclaration, Typ
     private native byte[] getResourceData(String resourceName);
 
     public boolean desiredAssertionStatus() {
-        // TODO implement
+        // TODO implement (this isn't very important)
         return false;
     }
 

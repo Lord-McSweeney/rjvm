@@ -99,7 +99,8 @@ public final class String implements Comparable<String> {
     }
 
     public boolean equalsIgnoreCase(String other) {
-        // TODO implement
+        Todo.warnNotImpl("java.lang.String.equalsIgnoreCase");
+
         return false;
     }
 

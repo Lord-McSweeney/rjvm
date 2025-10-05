@@ -6,7 +6,6 @@ public class AssertionError extends Error {
     }
 
     public AssertionError(Object message) {
-        // TODO implement
-        super();
+        super(String.valueOf(message));
     }
 }

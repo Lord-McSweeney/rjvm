@@ -1,5 +1,7 @@
 package java.util;
 
+import rjvm.internal.Todo;
+
 public class Hashtable<K, V> extends Dictionary<K, V> implements Map<K, V> {
     // FIXME we should really not be reimplementing all the AbstractMap functions...
     // TODO actually implement a hashmap
@@ -13,12 +15,14 @@ public class Hashtable<K, V> extends Dictionary<K, V> implements Map<K, V> {
     }
 
     public Enumeration<K> keys() {
-        // TODO implement
+        Todo.warnNotImpl("java.util.Hashtable.keys");
+
         return null;
     }
 
     public Enumeration<V> elements() {
-        // TODO implement
+        Todo.warnNotImpl("java.util.Hashtable.elements");
+
         return null;
     }
 
@@ -69,12 +73,13 @@ public class Hashtable<K, V> extends Dictionary<K, V> implements Map<K, V> {
     }
 
     public V remove(Object key) {
-        // TODO implement
+        Todo.warnNotImpl("java.util.Hashtable.remove");
+
         return null;
     }
 
     public void putAll(Map<? extends K, ? extends V> map) {
-        // TODO implement
+        Todo.warnNotImpl("java.util.Hashtable.putAll");
     }
 
     public int size() {

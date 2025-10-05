@@ -1,5 +1,7 @@
 package java.lang;
 
+import rjvm.internal.Todo;
+
 public final class Character extends Number implements Comparable<Character> {
     public static Class<Character> TYPE = (Class<Character>) Class.getPrimitiveClass(Class.PRIM_CHAR);
 
@@ -33,22 +35,26 @@ public final class Character extends Number implements Comparable<Character> {
     }
 
     public static int digit(char c, int radix) {
-        // TODO implement
+        Todo.warnNotImpl("java.lang.Character.digit");
+
         return 0;
     }
 
     public static int getType(char ch) {
-        // TODO implement
+        Todo.warnNotImpl("java.lang.Character.getType");
+
         return 0;
     }
 
     public static boolean isDefined(char ch) {
-        // TODO implement
+        Todo.warnNotImpl("java.lang.Character.isDefined");
+
         return false;
     }
 
     public static boolean isJavaIdentifierPart(char ch) {
-        // TODO implement
+        Todo.warnNotImpl("java.lang.Character.isJavaIdentifierPart");
+
         return false;
     }
 }
