@@ -8,9 +8,10 @@ use super::value::Value;
 use crate::gc::{Gc, GcCtx, Trace};
 
 use std::cell::Cell;
+use std::fmt;
 use std::hash::{Hash, Hasher};
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy)]
 pub struct Object(Gc<ObjectData>);
 
 impl Object {
@@ -288,6 +289,12 @@ impl Object {
     }
 }
 
+impl fmt::Debug for Object {
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        write!(f, "[object {}]", self.class().name())
+    }
+}
+
 impl Trace for Object {
     #[inline(always)]
     fn trace(&self) {
@@ -309,7 +316,6 @@ impl Hash for Object {
     }
 }
 
-#[derive(Debug)]
 struct ObjectData {
     class: Class,
 
@@ -324,7 +330,7 @@ impl Trace for ObjectData {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 enum FieldOrArrayData {
     Fields(Box<[Cell<Value>]>),
     Array(Array),
