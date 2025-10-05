@@ -1,5 +1,7 @@
 package java.io;
 
+import rjvm.internal.Todo;
+
 import java.nio.charset.Charset;
 
 public class File {
@@ -39,6 +41,12 @@ public class File {
         this.internalInitFileData(Charset.stringToUtf8(path));
     }
 
+    public boolean isFile() {
+        Todo.warnNotImpl("java.io.File.isFile");
+
+        return false;
+    }
+
     public boolean exists() {
         return this.exists;
     }
@@ -50,6 +58,10 @@ public class File {
     }
 
     public native String getCanonicalPath() throws IOException;
+
+    public File getCanonicalFile() throws IOException {
+        return new File(this.getCanonicalPath());
+    }
 
     public String getName() {
         int separatorIndex = this.normalizedPath.lastIndexOf(File.separatorChar);

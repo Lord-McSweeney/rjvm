@@ -21,7 +21,7 @@ public class Boolean implements Comparable<Boolean> {
     }
 
     public boolean booleanValue() {
-        return value;
+        return this.value;
     }
 
     public String toString() {
