@@ -3,24 +3,29 @@ package java.io;
 import rjvm.internal.Todo;
 
 public class PrintWriter extends Writer {
+    private Writer writer;
+    private boolean autoFlush;
+
     public PrintWriter(Writer writer) {
-        // TODO implement
-        super();
+        this(writer, false);
     }
 
     public PrintWriter(Writer writer, boolean autoFlush) {
-        // TODO implement
-        super();
+        this.writer = writer;
+        this.autoFlush = autoFlush;
     }
 
     public PrintWriter(OutputStream out) {
-        // TODO implement
-        super();
+        this(out, false);
     }
 
     public PrintWriter(OutputStream out, boolean autoFlush) {
-        // TODO implement
-        super();
+        this.writer = new OutputStreamWriter(out);
+        this.autoFlush = autoFlush;
+    }
+
+    public void write(char[] cbuf, int off, int len) throws IOException {
+        this.writer.write(cbuf, off, len);
     }
 
     public void print(String data) {
@@ -28,11 +33,23 @@ public class PrintWriter extends Writer {
     }
 
     public void println() {
-        Todo.warnNotImpl("java.io.PrintWriter.println");
+        try {
+            this.write(new char[]{'\n'});
+        } catch (IOException e) {
+            // TODO report errors
+        }
     }
 
     public void println(String data) {
-        Todo.warnNotImpl("java.io.PrintWriter.println");
+        char[] chars = new char[data.length()];
+        data.getChars(0, data.length(), chars, 0);
+
+        try {
+            this.write(chars);
+        } catch (IOException e) {
+            // TODO report errors
+        }
+        this.println();
     }
 
     public void write(String data) {
