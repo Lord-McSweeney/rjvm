@@ -5,6 +5,7 @@ use super::error::{Error, NativeError};
 use super::method::Method;
 
 use crate::classfile::constant_pool::{ConstantPool, ConstantPoolEntry};
+use crate::classfile::flags::FieldFlags;
 use crate::classfile::reader::{FileData, Reader};
 use crate::gc::Trace;
 use crate::string::JvmString;
@@ -1041,6 +1042,12 @@ impl Op {
                     .lookup((field_name, descriptor))
                     .ok_or_else(|| context.no_such_field_error())?;
 
+                // TODO "package-private" and "protected" access control
+                let flags = class.static_fields()[field_slot].flags();
+                if flags.contains(FieldFlags::PRIVATE) && method.class() != class {
+                    return Err(context.illegal_access_error());
+                }
+
                 Ok(Op::GetStatic(class, field_slot))
             }
             PUT_STATIC => {
@@ -1061,6 +1068,12 @@ impl Op {
                     .static_field_vtable()
                     .lookup((field_name, descriptor))
                     .ok_or_else(|| context.no_such_field_error())?;
+
+                // TODO "package-private" and "protected" access control
+                let flags = class.static_fields()[field_slot].flags();
+                if flags.contains(FieldFlags::PRIVATE) && method.class() != class {
+                    return Err(context.illegal_access_error());
+                }
 
                 Ok(Op::PutStatic(class, field_slot))
             }
@@ -1083,6 +1096,12 @@ impl Op {
                     .lookup((field_name, descriptor))
                     .ok_or_else(|| context.no_such_field_error())?;
 
+                // TODO "package-private" and "protected" access control
+                let flags = class.instance_fields()[field_slot].flags();
+                if flags.contains(FieldFlags::PRIVATE) && method.class() != class {
+                    return Err(context.illegal_access_error());
+                }
+
                 Ok(Op::GetField(class, field_slot))
             }
             PUT_FIELD => {
@@ -1103,6 +1122,12 @@ impl Op {
                     .instance_field_vtable()
                     .lookup((field_name, descriptor))
                     .ok_or_else(|| context.no_such_field_error())?;
+
+                // TODO "package-private" and "protected" access control
+                let flags = class.instance_fields()[field_slot].flags();
+                if flags.contains(FieldFlags::PRIVATE) && method.class() != class {
+                    return Err(context.illegal_access_error());
+                }
 
                 Ok(Op::PutField(class, field_slot))
             }
@@ -1125,6 +1150,8 @@ impl Op {
                     .instance_method_vtable()
                     .lookup((method_name, descriptor))
                     .ok_or_else(|| context.no_such_method_error())?;
+
+                // TODO access control?
 
                 Ok(Op::InvokeVirtual(class, method_index))
             }
@@ -1162,6 +1189,8 @@ impl Op {
 
                 let method = method_vtable.get_element(method_slot);
 
+                // TODO access control?
+
                 Ok(Op::InvokeSpecial(class, method))
             }
             INVOKE_STATIC => {
@@ -1184,6 +1213,8 @@ impl Op {
                     .ok_or_else(|| context.no_such_method_error())?;
 
                 let method = class.static_methods()[method_slot];
+
+                // TODO access control?
 
                 Ok(Op::InvokeStatic(method))
             }
@@ -1209,6 +1240,8 @@ impl Op {
 
                 // This should always be zero.
                 let _ = data.read_u8()?;
+
+                // TODO access control?
 
                 Ok(Op::InvokeInterface(class, (method_name, descriptor)))
             }

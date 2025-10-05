@@ -1,7 +1,7 @@
 use bitflags::bitflags;
 
 bitflags! {
-    #[derive(Clone, Copy)]
+    #[derive(Clone, Copy, Debug)]
     pub struct ClassFlags: u16 {
         const PUBLIC     = 0x0001;
         const FINAL      = 0x0010;
@@ -14,7 +14,7 @@ bitflags! {
 }
 
 bitflags! {
-    #[derive(Clone, Copy)]
+    #[derive(Clone, Copy, Debug)]
     pub struct FieldFlags: u16 {
         const PUBLIC    = 0x0001;
         const PRIVATE   = 0x0002;
@@ -29,7 +29,7 @@ bitflags! {
 }
 
 bitflags! {
-    #[derive(Clone, Copy)]
+    #[derive(Clone, Copy, Debug)]
     pub struct MethodFlags: u16 {
         const PUBLIC       = 0x0001;
         const PRIVATE      = 0x0002;

@@ -6,6 +6,7 @@ use super::value::Value;
 use crate::classfile::class::ClassFile;
 use crate::classfile::constant_pool::ConstantPoolEntry;
 use crate::classfile::field::Field as ClassFileField;
+use crate::classfile::flags::FieldFlags;
 use crate::classfile::reader::{FileData, Reader};
 use crate::gc::{Gc, Trace};
 use crate::string::JvmString;
@@ -17,6 +18,7 @@ use std::cell::Cell;
 #[derive(Clone, Debug)]
 pub struct Field {
     descriptor: Descriptor,
+    flags: FieldFlags,
     name: JvmString,
     value: Cell<Value>,
 }
@@ -44,6 +46,7 @@ impl Field {
 
         Ok(Self {
             descriptor,
+            flags: field.flags(),
             name,
             value: Cell::new(value),
         })
@@ -51,6 +54,10 @@ impl Field {
 
     pub fn descriptor(&self) -> Descriptor {
         self.descriptor
+    }
+
+    pub fn flags(&self) -> FieldFlags {
+        self.flags
     }
 
     pub fn name(self) -> JvmString {
@@ -62,7 +69,7 @@ impl Field {
     }
 
     pub fn set_value(&self, value: Value) {
-        // TODO check that value is of descriptor type
+        // Verifier checks that value is of correct type
         self.value.set(value);
     }
 }
@@ -83,6 +90,7 @@ pub struct FieldRef(Gc<FieldRefData>);
 #[derive(Clone, Debug)]
 struct FieldRefData {
     descriptor: Descriptor,
+    flags: FieldFlags,
     name: JvmString,
     value: Cell<Value>,
 }
@@ -112,6 +120,7 @@ impl FieldRef {
             context.gc_ctx,
             FieldRefData {
                 descriptor,
+                flags: field.flags(),
                 name,
                 value: Cell::new(value),
             },
@@ -120,6 +129,10 @@ impl FieldRef {
 
     pub fn descriptor(self) -> Descriptor {
         self.0.descriptor
+    }
+
+    pub fn flags(&self) -> FieldFlags {
+        self.0.flags
     }
 
     pub fn name(self) -> JvmString {
@@ -131,7 +144,7 @@ impl FieldRef {
     }
 
     pub fn set_value(self, value: Value) {
-        // TODO check that value is of descriptor type
+        // Verifier checks that value is of correct type
         self.0.value.set(value);
     }
 }
