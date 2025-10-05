@@ -23,6 +23,25 @@ public class File {
         this.internalInitFileData(Charset.stringToUtf8(name));
     }
 
+    public File(File parent, String child) {
+        if (child == null) {
+            throw new NullPointerException();
+        }
+
+        String path;
+        if (parent == null) {
+            path = child;
+        } else if (parent.normalizedPath == "") {
+            // FIXME this should prepend CWD
+            path = child;
+        } else {
+            // FIXME this is stupid
+            path = parent.normalizedPath + File.separatorChar + child;
+        }
+
+        this.internalInitFileData(Charset.stringToUtf8(path));
+    }
+
     public File(String parent, String child) {
         if (child == null) {
             throw new NullPointerException();
@@ -81,6 +100,10 @@ public class File {
             return null;
         }
         return this.normalizedPath.substring(0, separatorIndex);
+    }
+
+    public File getParentFile() {
+        return new File(this.getParent());
     }
 
     public String getPath() {
