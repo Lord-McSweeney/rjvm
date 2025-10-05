@@ -277,9 +277,14 @@ public final class String implements Comparable<String> {
         return new String(this.data, start, end - start);
     }
 
-    public String[] split(String delim) {
-        // TODO handle delim=""
 
+    public String[] split(String regex) {
+        return this.split(regex, 0);
+    }
+
+    public String[] split(String delim, int limit) {
+        // TODO handle delim="", regex delimeters
+        // TODO implement limit parameter
         int resultSize = 1;
         for (int i = 0; i < this.data.length; i ++) {
             if (this.indexOf(delim, i) == i) {
@@ -309,13 +314,16 @@ public final class String implements Comparable<String> {
             return results;
         }
 
-        // Empty strings at the end of the array seem to get trimmed?
         int stopAfter = results.length;
-        for (int i = results.length - 1; i >= 0; i --) {
-            if (results[i].data.length == 0) {
-                stopAfter -= 1;
-            } else {
-                break;
+
+        if (limit == 0) {
+            // Trim empty strings at the end of the array when limit=0
+            for (int i = results.length - 1; i >= 0; i --) {
+                if (results[i].data.length == 0) {
+                    stopAfter -= 1;
+                } else {
+                    break;
+                }
             }
         }
 
