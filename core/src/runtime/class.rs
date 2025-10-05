@@ -345,6 +345,10 @@ impl Class {
         &self.0.class_file
     }
 
+    pub fn is_abstract(self) -> bool {
+        self.0.flags.contains(ClassFlags::ABSTRACT)
+    }
+
     pub fn is_interface(self) -> bool {
         self.0.flags.contains(ClassFlags::INTERFACE)
     }

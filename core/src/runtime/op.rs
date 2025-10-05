@@ -1221,6 +1221,10 @@ impl Op {
                     class_dependencies.push(class);
                 }
 
+                if class.is_interface() || class.is_abstract() {
+                    return Err(context.instantiation_error());
+                }
+
                 Ok(Op::New(class))
             }
             NEW_ARRAY => {

@@ -16,7 +16,7 @@ If you want to use `rjvm_globals` yourself, you will need to provide implementat
 - `java/io/FileDescriptor.internalWriteableDescriptorFromPath.(Ljava/lang/String;)I`
 - `java/io/FileDescriptor.internalReadableDescriptorFromPath.(Ljava/lang/String;)I`
 
-Otherwise the JVM will panic. Take a look at `web/src/native_impl.rs` for an example of how to do so.
+Otherwise the JVM will panic when those methods are called. Take a look at `web/src/native_impl.rs` for an example of how to do so.
 
 IMPORTANT:
 If you want to replace or edit the classes defined here, be sure to keep the following classes:
@@ -27,6 +27,7 @@ If you want to replace or edit the classes defined here, be sure to keep the fol
 - `java/lang/ClassCastException`
 - `java/lang/CloneNotSupportedException`
 - `java/lang/Cloneable`
+- `java/lang/InstantiationError`
 - `java/lang/NegativeArraySizeException`
 - `java/lang/NoClassDefFoundError`
 - `java/lang/NoSuchFieldError`
@@ -37,4 +38,4 @@ If you want to replace or edit the classes defined here, be sure to keep the fol
 - `java/lang/Throwable`
 - `java/lang/reflect/Constructor`
 
-These are critical to the JVM and it may panic if they are missing.
+These are critical to the JVM and it will panic on startup if they are missing.
