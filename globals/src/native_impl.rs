@@ -26,6 +26,7 @@ pub fn register_native_mappings(context: Context) {
         ("java/lang/Class.getConstructors.()[Ljava/lang/reflect/Constructor;", get_constructors),
         ("java/lang/reflect/Constructor.newInstanceNative.([Ljava/lang/Object;)Ljava/lang/Object;", new_instance_native),
         ("java/lang/reflect/Constructor.getParameterCount.()I", ctor_get_parameter_count),
+        ("java/lang/String.intern.()Ljava/lang/String;", string_intern),
     ];
 
     context.register_native_mappings(mappings);
@@ -413,4 +414,13 @@ fn ctor_get_parameter_count(context: Context, args: &[Value]) -> Result<Option<V
     let ctor_method = context.get_method_for_java_executable(ctor_obj);
 
     Ok(Some(Value::Integer(ctor_method.arg_count() as i32)))
+}
+
+fn string_intern(context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
+    // Receiver should never be null
+    let string_obj = args[0].object().unwrap();
+
+    let interned = context.intern_string_obj(string_obj);
+
+    Ok(Some(Value::Object(Some(interned))))
 }

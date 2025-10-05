@@ -44,6 +44,10 @@ pub struct Context {
     // A map of object of type Executable to Method.
     java_executable_to_method_map: Gc<RefCell<HashMap<Object, Method>>>,
 
+    // All interned Java String objects. TODO: This should be a weak set once
+    // we figure out how the hashing logic works
+    interned_strings: Gc<RefCell<Vec<Object>>>,
+
     // A map of descriptor D to class [D.
     array_classes: Gc<RefCell<HashMap<ResolvedDescriptor, Class>>>,
 
@@ -107,6 +111,7 @@ impl Context {
             java_class_to_class_map: Gc::new(gc_ctx, RefCell::new(HashMap::new())),
             method_to_java_executable_map: Gc::new(gc_ctx, RefCell::new(HashMap::new())),
             java_executable_to_method_map: Gc::new(gc_ctx, RefCell::new(HashMap::new())),
+            interned_strings: Gc::new(gc_ctx, RefCell::new(Vec::new())),
             array_classes: Gc::new(gc_ctx, RefCell::new(HashMap::new())),
             primitive_classes: Gc::new(gc_ctx, primitive_classes),
             jar_files: Gc::new(gc_ctx, RefCell::new(Vec::new())),
@@ -283,6 +288,25 @@ impl Context {
                 "Object passed to `get_method_for_java_executable` should be a valid java Executable"
             )
         }
+    }
+
+    pub fn intern_string_obj(&self, new_string: Object) -> Object {
+        let mut strings = self.interned_strings.borrow_mut();
+        for string in &*strings {
+            let these_chars = string.get_field(STRING_DATA_FIELD).object().unwrap();
+            let these_chars = these_chars.array_data().as_char_array();
+
+            let new_chars = new_string.get_field(STRING_DATA_FIELD).object().unwrap();
+            let new_chars = new_chars.array_data().as_char_array();
+
+            if new_chars == these_chars {
+                return *string;
+            }
+        }
+
+        strings.push(new_string);
+
+        return new_string;
     }
 
     // Used to avoid making multiple array classes for one array type
@@ -594,6 +618,7 @@ impl Trace for Context {
         self.java_class_to_class_map.trace();
         self.method_to_java_executable_map.trace();
         self.java_executable_to_method_map.trace();
+        self.interned_strings.trace();
         self.array_classes.trace();
         self.primitive_classes.trace();
         self.jar_files.trace();

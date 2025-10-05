@@ -359,9 +359,12 @@ impl<'a> Interpreter<'a> {
 
                 let string_chars = string.encode_utf16().collect::<Vec<_>>();
 
-                self.stack_push(Value::Object(Some(
-                    self.context.create_string(&string_chars),
-                )));
+                let string_obj = self.context.create_string(&string_chars);
+
+                // All string literals are interned
+                let string_obj = self.context.intern_string_obj(string_obj);
+
+                self.stack_push(Value::Object(Some(string_obj)));
             }
             ConstantPoolEntry::Integer { value } => {
                 self.stack_push(Value::Integer(value));

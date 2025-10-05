@@ -4,9 +4,6 @@ import rjvm.internal.Todo;
 import java.nio.charset.Charset;
 
 public final class String implements Comparable<String> {
-    // TODO make this a weak HashSet
-    private static String[] internedStrings = new String[0];
-
     // NOTE: This must always be non-null
     private char[] data;
 
@@ -335,22 +332,7 @@ public final class String implements Comparable<String> {
         return this.data.length;
     }
 
-    public String intern() {
-        for (int i = 0; i < String.internedStrings.length; i ++) {
-            String checkedString = String.internedStrings[i];
-            if (checkedString.equals(this)) {
-                return checkedString;
-            }
-        }
-
-        String[] newStrings = new String[String.internedStrings.length + 1];
-        System.arraycopy(String.internedStrings, 0, newStrings, 0, String.internedStrings.length);
-        newStrings[String.internedStrings.length] = this;
-
-        String.internedStrings = newStrings;
-
-        return this;
-    }
+    public native String intern();
 
     public int compareTo(String other) {
         for (int i = 0; i < this.data.length; i ++) {
