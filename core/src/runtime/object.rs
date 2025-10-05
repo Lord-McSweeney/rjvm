@@ -3,7 +3,6 @@ use super::class::Class;
 use super::context::Context;
 use super::descriptor::{MethodDescriptor, ResolvedDescriptor};
 use super::error::{Error, NativeError};
-use super::field::Field;
 use super::value::Value;
 
 use crate::gc::{Gc, GcCtx, Trace};
@@ -16,7 +15,11 @@ pub struct Object(Gc<ObjectData>);
 
 impl Object {
     pub fn from_class(gc_ctx: GcCtx, class: Class) -> Self {
-        let fields = class.instance_fields().to_vec().into_boxed_slice();
+        let fields = class
+            .instance_fields()
+            .iter()
+            .map(|f| Cell::new(f.value()))
+            .collect::<Box<_>>();
 
         Self(Gc::new(
             gc_ctx,
@@ -33,7 +36,11 @@ impl Object {
     pub fn class_object(context: Context) -> Self {
         let class_class = context.builtins().java_lang_class;
 
-        let fields = class_class.instance_fields().to_vec().into_boxed_slice();
+        let fields = class_class
+            .instance_fields()
+            .iter()
+            .map(|f| Cell::new(f.value()))
+            .collect::<Box<_>>();
 
         Self(Gc::new(
             context.gc_ctx,
@@ -52,8 +59,9 @@ impl Object {
 
         let fields = constructor_class
             .instance_fields()
-            .to_vec()
-            .into_boxed_slice();
+            .iter()
+            .map(|f| Cell::new(f.value()))
+            .collect::<Box<_>>();
 
         Self(Gc::new(
             context.gc_ctx,
@@ -207,19 +215,11 @@ impl Object {
         self.0.class
     }
 
-    pub fn field_at(&self, field_idx: usize) -> &Field {
-        match &self.0.data {
-            FieldOrArrayData::Fields(fields) => &fields[field_idx],
-            FieldOrArrayData::Array(_) => panic!("Cannot get field of array"),
-        }
-    }
-
     pub fn get_field(self, field_idx: usize) -> Value {
         match &self.0.data {
             FieldOrArrayData::Fields(fields) => {
                 let field = &fields[field_idx];
-
-                field.value()
+                field.get()
             }
             FieldOrArrayData::Array(_) => panic!("Cannot get field of array"),
         }
@@ -229,7 +229,7 @@ impl Object {
         match &self.0.data {
             FieldOrArrayData::Fields(fields) => {
                 let field = &fields[field_idx];
-                field.set_value(value);
+                field.set(value);
             }
             FieldOrArrayData::Array(_) => panic!("Cannot set field on array"),
         }
@@ -326,7 +326,7 @@ impl Trace for ObjectData {
 
 #[derive(Clone, Debug)]
 enum FieldOrArrayData {
-    Fields(Box<[Field]>),
+    Fields(Box<[Cell<Value>]>),
     Array(Array),
 }
 

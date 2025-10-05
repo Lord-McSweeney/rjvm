@@ -1691,6 +1691,8 @@ impl<'a> Interpreter<'a> {
     }
 
     fn op_get_field(&mut self, class: Class, field_idx: usize) -> Result<ControlFlow, Error> {
+        let is_wide = class.instance_fields()[field_idx].descriptor().is_wide();
+
         let object = self.stack_pop().object();
 
         if let Some(object) = object {
@@ -1699,10 +1701,9 @@ impl<'a> Interpreter<'a> {
                 panic!("Object on stack was of wrong Class");
             }
 
-            let field = object.field_at(field_idx);
-            let value = field.value();
+            let value = object.get_field(field_idx);
 
-            if field.descriptor().is_wide() {
+            if is_wide {
                 self.stack_push_wide(value);
             } else {
                 self.stack_push(value);
