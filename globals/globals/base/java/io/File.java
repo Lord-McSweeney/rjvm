@@ -15,6 +15,7 @@ public class File {
 
     private String normalizedPath;
     private boolean exists;
+    private boolean isDirectory;
 
     public File(String name) {
         // We can initialize all properties in an `internalInitFromName`
@@ -41,10 +42,12 @@ public class File {
         this.internalInitFileData(Charset.stringToUtf8(path));
     }
 
-    public boolean isFile() {
-        Todo.warnNotImpl("java.io.File.isFile");
+    public boolean isDirectory() {
+        return this.isDirectory;
+    }
 
-        return false;
+    public boolean isFile() {
+        return this.exists && !this.isDirectory;
     }
 
     public boolean exists() {

@@ -73,9 +73,11 @@ fn internal_init_file_data(context: Context, args: &[Value]) -> Result<Option<Va
 
     // No filesystem on web
     let exists = false;
+    let is_dir = false;
 
     file_object.set_field(0, Value::Object(Some(string_name)));
     file_object.set_field(1, Value::Integer(exists as i32));
+    file_object.set_field(2, Value::Integer(is_dir as i32));
 
     Ok(None)
 }

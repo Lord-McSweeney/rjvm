@@ -76,9 +76,14 @@ fn internal_init_file_data(context: Context, args: &[Value]) -> Result<Option<Va
     let string_name = context.create_string(&file_name_chars);
 
     let exists = fs::exists(&*file_name).unwrap_or(false);
+    let metadata = fs::metadata(&*file_name).ok();
 
     file_object.set_field(0, Value::Object(Some(string_name)));
     file_object.set_field(1, Value::Integer(exists as i32));
+    file_object.set_field(
+        2,
+        Value::Integer(metadata.is_some_and(|m| m.is_dir()) as i32),
+    );
 
     Ok(None)
 }
