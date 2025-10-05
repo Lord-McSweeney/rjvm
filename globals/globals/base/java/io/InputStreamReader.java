@@ -3,9 +3,11 @@ package java.io;
 import rjvm.internal.Todo;
 
 public class InputStreamReader extends Reader {
+    private InputStream stream;
+
     public InputStreamReader(InputStream stream) {
         super(stream);
-        // TODO implement
+        this.stream = stream;
     }
 
     public String getEncoding() {
@@ -14,7 +16,7 @@ public class InputStreamReader extends Reader {
     }
 
     public void close() throws IOException {
-        Todo.warnNotImpl("java.io.InputStreamReader.close");
+        this.stream.close();
     }
 
     public int read(char[] buffer, int offset, int length) throws IOException {
