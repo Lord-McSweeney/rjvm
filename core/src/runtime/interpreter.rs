@@ -1261,7 +1261,7 @@ impl<'a> Interpreter<'a> {
     fn op_i2b(&mut self) -> Result<ControlFlow, Error> {
         let int = self.stack_pop().int();
 
-        self.stack_push(Value::Integer((int as u8) as i32));
+        self.stack_push(Value::Integer((int as i8) as i32));
 
         Ok(ControlFlow::Continue)
     }
