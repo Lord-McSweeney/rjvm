@@ -31,13 +31,13 @@ class TreeMapKeySet<E> extends AbstractSet<E> implements Cloneable {
     }
 
     public Iterator<E> iterator() {
-        return new TreeSetIterator<E>(this.backingMap);
+        return new TreeMapKeyIterator<E>(this.backingMap);
     }
 
-    class TreeSetIterator<E> implements Iterator<E> {
+    class TreeMapKeyIterator<E> implements Iterator<E> {
         private TreeMap.Entry nextEntry;
 
-        public TreeSetIterator(TreeMap<E, ?> map) {
+        public TreeMapKeyIterator(TreeMap<E, ?> map) {
             this.nextEntry = (TreeMap.Entry) map.firstEntry();
         }
 

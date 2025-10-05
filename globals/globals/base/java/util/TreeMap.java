@@ -230,13 +230,34 @@ public class TreeMap<K, V> extends AbstractMap<K, V> implements Cloneable {
         }
 
         public Iterator<Map.Entry<K, V>> iterator() {
-            Todo.warnNotImpl("java.util.TreeMap.EntrySet.iterator");
-
-            return new ArrayIterator(new Object[0]);
+            return new TreeMapIterator<Map.Entry<K, V>>(this.map);
         }
 
         public int size() {
             return map.size;
+        }
+
+        class TreeMapIterator<E> implements Iterator<E> {
+            private TreeMap.Entry<K, V> nextEntry;
+
+            public TreeMapIterator(TreeMap<K, V> map) {
+                this.nextEntry = (TreeMap.Entry<K, V>) map.firstEntry();
+            }
+
+            public boolean hasNext() {
+                return this.nextEntry != null;
+            }
+
+            public E next() {
+                TreeMap.Entry<K, V> result = this.nextEntry;
+                if (result == null) {
+                    throw new NoSuchElementException();
+                }
+
+                this.nextEntry = TreeMap.findNextEntry(result);
+
+                return (E) result;
+            }
         }
     }
 
