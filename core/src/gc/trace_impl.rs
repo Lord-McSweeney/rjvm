@@ -1,5 +1,5 @@
 use std::cell::{Cell, OnceCell, RefCell};
-use std::collections::{HashMap, VecDeque};
+use std::collections::{HashMap, HashSet, VecDeque};
 
 use super::gc::Trace;
 
@@ -132,6 +132,18 @@ where
         for (k, v) in self {
             k.trace();
             v.trace();
+        }
+    }
+}
+
+impl<T, S> Trace for HashSet<T, S>
+where
+    T: Trace,
+{
+    #[inline]
+    fn trace(&self) {
+        for item in self {
+            item.trace();
         }
     }
 }

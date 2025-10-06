@@ -6,6 +6,7 @@ pub(crate) mod context;
 pub(crate) mod descriptor;
 pub(crate) mod error;
 pub(crate) mod field;
+pub(crate) mod intern;
 pub(crate) mod interpreter;
 pub(crate) mod loader;
 pub(crate) mod method;
