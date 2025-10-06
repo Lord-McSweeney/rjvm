@@ -41,7 +41,7 @@ impl Error {
                 let args = &[Value::Object(Some(*error_object))];
                 let result = to_string_method.exec(context, args);
                 let value = match result {
-                    Ok(value) => value,
+                    Ok(value) => value.unwrap(),
                     Err(e) => {
                         return format!(
                             "(error while displaying error): {}",
@@ -50,9 +50,7 @@ impl Error {
                     }
                 };
 
-                let Some(Value::Object(string_obj)) = value else {
-                    unreachable!()
-                };
+                let string_obj = value.object();
 
                 if let Some(string_obj) = string_obj {
                     result_string.push_str(&Context::string_object_to_string(string_obj));

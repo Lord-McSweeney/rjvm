@@ -289,6 +289,9 @@ impl Object {
     }
 }
 
+const _: () = assert!(std::mem::size_of::<Object>() <= 8);
+const _: () = assert!(std::mem::size_of::<Option<Object>>() <= 8);
+
 impl fmt::Debug for Object {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
         write!(f, "[object {}]", self.class().name())
