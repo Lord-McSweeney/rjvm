@@ -3,11 +3,12 @@ use super::context::Context;
 use super::descriptor::{Descriptor, MethodDescriptor, ResolvedDescriptor};
 use super::error::{Error, NativeError};
 use super::method::Method;
+use super::value::Value;
 
 use crate::classfile::constant_pool::{ConstantPool, ConstantPoolEntry};
 use crate::classfile::flags::FieldFlags;
 use crate::classfile::reader::{FileData, Reader};
-use crate::gc::Trace;
+use crate::gc::{Gc, Trace};
 use crate::string::JvmString;
 
 use std::collections::HashMap;
@@ -20,8 +21,8 @@ pub enum Op {
     LConst(i8),
     FConst(f32),
     DConst(f64),
-    Ldc(ConstantPoolEntry),
-    Ldc2(ConstantPoolEntry),
+    Ldc(LdcInfo),
+    Ldc2(LdcInfo),
     ILoad(usize),
     LLoad(usize),
     FLoad(usize),
@@ -653,19 +654,43 @@ impl Op {
                 let constant_pool_idx = data.read_u8()?;
                 let entry = constant_pool.entry(constant_pool_idx as u16)?;
 
-                Ok(Op::Ldc(entry))
+                let value = ldc_value(context, constant_pool, entry)?;
+
+                Ok(Op::Ldc(LdcInfo(Gc::new(
+                    context.gc_ctx,
+                    LdcInfoData {
+                        cpool_entry: entry,
+                        value,
+                    },
+                ))))
             }
             LDC_W => {
                 let constant_pool_idx = data.read_u16()?;
                 let entry = constant_pool.entry(constant_pool_idx)?;
 
-                Ok(Op::Ldc(entry))
+                let value = ldc_value(context, constant_pool, entry)?;
+
+                Ok(Op::Ldc(LdcInfo(Gc::new(
+                    context.gc_ctx,
+                    LdcInfoData {
+                        cpool_entry: entry,
+                        value,
+                    },
+                ))))
             }
             LDC_2_W => {
                 let constant_pool_idx = data.read_u16()?;
                 let entry = constant_pool.entry(constant_pool_idx)?;
 
-                Ok(Op::Ldc2(entry))
+                let value = ldc_2_value(entry);
+
+                Ok(Op::Ldc2(LdcInfo(Gc::new(
+                    context.gc_ctx,
+                    LdcInfoData {
+                        cpool_entry: entry,
+                        value,
+                    },
+                ))))
             }
             I_LOAD => {
                 let local_idx = data.read_u8()?;
@@ -1405,5 +1430,72 @@ impl Op {
                 | Op::MonitorExit
                 | Op::MultiANewArray(_, _)
         )
+    }
+}
+
+fn ldc_value(
+    context: Context,
+    constant_pool: &ConstantPool,
+    cpool_entry: ConstantPoolEntry,
+) -> Result<Value, Error> {
+    let result = match cpool_entry {
+        ConstantPoolEntry::String { string_idx } => {
+            let string = constant_pool
+                .get_utf8(string_idx)
+                .expect("Should refer to valid entry");
+
+            let string_chars = string.encode_utf16().collect::<Vec<_>>();
+
+            let string_obj = context.create_string(&string_chars);
+
+            // All string literals are interned
+            let string_obj = context.intern_string_obj(string_obj);
+
+            Value::Object(Some(string_obj))
+        }
+        ConstantPoolEntry::Integer { value } => Value::Integer(value),
+        ConstantPoolEntry::Float { value } => Value::Float(value),
+        ConstantPoolEntry::Class { name_idx } => {
+            let class_name = constant_pool
+                .get_utf8(name_idx)
+                .expect("Should refer to valid entry");
+
+            let class = context.lookup_class(class_name)?;
+
+            Value::Object(Some(context.get_or_init_java_class_for_class(class)))
+        }
+        _ => unimplemented!(),
+    };
+
+    Ok(result)
+}
+
+fn ldc_2_value(cpool_entry: ConstantPoolEntry) -> Value {
+    match cpool_entry {
+        ConstantPoolEntry::Double { value } => Value::Double(value),
+        ConstantPoolEntry::Long { value } => Value::Long(value),
+        _ => panic!("Ldc2 only works on Double and Long"),
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct LdcInfo(pub Gc<LdcInfoData>);
+
+#[derive(Clone, Debug)]
+pub struct LdcInfoData {
+    pub cpool_entry: ConstantPoolEntry,
+    pub value: Value,
+}
+
+impl Trace for LdcInfo {
+    fn trace(&self) {
+        self.0.trace();
+    }
+}
+
+impl Trace for LdcInfoData {
+    fn trace(&self) {
+        self.cpool_entry.trace();
+        self.value.trace();
     }
 }

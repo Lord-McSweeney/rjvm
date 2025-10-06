@@ -7,14 +7,16 @@ use super::object::Object;
 use super::op::{ArrayType, Op};
 use super::value::Value;
 
-use crate::classfile::constant_pool::ConstantPoolEntry;
 use crate::string::JvmString;
 
 use std::cell::Cell;
 use std::cmp::Ordering;
 
 pub struct Interpreter<'a> {
+    // This field is useful for debugging
+    #[allow(dead_code)]
     method: Method,
+
     frame_reference: &'a [Cell<Value>],
     local_count: usize,
     local_base: usize,
@@ -146,9 +148,8 @@ impl<'a> Interpreter<'a> {
                 Op::LConst(val) => self.op_l_const(*val),
                 Op::FConst(val) => self.op_f_const(*val),
                 Op::DConst(val) => self.op_d_const(*val),
-                Op::Ldc(constant_pool_entry) | Op::Ldc2(constant_pool_entry) => {
-                    self.op_ldc(*constant_pool_entry)
-                }
+                Op::Ldc(info) => self.op_ldc(info.0.value),
+                Op::Ldc2(info) => self.op_ldc_2(info.0.value),
                 Op::ILoad(index) => self.op_i_load(*index),
                 Op::LLoad(index) => self.op_l_load(*index),
                 Op::FLoad(index) => self.op_f_load(*index),
@@ -348,51 +349,14 @@ impl<'a> Interpreter<'a> {
         Ok(ControlFlow::Continue)
     }
 
-    fn op_ldc(&mut self, constant_pool_entry: ConstantPoolEntry) -> Result<ControlFlow, Error> {
-        let class_file = self.method.class().class_file().unwrap();
-        let constant_pool = class_file.constant_pool();
+    fn op_ldc(&mut self, value: Value) -> Result<ControlFlow, Error> {
+        self.stack_push(value);
 
-        match constant_pool_entry {
-            ConstantPoolEntry::String { string_idx } => {
-                let string = constant_pool
-                    .get_utf8(string_idx)
-                    .expect("Should refer to valid entry");
+        Ok(ControlFlow::Continue)
+    }
 
-                let string_chars = string.encode_utf16().collect::<Vec<_>>();
-
-                let string_obj = self.context.create_string(&string_chars);
-
-                // All string literals are interned
-                let string_obj = self.context.intern_string_obj(string_obj);
-
-                self.stack_push(Value::Object(Some(string_obj)));
-            }
-            ConstantPoolEntry::Integer { value } => {
-                self.stack_push(Value::Integer(value));
-            }
-            ConstantPoolEntry::Float { value } => {
-                self.stack_push(Value::Float(value));
-            }
-            ConstantPoolEntry::Class { name_idx } => {
-                let class_name = constant_pool
-                    .get_utf8(name_idx)
-                    .expect("Should refer to valid entry");
-
-                // TODO should this be a verify-time error?
-                let class = self.context.lookup_class(class_name)?;
-
-                self.stack_push(Value::Object(Some(
-                    self.context.get_or_init_java_class_for_class(class),
-                )));
-            }
-            ConstantPoolEntry::Double { value } => {
-                self.stack_push_wide(Value::Double(value));
-            }
-            ConstantPoolEntry::Long { value } => {
-                self.stack_push_wide(Value::Long(value));
-            }
-            _ => unimplemented!(),
-        }
+    fn op_ldc_2(&mut self, value: Value) -> Result<ControlFlow, Error> {
+        self.stack_push_wide(value);
 
         Ok(ControlFlow::Continue)
     }

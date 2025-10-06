@@ -520,8 +520,8 @@ fn verify_block<'a>(
             Op::DConst(_) => {
                 push_stack!(Double);
             }
-            Op::Ldc(constant_pool_entry) => match constant_pool_entry {
-                ConstantPoolEntry::String { .. } => {
+            Op::Ldc(info) => match info.0.cpool_entry {
+                ConstantPoolEntry::String { .. } | ConstantPoolEntry::Class { .. } => {
                     push_stack!(Reference);
                 }
                 ConstantPoolEntry::Integer { .. } => {
@@ -530,19 +530,16 @@ fn verify_block<'a>(
                 ConstantPoolEntry::Float { .. } => {
                     push_stack!(Float);
                 }
-                ConstantPoolEntry::Class { .. } => {
-                    push_stack!(Reference);
-                }
-                _ => unimplemented!(),
+                _ => unreachable!(),
             },
-            Op::Ldc2(constant_pool_entry) => match constant_pool_entry {
+            Op::Ldc2(info) => match info.0.cpool_entry {
                 ConstantPoolEntry::Long { .. } => {
                     push_stack!(Long);
                 }
                 ConstantPoolEntry::Double { .. } => {
                     push_stack!(Double);
                 }
-                _ => panic!("Ldc2 expects Long or Double entry"),
+                _ => unreachable!(),
             },
             Op::ILoad(index) => {
                 expect_local!(*index, Integer);
