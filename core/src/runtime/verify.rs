@@ -883,6 +883,10 @@ fn verify_block<'a>(
                 expect_pop_stack!(Double);
                 push_stack!(Long);
             }
+            Op::D2F => {
+                expect_pop_stack!(Double);
+                push_stack!(Float);
+            }
             Op::I2B | Op::I2C | Op::I2S => {
                 expect_pop_stack!(Integer);
                 push_stack!(Integer);

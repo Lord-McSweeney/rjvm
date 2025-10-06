@@ -231,6 +231,7 @@ impl<'a> Interpreter<'a> {
                 Op::F2D => self.op_f2d(),
                 Op::D2I => self.op_d2i(),
                 Op::D2L => self.op_d2l(),
+                Op::D2F => self.op_d2f(),
                 Op::I2B => self.op_i2b(),
                 Op::I2C => self.op_i2c(),
                 Op::I2S => self.op_i2s(),
@@ -1266,6 +1267,14 @@ impl<'a> Interpreter<'a> {
         let double = self.stack_pop_wide().double();
 
         self.stack_push_wide(Value::Long(double as i64));
+
+        Ok(ControlFlow::Continue)
+    }
+
+    fn op_d2f(&mut self) -> Result<ControlFlow, Error> {
+        let double = self.stack_pop_wide().double();
+
+        self.stack_push(Value::Float(double as f32));
 
         Ok(ControlFlow::Continue)
     }
