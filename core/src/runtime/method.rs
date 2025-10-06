@@ -13,7 +13,7 @@ use crate::classfile::reader::{FileData, Reader};
 use crate::gc::{Gc, Trace};
 use crate::string::JvmString;
 
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::fmt;
 use std::hash::{Hash, Hasher};
 
@@ -108,8 +108,11 @@ impl Method {
 
             match &*self.0.method_info.borrow() {
                 MethodInfo::Bytecode(bytecode_info) => {
-                    for class in &bytecode_info.class_dependencies {
-                        class.run_clinit(context)?;
+                    if !bytecode_info.deps_initialized.get() {
+                        for class in &bytecode_info.class_dependencies {
+                            class.run_clinit(context)?;
+                        }
+                        bytecode_info.deps_initialized.set(true);
                     }
 
                     let frame_reference = &context.frame_data;
@@ -248,6 +251,7 @@ struct BytecodeMethodInfo {
     exceptions: Vec<Exception>,
 
     class_dependencies: Vec<Class>,
+    deps_initialized: Cell<bool>,
 }
 
 pub struct Exception {
@@ -339,6 +343,7 @@ impl BytecodeMethodInfo {
             code,
             exceptions,
             class_dependencies,
+            deps_initialized: Cell::new(false),
         })
     }
 }
