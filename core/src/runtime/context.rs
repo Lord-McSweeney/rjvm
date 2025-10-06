@@ -25,7 +25,7 @@ pub const THROWABLE_STACK_TRACE_FIELD: usize = 1;
 
 pub const STRING_DATA_FIELD: usize = 0;
 
-const DEFAULT_GC_THRESHOLD: u32 = 32768;
+const DEFAULT_GC_THRESHOLD: u32 = 131072;
 
 #[derive(Clone, Copy)]
 pub struct Context {
