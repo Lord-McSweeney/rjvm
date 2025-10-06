@@ -57,9 +57,7 @@ public abstract class AbstractList<E> extends AbstractCollection<E> implements L
     }
 
     public Iterator<E> iterator() {
-        Todo.warnNotImpl("java.util.AbstractList.iterator");
-
-        return null;
+        return new AbstractListIterator<E>(this);
     }
 }
 
@@ -86,5 +84,23 @@ class SubList<E> extends AbstractList<E> {
 
     public int size() {
         return this.size;
+    }
+}
+
+class AbstractListIterator<E> implements Iterator<E> {
+    private AbstractList<E> backingList;
+    private int currentIndex;
+
+    AbstractListIterator(AbstractList<E> backingList) {
+        this.backingList = backingList;
+        this.currentIndex = 0;
+    }
+
+    public boolean hasNext() {
+        return this.currentIndex < this.backingList.size();
+    }
+
+    public E next() {
+        return this.backingList.get(this.currentIndex ++);
     }
 }
