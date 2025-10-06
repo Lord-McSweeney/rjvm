@@ -97,6 +97,8 @@ pub enum Op {
     I2F,
     I2D,
     L2I,
+    L2F,
+    L2D,
     F2I,
     D2I,
     D2L,
@@ -251,6 +253,8 @@ impl Trace for Op {
             Op::I2F => {}
             Op::I2D => {}
             Op::L2I => {}
+            Op::L2F => {}
+            Op::L2D => {}
             Op::F2I => {}
             Op::D2I => {}
             Op::D2L => {}
@@ -473,6 +477,8 @@ const I2L: u8 = 0x85;
 const I2F: u8 = 0x86;
 const I2D: u8 = 0x87;
 const L2I: u8 = 0x88;
+const L2F: u8 = 0x89;
+const L2D: u8 = 0x8A;
 const F2I: u8 = 0x8B;
 const D2I: u8 = 0x8E;
 const D2L: u8 = 0x8F;
@@ -851,6 +857,8 @@ impl Op {
             I2F => Ok(Op::I2F),
             I2D => Ok(Op::I2D),
             L2I => Ok(Op::L2I),
+            L2F => Ok(Op::L2F),
+            L2D => Ok(Op::L2D),
             F2I => Ok(Op::F2I),
             D2I => Ok(Op::D2I),
             D2L => Ok(Op::D2L),

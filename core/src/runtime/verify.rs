@@ -855,6 +855,14 @@ fn verify_block<'a>(
                 expect_pop_stack!(Long);
                 push_stack!(Integer);
             }
+            Op::L2F => {
+                expect_pop_stack!(Long);
+                push_stack!(Float);
+            }
+            Op::L2D => {
+                expect_pop_stack!(Long);
+                push_stack!(Double);
+            }
             Op::F2I => {
                 expect_pop_stack!(Float);
                 push_stack!(Integer);
