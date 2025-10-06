@@ -61,6 +61,11 @@ public class File {
         this.internalInitFileData(Charset.stringToUtf8(path));
     }
 
+    public boolean isAbsolute() {
+        // TODO windows support
+        return this.normalizedPath.charAt(0) == '/';
+    }
+
     public boolean isDirectory() {
         return this.isDirectory;
     }

@@ -216,6 +216,21 @@ public final class String implements Comparable<String> {
         return -1;
     }
 
+    public int lastIndexOf(String search) {
+        if (search.length() == 0) {
+            return this.length();
+        }
+
+        // TODO support code points
+        for (int i = this.data.length - 1; i >= 0; i --) {
+            if (this.substring(i).startsWith(search)) {
+                return i;
+            }
+        }
+
+        return -1;
+    }
+
     public int indexOf(String search) {
         return this.indexOf(search, 0);
     }
