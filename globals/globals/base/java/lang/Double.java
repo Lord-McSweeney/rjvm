@@ -5,6 +5,9 @@ import rjvm.internal.Todo;
 public final class Double extends Number {
     public static Class<Double> TYPE = (Class<Double>) Class.getPrimitiveClass(Class.PRIM_DOUBLE);
 
+    public static final double NEGATIVE_INFINITY = -1.0 / 0.0;
+    public static final double POSITIVE_INFINITY = 1.0 / 0.0;
+
     private double value;
 
     public Double(double value) {
@@ -15,6 +18,18 @@ public final class Double extends Number {
 
     public double doubleValue() {
         return this.value;
+    }
+
+    public boolean isInfinite() {
+        return this.value == NEGATIVE_INFINITY || this.value == POSITIVE_INFINITY;
+    }
+
+    public boolean isNaN() {
+        return Double.isNaN(value);
+    }
+
+    public static boolean isNaN(double value) {
+        return value != value;
     }
 
     public static Double valueOf(double d) {
