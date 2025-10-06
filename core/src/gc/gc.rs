@@ -2,13 +2,11 @@
 //
 // Limitations:
 //   - It is fairly unsafe
-//   - Two allocations instead of one to create Gcs, and
-//   - Two dereferences instead of one to access values held by Gcs.
 //
 // Advantages:
 //   - Collection can be called anytime and will collect all unreachable Gcs;
 //     it is the caller's responsibility to call it properly
-//   - /Almost/ zero-cost pointers (e.g. no reference counting)
+//   - Almost zero-cost pointers
 
 use std::cell::Cell;
 use std::hash::{Hash, Hasher};
@@ -22,6 +20,9 @@ enum CollectionStatus {
     Marked,
 }
 
+// NOTE the `#[repr(C, align(16))]` is necessary to allow erasing and unerasing
+// to work correctly
+#[repr(C, align(16))]
 struct GcBox<T> {
     /// The collection status of this Gc.
     status: Cell<CollectionStatus>,
@@ -35,9 +36,8 @@ struct GcBox<T> {
     /// The function to call to drop this Gc when it is collected.
     drop: unsafe fn(Gc<()>),
 
-    /// The actual value held by this GcBox (behind a NonNull so that type-erased
-    /// Gcs work properly).
-    value: std::ptr::NonNull<T>,
+    /// The actual value held by this GcBox
+    value: T,
 }
 
 pub struct Gc<T> {
@@ -58,7 +58,7 @@ where
     T: std::fmt::Debug,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        unsafe { write!(f, "{:?}", self.ptr.as_ref().value.as_ref()) }
+        unsafe { write!(f, "{:?}", self.ptr.as_ref().value) }
     }
 }
 
@@ -67,7 +67,7 @@ where
     T: PartialEq,
 {
     fn eq(&self, other: &Self) -> bool {
-        unsafe { self.ptr.as_ref().value.as_ref() == other.ptr.as_ref().value.as_ref() }
+        unsafe { self.ptr.as_ref().value == other.ptr.as_ref().value }
     }
 }
 
@@ -77,7 +77,7 @@ where
 {
     fn hash<H: Hasher>(&self, state: &mut H) {
         unsafe {
-            self.ptr.as_ref().value.as_ref().hash(state);
+            self.ptr.as_ref().value.hash(state);
         }
     }
 }
@@ -102,14 +102,11 @@ impl<T> Gc<T> {
             next: Cell::new(previous_next),
             drop: |gc| {
                 let unerased = gc.unerased::<T>();
-                let created_box_inner =
-                    unsafe { Box::from_raw(unerased.ptr.as_ref().value.as_ptr()) };
-                drop(created_box_inner);
 
-                let created_box_outer = unsafe { Box::from_raw(unerased.ptr.as_ptr()) };
-                drop(created_box_outer);
+                let created_box = unsafe { Box::from_raw(unerased.ptr.as_ptr()) };
+                drop(created_box);
             },
-            value: leaked_non_null(value),
+            value,
         };
 
         let created_gc = Self {
@@ -140,7 +137,9 @@ impl<T> Gc<T> {
     }
 
     pub fn as_ptr(this: Self) -> *const T {
-        unsafe { this.ptr.as_ref().value.as_ptr() }
+        let box_ptr = this.ptr.as_ptr();
+        // TODO is there a way to do this without the `unsafe`?
+        unsafe { &raw const (*box_ptr).value }
     }
 
     // Mark this GC without calling Trace on its inner value.
@@ -170,7 +169,7 @@ impl Gc<()> {
             drop: |_| {
                 // Should be dropped manually
             },
-            value: leaked_non_null(()),
+            value: (),
         };
 
         Self {
@@ -191,7 +190,7 @@ impl<T> Deref for Gc<T> {
     type Target = T;
 
     fn deref(&self) -> &Self::Target {
-        unsafe { self.ptr.as_ref().value.as_ref() }
+        unsafe { &self.ptr.as_ref().value }
     }
 }
 
@@ -274,17 +273,13 @@ impl<T> Trace for Gc<T>
 where
     T: Trace,
 {
-    // Yes, this is pretty big...
-    #[inline(always)]
     fn trace(&self) {
-        unsafe {
-            let gc_box = self.ptr.as_ref();
+        let gc_box = unsafe { self.ptr.as_ref() };
 
-            // If this GC is already marked, don't trace its contents again
-            if matches!(gc_box.status.get(), CollectionStatus::NotMarked) {
-                gc_box.status.set(CollectionStatus::Marked);
-                gc_box.value.as_ref().trace();
-            }
+        // If this GC is already marked, don't trace its contents again
+        if matches!(gc_box.status.get(), CollectionStatus::NotMarked) {
+            gc_box.status.set(CollectionStatus::Marked);
+            gc_box.value.trace();
         }
     }
 }
