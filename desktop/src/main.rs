@@ -141,7 +141,7 @@ impl PassedOptions {
 }
 
 fn init_main_class(
-    context: Context,
+    context: &Context,
     options: PassedOptions,
     read_file: Vec<u8>,
 ) -> Result<Class, &'static str> {
@@ -264,8 +264,8 @@ Link options:
             .expect("Builtin globals should be valid");
         context.add_jar(globals_desktop_jar);
 
-        base_native_impl::register_native_mappings(context);
-        native_impl::register_native_mappings(context);
+        base_native_impl::register_native_mappings(&context);
+        native_impl::register_native_mappings(&context);
     }
 
     // Load linked JARs
@@ -303,7 +303,7 @@ Link options:
     }
 
     // Load the main class from options
-    let main_class = match init_main_class(context, options, read_file) {
+    let main_class = match init_main_class(&context, options, read_file) {
         Ok(main_class) => main_class,
         Err(error_msg) => {
             eprintln!("{}", error_msg);
@@ -313,7 +313,7 @@ Link options:
 
     let string_class = context.builtins().java_lang_string;
     let args_array = Value::Object(Some(Object::obj_array(
-        context,
+        &context,
         string_class,
         program_args.into_boxed_slice(),
     )));
@@ -335,10 +335,10 @@ Link options:
 
     if let Some(method_idx) = method_idx {
         let method = main_class.static_methods()[method_idx];
-        let result = method.exec(context, &[args_array]);
+        let result = method.exec(&context, &[args_array]);
 
         if let Err(error) = result {
-            eprintln!("Error while running main: {}", error.display(context));
+            eprintln!("Error while running main: {}", error.display(&context));
         }
     } else {
         eprintln!(

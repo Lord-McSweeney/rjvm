@@ -72,7 +72,7 @@ impl fmt::Debug for Class {
 
 impl Class {
     pub fn from_class_file(
-        context: Context,
+        context: &Context,
         load_source: ResourceLoadType,
         class_file: ClassFile,
     ) -> Result<Self, Error> {
@@ -193,7 +193,7 @@ impl Class {
     }
 
     // This must be called after the Class is registered.
-    pub fn load_methods(self, context: Context) -> Result<(), Error> {
+    pub fn load_methods(self, context: &Context) -> Result<(), Error> {
         let class_file = self.class_file().unwrap();
         let super_class = self.super_class();
 
@@ -256,7 +256,7 @@ impl Class {
 
     /// DO NOT USE THIS TO GET ARRAY CLASSES! It WILL create duplicate classes
     /// for the same `array_type`! Use `Context::array_class_for` instead.
-    pub fn for_array(context: Context, array_type: ResolvedDescriptor) -> Self {
+    pub fn for_array(context: &Context, array_type: ResolvedDescriptor) -> Self {
         let object_class = context.object_class();
 
         let instance_method_vtable = *object_class.instance_method_vtable();
@@ -474,13 +474,13 @@ impl Class {
         Object::from_class(gc_ctx, self)
     }
 
-    pub fn load_resource(self, context: Context, resource_name: &String) -> Option<Vec<u8>> {
+    pub fn load_resource(self, context: &Context, resource_name: &String) -> Option<Vec<u8>> {
         self.0.load_source.as_ref().and_then(|load_source| {
             context.load_resource(load_source, self.name().to_string(), resource_name)
         })
     }
 
-    pub fn run_clinit(self, context: Context) -> Result<(), Error> {
+    pub fn run_clinit(self, context: &Context) -> Result<(), Error> {
         if !self.0.clinit_run.get() {
             self.0.clinit_run.set(true);
 

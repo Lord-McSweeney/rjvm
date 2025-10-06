@@ -49,7 +49,7 @@ struct MethodData {
 
 impl Method {
     pub fn from_method(
-        context: Context,
+        context: &Context,
         method: &ClassFileMethod,
         class: Class,
     ) -> Result<Self, Error> {
@@ -93,7 +93,7 @@ impl Method {
         )))
     }
 
-    pub fn exec(self, context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
+    pub fn exec(self, context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
         // Run everything in a closure so we can handle the call stack more easily
         let closure = || -> Result<Option<Value>, Error> {
             // Parse bytecode if it hasn't been already
@@ -136,7 +136,7 @@ impl Method {
         result
     }
 
-    fn parse_info(self, context: Context) -> Result<(), Error> {
+    fn parse_info(self, context: &Context) -> Result<(), Error> {
         let borrow = self.0.method_info.borrow();
 
         let new_method_info = match &*borrow {
@@ -270,7 +270,7 @@ impl Trace for Exception {
 }
 
 impl BytecodeMethodInfo {
-    pub fn from_code_data(context: Context, method: Method, data: &[u8]) -> Result<Self, Error> {
+    pub fn from_code_data(context: &Context, method: Method, data: &[u8]) -> Result<Self, Error> {
         let mut reader = FileData::new(data);
 
         let class_file = method.class().class_file().unwrap();
@@ -352,7 +352,7 @@ impl Trace for BytecodeMethodInfo {
     }
 }
 
-pub type NativeMethod = for<'a> fn(Context, &[Value]) -> Result<Option<Value>, Error>;
+pub type NativeMethod = for<'a> fn(&Context, &[Value]) -> Result<Option<Value>, Error>;
 
 impl Trace for NativeMethod {
     fn trace(&self) {}

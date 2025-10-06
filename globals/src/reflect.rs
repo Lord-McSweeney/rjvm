@@ -2,7 +2,7 @@
 
 use rjvm_core::{Class, Context, Descriptor, Error, Method, MethodFlags, Object, Value};
 
-pub(crate) fn constructors_for_class(context: Context, class: Class) -> Box<[Method]> {
+pub(crate) fn constructors_for_class(context: &Context, class: Class) -> Box<[Method]> {
     class
         .instance_method_vtable()
         .elements_for_name(context.common.init_name)
@@ -20,7 +20,7 @@ pub(crate) fn constructors_for_class(context: Context, class: Class) -> Box<[Met
 
 // Change the provided args into a form suitable for calling the given method.
 pub(crate) fn args_for_instance_call(
-    _context: Context,
+    _context: &Context,
     method: Method,
     receiver: Object,
     args: &[Value],

@@ -158,7 +158,7 @@ pub enum ResolvedDescriptor {
 }
 
 impl ResolvedDescriptor {
-    pub fn from_descriptor(context: Context, descriptor: Descriptor) -> Result<Self, Error> {
+    pub fn from_descriptor(context: &Context, descriptor: Descriptor) -> Result<Self, Error> {
         Ok(match descriptor {
             Descriptor::Class(class_name) => {
                 let class = context.lookup_class(class_name)?;

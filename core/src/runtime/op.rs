@@ -530,7 +530,7 @@ const IF_NON_NULL: u8 = 0xC7;
 
 impl Op {
     pub fn read_ops(
-        context: Context,
+        context: &Context,
         method: Method,
         constant_pool: &ConstantPool,
         data: &mut FileData<'_>,
@@ -615,7 +615,7 @@ impl Op {
     }
 
     fn read_op(
-        context: Context,
+        context: &Context,
         method: Method,
         constant_pool: &ConstantPool,
         data: &mut FileData<'_>,
@@ -1434,7 +1434,7 @@ impl Op {
 }
 
 fn ldc_value(
-    context: Context,
+    context: &Context,
     constant_pool: &ConstantPool,
     cpool_entry: ConstantPoolEntry,
 ) -> Result<Value, Error> {

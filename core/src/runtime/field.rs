@@ -25,7 +25,7 @@ pub struct Field {
 
 impl Field {
     pub fn from_field(
-        context: Context,
+        context: &Context,
         class_file: ClassFile,
         field: &ClassFileField,
     ) -> Result<Self, Error> {
@@ -97,7 +97,7 @@ struct FieldRefData {
 
 impl FieldRef {
     pub fn from_field(
-        context: Context,
+        context: &Context,
         class_file: ClassFile,
         field: &ClassFileField,
     ) -> Result<Self, Error> {
@@ -164,7 +164,7 @@ impl Trace for FieldRefData {
 }
 
 fn field_constant_value(
-    context: Context,
+    context: &Context,
     class_file: ClassFile,
     field: &ClassFileField,
 ) -> Result<Option<Value>, Error> {

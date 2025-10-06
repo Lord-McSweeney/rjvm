@@ -4,7 +4,7 @@ use rjvm_core::{
 
 use std::cell::Cell;
 
-pub fn register_native_mappings(context: Context) {
+pub fn register_native_mappings(context: &Context) {
     #[rustfmt::skip]
     let mappings: &[(&str, NativeMethod)] = &[
         ("java/nio/charset/Charset.stringToUtf8.(Ljava/lang/String;)[B", string_to_utf8),
@@ -35,7 +35,7 @@ pub fn register_native_mappings(context: Context) {
 // Native implementations of functions declared in globals
 
 // java/lang/PrintStream : static byte[] stringToUtf8(String)
-fn string_to_utf8(context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
+fn string_to_utf8(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
     // Expecting non-null object
     let string_object = args[0].object().unwrap();
     let char_array = string_object.get_field(0).object().unwrap();
@@ -57,7 +57,7 @@ fn string_to_utf8(context: Context, args: &[Value]) -> Result<Option<Value>, Err
 }
 
 // java/lang/System: static void arraycopy(Object, int, Object, int, int)
-fn array_copy(context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
+fn array_copy(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
     let source_arr = args[0].object();
     let Some(source_arr) = source_arr else {
         return Err(context.null_pointer_exception());
@@ -170,7 +170,7 @@ fn primitive_array_copy<T: Copy + Default>(
 }
 
 // java/lang/Class : boolean isInterface()
-fn is_interface(context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
+fn is_interface(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
     // Receiver should never be null
     let class_obj = args[0].object().unwrap();
     let class = context.get_class_for_java_class(class_obj);
@@ -183,7 +183,7 @@ fn is_interface(context: Context, args: &[Value]) -> Result<Option<Value>, Error
 }
 
 // java/lang/Class : boolean isPrimitive()
-fn is_primitive(context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
+fn is_primitive(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
     // Receiver should never be null
     let class_obj = args[0].object().unwrap();
     let class = context.get_class_for_java_class(class_obj);
@@ -196,7 +196,7 @@ fn is_primitive(context: Context, args: &[Value]) -> Result<Option<Value>, Error
 }
 
 // java/lang/Object : Class getClass()
-fn get_class(context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
+fn get_class(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
     // Receiver should never be null
     let class = args[0].object().unwrap().class();
 
@@ -206,7 +206,7 @@ fn get_class(context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
 }
 
 // java/lang/Class : String getNameNative()
-fn get_name_native(context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
+fn get_name_native(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
     // Receiver should never be null
     let class_obj = args[0].object().unwrap();
     let class = context.get_class_for_java_class(class_obj);
@@ -219,7 +219,7 @@ fn get_name_native(context: Context, args: &[Value]) -> Result<Option<Value>, Er
 }
 
 // java/lang/Class : byte[] getResourceData(String)
-fn get_resource_data(context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
+fn get_resource_data(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
     // Receiver should never be null
     let class_obj = args[0].object().unwrap();
     let class = context.get_class_for_java_class(class_obj);
@@ -246,7 +246,7 @@ fn get_resource_data(context: Context, args: &[Value]) -> Result<Option<Value>, 
     }
 }
 
-fn math_atan2(_context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
+fn math_atan2(_context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
     let y = args[0].double();
     let x = args[2].double();
 
@@ -255,26 +255,26 @@ fn math_atan2(_context: Context, args: &[Value]) -> Result<Option<Value>, Error>
     Ok(Some(Value::Double(y.atan2(x))))
 }
 
-fn math_log(_context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
+fn math_log(_context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
     let value = args[0].double();
 
     Ok(Some(Value::Double(value.ln())))
 }
 
-fn math_pow(_context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
+fn math_pow(_context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
     let base = args[0].double();
     let exp = args[2].double();
 
     Ok(Some(Value::Double(base.powf(exp))))
 }
 
-fn math_sqrt(_context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
+fn math_sqrt(_context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
     let value = args[0].double();
 
     Ok(Some(Value::Double(value.sqrt())))
 }
 
-fn object_clone(context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
+fn object_clone(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
     let this = args[0].object().unwrap();
     let this_class = this.class();
 
@@ -290,14 +290,14 @@ fn object_clone(context: Context, args: &[Value]) -> Result<Option<Value>, Error
     }
 }
 
-fn capture_stack_trace(context: Context, _args: &[Value]) -> Result<Option<Value>, Error> {
+fn capture_stack_trace(context: &Context, _args: &[Value]) -> Result<Option<Value>, Error> {
     let stack_data = context.capture_call_stack();
     let chars = stack_data.chars().map(|c| c as u16).collect::<Vec<_>>();
 
     Ok(Some(Value::Object(Some(context.create_string(&chars)))))
 }
 
-fn get_primitive_class(context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
+fn get_primitive_class(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
     let id = args[0].int();
     let primitive_type = match id {
         0 => PrimitiveType::Boolean,
@@ -318,7 +318,7 @@ fn get_primitive_class(context: Context, args: &[Value]) -> Result<Option<Value>
     Ok(Some(Value::Object(Some(class_obj))))
 }
 
-fn object_hash_code(_context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
+fn object_hash_code(_context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
     let this = args[0].object().unwrap();
     let this_class = this.class();
 
@@ -334,7 +334,7 @@ fn object_hash_code(_context: Context, args: &[Value]) -> Result<Option<Value>, 
     Ok(Some(Value::Integer(result as i32)))
 }
 
-fn class_for_name_native(context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
+fn class_for_name_native(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
     // First argument should never be null
     let class_name_data = args[0].object().unwrap().get_field(0).object().unwrap();
     let class_name_data = class_name_data.array_data().as_char_array();
@@ -364,7 +364,7 @@ fn class_for_name_native(context: Context, args: &[Value]) -> Result<Option<Valu
     }
 }
 
-fn get_constructors(context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
+fn get_constructors(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
     // Receiver should never be null
     let class_obj = args[0].object().unwrap();
     let class = context.get_class_for_java_class(class_obj);
@@ -381,7 +381,7 @@ fn get_constructors(context: Context, args: &[Value]) -> Result<Option<Value>, E
     Ok(Some(Value::Object(Some(constructors_arr))))
 }
 
-fn new_instance_native(context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
+fn new_instance_native(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
     // Receiver should never be null
     let ctor_obj = args[0].object().unwrap();
     let ctor_method = context.get_method_for_java_executable(ctor_obj);
@@ -408,7 +408,7 @@ fn new_instance_native(context: Context, args: &[Value]) -> Result<Option<Value>
     }
 }
 
-fn ctor_get_parameter_count(context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
+fn ctor_get_parameter_count(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
     // Receiver should never be null
     let ctor_obj = args[0].object().unwrap();
     let ctor_method = context.get_method_for_java_executable(ctor_obj);
@@ -416,7 +416,7 @@ fn ctor_get_parameter_count(context: Context, args: &[Value]) -> Result<Option<V
     Ok(Some(Value::Integer(ctor_method.arg_count() as i32)))
 }
 
-fn string_intern(context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
+fn string_intern(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
     // Receiver should never be null
     let string_obj = args[0].object().unwrap();
 

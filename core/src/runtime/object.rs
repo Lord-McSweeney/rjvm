@@ -34,7 +34,7 @@ impl Object {
     // Creates a new instance of java.lang.Class. The caller is responsible for
     // making it a valid `Class` object (see how
     // `Context::get_or_init_java_class_for_class` does it).
-    pub fn class_object(context: Context) -> Self {
+    pub fn class_object(context: &Context) -> Self {
         let class_class = context.builtins().java_lang_class;
 
         let fields = class_class
@@ -55,7 +55,7 @@ impl Object {
     // Creates a new instance of java.lang.reflect.Constructor. The caller is
     // responsible for making it a valid `Constructor` object (see how
     // `Context::get_or_init_java_executable_for_method` does it).
-    pub fn constructor_object(context: Context) -> Self {
+    pub fn constructor_object(context: &Context) -> Self {
         let constructor_class = context.builtins().java_lang_reflect_constructor;
 
         let fields = constructor_class
@@ -73,7 +73,7 @@ impl Object {
         ))
     }
 
-    pub fn bool_array(context: Context, data: Box<[i8]>) -> Self {
+    pub fn bool_array(context: &Context, data: Box<[i8]>) -> Self {
         let class = context.builtins().array_bool;
 
         let data = data.into_iter().map(Cell::new).collect::<Box<_>>();
@@ -87,7 +87,7 @@ impl Object {
         ))
     }
 
-    pub fn byte_array(context: Context, data: Box<[i8]>) -> Self {
+    pub fn byte_array(context: &Context, data: Box<[i8]>) -> Self {
         let class = context.builtins().array_byte;
 
         let data = data.into_iter().map(Cell::new).collect::<Box<_>>();
@@ -101,7 +101,7 @@ impl Object {
         ))
     }
 
-    pub fn char_array(context: Context, data: Box<[u16]>) -> Self {
+    pub fn char_array(context: &Context, data: Box<[u16]>) -> Self {
         let class = context.builtins().array_char;
 
         let data = data.into_iter().map(Cell::new).collect::<Box<_>>();
@@ -115,7 +115,7 @@ impl Object {
         ))
     }
 
-    pub fn double_array(context: Context, data: Box<[f64]>) -> Self {
+    pub fn double_array(context: &Context, data: Box<[f64]>) -> Self {
         let class = context.builtins().array_double;
 
         let data = data.into_iter().map(Cell::new).collect::<Box<_>>();
@@ -129,7 +129,7 @@ impl Object {
         ))
     }
 
-    pub fn float_array(context: Context, data: Box<[f32]>) -> Self {
+    pub fn float_array(context: &Context, data: Box<[f32]>) -> Self {
         let class = context.builtins().array_float;
 
         let data = data.into_iter().map(Cell::new).collect::<Box<_>>();
@@ -143,7 +143,7 @@ impl Object {
         ))
     }
 
-    pub fn int_array(context: Context, data: Box<[i32]>) -> Self {
+    pub fn int_array(context: &Context, data: Box<[i32]>) -> Self {
         let class = context.builtins().array_int;
 
         let data = data.into_iter().map(Cell::new).collect::<Box<_>>();
@@ -157,7 +157,7 @@ impl Object {
         ))
     }
 
-    pub fn long_array(context: Context, data: Box<[i64]>) -> Self {
+    pub fn long_array(context: &Context, data: Box<[i64]>) -> Self {
         let class = context.builtins().array_long;
 
         let data = data.into_iter().map(Cell::new).collect::<Box<_>>();
@@ -171,7 +171,7 @@ impl Object {
         ))
     }
 
-    pub fn short_array(context: Context, data: Box<[i16]>) -> Self {
+    pub fn short_array(context: &Context, data: Box<[i16]>) -> Self {
         let class = context.builtins().array_short;
 
         let data = data.into_iter().map(Cell::new).collect::<Box<_>>();
@@ -185,7 +185,7 @@ impl Object {
         ))
     }
 
-    pub fn obj_array(context: Context, class: Class, data: Box<[Option<Object>]>) -> Self {
+    pub fn obj_array(context: &Context, class: Class, data: Box<[Option<Object>]>) -> Self {
         // If this is an array of arrays, use an array type for its type instead of a class type
         let descriptor = if class.array_value_type().is_some() {
             ResolvedDescriptor::Array(class)
@@ -265,7 +265,7 @@ impl Object {
 
     pub fn call_construct(
         self,
-        context: Context,
+        context: &Context,
         descriptor: MethodDescriptor,
         args: &[Value],
     ) -> Result<(), Error> {

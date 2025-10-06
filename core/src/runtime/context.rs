@@ -27,7 +27,7 @@ pub const STRING_DATA_FIELD: usize = 0;
 
 const DEFAULT_GC_THRESHOLD: u32 = 131072;
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub struct Context {
     // The backend to call into to load resources.
     loader_backend: Gc<Box<dyn LoaderBackend>>,
@@ -128,7 +128,7 @@ impl Context {
         }
     }
 
-    pub fn register_native_mappings(self, mappings: &[(&str, NativeMethod)]) {
+    pub fn register_native_mappings(&self, mappings: &[(&str, NativeMethod)]) {
         for mapping in mappings {
             let name = mapping.0.split(".").collect::<Vec<_>>();
 
@@ -147,12 +147,12 @@ impl Context {
         }
     }
 
-    pub fn set_gc_threshold(self, gc_threshold: u32) {
+    pub fn set_gc_threshold(&self, gc_threshold: u32) {
         self.gc_threshold.set(gc_threshold);
     }
 
     pub fn get_native_method(
-        self,
+        &self,
         class_name: JvmString,
         method_name: JvmString,
         method_descriptor: MethodDescriptor,
@@ -163,11 +163,11 @@ impl Context {
             .copied()
     }
 
-    pub fn add_jar(self, jar: Jar) {
+    pub fn add_jar(&self, jar: Jar) {
         self.jar_files.borrow_mut().push(jar);
     }
 
-    pub fn lookup_class(self, class_name: JvmString) -> Result<Class, Error> {
+    pub fn lookup_class(&self, class_name: JvmString) -> Result<Class, Error> {
         let class_registry = self.class_registry.borrow();
 
         if let Some(class) = class_registry.get(&class_name) {
@@ -179,7 +179,7 @@ impl Context {
                 .ok_or_else(|| self.no_class_def_found_error(class_name))?;
 
             let resolved_descriptor =
-                ResolvedDescriptor::from_descriptor(self, element_descriptor)?;
+                ResolvedDescriptor::from_descriptor(&self, element_descriptor)?;
 
             let created_class = self.array_class_for(resolved_descriptor);
             // `array_class_for` will register the class in the registry
@@ -194,8 +194,11 @@ impl Context {
 
                     let class_file = ClassFile::from_data(self.gc_ctx, read_data)?;
 
-                    let class =
-                        Class::from_class_file(self, ResourceLoadType::Jar(*jar_file), class_file)?;
+                    let class = Class::from_class_file(
+                        &self,
+                        ResourceLoadType::Jar(*jar_file),
+                        class_file,
+                    )?;
 
                     self.register_class(class);
 
@@ -209,7 +212,7 @@ impl Context {
         }
     }
 
-    pub fn register_class(self, class: Class) {
+    pub fn register_class(&self, class: Class) {
         let class_name = class.name();
         let mut registry = self.class_registry.borrow_mut();
 
@@ -220,12 +223,12 @@ impl Context {
         }
     }
 
-    pub fn add_linked_jar(self, jar: Jar) {
+    pub fn add_linked_jar(&self, jar: Jar) {
         self.jar_files.borrow_mut().push(jar);
     }
 
     pub fn load_resource(
-        self,
+        &self,
         load_type: &ResourceLoadType,
         class_name: &String,
         resource_name: &String,
@@ -234,7 +237,7 @@ impl Context {
             .load_resource(load_type, class_name, resource_name)
     }
 
-    pub fn get_or_init_java_class_for_class(self, class: Class) -> Object {
+    pub fn get_or_init_java_class_for_class(&self, class: Class) -> Object {
         let mut class_objects = self.class_to_java_class_map.borrow_mut();
         let mut classes = self.java_class_to_class_map.borrow_mut();
 
@@ -250,7 +253,7 @@ impl Context {
         }
     }
 
-    pub fn get_class_for_java_class(self, object: Object) -> Class {
+    pub fn get_class_for_java_class(&self, object: Object) -> Class {
         let classes = self.java_class_to_class_map.borrow_mut();
 
         if let Some(class_object) = classes.get(&object) {
@@ -262,7 +265,7 @@ impl Context {
         }
     }
 
-    pub fn get_or_init_java_constructor_for_method(self, method: Method) -> Object {
+    pub fn get_or_init_java_constructor_for_method(&self, method: Method) -> Object {
         let mut method_objects = self.method_to_java_executable_map.borrow_mut();
         let mut methods = self.java_executable_to_method_map.borrow_mut();
 
@@ -278,7 +281,7 @@ impl Context {
         }
     }
 
-    pub fn get_method_for_java_executable(self, object: Object) -> Method {
+    pub fn get_method_for_java_executable(&self, object: Object) -> Method {
         let methods = self.java_executable_to_method_map.borrow_mut();
 
         if let Some(method_object) = methods.get(&object) {
@@ -295,13 +298,13 @@ impl Context {
     }
 
     // Used to avoid making multiple array classes for one array type
-    pub fn array_class_for(self, descriptor: ResolvedDescriptor) -> Class {
+    pub fn array_class_for(&self, descriptor: ResolvedDescriptor) -> Class {
         let array_classes = self.array_classes.borrow();
         if let Some(class) = array_classes.get(&descriptor) {
             *class
         } else {
             drop(array_classes);
-            let created_class = Class::for_array(self, descriptor);
+            let created_class = Class::for_array(&self, descriptor);
             self.array_classes
                 .borrow_mut()
                 .insert(descriptor, created_class);
@@ -310,32 +313,32 @@ impl Context {
         }
     }
 
-    pub fn primitive_class_for(self, primitive_type: PrimitiveType) -> Class {
+    pub fn primitive_class_for(&self, primitive_type: PrimitiveType) -> Class {
         *self.primitive_classes.get(&primitive_type).unwrap()
     }
 
-    pub fn call_stack_size(self) -> usize {
+    pub fn call_stack_size(&self) -> usize {
         self.call_stack.borrow().len()
     }
 
-    pub fn push_call(self, method: Method) {
+    pub fn push_call(&self, method: Method) {
         self.call_stack.borrow_mut().push_call(method);
     }
 
-    pub fn pop_call(self) {
+    pub fn pop_call(&self) {
         self.call_stack.borrow_mut().pop_call();
     }
 
-    pub fn capture_call_stack(self) -> String {
+    pub fn capture_call_stack(&self) -> String {
         self.call_stack.borrow().display()
     }
 
-    pub fn increment_gc_counter(self) {
+    pub fn increment_gc_counter(&self) {
         let new_value = self.gc_counter.get() + 1;
 
         if new_value == self.gc_threshold.get() {
             unsafe {
-                self.gc_ctx.collect(&self);
+                self.gc_ctx.collect(self);
             }
 
             self.gc_counter.set(0);
@@ -354,10 +357,10 @@ impl Context {
     }
 
     /// Convert a Rust `JvmString` to a Java String object.
-    pub fn jvm_string_to_string(self, string: JvmString) -> Object {
+    pub fn jvm_string_to_string(&self, string: JvmString) -> Object {
         let chars = string.chars().map(|c| c as u16).collect::<Box<_>>();
 
-        let chars_array_object = Object::char_array(self, chars);
+        let chars_array_object = Object::char_array(&self, chars);
 
         let string_class = self.builtins().java_lang_string;
 
@@ -368,8 +371,8 @@ impl Context {
     }
 
     /// Convert a Rust `&[u16]` to a Java String object.
-    pub fn create_string(self, chars: &[u16]) -> Object {
-        let chars_array_object = Object::char_array(self, Box::from(chars));
+    pub fn create_string(&self, chars: &[u16]) -> Object {
+        let chars_array_object = Object::char_array(&self, Box::from(chars));
 
         let string_class = self.builtins().java_lang_string;
 
@@ -403,7 +406,7 @@ impl Context {
 
         let _ = self.object_class.set(object_class);
 
-        let builtin_classes = BuiltinClasses::new(*self);
+        let builtin_classes = BuiltinClasses::new(self);
         *self.builtins.borrow_mut() = Some(builtin_classes);
     }
 
@@ -413,7 +416,7 @@ impl Context {
         let exception_instance = exception_class.new_instance(self.gc_ctx);
         exception_instance
             .call_construct(
-                *self,
+                &self,
                 self.common.noargs_void_desc,
                 &[Value::Object(Some(exception_instance))],
             )
@@ -428,7 +431,7 @@ impl Context {
         let exception_instance = exception_class.new_instance(self.gc_ctx);
         exception_instance
             .call_construct(
-                *self,
+                &self,
                 self.common.noargs_void_desc,
                 &[Value::Object(Some(exception_instance))],
             )
@@ -443,7 +446,7 @@ impl Context {
         let exception_instance = exception_class.new_instance(self.gc_ctx);
         exception_instance
             .call_construct(
-                *self,
+                &self,
                 self.common.noargs_void_desc,
                 &[Value::Object(Some(exception_instance))],
             )
@@ -458,7 +461,7 @@ impl Context {
         let exception_instance = exception_class.new_instance(self.gc_ctx);
         exception_instance
             .call_construct(
-                *self,
+                &self,
                 self.common.noargs_void_desc,
                 &[Value::Object(Some(exception_instance))],
             )
@@ -473,7 +476,7 @@ impl Context {
         let exception_instance = exception_class.new_instance(self.gc_ctx);
         exception_instance
             .call_construct(
-                *self,
+                &self,
                 self.common.noargs_void_desc,
                 &[Value::Object(Some(exception_instance))],
             )
@@ -488,7 +491,7 @@ impl Context {
         let exception_instance = exception_class.new_instance(self.gc_ctx);
         exception_instance
             .call_construct(
-                *self,
+                &self,
                 self.common.noargs_void_desc,
                 &[Value::Object(Some(exception_instance))],
             )
@@ -503,7 +506,7 @@ impl Context {
         let exception_instance = exception_class.new_instance(self.gc_ctx);
         exception_instance
             .call_construct(
-                *self,
+                &self,
                 self.common.noargs_void_desc,
                 &[Value::Object(Some(exception_instance))],
             )
@@ -518,7 +521,7 @@ impl Context {
         let exception_instance = exception_class.new_instance(self.gc_ctx);
         exception_instance
             .call_construct(
-                *self,
+                &self,
                 self.common.noargs_void_desc,
                 &[Value::Object(Some(exception_instance))],
             )
@@ -533,7 +536,7 @@ impl Context {
         let error_instance = error_class.new_instance(self.gc_ctx);
         error_instance
             .call_construct(
-                *self,
+                &self,
                 self.common.noargs_void_desc,
                 &[Value::Object(Some(error_instance))],
             )
@@ -554,7 +557,7 @@ impl Context {
         let error_instance = error_class.new_instance(self.gc_ctx);
         error_instance
             .call_construct(
-                *self,
+                &self,
                 self.common.noargs_void_desc,
                 &[Value::Object(Some(error_instance))],
             )
@@ -569,7 +572,7 @@ impl Context {
         let error_instance = error_class.new_instance(self.gc_ctx);
         error_instance
             .call_construct(
-                *self,
+                &self,
                 self.common.noargs_void_desc,
                 &[Value::Object(Some(error_instance))],
             )
@@ -584,7 +587,7 @@ impl Context {
         let exception_instance = exception_class.new_instance(self.gc_ctx);
         exception_instance
             .call_construct(
-                *self,
+                &self,
                 self.common.noargs_void_desc,
                 &[Value::Object(Some(exception_instance))],
             )

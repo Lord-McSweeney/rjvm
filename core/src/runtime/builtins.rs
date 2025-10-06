@@ -55,7 +55,7 @@ macro_rules! builtin_classes {
 
 impl BuiltinClasses {
     #[rustfmt::skip]
-    pub fn new(context: Context) -> Self {
+    pub fn new(context: &Context) -> Self {
         builtin_classes!(
             context,
             [

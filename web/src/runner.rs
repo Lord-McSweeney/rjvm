@@ -8,7 +8,7 @@ use rjvm_core::{
 use rjvm_globals::{GLOBALS_BASE_JAR, GLOBALS_DESKTOP_JAR, native_impl as base_native_impl};
 
 fn init_main_class(
-    context: Context,
+    context: &Context,
     read_file: Vec<u8>,
     is_jar: bool,
 ) -> Result<Class, &'static str> {
@@ -94,13 +94,13 @@ pub(crate) fn run_file(class_data: &[u8], args: Vec<String>, is_jar: bool) {
         .expect("Builtin globals should be valid");
     context.add_jar(globals_desktop_jar);
 
-    base_native_impl::register_native_mappings(context);
-    native_impl::register_native_mappings(context);
+    base_native_impl::register_native_mappings(&context);
+    native_impl::register_native_mappings(&context);
 
     context.load_builtins();
 
     // Load the main class from options
-    let main_class = match init_main_class(context, class_data.to_vec(), is_jar) {
+    let main_class = match init_main_class(&context, class_data.to_vec(), is_jar) {
         Ok(class) => class,
         Err(error) => {
             output_to_err(&format!("Error: {}\n", error));
@@ -121,7 +121,7 @@ pub(crate) fn run_file(class_data: &[u8], args: Vec<String>, is_jar: bool) {
 
     let string_class = context.builtins().java_lang_string;
     let args_array = Value::Object(Some(Object::obj_array(
-        context,
+        &context,
         string_class,
         program_args.into_boxed_slice(),
     )));
@@ -143,12 +143,12 @@ pub(crate) fn run_file(class_data: &[u8], args: Vec<String>, is_jar: bool) {
 
     if let Some(method_idx) = method_idx {
         let method = main_class.static_methods()[method_idx];
-        let result = method.exec(context, &[args_array]);
+        let result = method.exec(&context, &[args_array]);
 
         if let Err(error) = result {
             output_to_err(&format!(
                 "Error while running main: {}\n",
-                error.display(context)
+                error.display(&context)
             ));
         }
     } else {

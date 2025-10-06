@@ -26,7 +26,7 @@ impl Error {
         }
     }
 
-    pub fn display(&self, context: Context) -> String {
+    pub fn display(&self, context: &Context) -> String {
         match self {
             Error::Native(native) => format!("NativeError({:?})", native),
             Error::Java(error_object) => {

@@ -23,7 +23,7 @@ pub struct Interpreter<'a> {
 
     ip: usize,
 
-    context: Context,
+    context: &'a Context,
 }
 
 enum ControlFlow {
@@ -34,7 +34,7 @@ enum ControlFlow {
 
 impl<'a> Interpreter<'a> {
     pub fn new(
-        context: Context,
+        context: &'a Context,
         frame_reference: &'a [Cell<Value>],
         method: Method,
         args: &[Value],
@@ -2059,7 +2059,7 @@ impl<'a> Interpreter<'a> {
         // Now that we have the dimensions, let's create the array
 
         fn recursive_create_array(
-            context: Context,
+            context: &Context,
             resolved_descriptor: ResolvedDescriptor,
             dimensions: &Vec<usize>,
             dim_index: usize,

@@ -11,7 +11,7 @@ use std::time::SystemTime;
 
 static ALL_FILES: Mutex<Vec<fs::File>> = Mutex::new(Vec::new());
 
-pub fn register_native_mappings(context: Context) {
+pub fn register_native_mappings(context: &Context) {
     #[rustfmt::skip]
     let mappings: &[(&str, NativeMethod)] = &[
         ("java/lang/Runtime.exit.(I)V", system_exit),
@@ -32,13 +32,13 @@ pub fn register_native_mappings(context: Context) {
 }
 
 // java/lang/System : static void exit(int)
-fn system_exit(_context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
+fn system_exit(_context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
     let exit_code = args[1].int();
 
     process::exit(exit_code)
 }
 
-fn system_current_time_millis(_context: Context, _args: &[Value]) -> Result<Option<Value>, Error> {
+fn system_current_time_millis(_context: &Context, _args: &[Value]) -> Result<Option<Value>, Error> {
     let millisecs = SystemTime::now()
         .duration_since(SystemTime::UNIX_EPOCH)
         .expect("User didn't set their clock to 1969")
@@ -47,7 +47,7 @@ fn system_current_time_millis(_context: Context, _args: &[Value]) -> Result<Opti
     Ok(Some(Value::Long(millisecs as i64)))
 }
 
-fn internal_init_file_data(context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
+fn internal_init_file_data(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
     let file_object = args[0].object().unwrap();
     let name_object = args[1].object().unwrap();
 
@@ -88,7 +88,7 @@ fn internal_init_file_data(context: Context, args: &[Value]) -> Result<Option<Va
     Ok(None)
 }
 
-fn file_get_canonical_path(context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
+fn file_get_canonical_path(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
     let file_object = args[0].object().unwrap();
     let name_object = file_object.get_field(0).object().unwrap();
 
@@ -136,7 +136,7 @@ fn file_get_canonical_path(context: Context, args: &[Value]) -> Result<Option<Va
     Ok(Some(Value::Object(Some(string_object))))
 }
 
-fn file_get_absolute_path(context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
+fn file_get_absolute_path(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
     let file_object = args[0].object().unwrap();
     let name_object = file_object.get_field(0).object().unwrap();
 
@@ -169,7 +169,7 @@ fn file_get_absolute_path(context: Context, args: &[Value]) -> Result<Option<Val
     Ok(Some(Value::Object(Some(string_object))))
 }
 
-fn file_stream_write_internal(_context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
+fn file_stream_write_internal(_context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
     let stream = args[0].object().unwrap();
     let stream_fd = stream.get_field(0).object().unwrap();
     let stream_descriptor = stream_fd.get_field(0).int() as u32;
@@ -199,7 +199,7 @@ fn file_stream_write_internal(_context: Context, args: &[Value]) -> Result<Optio
     Ok(None)
 }
 
-fn file_stream_flush_internal(_context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
+fn file_stream_flush_internal(_context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
     let stream = args[0].object().unwrap();
     let stream_fd = stream.get_field(0).object().unwrap();
     let stream_descriptor = stream_fd.get_field(0).int() as u32;
@@ -227,7 +227,7 @@ fn file_stream_flush_internal(_context: Context, args: &[Value]) -> Result<Optio
     Ok(None)
 }
 
-fn file_stream_read_internal(_context: Context, args: &[Value]) -> Result<Option<Value>, Error> {
+fn file_stream_read_internal(_context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
     let stream = args[0].object().unwrap();
     let stream_fd = stream.get_field(0).object().unwrap();
     let stream_descriptor = stream_fd.get_field(0).int() as u32;
@@ -259,7 +259,7 @@ fn file_stream_read_internal(_context: Context, args: &[Value]) -> Result<Option
 }
 
 fn file_stream_read_multi_internal(
-    _context: Context,
+    _context: &Context,
     args: &[Value],
 ) -> Result<Option<Value>, Error> {
     let stream = args[0].object().unwrap();
@@ -300,7 +300,7 @@ fn file_stream_read_multi_internal(
 }
 
 fn file_stream_available_internal(
-    _context: Context,
+    _context: &Context,
     args: &[Value],
 ) -> Result<Option<Value>, Error> {
     let stream = args[0].object().unwrap();
@@ -331,7 +331,7 @@ fn file_stream_available_internal(
 }
 
 fn writeable_descriptor_from_path(
-    _context: Context,
+    _context: &Context,
     args: &[Value],
 ) -> Result<Option<Value>, Error> {
     let path_object = args[0].object().unwrap();
@@ -368,7 +368,7 @@ fn writeable_descriptor_from_path(
 }
 
 fn readable_descriptor_from_path(
-    _context: Context,
+    _context: &Context,
     args: &[Value],
 ) -> Result<Option<Value>, Error> {
     let path_object = args[0].object().unwrap();
