@@ -227,6 +227,8 @@ impl<'a> Interpreter<'a> {
                 Op::L2F => self.op_l2f(),
                 Op::L2D => self.op_l2d(),
                 Op::F2I => self.op_f2i(),
+                Op::F2L => self.op_f2l(),
+                Op::F2D => self.op_f2d(),
                 Op::D2I => self.op_d2i(),
                 Op::D2L => self.op_d2l(),
                 Op::I2B => self.op_i2b(),
@@ -1232,6 +1234,22 @@ impl<'a> Interpreter<'a> {
         let float = self.stack_pop().float();
 
         self.stack_push(Value::Integer(float as i32));
+
+        Ok(ControlFlow::Continue)
+    }
+
+    fn op_f2l(&mut self) -> Result<ControlFlow, Error> {
+        let float = self.stack_pop().float();
+
+        self.stack_push_wide(Value::Long(float as i64));
+
+        Ok(ControlFlow::Continue)
+    }
+
+    fn op_f2d(&mut self) -> Result<ControlFlow, Error> {
+        let float = self.stack_pop().float();
+
+        self.stack_push_wide(Value::Double(float as f64));
 
         Ok(ControlFlow::Continue)
     }
