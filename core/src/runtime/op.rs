@@ -542,6 +542,7 @@ const MONITOR_EXIT: u8 = 0xC3;
 const MULTI_A_NEW_ARRAY: u8 = 0xC5;
 const IF_NULL: u8 = 0xC6;
 const IF_NON_NULL: u8 = 0xC7;
+const GOTO_W: u8 = 0xC8;
 
 impl Op {
     pub fn read_ops(
@@ -1402,6 +1403,11 @@ impl Op {
                 let offset = data.read_u16()? as i16 as isize;
 
                 Ok(Op::IfNonNull(((data_position as isize) + offset) as usize))
+            }
+            GOTO_W => {
+                let offset = data.read_u32()? as i32 as isize;
+
+                Ok(Op::Goto(((data_position as isize) + offset) as usize))
             }
             other => unimplemented!(
                 "Unimplemented opcode {} ({}.{})",
