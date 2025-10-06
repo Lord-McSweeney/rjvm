@@ -25,7 +25,7 @@ public final class FileDescriptor {
         int registeredDescriptor = FileDescriptor.internalWriteableDescriptorFromPath(file.getPath());
         // -1 signals an error
         if (registeredDescriptor == -1) {
-            throw new FileNotFoundException();
+            throw new FileNotFoundException(file.getPath());
         }
 
         FileDescriptor fd = new FileDescriptor();
@@ -37,7 +37,7 @@ public final class FileDescriptor {
         int registeredDescriptor = FileDescriptor.internalReadableDescriptorFromPath(file.getPath());
         // -1 signals an error
         if (registeredDescriptor == -1) {
-            throw new FileNotFoundException();
+            throw new FileNotFoundException(file.getPath());
         }
 
         FileDescriptor fd = new FileDescriptor();
