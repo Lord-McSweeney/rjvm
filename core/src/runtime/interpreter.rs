@@ -17,6 +17,7 @@ pub struct Interpreter<'a> {
     #[allow(dead_code)]
     method: Method,
 
+    frame_index: &'a Cell<usize>,
     frame_reference: &'a [Cell<Value>],
     local_count: usize,
     local_base: usize,
@@ -56,6 +57,7 @@ impl<'a> Interpreter<'a> {
 
         Ok(Self {
             method,
+            frame_index: &*context.frame_index,
             frame_reference,
             local_count: method.max_locals(),
             local_base: prev_index,
@@ -93,37 +95,35 @@ impl<'a> Interpreter<'a> {
     }
 
     fn stack_push(&self, value: Value) {
-        let prev = self.context.frame_index.get();
+        let prev = self.frame_index.get();
         self.frame_reference[prev].set(value);
-        self.context.frame_index.set(prev + 1);
+        self.frame_index.set(prev + 1);
     }
 
     fn stack_push_wide(&self, value: Value) {
-        let prev = self.context.frame_index.get();
+        let prev = self.frame_index.get();
         self.frame_reference[prev].set(value);
-        self.context.frame_index.set(prev + 2);
+        self.frame_index.set(prev + 2);
     }
 
     fn stack_pop(&self) -> Value {
-        let new = self.context.frame_index.get() - 1;
+        let new = self.frame_index.get() - 1;
         let result = self.frame_reference[new].get();
-        self.context.frame_index.set(new);
+        self.frame_index.set(new);
 
         result
     }
 
     fn stack_pop_wide(&self) -> Value {
-        let new = self.context.frame_index.get() - 2;
+        let new = self.frame_index.get() - 2;
         let result = self.frame_reference[new].get();
-        self.context.frame_index.set(new);
+        self.frame_index.set(new);
 
         result
     }
 
     fn stack_clear(&self) {
-        self.context
-            .frame_index
-            .set(self.local_base + self.local_count);
+        self.frame_index.set(self.local_base + self.local_count);
     }
 
     fn local_reg(&self, index: usize) -> Value {
@@ -299,7 +299,7 @@ impl<'a> Interpreter<'a> {
                 Ok(ControlFlow::ManualContinue) => {}
                 Ok(ControlFlow::Return(value)) => {
                     // Reset frame index before returning
-                    self.context.frame_index.set(self.local_base);
+                    self.frame_index.set(self.local_base);
 
                     return Ok(value);
                 }
@@ -308,7 +308,7 @@ impl<'a> Interpreter<'a> {
 
                     if let Err(error) = result {
                         // Reset frame index before returning
-                        self.context.frame_index.set(self.local_base);
+                        self.frame_index.set(self.local_base);
 
                         return Err(error);
                     }
