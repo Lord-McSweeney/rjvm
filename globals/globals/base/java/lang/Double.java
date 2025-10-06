@@ -45,4 +45,10 @@ public final class Double extends Number {
 
         return 0.0;
     }
+
+    public static String toString(double d) {
+        Todo.warnNotImpl("java.lang.Double.toString");
+
+        return null;
+    }
 }

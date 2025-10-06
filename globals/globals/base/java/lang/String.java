@@ -381,6 +381,10 @@ public final class String implements Comparable<String> {
         return Integer.toString(integer);
     }
 
+    public static String valueOf(long lng) {
+        return Long.toString(lng);
+    }
+
     public static String valueOf(Object object) {
         if (object == null) {
             return "null";
