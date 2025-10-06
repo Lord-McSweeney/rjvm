@@ -11,9 +11,11 @@
     - Finding classes in the current directory when running a class
 - Array type verification in verifier
 - Object class verification in verifier
+- Better performance
 
 ## Missing features
-- multithreading (`Thread.start`) support
-- lots of API
-- proper garbage collection
+- Multithreading (`Thread.start`) support
+- Lots of API
+- Proper garbage collection
 - `no_std` support
+- A JIT compiler
