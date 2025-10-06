@@ -1,7 +1,5 @@
 package java.util;
 
-import rjvm.internal.Todo;
-
 public class TreeSet<E> extends AbstractSet<E> implements Cloneable {
     private TreeMapKeySet<E> backingSet;
 
@@ -15,6 +13,10 @@ public class TreeSet<E> extends AbstractSet<E> implements Cloneable {
 
     public boolean contains(Object element) {
         return this.backingSet.contains(element);
+    }
+
+    public void clear() {
+        this.backingSet.clear();
     }
 
     public int size() {

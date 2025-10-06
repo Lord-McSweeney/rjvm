@@ -2,19 +2,17 @@ package java.util;
 
 class TreeMapKeySet<E> extends AbstractSet<E> implements Cloneable {
     private TreeMap<E, Object> backingMap;
-    private boolean writable;
+    private boolean addable;
 
     private static Object markerObject = new Object();
 
-    // TODO: `writeable` should actually be a "addable" flag, since entries can
-    // still be removed from a non-writeable TreeMapKeySet
-    TreeMapKeySet(TreeMap backingMap, boolean writable) {
+    TreeMapKeySet(TreeMap backingMap, boolean addable) {
         this.backingMap = backingMap;
-        this.writable = writable;
+        this.addable = addable;
     }
 
     public boolean add(E element) {
-        if (this.writable) {
+        if (this.addable) {
             Object result = this.backingMap.put(element, TreeMapKeySet.markerObject);
             return result == null;
         } else {
@@ -24,6 +22,10 @@ class TreeMapKeySet<E> extends AbstractSet<E> implements Cloneable {
 
     public boolean contains(Object element) {
         return this.backingMap.containsKey(element);
+    }
+
+    public void clear() {
+        this.backingMap.clear();
     }
 
     public int size() {

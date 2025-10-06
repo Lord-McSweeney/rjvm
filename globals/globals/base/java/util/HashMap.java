@@ -10,15 +10,12 @@ public class HashMap<K, V> extends AbstractMap<K, V> {
     Object[] values;
 
     public HashMap() {
-        super();
-
         this.keys = new Object[0];
         this.values = new Object[0];
     }
 
     public HashMap(int capacity) {
-        super();
-
+        // TODO implement capacity
         this.keys = new Object[0];
         this.values = new Object[0];
     }
@@ -27,6 +24,10 @@ public class HashMap<K, V> extends AbstractMap<K, V> {
         Todo.warnNotImpl("java.util.HashMap.entrySet");
 
         return null;
+    }
+
+    public Set<K> keySet() {
+        return new HashMapKeySet<K>(this, false);
     }
 
     public Collection<V> values() {
@@ -154,6 +155,10 @@ public class HashMap<K, V> extends AbstractMap<K, V> {
         this.values = newValues;
 
         return (V) previousValue;
+    }
+
+    K keyByIndex(int index) {
+        return (K) this.keys[index];
     }
 
     public void putAll(Map<? extends K, ? extends V> map) {
