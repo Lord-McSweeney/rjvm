@@ -4,34 +4,44 @@ import rjvm.internal.Todo;
 
 public class ArrayList<E> extends AbstractList<E> implements List<E> {
     Object[] data;
+    int size;
 
     public ArrayList() {
-        this.data = new Object[0];
+        this(10);
     }
 
     public ArrayList(Collection<? extends E> collection) {
-        this.data = new Object[0];
+        this(collection.size());
         this.addAll(collection);
     }
 
     public ArrayList(int capacity) {
-        // TODO implement capacity
-        this.data = new Object[0];
+        this.data = new Object[capacity];
+        this.size = 0;
+    }
+
+    public void ensureCapacity(int minCapacity) {
+        if (this.data.length < minCapacity) {
+            Object[] newData = new Object[(this.data.length + 1) * 2];
+
+            System.arraycopy(this.data, 0, newData, 0, this.data.length);
+
+            this.data = newData;
+        }
     }
 
     public boolean add(E element) {
-        this.add(this.size(), element);
+        this.add(this.size, element);
         return true;
     }
 
     public void add(int index, E element) {
-        Object[] newData = new Object[this.data.length + 1];
+        this.ensureCapacity(this.size + 1);
 
-        System.arraycopy(this.data, 0, newData, 0, index);
-        newData[index] = element;
-        System.arraycopy(this.data, index, newData, index + 1, this.size() - index);
+        System.arraycopy(this.data, index, this.data, index + 1, this.size - index);
+        this.data[index] = element;
 
-        this.data = newData;
+        this.size += 1;
     }
 
     public boolean addAll(Collection<? extends E> collection) {
@@ -39,7 +49,7 @@ public class ArrayList<E> extends AbstractList<E> implements List<E> {
     }
 
     public boolean addAll(int index, Collection<? extends E> collection) {
-        if (index < 0 || index > this.data.length) {
+        if (index < 0 || index > this.size) {
             throw new IndexOutOfBoundsException();
         }
 
@@ -58,7 +68,7 @@ public class ArrayList<E> extends AbstractList<E> implements List<E> {
     }
 
     public E get(int index) {
-        if (index < 0 || index >= this.data.length) {
+        if (index < 0 || index >= this.size) {
             throw new IndexOutOfBoundsException();
         }
 
@@ -66,7 +76,7 @@ public class ArrayList<E> extends AbstractList<E> implements List<E> {
     }
 
     public E set(int index, E element) {
-        if (index < 0 || index >= this.data.length) {
+        if (index < 0 || index >= this.size) {
             throw new IndexOutOfBoundsException();
         }
 
@@ -78,24 +88,19 @@ public class ArrayList<E> extends AbstractList<E> implements List<E> {
     }
 
     public E remove(int index) {
-        if (index < 0 || index >= this.data.length) {
+        if (index < 0 || index >= this.size) {
             throw new IndexOutOfBoundsException();
         }
 
-        E oldElement = (E) this.data[index];
+        Object oldElement = this.data[index];
+        System.arraycopy(this.data, index + 1, this.data, index, this.size - index - 1);
+        this.size -= 1;
 
-        Object[] newData = new Object[this.data.length - 1];
-
-        System.arraycopy(this.data, 0, newData, 0, index);
-        System.arraycopy(this.data, index + 1, newData, index, this.size() - index - 1);
-
-        this.data = newData;
-
-        return oldElement;
+        return (E) oldElement;
     }
 
     public boolean remove(Object search) {
-        for (int i = 0; i < this.data.length; i ++) {
+        for (int i = 0; i < this.size; i ++) {
             Object element = this.data[i];
             if (element == null) {
                 if (search == null) {
@@ -111,11 +116,11 @@ public class ArrayList<E> extends AbstractList<E> implements List<E> {
     }
 
     public void clear() {
-        this.data = new Object[0];
+        this.size = 0;
     }
 
     public boolean contains(Object element) {
-        for (int i = 0; i < this.data.length; i ++) {
+        for (int i = 0; i < this.size; i ++) {
             if (this.data[i] == null) {
                 if (element == null) {
                     return true;
@@ -129,7 +134,7 @@ public class ArrayList<E> extends AbstractList<E> implements List<E> {
     }
 
     public Iterator<E> iterator() {
-        return new ArrayIterator(this.data);
+        return new ArrayIterator(this.data, this.size);
     }
 
     public ListIterator<E> listIterator() {
@@ -137,7 +142,7 @@ public class ArrayList<E> extends AbstractList<E> implements List<E> {
     }
 
     public ListIterator<E> listIterator(int index) {
-        if (index < 0 || index > this.data.length) {
+        if (index < 0 || index > this.size) {
             throw new IndexOutOfBoundsException();
         }
 
@@ -145,10 +150,10 @@ public class ArrayList<E> extends AbstractList<E> implements List<E> {
     }
 
     public int size() {
-        return this.data.length;
+        return this.size;
     }
 
     public boolean isEmpty() {
-        return this.size() == 0;
+        return this.size == 0;
     }
 }

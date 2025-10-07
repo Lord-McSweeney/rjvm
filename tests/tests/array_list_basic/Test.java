@@ -33,5 +33,8 @@ public class Test {
         for (int elem : list) {
             System.out.println(elem);
         }
+        ArrayList<Integer> list2 = new ArrayList<Integer>(0);
+        list2.add(19);
+        System.out.println(list2);
     }
 }

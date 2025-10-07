@@ -65,6 +65,6 @@ class ArrayBackedList<E> extends AbstractList<E> {
 
     public Iterator<E> iterator() {
         // TODO remove this once `AbstractList.iterator` is implemented
-        return new ArrayIterator<E>(this.data);
+        return new ArrayIterator<E>(this.data, this.data.length);
     }
 }
