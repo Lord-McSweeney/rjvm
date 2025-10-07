@@ -41,5 +41,20 @@ public class Test {
         System.out.println((int) Math.sqrt(400));
         System.out.println((int) Math.sqrt(234774832.278));
         System.out.println((int) Math.sqrt(0.778));
+
+        System.out.println((int) Math.floor(3.0));
+        System.out.println((int) Math.floor(-1789.0));
+        System.out.println((int) Math.floor((-0.0) / 1.0));
+        System.out.println((int) Math.floor(234774832.278));
+        System.out.println((int) Math.floor(-0.778));
+        System.out.println((int) Math.floor(0.0));
+        System.out.println((int) Math.floor(-0.5));
+        System.out.println((int) Math.floor(1.5));
+        System.out.println((int) Math.floor(0.5));
+        System.out.println((int) Math.floor(0.7));
+        System.out.println((int) Math.floor(274332843.6));
+        System.out.println((int) Math.floor(2839.2));
+        System.out.println((int) Math.floor(-0.9));
+        System.out.println((int) Math.floor(-0.2));
     }
 }
