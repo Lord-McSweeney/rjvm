@@ -48,7 +48,7 @@ public final class Double extends Number {
     // Access to raw bits of doubles
     public static long doubleToLongBits(double value) {
         if (Double.isNaN(value)) {
-            return  0x7ff8000000000000L;
+            return 0x7ff8000000000000L;
         } else {
             return Double.doubleToRawLongBits(value);
         }
