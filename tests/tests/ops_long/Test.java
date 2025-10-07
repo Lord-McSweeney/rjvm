@@ -62,5 +62,7 @@ public class Test {
         if (v0 == v1) {
             System.out.println("v0 == v1");
         }
+
+        System.out.println(v5 >> 32L);
     }
 }

@@ -1098,7 +1098,7 @@ impl<'a> Interpreter<'a> {
         let int1 = self.stack_pop().int();
         let int2 = self.stack_pop_wide().long();
 
-        self.stack_push_wide(Value::Long(int2 >> (int1 & 0x1F)));
+        self.stack_push_wide(Value::Long(int2 >> (int1 & 0x3F)));
 
         Ok(ControlFlow::Continue)
     }
