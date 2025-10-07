@@ -49,7 +49,7 @@ public class ArrayList<E> extends AbstractList<E> implements List<E> {
     }
 
     public boolean addAll(Collection<? extends E> collection) {
-        return this.addAll(0, collection);
+        return this.addAll(this.size(), collection);
     }
 
     public boolean addAll(int index, Collection<? extends E> collection) {
