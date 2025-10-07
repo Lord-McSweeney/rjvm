@@ -28,6 +28,7 @@ pub fn register_native_mappings(context: &Context) {
         ("java/lang/reflect/Constructor.newInstanceNative.([Ljava/lang/Object;)Ljava/lang/Object;", new_instance_native),
         ("java/lang/reflect/Constructor.getParameterCount.()I", ctor_get_parameter_count),
         ("java/lang/String.intern.()Ljava/lang/String;", string_intern),
+        ("java/lang/Double.doubleToRawLongBits.(D)J", double_to_raw_long_bits),
     ];
 
     context.register_native_mappings(mappings);
@@ -430,4 +431,11 @@ fn string_intern(context: &Context, args: &[Value]) -> Result<Option<Value>, Err
     let interned = context.intern_string_obj(string_obj);
 
     Ok(Some(Value::Object(Some(interned))))
+}
+
+fn double_to_raw_long_bits(_context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
+    let double = args[0].double();
+    let bits = f64::to_bits(double);
+
+    Ok(Some(Value::Long(bits as i64)))
 }

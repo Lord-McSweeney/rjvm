@@ -20,6 +20,7 @@ public final class Double extends Number {
         return this.value;
     }
 
+    // Utility functions
     public boolean isInfinite() {
         return Double.isInfinite(this.value);
     }
@@ -44,6 +45,18 @@ public final class Double extends Number {
         return Double.parseDouble(string);
     }
 
+    // Access to raw bits of doubles
+    public static long doubleToLongBits(double value) {
+        if (Double.isNaN(value)) {
+            return  0x7ff8000000000000L;
+        } else {
+            return Double.doubleToRawLongBits(value);
+        }
+    }
+
+    public static native long doubleToRawLongBits(double value);
+
+    // String operation functions
     public static double parseDouble(String string) throws NumberFormatException {
         Todo.warnNotImpl("java.lang.Double.parseDouble");
 
