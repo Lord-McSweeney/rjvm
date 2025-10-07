@@ -31,7 +31,11 @@ public class ArrayList<E> extends AbstractList<E> implements List<E> {
     }
 
     public boolean add(E element) {
-        this.add(this.size, element);
+        this.ensureCapacity(this.size + 1);
+
+        this.data[this.size] = element;
+        this.size += 1;
+
         return true;
     }
 
