@@ -55,7 +55,7 @@ impl CallStack {
             }
 
             result.push_str(&format!(
-                "\n    at {}.{}()",
+                "    at {}.{}()\n",
                 entry.class().dot_name(),
                 entry.name()
             ));

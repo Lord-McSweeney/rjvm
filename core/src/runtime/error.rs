@@ -58,6 +58,8 @@ impl Error {
                     result_string.push_str("null");
                 }
 
+                result_string.push('\n');
+
                 // Now write the stack trace, if it exists. (TODO: Shouldn't it
                 // always exist?)
 
