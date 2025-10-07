@@ -21,7 +21,11 @@ public final class Double extends Number {
     }
 
     public boolean isInfinite() {
-        return this.value == NEGATIVE_INFINITY || this.value == POSITIVE_INFINITY;
+        return Double.isInfinite(this.value);
+    }
+
+    public static boolean isInfinite(double value) {
+        return value == NEGATIVE_INFINITY || value == POSITIVE_INFINITY;
     }
 
     public boolean isNaN() {
