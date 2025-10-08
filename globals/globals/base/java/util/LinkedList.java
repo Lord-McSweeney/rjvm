@@ -1,6 +1,6 @@
 package java.util;
 
-public class LinkedList<E> extends AbstractSequentialList<E> implements List<E>, Cloneable {
+public class LinkedList<E> extends AbstractSequentialList<E> implements Cloneable, List<E>, Queue<E> {
     class Node<E> {
         private E data;
         private Node<E> prev;
@@ -114,5 +114,30 @@ public class LinkedList<E> extends AbstractSequentialList<E> implements List<E>,
     public void clear() {
         this.head.setNext(this.tail);
         this.tail.setPrev(this.head);
+    }
+
+    // `Queue` functions
+    public E poll() {
+        if (this.size == 0) {
+            return null;
+        } else {
+            return this.remove(0);
+        }
+    }
+
+    public E element() {
+        if (this.size == 0) {
+            throw new NoSuchElementException();
+        } else {
+            return this.get(0);
+        }
+    }
+
+    public E peek() {
+        if (this.size == 0) {
+            return null;
+        } else {
+            return this.get(0);
+        }
     }
 }
