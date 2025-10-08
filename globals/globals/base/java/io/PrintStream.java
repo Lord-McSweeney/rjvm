@@ -32,6 +32,11 @@ public class PrintStream extends FilterOutputStream {
         this.print(stringified);
     }
 
+    public void print(double dbl) {
+        String stringified = Double.toString(dbl);
+        this.print(stringified);
+    }
+
     public void print(Object object) {
         if (object == null) {
             this.print("null");
@@ -74,6 +79,11 @@ public class PrintStream extends FilterOutputStream {
 
     public void println(long l) {
         this.print(l);
+        this.println();
+    }
+
+    public void println(double d) {
+        this.print(d);
         this.println();
     }
 

@@ -71,6 +71,11 @@ public final class StringBuffer {
         return this.append(stringified);
     }
 
+    public StringBuffer append(double d) {
+        String stringified = Double.toString(d);
+        return this.append(stringified);
+    }
+
     public int length() {
         return this.data.length;
     }
