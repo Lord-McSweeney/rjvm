@@ -31,9 +31,7 @@ impl Object {
         ))
     }
 
-    // Creates a new instance of java.lang.Class. The caller is responsible for
-    // making it a valid `Class` object (see how
-    // `Context::get_or_init_java_class_for_class` does it).
+    // Creates a new instance of `java.lang.Class`.
     pub fn class_object(context: &Context) -> Self {
         let class_class = context.builtins().java_lang_class;
 

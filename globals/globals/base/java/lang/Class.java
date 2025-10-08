@@ -22,9 +22,12 @@ public final class Class<T> implements AnnotatedElement, GenericDeclaration, Typ
     static final int PRIM_DOUBLE = 7;
     static final int PRIM_VOID = 8;
 
+    // NOTE: FIELD ORDERING MATTERS HERE!
+    private int internalId;
+    private String cachedName;
+
     private Class() { }
 
-    private String cachedName;
     public String getName() {
         if (this.cachedName == null) {
             String name = this.getNameNative();

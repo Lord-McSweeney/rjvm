@@ -5,6 +5,7 @@ use super::field::{Field, FieldRef};
 use super::loader::ResourceLoadType;
 use super::method::Method;
 use super::object::Object;
+use super::value::Value;
 use super::vtable::{InstanceMethodVTable, VTable};
 
 use crate::classfile::class::ClassFile;
@@ -12,7 +13,7 @@ use crate::classfile::flags::{ClassFlags, FieldFlags, MethodFlags};
 use crate::gc::{Gc, GcCtx, Trace};
 use crate::string::JvmString;
 
-use std::cell::{Cell, Ref, RefCell};
+use std::cell::{Cell, OnceCell, Ref, RefCell};
 use std::collections::HashSet;
 use std::fmt;
 use std::hash::{Hash, Hasher};
@@ -29,6 +30,9 @@ struct ClassData {
     name: JvmString,
 
     super_class: Option<Class>,
+
+    // The `java.lang.Class` object for this `Class`, lazily initialized
+    object: OnceCell<Object>,
 
     // The interfaces that this class directly implements.
     own_interfaces: Box<[Class]>,
@@ -172,6 +176,8 @@ impl Class {
                 name,
                 super_class,
 
+                object: OnceCell::new(),
+
                 own_interfaces: own_interfaces.into_boxed_slice(),
                 all_interfaces: all_interfaces.iter().copied().collect::<Box<[_]>>(),
 
@@ -283,6 +289,8 @@ impl Class {
                 name: JvmString::new(context.gc_ctx, name),
                 super_class: Some(object_class),
 
+                object: OnceCell::new(),
+
                 own_interfaces: Box::new([]),
                 all_interfaces: Box::new([]),
 
@@ -321,6 +329,8 @@ impl Class {
 
                 name: JvmString::new(gc_ctx, primitive_type.name().to_string()),
                 super_class: None,
+
+                object: OnceCell::new(),
 
                 own_interfaces: Box::new([]),
                 all_interfaces: Box::new([]),
@@ -409,6 +419,18 @@ impl Class {
 
     pub fn instance_fields(&self) -> &[Field] {
         &self.0.instance_fields
+    }
+
+    // Return an instance of `java.lang.Class` for this `Class`.
+    pub fn get_or_init_object(self, context: &Context) -> Object {
+        *self.0.object.get_or_init(|| {
+            let id = context.add_class_object(self);
+
+            let object = Object::class_object(context);
+            object.set_field(0, Value::Integer(id));
+
+            object
+        })
     }
 
     // This does not check if the checked class is an interface implemented by this class.
@@ -533,6 +555,7 @@ impl Trace for ClassData {
         self.load_source.trace();
         self.name.trace();
         self.super_class.trace();
+        self.object.trace();
         self.own_interfaces.trace();
         self.all_interfaces.trace();
         self.array_value_type.trace();

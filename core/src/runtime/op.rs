@@ -1488,7 +1488,7 @@ fn ldc_value(
 
             let class = context.lookup_class(class_name)?;
 
-            Value::Object(Some(context.get_or_init_java_class_for_class(class)))
+            Value::Object(Some(class.get_or_init_object(context)))
         }
         _ => unimplemented!(),
     };

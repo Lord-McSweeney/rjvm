@@ -35,10 +35,9 @@ pub struct Context {
     // The global class registry.
     class_registry: Gc<RefCell<HashMap<JvmString, Class>>>,
 
-    // A map of class T to the object of type Class<T>.
-    class_to_java_class_map: Gc<RefCell<HashMap<Class, Object>>>,
-    // A map of object of type Class<T> to the class T.
-    java_class_to_class_map: Gc<RefCell<HashMap<Object, Class>>>,
+    // A list of classes that have an associated `java.lang.Class`. Java code
+    // stores an index into this array.
+    java_classes: Gc<RefCell<Vec<Class>>>,
 
     // A map of Method to object of type Executable.
     method_to_java_executable_map: Gc<RefCell<HashMap<Method, Object>>>,
@@ -107,8 +106,7 @@ impl Context {
         Self {
             loader_backend: Gc::new(gc_ctx, loader_backend),
             class_registry: Gc::new(gc_ctx, RefCell::new(HashMap::new())),
-            class_to_java_class_map: Gc::new(gc_ctx, RefCell::new(HashMap::new())),
-            java_class_to_class_map: Gc::new(gc_ctx, RefCell::new(HashMap::new())),
+            java_classes: Gc::new(gc_ctx, RefCell::new(Vec::new())),
             method_to_java_executable_map: Gc::new(gc_ctx, RefCell::new(HashMap::new())),
             java_executable_to_method_map: Gc::new(gc_ctx, RefCell::new(HashMap::new())),
             interned_strings: Gc::new(gc_ctx, RefCell::new(InternedStrings::new())),
@@ -237,32 +235,15 @@ impl Context {
             .load_resource(load_type, class_name, resource_name)
     }
 
-    pub fn get_or_init_java_class_for_class(&self, class: Class) -> Object {
-        let mut class_objects = self.class_to_java_class_map.borrow_mut();
-        let mut classes = self.java_class_to_class_map.borrow_mut();
+    pub fn add_class_object(&self, class: Class) -> i32 {
+        let mut borrow = self.java_classes.borrow_mut();
+        borrow.push(class);
 
-        if let Some(class_object) = class_objects.get(&class) {
-            *class_object
-        } else {
-            let object = Object::class_object(self);
-
-            class_objects.insert(class, object);
-            classes.insert(object, class);
-
-            object
-        }
+        borrow.len() as i32 - 1
     }
 
-    pub fn get_class_for_java_class(&self, object: Object) -> Class {
-        let classes = self.java_class_to_class_map.borrow_mut();
-
-        if let Some(class_object) = classes.get(&object) {
-            *class_object
-        } else {
-            unreachable!(
-                "Object passed to `get_class_for_java_class` should be a valid java Class<?>"
-            )
-        }
+    pub fn class_object_by_id(&self, id: i32) -> Class {
+        self.java_classes.borrow()[id as usize]
     }
 
     pub fn get_or_init_java_constructor_for_method(&self, method: Method) -> Object {
@@ -602,8 +583,7 @@ impl Trace for Context {
         self.loader_backend.trace_self();
 
         self.class_registry.trace();
-        self.class_to_java_class_map.trace();
-        self.java_class_to_class_map.trace();
+        self.java_classes.trace();
         self.method_to_java_executable_map.trace();
         self.java_executable_to_method_map.trace();
         self.interned_strings.trace();

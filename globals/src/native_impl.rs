@@ -176,7 +176,8 @@ fn primitive_array_copy<T: Copy + Default>(
 fn is_interface(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
     // Receiver should never be null
     let class_obj = args[0].object().unwrap();
-    let class = context.get_class_for_java_class(class_obj);
+    let class_id = class_obj.get_field(0).int();
+    let class = context.class_object_by_id(class_id);
 
     if class.is_interface() {
         Ok(Some(Value::Integer(1)))
@@ -189,7 +190,8 @@ fn is_interface(context: &Context, args: &[Value]) -> Result<Option<Value>, Erro
 fn is_primitive(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
     // Receiver should never be null
     let class_obj = args[0].object().unwrap();
-    let class = context.get_class_for_java_class(class_obj);
+    let class_id = class_obj.get_field(0).int();
+    let class = context.class_object_by_id(class_id);
 
     if class.is_primitive() {
         Ok(Some(Value::Integer(1)))
@@ -203,7 +205,7 @@ fn get_class(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> 
     // Receiver should never be null
     let class = args[0].object().unwrap().class();
 
-    let class_object = context.get_or_init_java_class_for_class(class);
+    let class_object = class.get_or_init_object(context);
 
     Ok(Some(Value::Object(Some(class_object))))
 }
@@ -212,7 +214,8 @@ fn get_class(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> 
 fn get_name_native(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
     // Receiver should never be null
     let class_obj = args[0].object().unwrap();
-    let class = context.get_class_for_java_class(class_obj);
+    let class_id = class_obj.get_field(0).int();
+    let class = context.class_object_by_id(class_id);
 
     let string_chars = class.dot_name().encode_utf16().collect::<Vec<_>>();
 
@@ -225,7 +228,8 @@ fn get_name_native(context: &Context, args: &[Value]) -> Result<Option<Value>, E
 fn get_resource_data(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
     // Receiver should never be null
     let class_obj = args[0].object().unwrap();
-    let class = context.get_class_for_java_class(class_obj);
+    let class_id = class_obj.get_field(0).int();
+    let class = context.class_object_by_id(class_id);
 
     // First argument should never be null
     let resource_name_data = args[1].object().unwrap().get_field(0).object().unwrap();
@@ -322,7 +326,7 @@ fn get_primitive_class(context: &Context, args: &[Value]) -> Result<Option<Value
     };
 
     let class = context.primitive_class_for(primitive_type);
-    let class_obj = context.get_or_init_java_class_for_class(class);
+    let class_obj = class.get_or_init_object(context);
 
     Ok(Some(Value::Object(Some(class_obj))))
 }
@@ -364,7 +368,7 @@ fn class_for_name_native(context: &Context, args: &[Value]) -> Result<Option<Val
     let class = context.lookup_class(class_name);
 
     if let Ok(class) = class {
-        let class = context.get_or_init_java_class_for_class(class);
+        let class = class.get_or_init_object(context);
         Ok(Some(Value::Object(Some(class))))
     } else {
         // If the class doesn't exist, we return `null`. Java code will throw
@@ -376,7 +380,8 @@ fn class_for_name_native(context: &Context, args: &[Value]) -> Result<Option<Val
 fn get_constructors(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
     // Receiver should never be null
     let class_obj = args[0].object().unwrap();
-    let class = context.get_class_for_java_class(class_obj);
+    let class_id = class_obj.get_field(0).int();
+    let class = context.class_object_by_id(class_id);
 
     let constructors = crate::reflect::constructors_for_class(context, class);
     let constructors_arr = constructors
