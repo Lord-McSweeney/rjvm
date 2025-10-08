@@ -29,6 +29,7 @@ pub fn register_native_mappings(context: &Context) {
         ("java/lang/reflect/Constructor.getParameterCount.()I", ctor_get_parameter_count),
         ("java/lang/String.intern.()Ljava/lang/String;", string_intern),
         ("java/lang/Double.doubleToRawLongBits.(D)J", double_to_raw_long_bits),
+        ("java/lang/Double.toString.(D)Ljava/lang/String;", double_to_string),
     ];
 
     context.register_native_mappings(mappings);
@@ -300,7 +301,7 @@ fn object_clone(context: &Context, args: &[Value]) -> Result<Option<Value>, Erro
 
 fn capture_stack_trace(context: &Context, _args: &[Value]) -> Result<Option<Value>, Error> {
     let stack_data = context.capture_call_stack();
-    let chars = stack_data.chars().map(|c| c as u16).collect::<Vec<_>>();
+    let chars = stack_data.chars().map(|c| c as u16).collect::<Box<_>>();
 
     Ok(Some(Value::Object(Some(context.create_string(&chars)))))
 }
@@ -438,4 +439,29 @@ fn double_to_raw_long_bits(_context: &Context, args: &[Value]) -> Result<Option<
     let bits = f64::to_bits(double);
 
     Ok(Some(Value::Long(bits as i64)))
+}
+
+fn double_to_string(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
+    let double = args[0].double();
+
+    let string = if double.is_infinite() {
+        if double < 0.0 {
+            "-Infinity".to_string()
+        } else {
+            "Infinity".to_string()
+        }
+    } else {
+        let string = format!("{:.6}", double);
+
+        let mut string = string.trim_end_matches('0').to_string();
+        if string.ends_with('.') {
+            string.push('0');
+        }
+
+        string
+    };
+
+    let chars = string.chars().map(|c| c as u16).collect::<Box<_>>();
+
+    Ok(Some(Value::Object(Some(context.create_string(&chars)))))
 }
