@@ -3,6 +3,7 @@ use super::context::Context;
 use super::descriptor::MethodDescriptor;
 use super::error::{Error, NativeError};
 use super::interpreter::Interpreter;
+use super::object::Object;
 use super::op::Op;
 use super::value::Value;
 use super::verify::verify_ops;
@@ -13,7 +14,7 @@ use crate::classfile::reader::{FileData, Reader};
 use crate::gc::{Gc, Trace};
 use crate::string::JvmString;
 
-use std::cell::{Cell, RefCell};
+use std::cell::{Cell, OnceCell, RefCell};
 use std::fmt;
 use std::hash::{Hash, Hasher};
 
@@ -43,6 +44,10 @@ struct MethodData {
     name: JvmString,
 
     class: Class,
+
+    // The `java.lang.reflect.Executable` object for this `Method`, lazily
+    // initialized
+    object: OnceCell<Object>,
 
     method_info: RefCell<MethodInfo>,
 }
@@ -85,9 +90,10 @@ impl Method {
             context.gc_ctx,
             MethodData {
                 descriptor,
-                class,
                 flags: method.flags(),
                 name: method.name(),
+                class,
+                object: OnceCell::new(),
                 method_info: RefCell::new(method_info),
             },
         )))
@@ -162,6 +168,23 @@ impl Method {
         Ok(())
     }
 
+    // Return an instance of `java.lang.reflect.Executable` for this `Method`.
+    pub fn get_or_init_object(self, context: &Context) -> Object {
+        *self.0.object.get_or_init(|| {
+            let id = context.add_executable_object(self);
+
+            let object = if self.0.name.as_bytes() == b"<init>" {
+                Object::constructor_object(context)
+            } else {
+                unimplemented!("java.lang.reflect.Method")
+            };
+
+            object.set_field(0, Value::Integer(id));
+
+            object
+        })
+    }
+
     pub fn descriptor(self) -> MethodDescriptor {
         self.0.descriptor
     }
@@ -207,6 +230,7 @@ impl Trace for MethodData {
         self.descriptor.trace();
         self.name.trace();
         self.class.trace();
+        self.object.trace();
         self.method_info.trace();
     }
 }

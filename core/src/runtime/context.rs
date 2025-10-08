@@ -39,10 +39,9 @@ pub struct Context {
     // stores an index into this array.
     java_classes: Gc<RefCell<Vec<Class>>>,
 
-    // A map of Method to object of type Executable.
-    method_to_java_executable_map: Gc<RefCell<HashMap<Method, Object>>>,
-    // A map of object of type Executable to Method.
-    java_executable_to_method_map: Gc<RefCell<HashMap<Object, Method>>>,
+    // A list of classes that have an associated `java.lang.reflect.Method`.
+    // Java code stores an index into this array.
+    java_executables: Gc<RefCell<Vec<Method>>>,
 
     // All interned Java String objects.
     interned_strings: Gc<RefCell<InternedStrings>>,
@@ -107,8 +106,7 @@ impl Context {
             loader_backend: Gc::new(gc_ctx, loader_backend),
             class_registry: Gc::new(gc_ctx, RefCell::new(HashMap::new())),
             java_classes: Gc::new(gc_ctx, RefCell::new(Vec::new())),
-            method_to_java_executable_map: Gc::new(gc_ctx, RefCell::new(HashMap::new())),
-            java_executable_to_method_map: Gc::new(gc_ctx, RefCell::new(HashMap::new())),
+            java_executables: Gc::new(gc_ctx, RefCell::new(Vec::new())),
             interned_strings: Gc::new(gc_ctx, RefCell::new(InternedStrings::new())),
             array_classes: Gc::new(gc_ctx, RefCell::new(HashMap::new())),
             primitive_classes: Gc::new(gc_ctx, primitive_classes),
@@ -246,32 +244,15 @@ impl Context {
         self.java_classes.borrow()[id as usize]
     }
 
-    pub fn get_or_init_java_constructor_for_method(&self, method: Method) -> Object {
-        let mut method_objects = self.method_to_java_executable_map.borrow_mut();
-        let mut methods = self.java_executable_to_method_map.borrow_mut();
+    pub fn add_executable_object(&self, class: Method) -> i32 {
+        let mut borrow = self.java_executables.borrow_mut();
+        borrow.push(class);
 
-        if let Some(method_object) = method_objects.get(&method) {
-            *method_object
-        } else {
-            let object = Object::constructor_object(self);
-
-            method_objects.insert(method, object);
-            methods.insert(object, method);
-
-            object
-        }
+        borrow.len() as i32 - 1
     }
 
-    pub fn get_method_for_java_executable(&self, object: Object) -> Method {
-        let methods = self.java_executable_to_method_map.borrow_mut();
-
-        if let Some(method_object) = methods.get(&object) {
-            *method_object
-        } else {
-            unreachable!(
-                "Object passed to `get_method_for_java_executable` should be a valid java Executable"
-            )
-        }
+    pub fn executable_object_by_id(&self, id: i32) -> Method {
+        self.java_executables.borrow()[id as usize]
     }
 
     pub fn intern_string_obj(&self, new_string: Object) -> Object {
@@ -584,8 +565,7 @@ impl Trace for Context {
 
         self.class_registry.trace();
         self.java_classes.trace();
-        self.method_to_java_executable_map.trace();
-        self.java_executable_to_method_map.trace();
+        self.java_executables.trace();
         self.interned_strings.trace();
         self.array_classes.trace();
         self.primitive_classes.trace();

@@ -386,7 +386,7 @@ fn get_constructors(context: &Context, args: &[Value]) -> Result<Option<Value>, 
     let constructors = crate::reflect::constructors_for_class(context, class);
     let constructors_arr = constructors
         .iter()
-        .map(|m| Some(context.get_or_init_java_constructor_for_method(*m)))
+        .map(|m| Some(m.get_or_init_object(context)))
         .collect::<Box<_>>();
 
     let constructor_class = context.builtins().java_lang_reflect_constructor;
@@ -398,7 +398,8 @@ fn get_constructors(context: &Context, args: &[Value]) -> Result<Option<Value>, 
 fn new_instance_native(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
     // Receiver should never be null
     let ctor_obj = args[0].object().unwrap();
-    let ctor_method = context.get_method_for_java_executable(ctor_obj);
+    let ctor_id = ctor_obj.get_field(0).int();
+    let ctor_method = context.executable_object_by_id(ctor_id);
 
     let raw_args = args[1].object().unwrap();
     let raw_args = raw_args.array_data().as_object_array();
@@ -425,7 +426,8 @@ fn new_instance_native(context: &Context, args: &[Value]) -> Result<Option<Value
 fn ctor_get_parameter_count(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
     // Receiver should never be null
     let ctor_obj = args[0].object().unwrap();
-    let ctor_method = context.get_method_for_java_executable(ctor_obj);
+    let ctor_id = ctor_obj.get_field(0).int();
+    let ctor_method = context.executable_object_by_id(ctor_id);
 
     Ok(Some(Value::Integer(ctor_method.arg_count() as i32)))
 }

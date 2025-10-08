@@ -22,7 +22,7 @@ public final class Class<T> implements AnnotatedElement, GenericDeclaration, Typ
     static final int PRIM_DOUBLE = 7;
     static final int PRIM_VOID = 8;
 
-    // NOTE: FIELD ORDERING MATTERS HERE!
+    // NOTE: THIS FIELD IS ACCESSED FROM NATIVE CODE! FIELD ORDERING MATTERS!
     private int internalId;
     private String cachedName;
 
