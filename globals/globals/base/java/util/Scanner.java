@@ -138,4 +138,13 @@ public class Scanner {
             throw new InputMismatchException();
         }
     }
+
+    public double nextDouble() {
+        try {
+            return Double.parseDouble(this.next());
+        } catch(NumberFormatException e) {
+            // TODO: Somehow we have to backtrack to the start of the token...
+            throw new InputMismatchException();
+        }
+    }
 }
