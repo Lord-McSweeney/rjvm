@@ -92,8 +92,7 @@ impl ConstantPool {
                     | MethodHandle::PutStatic(cpool_idx) => {
                         self.ensure_entry_type(cpool_idx, FIELD_REF)?;
                     }
-                    MethodHandle::InvokeVirtual(cpool_idx)
-                    | MethodHandle::InvokeStatic(cpool_idx) => {
+                    MethodHandle::InvokeVirtual(cpool_idx) => {
                         self.ensure_entry_type(cpool_idx, METHOD_REF)?;
 
                         let method_name = self
@@ -105,7 +104,8 @@ impl ConstantPool {
                             return Err(Error::ConstantPoolVerifyError);
                         }
                     }
-                    MethodHandle::InvokeSpecial(cpool_idx) => {
+                    MethodHandle::InvokeStatic(cpool_idx)
+                    | MethodHandle::InvokeSpecial(cpool_idx) => {
                         // NOTE JVMS is wrong here- it says it needs to be a
                         // MethodRef, but javac can also generate an
                         // InterfaceMethodRef
@@ -143,7 +143,7 @@ impl ConstantPool {
                         self.ensure_entry_type(cpool_idx, INTERFACE_METHOD_REF)?;
 
                         let interface_method_name = self
-                            .get_method_ref(cpool_idx)
+                            .get_interface_method_ref(cpool_idx)
                             .expect("Just checked it to be InterfaceMethodRef")
                             .1;
 
