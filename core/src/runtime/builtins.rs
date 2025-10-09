@@ -27,6 +27,8 @@ pub struct BuiltinClasses {
     pub java_lang_null_pointer_exception: Class,
     pub java_lang_reflect_constructor: Class,
 
+    pub jvm_internal_concrete_class_loader: Class,
+
     pub array_byte: Class,
     pub array_char: Class,
     pub array_double: Class,
@@ -79,6 +81,8 @@ impl BuiltinClasses {
                 ("java/lang/NullPointerException", java_lang_null_pointer_exception),
                 ("java/lang/reflect/Constructor", java_lang_reflect_constructor),
 
+                ("jvm/internal/ConcreteClassLoader", jvm_internal_concrete_class_loader),
+
                 ("[B", array_byte),
                 ("[C", array_char),
                 ("[D", array_double),
@@ -112,6 +116,8 @@ impl Trace for BuiltinClasses {
         self.java_lang_no_such_method_error.trace();
         self.java_lang_null_pointer_exception.trace();
         self.java_lang_reflect_constructor.trace();
+
+        self.jvm_internal_concrete_class_loader.trace();
 
         self.array_byte.trace();
         self.array_char.trace();

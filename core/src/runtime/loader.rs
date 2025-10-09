@@ -3,13 +3,15 @@ use super::class::Class;
 use super::context::Context;
 use super::descriptor::{Descriptor, ResolvedDescriptor};
 use super::error::Error;
+use super::object::Object;
+use super::value::Value;
 
 use crate::classfile::class::ClassFile;
 use crate::gc::{Gc, GcCtx, Trace};
 use crate::jar::Jar;
 use crate::string::JvmString;
 
-use std::cell::RefCell;
+use std::cell::{OnceCell, RefCell};
 use std::collections::HashMap;
 use std::fmt;
 
@@ -24,6 +26,9 @@ struct ClassLoaderData {
 
     class_registry: RefCell<HashMap<JvmString, Class>>,
     array_classes: RefCell<HashMap<ResolvedDescriptor, Class>>,
+
+    // The `java.lang.ClassLoader` object for this `ClassLoader`, lazily initialized
+    object: OnceCell<Object>,
 }
 
 impl fmt::Debug for ClassLoader {
@@ -48,6 +53,7 @@ impl ClassLoader {
                 load_sources: RefCell::new(Vec::new()),
                 class_registry: RefCell::new(HashMap::new()),
                 array_classes: RefCell::new(HashMap::new()),
+                object: OnceCell::new(),
             },
         ))
     }
@@ -139,6 +145,8 @@ impl ClassLoader {
         }
     }
 
+    // Register an array class for the given descriptor in the correct
+    // `ClassLoader`'s registry.
     pub fn array_class_for(context: &Context, descriptor: ResolvedDescriptor) -> Class {
         let correct_loader = descriptor
             .class()
@@ -148,6 +156,8 @@ impl ClassLoader {
         correct_loader.get_or_init_array_class(context, descriptor)
     }
 
+    // Register an array class for the given descriptor in *this*
+    // `ClassLoader`'s registry.
     fn get_or_init_array_class(self, context: &Context, descriptor: ResolvedDescriptor) -> Class {
         let array_classes = self.0.array_classes.borrow();
 
@@ -185,7 +195,41 @@ impl ClassLoader {
 
         None
     }
+
+    // Return an instance of `java.lang.ClassLoader` for this `ClassLoader`.
+    // This will return `None` if this `ClassLoader` is the bootstrap loader.
+    pub fn get_or_init_object(self, context: &Context) -> Option<Object> {
+        if self == context.bootstrap_loader() {
+            None
+        } else {
+            let object = *self.0.object.get_or_init(|| {
+                let id = context.add_class_loader_object(self);
+
+                let object = Object::class_loader_object(context);
+                object.set_field(0, Value::Integer(id));
+
+                // This doesn't recurse forever because it must eventually reach
+                // the bootstrap loader, which returns `None`
+                if let Some(parent) = self.parent() {
+                    let parent_obj = parent.get_or_init_object(context);
+                    object.set_field(1, Value::Object(parent_obj));
+                }
+
+                object
+            });
+
+            Some(object)
+        }
+    }
 }
+
+impl PartialEq for ClassLoader {
+    fn eq(&self, other: &Self) -> bool {
+        Gc::as_ptr(self.0) == Gc::as_ptr(other.0)
+    }
+}
+
+impl Eq for ClassLoader {}
 
 impl Trace for ClassLoader {
     fn trace(&self) {
@@ -200,6 +244,7 @@ impl Trace for ClassLoaderData {
         self.load_sources.trace();
         self.class_registry.trace();
         self.array_classes.trace();
+        self.object.trace();
     }
 }
 

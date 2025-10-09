@@ -32,7 +32,9 @@ impl Object {
         ))
     }
 
-    // Creates a new instance of `java.lang.Class`.
+    // Creates a new instance of `java.lang.Class`. The caller is
+    // responsible for making it a valid `Class` object (see how
+    // `Class::get_or_init_object` does it).
     pub fn class_object(context: &Context) -> Self {
         let class_class = context.builtins().java_lang_class;
 
@@ -53,7 +55,7 @@ impl Object {
 
     // Creates a new instance of java.lang.reflect.Constructor. The caller is
     // responsible for making it a valid `Constructor` object (see how
-    // `Context::get_or_init_java_executable_for_method` does it).
+    // `Method::get_or_init_object` does it).
     pub fn constructor_object(context: &Context) -> Self {
         let constructor_class = context.builtins().java_lang_reflect_constructor;
 
@@ -67,6 +69,27 @@ impl Object {
             context.gc_ctx,
             ObjectData {
                 class: constructor_class,
+                data: FieldOrArrayData::Fields(fields),
+            },
+        ))
+    }
+
+    // Creates a new instance of jvm.internal.ConcreteClassLoader. The caller is
+    // responsible for making it a valid `ClassLoader` object (see how
+    // `ClassLoader::get_or_init_object` does it).
+    pub fn class_loader_object(context: &Context) -> Self {
+        let class_loader_class = context.builtins().jvm_internal_concrete_class_loader;
+
+        let fields = class_loader_class
+            .instance_fields()
+            .iter()
+            .map(|f| Cell::new(f.value()))
+            .collect::<Box<_>>();
+
+        Self(Gc::new(
+            context.gc_ctx,
+            ObjectData {
+                class: class_loader_class,
                 data: FieldOrArrayData::Fields(fields),
             },
         ))

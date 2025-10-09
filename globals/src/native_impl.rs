@@ -30,6 +30,8 @@ pub fn register_native_mappings(context: &Context) {
         ("java/lang/String.intern.()Ljava/lang/String;", string_intern),
         ("java/lang/Double.doubleToRawLongBits.(D)J", double_to_raw_long_bits),
         ("java/lang/Double.toString.(D)Ljava/lang/String;", double_to_string),
+        ("java/lang/Class.getClassLoader.()Ljava/lang/ClassLoader;", class_class_loader),
+        ("java/lang/ClassLoader.getSystemClassLoader.()Ljava/lang/ClassLoader;", get_system_class_loader),
     ];
 
     context.register_native_mappings(mappings);
@@ -480,4 +482,25 @@ fn double_to_string(context: &Context, args: &[Value]) -> Result<Option<Value>, 
     let chars = string.chars().map(|c| c as u16).collect::<Box<_>>();
 
     Ok(Some(Value::Object(Some(context.create_string(&chars)))))
+}
+
+fn class_class_loader(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
+    // Receiver should never be null
+    let class_obj = args[0].object().unwrap();
+    let class_id = class_obj.get_field(0).int();
+    let class = context.class_object_by_id(class_id);
+
+    let class_loader = class.loader();
+    let class_loader_object = class_loader.and_then(|l| l.get_or_init_object(context));
+
+    Ok(Some(Value::Object(class_loader_object)))
+}
+
+fn get_system_class_loader(context: &Context, _args: &[Value]) -> Result<Option<Value>, Error> {
+    let system_loader_obj = context
+        .system_loader()
+        .get_or_init_object(context)
+        .expect("System loader should have an object");
+
+    Ok(Some(Value::Object(Some(system_loader_obj))))
 }

@@ -42,10 +42,7 @@ public final class Class<T> implements AnnotatedElement, GenericDeclaration, Typ
 
     public native boolean isPrimitive();
 
-    public ClassLoader getClassLoader() {
-        // TODO implement
-        return null;
-    }
+    public native ClassLoader getClassLoader();
 
     public InputStream getResourceAsStream(String resourceName) {
         if (resourceName == null) {

@@ -41,9 +41,13 @@ pub struct Context {
     // stores an index into this array.
     java_classes: Gc<RefCell<Vec<Class>>>,
 
-    // A list of classes that have an associated `java.lang.reflect.Method`.
+    // A list of methods that have an associated `java.lang.reflect.Method`.
     // Java code stores an index into this array.
     java_executables: Gc<RefCell<Vec<Method>>>,
+
+    // A list of class loaders that have an associated `java.lang.ClassLoader`.
+    // Java code stores an index into this array.
+    java_class_loaders: Gc<RefCell<Vec<ClassLoader>>>,
 
     // All interned Java String objects.
     interned_strings: Gc<RefCell<InternedStrings>>,
@@ -100,8 +104,9 @@ impl Context {
 
         let loader_backend = Gc::new(gc_ctx, loader_backend);
         let bootstrap_loader = ClassLoader::with_parent(gc_ctx, None, loader_backend);
-        let system_loader =
+        let platform_loader =
             ClassLoader::with_parent(gc_ctx, Some(bootstrap_loader), loader_backend);
+        let system_loader = ClassLoader::with_parent(gc_ctx, Some(platform_loader), loader_backend);
 
         Self {
             loader_backend,
@@ -109,6 +114,7 @@ impl Context {
             system_loader,
             java_classes: Gc::new(gc_ctx, RefCell::new(Vec::new())),
             java_executables: Gc::new(gc_ctx, RefCell::new(Vec::new())),
+            java_class_loaders: Gc::new(gc_ctx, RefCell::new(Vec::new())),
             interned_strings: Gc::new(gc_ctx, RefCell::new(InternedStrings::new())),
             primitive_classes: Gc::new(gc_ctx, primitive_classes),
             native_mapping: Gc::new(gc_ctx, RefCell::new(HashMap::new())),
@@ -187,15 +193,26 @@ impl Context {
         self.java_classes.borrow()[id as usize]
     }
 
-    pub fn add_executable_object(&self, class: Method) -> i32 {
+    pub fn add_executable_object(&self, method: Method) -> i32 {
         let mut borrow = self.java_executables.borrow_mut();
-        borrow.push(class);
+        borrow.push(method);
 
         borrow.len() as i32 - 1
     }
 
     pub fn executable_object_by_id(&self, id: i32) -> Method {
         self.java_executables.borrow()[id as usize]
+    }
+
+    pub fn add_class_loader_object(&self, loader: ClassLoader) -> i32 {
+        let mut borrow = self.java_class_loaders.borrow_mut();
+        borrow.push(loader);
+
+        borrow.len() as i32 - 1
+    }
+
+    pub fn class_loader_object_by_id(&self, id: i32) -> ClassLoader {
+        self.java_class_loaders.borrow()[id as usize]
     }
 
     pub fn intern_string_obj(&self, new_string: Object) -> Object {
@@ -495,6 +512,7 @@ impl Trace for Context {
         self.system_loader.trace();
         self.java_classes.trace();
         self.java_executables.trace();
+        self.java_class_loaders.trace();
         self.interned_strings.trace();
         self.primitive_classes.trace();
         self.native_mapping.trace();
