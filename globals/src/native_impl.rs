@@ -1,5 +1,6 @@
 use rjvm_core::{
-    Array, Class, Context, Error, JvmString, NativeMethod, Object, PrimitiveType, Value,
+    Array, Class, Context, Error, JvmString, NativeMethod, Object, PrimitiveType,
+    ResolvedDescriptor, Value,
 };
 
 use std::cell::Cell;
@@ -9,6 +10,7 @@ pub fn register_native_mappings(context: &Context) {
     let mappings: &[(&str, NativeMethod)] = &[
         ("java/nio/charset/Charset.stringToUtf8.(Ljava/lang/String;)[B", string_to_utf8),
         ("java/lang/System.arraycopy.(Ljava/lang/Object;ILjava/lang/Object;II)V", array_copy),
+        ("java/lang/Class.isArray.()Z", is_array),
         ("java/lang/Class.isInterface.()Z", is_interface),
         ("java/lang/Class.isPrimitive.()Z", is_primitive),
         ("java/lang/Object.getClass.()Ljava/lang/Class;", get_class),
@@ -32,7 +34,7 @@ pub fn register_native_mappings(context: &Context) {
         ("java/lang/Double.toString.(D)Ljava/lang/String;", double_to_string),
         ("java/lang/Class.getClassLoader.()Ljava/lang/ClassLoader;", class_class_loader),
         ("java/lang/ClassLoader.getSystemClassLoader.()Ljava/lang/ClassLoader;", get_system_class_loader),
-        ("java/lang/Class.getAbsoluteName.(Ljava/lang/String;)Ljava/lang/String;", class_get_absolute_name),
+        ("java/lang/Class.getComponentType.()Ljava/lang/Class;", class_get_component_type),
     ];
 
     context.register_native_mappings(mappings);
@@ -176,6 +178,20 @@ fn primitive_array_copy<T: Copy + Default>(
     for i in 0..length {
         let dest_idx = dest_start + i;
         dest_data[dest_idx].set(temp_arr[i].get());
+    }
+}
+
+// java/lang/Class : boolean isArray()
+fn is_array(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
+    // Receiver should never be null
+    let class_obj = args[0].object().unwrap();
+    let class_id = class_obj.get_field(0).int();
+    let class = context.class_object_by_id(class_id);
+
+    if class.array_value_type().is_some() {
+        Ok(Some(Value::Integer(1)))
+    } else {
+        Ok(Some(Value::Integer(0)))
     }
 }
 
@@ -504,41 +520,31 @@ fn get_system_class_loader(context: &Context, _args: &[Value]) -> Result<Option<
     Ok(Some(Value::Object(Some(system_loader_obj))))
 }
 
-fn class_get_absolute_name(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
-    // TODO array classes need extra handling
-
-    // Arguments are never null
+fn class_get_component_type(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
+    // Receiver should never be null
     let class_obj = args[0].object().unwrap();
     let class_id = class_obj.get_field(0).int();
     let class = context.class_object_by_id(class_id);
 
-    let resource_name_data = args[1].object().unwrap().get_field(0).object().unwrap();
-    let resource_name_data = resource_name_data.array_data().as_char_array();
-
-    // Now parse `class_name` and `resource_name` from args
-    let class_name = class.name();
-    let class_name = class_name.to_string();
-
-    let length = resource_name_data.len();
-    let mut resource_chars_vec = Vec::with_capacity(length);
-    for i in 0..length {
-        resource_chars_vec.push(resource_name_data[i].get());
-    }
-
-    let resource_name = String::from_utf16_lossy(&resource_chars_vec);
-
-    // Create the absolute name
-    let resolved_name = if let Some(absolute_path) = resource_name.strip_prefix('/') {
-        absolute_path.to_string()
-    } else {
-        let mut path_sections = class_name.split('/').collect::<Vec<_>>();
-        path_sections.pop();
-        path_sections.push(&resource_name);
-
-        path_sections.join("/")
+    let Some(component_type) = class.array_value_type() else {
+        // Return `null` if this class isn't an array type
+        return Ok(Some(Value::Object(None)));
     };
 
-    let chars = resolved_name.chars().map(|c| c as u16).collect::<Box<_>>();
+    let class = match component_type {
+        ResolvedDescriptor::Class(class) | ResolvedDescriptor::Array(class) => class,
+        ResolvedDescriptor::Boolean => context.primitive_class_for(PrimitiveType::Boolean),
+        ResolvedDescriptor::Byte => context.primitive_class_for(PrimitiveType::Byte),
+        ResolvedDescriptor::Character => context.primitive_class_for(PrimitiveType::Char),
+        ResolvedDescriptor::Double => context.primitive_class_for(PrimitiveType::Double),
+        ResolvedDescriptor::Float => context.primitive_class_for(PrimitiveType::Float),
+        ResolvedDescriptor::Integer => context.primitive_class_for(PrimitiveType::Int),
+        ResolvedDescriptor::Long => context.primitive_class_for(PrimitiveType::Long),
+        ResolvedDescriptor::Short => context.primitive_class_for(PrimitiveType::Short),
+        ResolvedDescriptor::Void => unreachable!(),
+    };
 
-    Ok(Some(Value::Object(Some(context.create_string(&chars)))))
+    let class_object = class.get_or_init_object(context);
+
+    Ok(Some(Value::Object(Some(class_object))))
 }

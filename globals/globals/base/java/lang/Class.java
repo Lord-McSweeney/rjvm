@@ -36,9 +36,13 @@ public final class Class<T> implements AnnotatedElement, GenericDeclaration, Typ
     }
     private native String getNameNative();
 
+    public native boolean isArray();
+
     public native boolean isInterface();
 
     public native boolean isPrimitive();
+
+    public native Class<?> getComponentType();
 
     public native ClassLoader getClassLoader();
 
@@ -46,9 +50,7 @@ public final class Class<T> implements AnnotatedElement, GenericDeclaration, Typ
         // Resolve the name relative to this class's name. For example, if in
         // `com/example/MyClass`, looking up `rsrc.txt` looks up
         // `com/example/rsrc.txt`.
-        if (resourceName != null) {
-            resourceName = this.getAbsoluteName(resourceName);
-        }
+        resourceName = this.getAbsoluteName(resourceName);
 
         ClassLoader loader = this.getClassLoader();
 
@@ -80,7 +82,32 @@ public final class Class<T> implements AnnotatedElement, GenericDeclaration, Typ
     }
     private static native Class<?> forNameNative(String className);
 
-    private native String getAbsoluteName(String path);
+    private String getAbsoluteName(String path) {
+        if (path == null) {
+            return path;
+        }
+
+        if (path.startsWith("/")) {
+            // Absolute path
+            return path.substring(1);
+        } else {
+            // Get innermost type
+            Class<?> clazz = this;
+            while (clazz.isArray()) {
+                clazz = clazz.getComponentType();
+            }
+            String baseName = clazz.getName();
+
+            // Resolve name
+            int index = baseName.lastIndexOf('.');
+            if (index != -1) {
+                String basePath = baseName.substring(0, index).replace('.', '/');
+                return basePath + '/' + path;
+            } else {
+                return path;
+            }
+        }
+    }
 
     public native Constructor<?>[] getConstructors();
 
