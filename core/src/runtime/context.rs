@@ -1,15 +1,14 @@
 use super::builtins::BuiltinClasses;
 use super::call_stack::CallStack;
 use super::class::{Class, PrimitiveType};
-use super::descriptor::{Descriptor, MethodDescriptor, ResolvedDescriptor};
+use super::descriptor::MethodDescriptor;
 use super::error::Error;
 use super::intern::InternedStrings;
-use super::loader::{LoaderBackend, ResourceLoadType};
+use super::loader::{ClassLoader, LoaderBackend, ResourceLoadSource};
 use super::method::{Method, NativeMethod};
 use super::object::Object;
 use super::value::Value;
 
-use crate::classfile::class::ClassFile;
 use crate::gc::{Gc, GcCtx, Trace};
 use crate::jar::Jar;
 use crate::string::JvmString;
@@ -32,8 +31,11 @@ pub struct Context {
     // The backend to call into to load resources.
     loader_backend: Gc<Box<dyn LoaderBackend>>,
 
-    // The global class registry.
-    class_registry: Gc<RefCell<HashMap<JvmString, Class>>>,
+    // The "bootstrap" class loader
+    bootstrap_loader: ClassLoader,
+
+    // The "system" (aka "application") class loader
+    system_loader: ClassLoader,
 
     // A list of classes that have an associated `java.lang.Class`. Java code
     // stores an index into this array.
@@ -46,14 +48,8 @@ pub struct Context {
     // All interned Java String objects.
     interned_strings: Gc<RefCell<InternedStrings>>,
 
-    // A map of descriptor D to class [D.
-    array_classes: Gc<RefCell<HashMap<ResolvedDescriptor, Class>>>,
-
     // The builtin primitive classes, constructed on JVM startup.
     primitive_classes: Gc<HashMap<PrimitiveType, Class>>,
-
-    // A list of JAR files to check for classes.
-    jar_files: Gc<RefCell<Vec<Jar>>>,
 
     // Native method mappings
     native_mapping: Gc<RefCell<HashMap<(JvmString, JvmString, MethodDescriptor), NativeMethod>>>,
@@ -102,15 +98,19 @@ impl Context {
             primitive_classes.insert(primitive_type, Class::for_primitive(gc_ctx, primitive_type));
         }
 
+        let loader_backend = Gc::new(gc_ctx, loader_backend);
+        let bootstrap_loader = ClassLoader::with_parent(gc_ctx, None, loader_backend);
+        let system_loader =
+            ClassLoader::with_parent(gc_ctx, Some(bootstrap_loader), loader_backend);
+
         Self {
-            loader_backend: Gc::new(gc_ctx, loader_backend),
-            class_registry: Gc::new(gc_ctx, RefCell::new(HashMap::new())),
+            loader_backend,
+            bootstrap_loader,
+            system_loader,
             java_classes: Gc::new(gc_ctx, RefCell::new(Vec::new())),
             java_executables: Gc::new(gc_ctx, RefCell::new(Vec::new())),
             interned_strings: Gc::new(gc_ctx, RefCell::new(InternedStrings::new())),
-            array_classes: Gc::new(gc_ctx, RefCell::new(HashMap::new())),
             primitive_classes: Gc::new(gc_ctx, primitive_classes),
-            jar_files: Gc::new(gc_ctx, RefCell::new(Vec::new())),
             native_mapping: Gc::new(gc_ctx, RefCell::new(HashMap::new())),
             frame_data: Gc::new(gc_ctx, empty_frame_data),
             frame_index: Gc::new(gc_ctx, Cell::new(0)),
@@ -159,78 +159,21 @@ impl Context {
             .copied()
     }
 
-    pub fn add_jar(&self, jar: Jar) {
-        self.jar_files.borrow_mut().push(jar);
+    pub fn add_bootstrap_jar(&self, jar: Jar) {
+        self.bootstrap_loader
+            .add_source(ResourceLoadSource::Jar(jar));
     }
 
-    pub fn lookup_class(&self, class_name: JvmString) -> Result<Class, Error> {
-        let class_registry = self.class_registry.borrow();
-
-        if let Some(class) = class_registry.get(&class_name) {
-            Ok(*class)
-        } else if let Some(element_name) = class_name.strip_prefix('[') {
-            let element_name = JvmString::new(self.gc_ctx, element_name.to_string());
-            drop(class_registry);
-            let element_descriptor = Descriptor::from_string(self.gc_ctx, element_name)
-                .ok_or_else(|| self.no_class_def_found_error(class_name))?;
-
-            let resolved_descriptor =
-                ResolvedDescriptor::from_descriptor(&self, element_descriptor)?;
-
-            let created_class = self.array_class_for(resolved_descriptor);
-            // `array_class_for` will register the class in the registry
-
-            Ok(created_class)
-        } else {
-            drop(class_registry);
-
-            for jar_file in &*self.jar_files.borrow() {
-                if jar_file.has_class(class_name) {
-                    let read_data = jar_file.read_class(class_name)?;
-
-                    let class_file = ClassFile::from_data(self.gc_ctx, read_data)?;
-
-                    let class = Class::from_class_file(
-                        &self,
-                        ResourceLoadType::Jar(*jar_file),
-                        class_file,
-                    )?;
-
-                    self.register_class(class);
-
-                    class.load_methods(self)?;
-
-                    return Ok(class);
-                }
-            }
-
-            Err(self.no_class_def_found_error(class_name))
-        }
+    pub fn add_system_jar(&self, jar: Jar) {
+        self.system_loader.add_source(ResourceLoadSource::Jar(jar));
     }
 
-    pub fn register_class(&self, class: Class) {
-        let class_name = class.name();
-        let mut registry = self.class_registry.borrow_mut();
-
-        if registry.contains_key(&class_name) {
-            panic!("Attempted to register class {} twice", class_name);
-        } else {
-            registry.insert(class_name, class);
-        }
+    pub fn bootstrap_loader(&self) -> ClassLoader {
+        self.bootstrap_loader
     }
 
-    pub fn add_linked_jar(&self, jar: Jar) {
-        self.jar_files.borrow_mut().push(jar);
-    }
-
-    pub fn load_resource(
-        &self,
-        load_type: &ResourceLoadType,
-        class_name: &String,
-        resource_name: &String,
-    ) -> Option<Vec<u8>> {
-        self.loader_backend
-            .load_resource(load_type, class_name, resource_name)
+    pub fn system_loader(&self) -> ClassLoader {
+        self.system_loader
     }
 
     pub fn add_class_object(&self, class: Class) -> i32 {
@@ -257,22 +200,6 @@ impl Context {
 
     pub fn intern_string_obj(&self, new_string: Object) -> Object {
         self.interned_strings.borrow_mut().intern(new_string)
-    }
-
-    // Used to avoid making multiple array classes for one array type
-    pub fn array_class_for(&self, descriptor: ResolvedDescriptor) -> Class {
-        let array_classes = self.array_classes.borrow();
-        if let Some(class) = array_classes.get(&descriptor) {
-            *class
-        } else {
-            drop(array_classes);
-            let created_class = Class::for_array(&self, descriptor);
-            self.array_classes
-                .borrow_mut()
-                .insert(descriptor, created_class);
-            self.register_class(created_class);
-            created_class
-        }
     }
 
     pub fn primitive_class_for(&self, primitive_type: PrimitiveType) -> Class {
@@ -363,8 +290,9 @@ impl Context {
         let object_class_name = JvmString::new(self.gc_ctx, object_class_name);
 
         let object_class = self
-            .lookup_class(object_class_name)
-            .expect("Object class did not exist");
+            .bootstrap_loader()
+            .lookup_class(self, object_class_name)
+            .expect("Object class should exist");
 
         let _ = self.object_class.set(object_class);
 
@@ -563,13 +491,12 @@ impl Trace for Context {
     fn trace(&self) {
         self.loader_backend.trace_self();
 
-        self.class_registry.trace();
+        self.bootstrap_loader.trace();
+        self.system_loader.trace();
         self.java_classes.trace();
         self.java_executables.trace();
         self.interned_strings.trace();
-        self.array_classes.trace();
         self.primitive_classes.trace();
-        self.jar_files.trace();
         self.native_mapping.trace();
 
         // We want to do a custom tracing over frame data to avoid tracing values

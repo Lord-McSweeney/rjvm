@@ -124,6 +124,10 @@ fn array_copy(context: &Context, args: &[Value]) -> Result<Option<Value>, Error>
             primitive_array_copy::<_>(source_data, dest_data, source_start, dest_start, length);
         }
         (Array::ObjectArray(source_data), Array::ObjectArray(dest_data)) => {
+            let Some(dest_value_class) = dest_value_type.class() else {
+                unreachable!()
+            };
+
             let mut temp_arr = Vec::with_capacity(length);
 
             for i in 0..length {
@@ -134,7 +138,7 @@ fn array_copy(context: &Context, args: &[Value]) -> Result<Option<Value>, Error>
             for i in 0..length {
                 let obj = temp_arr[i];
                 if let Some(obj) = obj {
-                    if !obj.class().matches_descriptor(dest_value_type) {
+                    if !obj.class().check_cast(dest_value_class) {
                         return Err(context.array_store_exception());
                     }
                 }
@@ -242,8 +246,11 @@ fn get_resource_data(context: &Context, args: &[Value]) -> Result<Option<Value>,
     }
 
     let resource_name = String::from_utf16_lossy(&chars_vec);
+    let resource_data = class
+        .loader()
+        .and_then(|l| l.load_resource(Some(class.name()), &resource_name));
 
-    if let Some(resource_data) = class.load_resource(context, &resource_name) {
+    if let Some(resource_data) = resource_data {
         let resource_data = resource_data.iter().map(|d| *d as i8).collect::<Box<_>>();
         let resource_bytes = Object::byte_array(context, resource_data);
 
@@ -365,7 +372,9 @@ fn class_for_name_native(context: &Context, args: &[Value]) -> Result<Option<Val
     let class_name = class_name.replace('.', "/");
     let class_name = JvmString::new(context.gc_ctx, class_name);
 
-    let class = context.lookup_class(class_name);
+    // FIXME implement `Reflection.getCallerClass` so we can actually use the
+    // loader of the current class
+    let class = context.system_loader().lookup_class(context, class_name);
 
     if let Ok(class) = class {
         let class = class.get_or_init_object(context);

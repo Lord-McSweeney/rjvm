@@ -2,6 +2,7 @@ use super::class::Class;
 use super::context::Context;
 use super::descriptor::{Descriptor, MethodDescriptor, ResolvedDescriptor};
 use super::error::{Error, NativeError};
+use super::loader::ClassLoader;
 use super::method::Method;
 use super::value::Value;
 
@@ -638,6 +639,8 @@ impl Op {
         data_position: usize,
         class_dependencies: &mut Vec<Class>,
     ) -> Result<Op, Error> {
+        let loader = method.class_loader();
+
         let opcode = data.read_u8()?;
         match opcode {
             NOP => Ok(Op::Nop),
@@ -670,7 +673,7 @@ impl Op {
                 let constant_pool_idx = data.read_u8()?;
                 let entry = constant_pool.entry(constant_pool_idx as u16)?;
 
-                let value = ldc_value(context, constant_pool, entry)?;
+                let value = ldc_value(context, loader, constant_pool, entry)?;
 
                 Ok(Op::Ldc(LdcInfo(Gc::new(
                     context.gc_ctx,
@@ -684,7 +687,7 @@ impl Op {
                 let constant_pool_idx = data.read_u16()?;
                 let entry = constant_pool.entry(constant_pool_idx)?;
 
-                let value = ldc_value(context, constant_pool, entry)?;
+                let value = ldc_value(context, loader, constant_pool, entry)?;
 
                 Ok(Op::Ldc(LdcInfo(Gc::new(
                     context.gc_ctx,
@@ -1079,7 +1082,7 @@ impl Op {
 
                 let (class_name, field_name, descriptor_name) = field_ref;
 
-                let class = context.lookup_class(class_name)?;
+                let class = loader.lookup_class(context, class_name)?;
                 if !class_dependencies.contains(&class) {
                     class_dependencies.push(class);
                 }
@@ -1106,7 +1109,7 @@ impl Op {
 
                 let (class_name, field_name, descriptor_name) = field_ref;
 
-                let class = context.lookup_class(class_name)?;
+                let class = loader.lookup_class(context, class_name)?;
                 if !class_dependencies.contains(&class) {
                     class_dependencies.push(class);
                 }
@@ -1133,7 +1136,7 @@ impl Op {
 
                 let (class_name, field_name, descriptor_name) = field_ref;
 
-                let class = context.lookup_class(class_name)?;
+                let class = loader.lookup_class(context, class_name)?;
                 if !class_dependencies.contains(&class) {
                     class_dependencies.push(class);
                 }
@@ -1160,7 +1163,7 @@ impl Op {
 
                 let (class_name, field_name, descriptor_name) = field_ref;
 
-                let class = context.lookup_class(class_name)?;
+                let class = loader.lookup_class(context, class_name)?;
                 if !class_dependencies.contains(&class) {
                     class_dependencies.push(class);
                 }
@@ -1188,7 +1191,7 @@ impl Op {
                 let (class_name, method_name, descriptor_name) = method_ref;
 
                 // Method is called based on class of object on stack
-                let class = context.lookup_class(class_name)?;
+                let class = loader.lookup_class(context, class_name)?;
                 if !class_dependencies.contains(&class) {
                     class_dependencies.push(class);
                 }
@@ -1211,7 +1214,7 @@ impl Op {
 
                 let (class_name, method_name, descriptor_name) = method_ref;
 
-                let class = context.lookup_class(class_name)?;
+                let class = loader.lookup_class(context, class_name)?;
                 if !class_dependencies.contains(&class) {
                     class_dependencies.push(class);
                 }
@@ -1249,7 +1252,7 @@ impl Op {
 
                 let (class_name, method_name, descriptor_name) = method_ref;
 
-                let class = context.lookup_class(class_name)?;
+                let class = loader.lookup_class(context, class_name)?;
                 if !class_dependencies.contains(&class) {
                     class_dependencies.push(class);
                 }
@@ -1275,7 +1278,7 @@ impl Op {
                 let (class_name, method_name, descriptor_name) = method_ref;
 
                 // Method is called based on class of object on stack
-                let class = context.lookup_class(class_name)?;
+                let class = loader.lookup_class(context, class_name)?;
                 if !class_dependencies.contains(&class) {
                     class_dependencies.push(class);
                 }
@@ -1299,7 +1302,7 @@ impl Op {
                 let class_idx = data.read_u16()?;
                 let class_name = constant_pool.get_class(class_idx)?;
 
-                let class = context.lookup_class(class_name)?;
+                let class = loader.lookup_class(context, class_name)?;
                 if !class_dependencies.contains(&class) {
                     class_dependencies.push(class);
                 }
@@ -1329,7 +1332,7 @@ impl Op {
                 let class_idx = data.read_u16()?;
                 let class_name = constant_pool.get_class(class_idx)?;
 
-                let class = context.lookup_class(class_name)?;
+                let class = loader.lookup_class(context, class_name)?;
                 if !class_dependencies.contains(&class) {
                     class_dependencies.push(class);
                 }
@@ -1342,7 +1345,7 @@ impl Op {
                 let class_idx = data.read_u16()?;
                 let class_name = constant_pool.get_class(class_idx)?;
 
-                let class = context.lookup_class(class_name)?;
+                let class = loader.lookup_class(context, class_name)?;
                 if !class_dependencies.contains(&class) {
                     class_dependencies.push(class);
                 }
@@ -1353,7 +1356,7 @@ impl Op {
                 let class_idx = data.read_u16()?;
                 let class_name = constant_pool.get_class(class_idx)?;
 
-                let class = context.lookup_class(class_name)?;
+                let class = loader.lookup_class(context, class_name)?;
                 if !class_dependencies.contains(&class) {
                     class_dependencies.push(class);
                 }
@@ -1375,7 +1378,7 @@ impl Op {
                 let descriptor = Descriptor::from_string(context.gc_ctx, class_name)
                     .ok_or(Error::Native(NativeError::InvalidDescriptor))?;
                 let mut resolved_descriptor =
-                    ResolvedDescriptor::from_descriptor(context, descriptor)?;
+                    ResolvedDescriptor::from_descriptor(context, loader, descriptor)?;
 
                 for _ in 0..dim_count {
                     resolved_descriptor = match resolved_descriptor {
@@ -1461,6 +1464,7 @@ impl Op {
 
 fn ldc_value(
     context: &Context,
+    loader: ClassLoader,
     constant_pool: &ConstantPool,
     cpool_entry: ConstantPoolEntry,
 ) -> Result<Value, Error> {
@@ -1486,7 +1490,7 @@ fn ldc_value(
                 .get_utf8(name_idx)
                 .expect("Should refer to valid entry");
 
-            let class = context.lookup_class(class_name)?;
+            let class = loader.lookup_class(context, class_name)?;
 
             Value::Object(Some(class.get_or_init_object(context)))
         }

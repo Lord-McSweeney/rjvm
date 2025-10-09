@@ -45,7 +45,8 @@ macro_rules! builtin_classes {
                     let string = JvmString::new($context.gc_ctx, $class_name.to_string());
 
                     $context
-                        .lookup_class(string)
+                        .bootstrap_loader()
+                        .lookup_class($context, string)
                         .expect("Could not find class during builtins init")
                 },
             )*

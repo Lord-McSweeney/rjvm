@@ -2,6 +2,7 @@ use super::class::Class;
 use super::context::Context;
 use super::descriptor::{MethodDescriptor, ResolvedDescriptor};
 use super::error::Error;
+use super::loader::ClassLoader;
 use super::method::{Exception, Method};
 use super::object::Object;
 use super::op::{ArrayType, Op};
@@ -2124,7 +2125,8 @@ impl<'a> Interpreter<'a> {
             let mut descriptor = resolved_descriptor;
             let levels_left = (dimensions.len() - dim_index) - 1;
             for _ in 0..levels_left {
-                descriptor = ResolvedDescriptor::Array(context.array_class_for(descriptor));
+                descriptor =
+                    ResolvedDescriptor::Array(ClassLoader::array_class_for(context, descriptor));
             }
 
             if let Some(outer_inner_class) = descriptor.class() {

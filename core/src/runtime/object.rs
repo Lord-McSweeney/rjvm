@@ -3,6 +3,7 @@ use super::class::Class;
 use super::context::Context;
 use super::descriptor::{MethodDescriptor, ResolvedDescriptor};
 use super::error::{Error, NativeError};
+use super::loader::ClassLoader;
 use super::value::Value;
 
 use crate::gc::{Gc, GcCtx, Trace};
@@ -196,7 +197,7 @@ impl Object {
         Self(Gc::new(
             context.gc_ctx,
             ObjectData {
-                class: context.array_class_for(descriptor),
+                class: ClassLoader::array_class_for(context, descriptor),
                 data: FieldOrArrayData::Array(Array::ObjectArray(data)),
             },
         ))

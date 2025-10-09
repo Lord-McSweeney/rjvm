@@ -3,6 +3,7 @@ use super::context::Context;
 use super::descriptor::MethodDescriptor;
 use super::error::{Error, NativeError};
 use super::interpreter::Interpreter;
+use super::loader::ClassLoader;
 use super::object::Object;
 use super::op::Op;
 use super::value::Value;
@@ -209,6 +210,10 @@ impl Method {
         self.0.class
     }
 
+    pub fn class_loader(self) -> ClassLoader {
+        self.0.class.loader().expect("Should have a loader")
+    }
+
     pub fn max_stack(self) -> usize {
         match &*self.0.method_info.borrow() {
             MethodInfo::Bytecode(bytecode_info) => bytecode_info.max_stack as usize,
@@ -333,7 +338,7 @@ impl BytecodeMethodInfo {
             let class_idx = reader.read_u16()?;
             let class = if class_idx != 0 {
                 let class_name = constant_pool.get_class(class_idx)?;
-                let class = context.lookup_class(class_name)?;
+                let class = method.class_loader().lookup_class(context, class_name)?;
 
                 let throwable_class = context.builtins().java_lang_throwable;
                 if !class.matches_class(throwable_class) {

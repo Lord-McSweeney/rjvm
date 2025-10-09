@@ -2,7 +2,7 @@ use super::context::Context;
 use super::descriptor::{Descriptor, MethodDescriptor, ResolvedDescriptor};
 use super::error::{Error, NativeError};
 use super::field::{Field, FieldRef};
-use super::loader::ResourceLoadType;
+use super::loader::ClassLoader;
 use super::method::Method;
 use super::object::Object;
 use super::value::Value;
@@ -23,7 +23,8 @@ pub struct Class(Gc<ClassData>);
 
 struct ClassData {
     class_file: Option<ClassFile>,
-    load_source: Option<ResourceLoadType>,
+
+    loader: Option<ClassLoader>,
 
     flags: ClassFlags,
 
@@ -77,20 +78,20 @@ impl fmt::Debug for Class {
 impl Class {
     pub fn from_class_file(
         context: &Context,
-        load_source: ResourceLoadType,
+        loader: ClassLoader,
         class_file: ClassFile,
     ) -> Result<Self, Error> {
         let name = class_file.this_class();
         let super_class_name = class_file.super_class();
 
         let super_class = super_class_name
-            .map(|name| context.lookup_class(name))
+            .map(|name| loader.lookup_class(context, name))
             .transpose()?;
 
         let mut own_interfaces = Vec::new();
         for interface in class_file.interfaces() {
             // Hopefully we won't get a class that tries to implement itself as an interface
-            let class = context.lookup_class(*interface)?;
+            let class = loader.lookup_class(context, *interface)?;
             if !class.is_interface() {
                 return Err(Error::Native(NativeError::ClassNotInterface));
             }
@@ -169,7 +170,7 @@ impl Class {
             context.gc_ctx,
             ClassData {
                 class_file: Some(class_file),
-                load_source: Some(load_source),
+                loader: Some(loader),
 
                 flags: class_file.flags(),
 
@@ -261,7 +262,7 @@ impl Class {
     }
 
     /// DO NOT USE THIS TO GET ARRAY CLASSES! It WILL create duplicate classes
-    /// for the same `array_type`! Use `Context::array_class_for` instead.
+    /// for the same `array_type`! Use `ClassLoader::array_class_for` instead.
     pub fn for_array(context: &Context, array_type: ResolvedDescriptor) -> Self {
         let object_class = context.object_class();
 
@@ -282,7 +283,8 @@ impl Class {
             context.gc_ctx,
             ClassData {
                 class_file: None,
-                load_source: None,
+                // Array classes have the loader of their inner class
+                loader: array_type.class().and_then(|c| c.loader()),
 
                 flags: ClassFlags::PUBLIC | ClassFlags::FINAL,
 
@@ -323,7 +325,7 @@ impl Class {
             gc_ctx,
             ClassData {
                 class_file: None,
-                load_source: None,
+                loader: None,
 
                 flags: ClassFlags::PUBLIC | ClassFlags::FINAL,
 
@@ -369,6 +371,10 @@ impl Class {
 
     pub fn name(self) -> JvmString {
         self.0.name
+    }
+
+    pub fn loader(self) -> Option<ClassLoader> {
+        self.0.loader
     }
 
     pub fn dot_name(self) -> String {
@@ -480,26 +486,12 @@ impl Class {
         self.matches_class(checked_class) || self.implements_interface(checked_class)
     }
 
-    pub fn matches_descriptor(self, descriptor: ResolvedDescriptor) -> bool {
-        match descriptor {
-            ResolvedDescriptor::Class(class) => self.matches_class(class),
-            ResolvedDescriptor::Array(array_class) => array_class == self,
-            _ => unreachable!(),
-        }
-    }
-
     // This does not call the constructor.
     pub fn new_instance(self, gc_ctx: GcCtx) -> Object {
         // TODO can you somehow instantiate an array class?
         assert!(self.0.array_value_type.is_none());
 
         Object::from_class(gc_ctx, self)
-    }
-
-    pub fn load_resource(self, context: &Context, resource_name: &String) -> Option<Vec<u8>> {
-        self.0.load_source.as_ref().and_then(|load_source| {
-            context.load_resource(load_source, self.name().to_string(), resource_name)
-        })
     }
 
     pub fn run_clinit(self, context: &Context) -> Result<(), Error> {
@@ -552,7 +544,7 @@ impl Trace for ClassData {
     #[inline]
     fn trace(&self) {
         self.class_file.trace();
-        self.load_source.trace();
+        self.loader.trace();
         self.name.trace();
         self.super_class.trace();
         self.object.trace();

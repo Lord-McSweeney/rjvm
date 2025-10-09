@@ -3,6 +3,7 @@
 use super::class::Class;
 use super::context::Context;
 use super::error::Error;
+use super::loader::ClassLoader;
 use super::value::Value;
 
 use crate::gc::{Gc, GcCtx, Trace};
@@ -158,17 +159,21 @@ pub enum ResolvedDescriptor {
 }
 
 impl ResolvedDescriptor {
-    pub fn from_descriptor(context: &Context, descriptor: Descriptor) -> Result<Self, Error> {
+    pub fn from_descriptor(
+        context: &Context,
+        loader: ClassLoader,
+        descriptor: Descriptor,
+    ) -> Result<Self, Error> {
         Ok(match descriptor {
             Descriptor::Class(class_name) => {
-                let class = context.lookup_class(class_name)?;
+                let class = loader.lookup_class(context, class_name)?;
 
                 ResolvedDescriptor::Class(class)
             }
             Descriptor::Array(inner_descriptor) => {
                 let inner_resolved =
-                    ResolvedDescriptor::from_descriptor(context, *inner_descriptor)?;
-                let class = context.array_class_for(inner_resolved);
+                    ResolvedDescriptor::from_descriptor(context, loader, *inner_descriptor)?;
+                let class = ClassLoader::array_class_for(context, inner_resolved);
 
                 ResolvedDescriptor::Array(class)
             }
