@@ -37,13 +37,13 @@ impl Jar {
         self.read_file(&modified_name)
     }
 
-    pub fn has_file(self, file_name: &String) -> bool {
+    pub fn has_file(self, file_name: &str) -> bool {
         let zip_file = self.0.zip_file.borrow();
 
         zip_file.index_for_name(file_name).is_some()
     }
 
-    pub fn read_file(self, file_name: &String) -> Result<Vec<u8>, Error> {
+    pub fn read_file(self, file_name: &str) -> Result<Vec<u8>, Error> {
         let mut zip_file = self.0.zip_file.borrow_mut();
 
         let result = zip_file

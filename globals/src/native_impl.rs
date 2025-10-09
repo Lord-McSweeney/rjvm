@@ -13,7 +13,7 @@ pub fn register_native_mappings(context: &Context) {
         ("java/lang/Class.isPrimitive.()Z", is_primitive),
         ("java/lang/Object.getClass.()Ljava/lang/Class;", get_class),
         ("java/lang/Class.getNameNative.()Ljava/lang/String;", get_name_native),
-        ("java/lang/Class.getResourceData.(Ljava/lang/String;)[B", get_resource_data),
+        ("jvm/internal/ConcreteClassLoader.getResourceData.(Ljava/lang/String;)[B", get_resource_data),
         ("java/lang/Math.atan2.(DD)D", math_atan2),
         ("java/lang/Math.floor.(D)D", math_floor),
         ("java/lang/Math.log.(D)D", math_log),
@@ -32,6 +32,7 @@ pub fn register_native_mappings(context: &Context) {
         ("java/lang/Double.toString.(D)Ljava/lang/String;", double_to_string),
         ("java/lang/Class.getClassLoader.()Ljava/lang/ClassLoader;", class_class_loader),
         ("java/lang/ClassLoader.getSystemClassLoader.()Ljava/lang/ClassLoader;", get_system_class_loader),
+        ("java/lang/Class.getAbsoluteName.(Ljava/lang/String;)Ljava/lang/String;", class_get_absolute_name),
     ];
 
     context.register_native_mappings(mappings);
@@ -233,9 +234,9 @@ fn get_name_native(context: &Context, args: &[Value]) -> Result<Option<Value>, E
 // java/lang/Class : byte[] getResourceData(String)
 fn get_resource_data(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
     // Receiver should never be null
-    let class_obj = args[0].object().unwrap();
-    let class_id = class_obj.get_field(0).int();
-    let class = context.class_object_by_id(class_id);
+    let class_loader_obj = args[0].object().unwrap();
+    let class_loader_id = class_loader_obj.get_field(0).int();
+    let class_loader = context.class_loader_object_by_id(class_loader_id);
 
     // First argument should never be null
     let resource_name_data = args[1].object().unwrap().get_field(0).object().unwrap();
@@ -248,9 +249,7 @@ fn get_resource_data(context: &Context, args: &[Value]) -> Result<Option<Value>,
     }
 
     let resource_name = String::from_utf16_lossy(&chars_vec);
-    let resource_data = class
-        .loader()
-        .and_then(|l| l.load_resource(Some(class.name()), &resource_name));
+    let resource_data = class_loader.load_resource(&resource_name);
 
     if let Some(resource_data) = resource_data {
         let resource_data = resource_data.iter().map(|d| *d as i8).collect::<Box<_>>();
@@ -503,4 +502,43 @@ fn get_system_class_loader(context: &Context, _args: &[Value]) -> Result<Option<
         .expect("System loader should have an object");
 
     Ok(Some(Value::Object(Some(system_loader_obj))))
+}
+
+fn class_get_absolute_name(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
+    // TODO array classes need extra handling
+
+    // Arguments are never null
+    let class_obj = args[0].object().unwrap();
+    let class_id = class_obj.get_field(0).int();
+    let class = context.class_object_by_id(class_id);
+
+    let resource_name_data = args[1].object().unwrap().get_field(0).object().unwrap();
+    let resource_name_data = resource_name_data.array_data().as_char_array();
+
+    // Now parse `class_name` and `resource_name` from args
+    let class_name = class.name();
+    let class_name = class_name.to_string();
+
+    let length = resource_name_data.len();
+    let mut resource_chars_vec = Vec::with_capacity(length);
+    for i in 0..length {
+        resource_chars_vec.push(resource_name_data[i].get());
+    }
+
+    let resource_name = String::from_utf16_lossy(&resource_chars_vec);
+
+    // Create the absolute name
+    let resolved_name = if let Some(absolute_path) = resource_name.strip_prefix('/') {
+        absolute_path.to_string()
+    } else {
+        let mut path_sections = class_name.split('/').collect::<Vec<_>>();
+        path_sections.pop();
+        path_sections.push(&resource_name);
+
+        path_sections.join("/")
+    };
+
+    let chars = resolved_name.chars().map(|c| c as u16).collect::<Box<_>>();
+
+    Ok(Some(Value::Object(Some(context.create_string(&chars)))))
 }

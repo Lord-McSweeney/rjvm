@@ -5,8 +5,6 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.GenericDeclaration;
 import java.lang.reflect.Type;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.io.InputStream;
 
 // NOTE: The native `Class` corresponding to this `Class<T>` is stored in the
@@ -45,19 +43,21 @@ public final class Class<T> implements AnnotatedElement, GenericDeclaration, Typ
     public native ClassLoader getClassLoader();
 
     public InputStream getResourceAsStream(String resourceName) {
-        if (resourceName == null) {
-            throw new NullPointerException();
+        // Resolve the name relative to this class's name. For example, if in
+        // `com/example/MyClass`, looking up `rsrc.txt` looks up
+        // `com/example/rsrc.txt`.
+        if (resourceName != null) {
+            resourceName = this.getAbsoluteName(resourceName);
         }
 
-        byte[] resourceData = this.getResourceData(resourceName);
+        ClassLoader loader = this.getClassLoader();
 
-        if (resourceData != null) {
-            return new ByteArrayInputStream(resourceData);
+        if (loader == null) {
+            return ClassLoader.getSystemResourceAsStream(resourceName);
         } else {
-            return null;
+            return loader.getResourceAsStream(resourceName);
         }
     }
-    private native byte[] getResourceData(String resourceName);
 
     public boolean desiredAssertionStatus() {
         // TODO implement (this isn't very important)
@@ -79,6 +79,8 @@ public final class Class<T> implements AnnotatedElement, GenericDeclaration, Typ
         }
     }
     private static native Class<?> forNameNative(String className);
+
+    private native String getAbsoluteName(String path);
 
     public native Constructor<?>[] getConstructors();
 

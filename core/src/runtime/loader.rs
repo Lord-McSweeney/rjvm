@@ -129,7 +129,7 @@ impl ClassLoader {
 
         // Couldn't find it in our registry, now try to load it
         let full_name = class_name.to_string().clone() + ".class";
-        let data = self.load_resource(None, &full_name);
+        let data = self.load_own_resource(&full_name);
         if let Some(data) = data {
             let class_file = ClassFile::from_data(context.gc_ctx, data)?;
 
@@ -175,18 +175,25 @@ impl ClassLoader {
         }
     }
 
-    pub fn load_resource(
-        self,
-        class_name: Option<JvmString>,
-        resource_name: &String,
-    ) -> Option<Vec<u8>> {
+    pub fn load_resource(self, resource_name: &str) -> Option<Vec<u8>> {
+        // Recursively lookup on self and ancestors
+        let mut current = Some(self);
+        while let Some(current_loader) = current {
+            let result = current_loader.load_own_resource(resource_name);
+            if let Some(result) = result {
+                return Some(result);
+            }
+
+            current = current_loader.parent();
+        }
+
+        None
+    }
+
+    fn load_own_resource(self, resource_name: &str) -> Option<Vec<u8>> {
         let sources = self.0.load_sources.borrow();
         for source in &*sources {
-            let result = self.0.backend.load_resource(
-                source,
-                class_name.map(|n| n.to_string().clone()),
-                resource_name,
-            );
+            let result = self.0.backend.load_resource(source, resource_name);
 
             if let Some(result) = result {
                 return Some(result);
@@ -252,7 +259,6 @@ pub trait LoaderBackend {
     fn load_resource(
         &self,
         load_source: &ResourceLoadSource,
-        class_name: Option<String>,
         resource_name: &str,
     ) -> Option<Vec<u8>>;
 }
