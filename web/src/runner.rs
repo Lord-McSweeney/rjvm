@@ -3,15 +3,16 @@ use crate::native_impl;
 use crate::output_to_err;
 
 use rjvm_core::{
-    Class, ClassFile, Context, Jar, JvmString, MethodDescriptor, Object, ResourceLoadType, Value,
+    Class, Context, Jar, JvmString, MethodDescriptor, Object, ResourceLoadSource, Value,
 };
 use rjvm_globals::{GLOBALS_BASE_JAR, GLOBALS_DESKTOP_JAR, native_impl as base_native_impl};
 
 fn init_main_class(
     context: &Context,
+    class_name: &str,
     read_file: Vec<u8>,
     is_jar: bool,
-) -> Result<Class, &'static str> {
+) -> Result<Class, String> {
     fn get_main_class_from_manifest(manifest_data: Vec<u8>) -> Option<String> {
         let stringified_data = String::from_utf8_lossy(&manifest_data);
 
@@ -30,15 +31,15 @@ fn init_main_class(
         main_class.map(|c| c.replace('.', "/").to_string())
     }
 
-    let main_class = if is_jar {
+    let main_class_name = if is_jar {
         let manifest_name = "META-INF/MANIFEST.MF".to_string();
 
         let jar_data = Jar::from_bytes(context.gc_ctx, read_file).expect("Invalid jar file passed");
-        context.add_jar(jar_data);
+        context.add_system_jar(jar_data);
 
         let has_manifest = jar_data.has_file(&manifest_name);
         if !has_manifest {
-            return Err("Cannot execute JAR file without MANIFEST.MF file");
+            return Err("Cannot execute JAR file without MANIFEST.MF file".to_string());
         }
 
         let manifest_data = jar_data
@@ -47,52 +48,49 @@ fn init_main_class(
 
         let main_class_name = get_main_class_from_manifest(manifest_data);
         let Some(main_class_name) = main_class_name else {
-            return Err("Cannot execute JAR file without main class specified");
+            return Err("Cannot execute JAR file without main class specified".to_string());
         };
 
         let main_class_name = JvmString::new(context.gc_ctx, main_class_name);
 
         let has_main_class = jar_data.has_class(main_class_name);
         if !has_main_class {
-            return Err("Main class specified in MANIFEST.MF was not present in JAR!");
+            return Err("Main class specified in MANIFEST.MF was not present in JAR!".to_string());
         }
 
-        let main_class_data = jar_data
-            .read_class(main_class_name)
-            .expect("Main class should read");
-
-        let class_file = ClassFile::from_data(context.gc_ctx, main_class_data).unwrap();
-
-        Class::from_class_file(context, ResourceLoadType::Jar(jar_data), class_file)
-            .expect("Failed to load main class")
+        main_class_name
     } else {
-        let class_file = ClassFile::from_data(context.gc_ctx, read_file).unwrap();
+        context
+            .system_loader()
+            .add_source(ResourceLoadSource::FileSystem);
 
-        Class::from_class_file(context, ResourceLoadType::FileSystem, class_file)
-            .expect("Failed to load main class")
+        let class_name = class_name.strip_suffix(".class").unwrap_or(class_name);
+
+        JvmString::new(context.gc_ctx, class_name.to_string())
     };
 
-    context.register_class(main_class);
-
-    main_class
-        .load_methods(context)
-        .expect("Failed to load main class method data");
+    let main_class = context
+        .system_loader()
+        .lookup_class(context, main_class_name)
+        .expect("Failed to load main class");
 
     Ok(main_class)
 }
 
-pub(crate) fn run_file(class_data: &[u8], args: Vec<String>, is_jar: bool) {
+pub(crate) fn run_file(class_name: &str, class_data: &[u8], args: Vec<String>) {
+    let is_jar = class_name.ends_with(".jar");
+
     // Initialize JVM
-    let loader = loader_backend::WebLoaderBackend::new();
+    let loader = loader_backend::WebLoaderBackend::new(class_name, class_data);
     let context = Context::new(Box::new(loader));
 
     // Load globals
     let globals_base_jar = Jar::from_bytes(context.gc_ctx, GLOBALS_BASE_JAR.to_vec())
         .expect("Builtin globals should be valid");
-    context.add_jar(globals_base_jar);
+    context.add_bootstrap_jar(globals_base_jar);
     let globals_desktop_jar = Jar::from_bytes(context.gc_ctx, GLOBALS_DESKTOP_JAR.to_vec())
         .expect("Builtin globals should be valid");
-    context.add_jar(globals_desktop_jar);
+    context.add_bootstrap_jar(globals_desktop_jar);
 
     base_native_impl::register_native_mappings(&context);
     native_impl::register_native_mappings(&context);
@@ -100,7 +98,7 @@ pub(crate) fn run_file(class_data: &[u8], args: Vec<String>, is_jar: bool) {
     context.load_builtins();
 
     // Load the main class from options
-    let main_class = match init_main_class(&context, class_data.to_vec(), is_jar) {
+    let main_class = match init_main_class(&context, class_name, class_data.to_vec(), is_jar) {
         Ok(class) => class,
         Err(error) => {
             output_to_err(&format!("Error: {}\n", error));

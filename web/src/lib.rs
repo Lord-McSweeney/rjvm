@@ -31,7 +31,7 @@ pub fn file_loaded(name: &str, data: &[u8], args: Vec<String>) {
     }
     output("\n");
 
-    runner::run_file(data, args, is_jar);
+    runner::run_file(name, data, args);
     output("$ ");
 }
 

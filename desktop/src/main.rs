@@ -1,5 +1,5 @@
 use rjvm_core::{
-    Class, ClassFile, Context, Jar, JvmString, MethodDescriptor, Object, ResourceLoadType, Value,
+    Class, Context, Jar, JvmString, MethodDescriptor, Object, ResourceLoadSource, Value,
 };
 use rjvm_globals::{GLOBALS_BASE_JAR, GLOBALS_DESKTOP_JAR, native_impl as base_native_impl};
 
@@ -140,40 +140,35 @@ impl PassedOptions {
     }
 }
 
-fn init_main_class(
-    context: &Context,
-    options: PassedOptions,
-    read_file: Vec<u8>,
-) -> Result<Class, &'static str> {
-    match options.file_type {
+fn init_main_class(context: &Context, options: &PassedOptions) -> Result<Class, String> {
+    let class_name = match &options.file_type {
         FileType::Class => {
-            let class_file = ClassFile::from_data(context.gc_ctx, read_file).unwrap();
+            context
+                .system_loader()
+                .add_source(ResourceLoadSource::FileSystem);
 
-            let main_class =
-                Class::from_class_file(context, ResourceLoadType::FileSystem, class_file)
-                    .expect("Failed to load main class");
-
-            context.register_class(main_class);
-
-            main_class
-                .load_methods(context)
-                .expect("Failed to load main class method data");
-
-            Ok(main_class)
+            options.file_name.replace('.', "/")
         }
         FileType::Jar { main_class } => {
+            let read_file = match fs::read(&options.file_name) {
+                Ok(data) => data,
+                Err(error) => {
+                    return Err(format!("Failed to read main JAR: {}", error.to_string()));
+                }
+            };
+
             let manifest_name = "META-INF/MANIFEST.MF".to_string();
 
             let jar_data =
                 Jar::from_bytes(context.gc_ctx, read_file).expect("Invalid jar file passed");
-            context.add_jar(jar_data);
+            context.add_system_jar(jar_data);
 
             let main_class_name = if let Some(main_class) = main_class {
-                Some(main_class)
+                Some(main_class.clone())
             } else {
                 let has_manifest = jar_data.has_file(&manifest_name);
                 if !has_manifest {
-                    return Err("Cannot execute JAR file without MANIFEST.MF file");
+                    return Err("Cannot execute JAR file without MANIFEST.MF file".to_string());
                 }
 
                 let manifest_data = jar_data
@@ -184,36 +179,22 @@ fn init_main_class(
             };
 
             if let Some(main_class_name) = main_class_name {
-                let main_class_name = JvmString::new(context.gc_ctx, main_class_name);
-
-                let has_main_class = jar_data.has_class(main_class_name);
-                if !has_main_class {
-                    return Err("Main class specified was not present in JAR!");
-                }
-
-                let main_class_data = jar_data
-                    .read_class(main_class_name)
-                    .expect("Main class should read");
-
-                let class_file = ClassFile::from_data(context.gc_ctx, main_class_data).unwrap();
-
-                let main_class =
-                    Class::from_class_file(context, ResourceLoadType::Jar(jar_data), class_file)
-                        .expect("Failed to load main class");
-
-                context.register_class(main_class);
-
-                main_class
-                    .load_methods(context)
-                    .expect("Failed to load main class method data");
-
-                Ok(main_class)
+                main_class_name
             } else {
-                Err("Cannot execute JAR file without main class specified")
+                return Err("Cannot execute JAR file without main class specified".to_string());
             }
         }
         _ => unreachable!(),
-    }
+    };
+
+    let class_name = JvmString::new(context.gc_ctx, class_name);
+
+    let main_class = context
+        .system_loader()
+        .lookup_class(context, class_name)
+        .map_err(|error| error.display(context))?;
+
+    Ok(main_class)
 }
 
 fn main() {
@@ -225,7 +206,7 @@ fn main() {
         Ok(Some(opts)) => opts,
         Ok(None) => {
             println!("Run as {program_name} [link options] [options] [args]
-or as {program_name} [link options] file.class [args]
+or as {program_name} [link options] MyClass [args]
 
 Options:
 --help: Show this message
@@ -243,14 +224,6 @@ Link options:
         }
     };
 
-    let read_file = match fs::read(&options.file_name) {
-        Ok(data) => data,
-        Err(error) => {
-            eprintln!("Failed to read main file: {}", error.to_string());
-            return;
-        }
-    };
-
     // Initialize JVM
     let loader = loader_backend::DesktopLoaderBackend::new();
     let context = Context::new(Box::new(loader));
@@ -259,10 +232,10 @@ Link options:
     if options.load_globals {
         let globals_base_jar = Jar::from_bytes(context.gc_ctx, GLOBALS_BASE_JAR.to_vec())
             .expect("Builtin globals should be valid");
-        context.add_jar(globals_base_jar);
+        context.add_bootstrap_jar(globals_base_jar);
         let globals_desktop_jar = Jar::from_bytes(context.gc_ctx, GLOBALS_DESKTOP_JAR.to_vec())
             .expect("Builtin globals should be valid");
-        context.add_jar(globals_desktop_jar);
+        context.add_bootstrap_jar(globals_desktop_jar);
 
         base_native_impl::register_native_mappings(&context);
         native_impl::register_native_mappings(&context);
@@ -281,7 +254,7 @@ Link options:
         let linked_jar = Jar::from_bytes(context.gc_ctx, jar_data);
 
         if let Ok(linked_jar) = linked_jar {
-            context.add_jar(linked_jar);
+            context.add_system_jar(linked_jar);
         } else {
             eprintln!("Linked JAR \"{}\" was not a valid JAR", linked_jar_name);
             return;
@@ -289,27 +262,27 @@ Link options:
     }
 
     // We can't do this after the "Load globals" stage because the user could
-    // have passed `--no-globals --link rt.jar`
+    // have passed `--no-globals --link rt.jar`; we have to do it now
     context.load_builtins();
+
+    // Load the main class from options
+    let main_class = match init_main_class(&context, &options) {
+        Ok(main_class) => main_class,
+        Err(error_msg) => {
+            eprintln!("Error while loading main class: {}", error_msg);
+            return;
+        }
+    };
 
     // Load program args
     let mut program_args = Vec::new();
-    for arg in &options.program_args {
-        let utf16_encoded = arg.encode_utf16().collect::<Vec<_>>();
+    for arg in options.program_args {
+        let utf16_encoded = arg.encode_utf16().collect::<Box<_>>();
 
         let string = context.create_string(&utf16_encoded);
 
         program_args.push(Some(string));
     }
-
-    // Load the main class from options
-    let main_class = match init_main_class(&context, options, read_file) {
-        Ok(main_class) => main_class,
-        Err(error_msg) => {
-            eprintln!("{}", error_msg);
-            return;
-        }
-    };
 
     let string_class = context.builtins().java_lang_string;
     let args_array = Value::Object(Some(Object::obj_array(

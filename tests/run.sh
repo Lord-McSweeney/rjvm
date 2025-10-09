@@ -9,7 +9,7 @@ do
     javac Test.java
 
     printf "[runner] Running test ${test_name}..."
-    rjvm_result=$(../../../target/release/rjvm_desktop Test.class 2> /dev/null)
+    rjvm_result=$(../../../target/release/rjvm_desktop Test 2> /dev/null)
     rjvm_exit=$?
     java_result=$(java Test 2> /dev/null)
     java_exit=$?
