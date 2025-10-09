@@ -145,7 +145,7 @@ pub(crate) fn run_file(class_name: &str, class_data: &[u8], args: Vec<String>) {
 
         if let Err(error) = result {
             output_to_err(&format!(
-                "Error while running main: {}\n",
+                "Error while running main: {}",
                 error.display(&context)
             ));
         }
