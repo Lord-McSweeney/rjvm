@@ -35,6 +35,7 @@ pub fn register_native_mappings(context: &Context) {
         ("java/lang/Class.getClassLoader.()Ljava/lang/ClassLoader;", class_class_loader),
         ("java/lang/ClassLoader.getSystemClassLoader.()Ljava/lang/ClassLoader;", get_system_class_loader),
         ("java/lang/Class.getComponentType.()Ljava/lang/Class;", class_get_component_type),
+        ("java/lang/Class.getSuperclass.()Ljava/lang/Class;", class_get_superclass),
     ];
 
     context.register_native_mappings(mappings);
@@ -545,6 +546,28 @@ fn class_get_component_type(context: &Context, args: &[Value]) -> Result<Option<
     };
 
     let class_object = class.get_or_init_object(context);
+
+    Ok(Some(Value::Object(Some(class_object))))
+}
+
+fn class_get_superclass(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
+    // Receiver should never be null
+    let class_obj = args[0].object().unwrap();
+    let class_id = class_obj.get_field(0).int();
+    let class = context.class_object_by_id(class_id);
+
+    // Special-case: `getSuperclass` on an interface class always returns `null`
+    // (see JDK-1262086)
+    if class.is_interface() {
+        return Ok(Some(Value::Object(None)));
+    }
+
+    let Some(super_class) = class.super_class() else {
+        // Return `null` if this class has no superclass
+        return Ok(Some(Value::Object(None)));
+    };
+
+    let class_object = super_class.get_or_init_object(context);
 
     Ok(Some(Value::Object(Some(class_object))))
 }

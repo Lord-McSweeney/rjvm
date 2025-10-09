@@ -44,6 +44,8 @@ public final class Class<T> implements AnnotatedElement, GenericDeclaration, Typ
 
     public native Class<?> getComponentType();
 
+    public native Class<? super T> getSuperclass();
+
     public native ClassLoader getClassLoader();
 
     public InputStream getResourceAsStream(String resourceName) {
