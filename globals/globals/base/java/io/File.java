@@ -5,13 +5,11 @@ import rjvm.internal.Todo;
 import java.nio.charset.Charset;
 
 public class File {
-    // TODO get this from system properties- somehow we need to ensure
-    // `System.properties` is initialized before anything else
-    public static final char separatorChar = '/';
-    public static final String separator = "" + File.separatorChar;
+    public static final String separator = System.getProperty("file.separator");
+    public static final char separatorChar = File.separator.charAt(0);
 
-    public static final char pathSeparatorChar = ':';
-    public static final String pathSeparator = "" + File.pathSeparatorChar;
+    public static final String pathSeparator = System.getProperty("path.separator");
+    public static final char pathSeparatorChar = File.pathSeparator.charAt(0);
 
     private String normalizedPath;
     private boolean exists;
