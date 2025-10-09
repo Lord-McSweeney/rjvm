@@ -292,13 +292,13 @@ impl Context {
         self.object_class
             .get()
             .copied()
-            .expect("Builtin classes have been loaded")
+            .expect("Builtin classes should have been loaded")
     }
 
     pub fn builtins(&self) -> Ref<'_, BuiltinClasses> {
         let builtins = self.builtins.borrow();
         Ref::map(builtins, |b| {
-            b.as_ref().expect("Builtin classes have been loaded")
+            b.as_ref().expect("Builtin classes should have been loaded")
         })
     }
 
@@ -308,8 +308,9 @@ impl Context {
 
         let object_class = self
             .bootstrap_loader()
-            .lookup_class(self, object_class_name)
-            .expect("Object class should exist");
+            .find_class(self, object_class_name)
+            .expect("Object class did not parse")
+            .expect("Object class did not exist");
 
         let _ = self.object_class.set(object_class);
 

@@ -81,6 +81,19 @@ impl ClassLoader {
     // in the correct `ClassLoader`'s registry. This will handle array classes
     // correctly.
     pub fn lookup_class(self, context: &Context, class_name: JvmString) -> Result<Class, Error> {
+        match self.find_class(context, class_name) {
+            Ok(Some(class)) => Ok(class),
+            Ok(None) => Err(context.no_class_def_found_error(class_name)),
+            Err(err) => Err(err),
+        }
+    }
+
+    // Like `lookup_class`, but returns `Ok(None)` when the class is not found
+    pub fn find_class(
+        self,
+        context: &Context,
+        class_name: JvmString,
+    ) -> Result<Option<Class>, Error> {
         if let Some(element_name) = class_name.strip_prefix('[') {
             // Special handling for array classes
             let element_name = JvmString::new(context.gc_ctx, element_name.to_string());
@@ -94,20 +107,20 @@ impl ClassLoader {
             // `array_class_for` will register the class in the correct
             // `ClassLoader`'s registry
 
-            Ok(created_class)
+            Ok(Some(created_class))
         } else {
             // Not an array class, just recursively lookup on self and ancestors
             let mut current = Some(self);
             while let Some(current_loader) = current {
                 let result = current_loader.lookup_own_class(context, class_name)?;
                 if let Some(result) = result {
-                    return Ok(result);
+                    return Ok(Some(result));
                 }
 
                 current = current_loader.parent();
             }
 
-            Err(context.no_class_def_found_error(class_name))
+            Ok(None)
         }
     }
 

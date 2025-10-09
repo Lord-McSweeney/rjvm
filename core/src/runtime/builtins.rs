@@ -48,8 +48,9 @@ macro_rules! builtin_classes {
 
                     $context
                         .bootstrap_loader()
-                        .lookup_class($context, string)
-                        .expect("Could not find class during builtins init")
+                        .find_class($context, string)
+                        .expect("Builtin class parsing failed")
+                        .unwrap_or_else(|| panic!("Builtin class {} was not found", $class_name))
                 },
             )*
         }
@@ -62,9 +63,10 @@ impl BuiltinClasses {
         builtin_classes!(
             context,
             [
-                ("java/lang/Class", java_lang_class),
+                // String, then Throwable, then Class
                 ("java/lang/String", java_lang_string),
                 ("java/lang/Throwable", java_lang_throwable),
+                ("java/lang/Class", java_lang_class),
 
                 ("java/lang/ArithmeticException", java_lang_arithmetic_exception),
                 ("java/lang/ArrayIndexOutOfBoundsException", java_lang_array_index_oob_exception),
