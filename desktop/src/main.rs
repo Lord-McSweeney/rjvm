@@ -41,6 +41,7 @@ struct PassedOptions {
     file_name: String,
 
     linked_jars: Vec<String>,
+    linked_bootstrap_jars: Vec<String>,
     load_globals: bool,
 
     program_args: Vec<String>,
@@ -59,6 +60,7 @@ impl PassedOptions {
         let mut file_type = FileType::Unknown;
         let mut file_name = None;
         let mut linked_jars = Vec::new();
+        let mut linked_bootstrap_jars = Vec::new();
         let mut load_globals = true;
         let mut program_args = Vec::new();
 
@@ -111,6 +113,14 @@ impl PassedOptions {
                     linked_jars.push(args[i + 1].clone());
 
                     i += 1;
+                } else if arg == "--link-bootstrap" {
+                    if i + 1 >= args.len() {
+                        return Err("--link-bootstrap flag requires a file".to_string());
+                    }
+
+                    linked_bootstrap_jars.push(args[i + 1].clone());
+
+                    i += 1;
                 } else if arg == "--no-globals" {
                     load_globals = false;
                 } else if arg.starts_with("--") {
@@ -131,6 +141,7 @@ impl PassedOptions {
                 file_type,
                 file_name,
                 linked_jars,
+                linked_bootstrap_jars,
                 load_globals,
                 program_args,
             }))
@@ -214,7 +225,8 @@ Options:
 --jar-with-main file.jar com.example.MainClass: Run a JAR file with an explicitly specified main class
 
 Link options:
---link library.jar: Load a JAR file when loading this code
+--link library.jar: Load a JAR file when loading this code (add it to classpath)
+--link-bootstrap rt.jar: Load this JAR file alongside the bootstrap classes
 --no-globals: (advanced option) Don't load any builtin global classes");
             return;
         }
@@ -241,6 +253,33 @@ Link options:
         native_impl::register_native_mappings(&context);
     }
 
+    // Load linked bootstrap JARs
+    for linked_jar_name in &options.linked_bootstrap_jars {
+        let jar_data = match fs::read(linked_jar_name) {
+            Ok(data) => data,
+            Err(error) => {
+                eprintln!("Failed to read linked bootstrap JAR: {}", error.to_string());
+                return;
+            }
+        };
+
+        let linked_jar = Jar::from_bytes(context.gc_ctx, jar_data);
+
+        if let Ok(linked_jar) = linked_jar {
+            context.add_bootstrap_jar(linked_jar);
+        } else {
+            eprintln!(
+                "Linked bootstrap JAR \"{}\" was not a valid JAR",
+                linked_jar_name
+            );
+            return;
+        }
+    }
+
+    // We can't do this after the "Load globals" stage because the user could
+    // have passed `--no-globals --link-bootstrap rt.jar`; we have to do it now
+    context.load_builtins();
+
     // Load linked JARs
     for linked_jar_name in &options.linked_jars {
         let jar_data = match fs::read(linked_jar_name) {
@@ -260,10 +299,6 @@ Link options:
             return;
         }
     }
-
-    // We can't do this after the "Load globals" stage because the user could
-    // have passed `--no-globals --link rt.jar`; we have to do it now
-    context.load_builtins();
 
     // Load the main class from options
     let main_class = match init_main_class(&context, &options) {
