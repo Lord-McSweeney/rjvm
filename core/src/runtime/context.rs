@@ -29,13 +29,13 @@ const DEFAULT_GC_THRESHOLD: u32 = 131072;
 #[derive(Clone)]
 pub struct Context {
     // The backend to call into to load resources.
-    loader_backend: Gc<Box<dyn LoaderBackend>>,
+    pub loader_backend: Gc<Box<dyn LoaderBackend>>,
 
     // The "bootstrap" class loader
     bootstrap_loader: ClassLoader,
 
     // The "system" (aka "application") class loader
-    system_loader: ClassLoader,
+    system_loader: Gc<OnceCell<ClassLoader>>,
 
     // A list of classes that have an associated `java.lang.Class`. Java code
     // stores an index into this array.
@@ -103,15 +103,12 @@ impl Context {
         }
 
         let loader_backend = Gc::new(gc_ctx, loader_backend);
-        let bootstrap_loader = ClassLoader::with_parent(gc_ctx, None, loader_backend);
-        let platform_loader =
-            ClassLoader::with_parent(gc_ctx, Some(bootstrap_loader), loader_backend);
-        let system_loader = ClassLoader::with_parent(gc_ctx, Some(platform_loader), loader_backend);
+        let bootstrap_loader = ClassLoader::bootstrap(gc_ctx, loader_backend);
 
         Self {
             loader_backend,
             bootstrap_loader,
-            system_loader,
+            system_loader: Gc::new(gc_ctx, OnceCell::new()),
             java_classes: Gc::new(gc_ctx, RefCell::new(Vec::new())),
             java_executables: Gc::new(gc_ctx, RefCell::new(Vec::new())),
             java_class_loaders: Gc::new(gc_ctx, RefCell::new(Vec::new())),
@@ -171,7 +168,8 @@ impl Context {
     }
 
     pub fn add_system_jar(&self, jar: Jar) {
-        self.system_loader.add_source(ResourceLoadSource::Jar(jar));
+        self.system_loader()
+            .add_source(ResourceLoadSource::Jar(jar));
     }
 
     pub fn bootstrap_loader(&self) -> ClassLoader {
@@ -179,7 +177,16 @@ impl Context {
     }
 
     pub fn system_loader(&self) -> ClassLoader {
+        *self
+            .system_loader
+            .get()
+            .expect("Attempted to access system loader before it was initialized")
+    }
+
+    pub fn init_system_loader(&self, loader: ClassLoader) {
         self.system_loader
+            .set(loader)
+            .expect("Attempted to set system loader after was initialized");
     }
 
     pub fn add_class_object(&self, class: Class) -> i32 {
@@ -316,6 +323,14 @@ impl Context {
 
         let builtin_classes = BuiltinClasses::new(self);
         *self.builtins.borrow_mut() = Some(builtin_classes);
+
+        // Run the Java-side initialization method, which is the first static
+        // method of the `System` class
+        let system_class = self.builtins().java_lang_system;
+        let init_method = system_class.static_methods()[0];
+        init_method
+            .exec(self, &[])
+            .expect("System initializer method failed");
     }
 
     pub fn arithmetic_exception(&self) -> Error {

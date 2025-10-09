@@ -1,5 +1,5 @@
 use rjvm_core::{
-    Array, Class, Context, Error, JvmString, NativeMethod, Object, PrimitiveType,
+    Array, Class, ClassLoader, Context, Error, JvmString, NativeMethod, Object, PrimitiveType,
     ResolvedDescriptor, Value,
 };
 
@@ -15,7 +15,6 @@ pub fn register_native_mappings(context: &Context) {
         ("java/lang/Class.isPrimitive.()Z", is_primitive),
         ("java/lang/Object.getClass.()Ljava/lang/Class;", get_class),
         ("java/lang/Class.getNameNative.()Ljava/lang/String;", get_name_native),
-        ("jvm/internal/ConcreteClassLoader.getResourceData.(Ljava/lang/String;)[B", get_resource_data),
         ("java/lang/Math.atan2.(DD)D", math_atan2),
         ("java/lang/Math.floor.(D)D", math_floor),
         ("java/lang/Math.log.(D)D", math_log),
@@ -32,10 +31,13 @@ pub fn register_native_mappings(context: &Context) {
         ("java/lang/String.intern.()Ljava/lang/String;", string_intern),
         ("java/lang/Double.doubleToRawLongBits.(D)J", double_to_raw_long_bits),
         ("java/lang/Double.toString.(D)Ljava/lang/String;", double_to_string),
-        ("java/lang/Class.getClassLoader.()Ljava/lang/ClassLoader;", class_class_loader),
-        ("java/lang/ClassLoader.getSystemClassLoader.()Ljava/lang/ClassLoader;", get_system_class_loader),
+        ("java/lang/Class.getClassLoader.()Ljava/lang/ClassLoader;", class_get_class_loader),
         ("java/lang/Class.getComponentType.()Ljava/lang/Class;", class_get_component_type),
         ("java/lang/Class.getSuperclass.()Ljava/lang/Class;", class_get_superclass),
+
+        ("jvm/internal/ClassLoaderUtils.makePlatformLoader.(Ljava/lang/ClassLoader;)V", make_platform_loader),
+        ("jvm/internal/ClassLoaderUtils.makeSystemLoader.(Ljava/lang/ClassLoader;Ljava/lang/ClassLoader;)V", make_sys_loader),
+        ("jvm/internal/SystemClassLoader.getResourceData.(Ljava/lang/String;)[B", get_resource_data),
     ];
 
     context.register_native_mappings(mappings);
@@ -246,36 +248,6 @@ fn get_name_native(context: &Context, args: &[Value]) -> Result<Option<Value>, E
     Ok(Some(Value::Object(Some(
         context.create_string(&string_chars),
     ))))
-}
-
-// java/lang/Class : byte[] getResourceData(String)
-fn get_resource_data(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
-    // Receiver should never be null
-    let class_loader_obj = args[0].object().unwrap();
-    let class_loader_id = class_loader_obj.get_field(0).int();
-    let class_loader = context.class_loader_object_by_id(class_loader_id);
-
-    // First argument should never be null
-    let resource_name_data = args[1].object().unwrap().get_field(0).object().unwrap();
-    let resource_name_data = resource_name_data.array_data().as_char_array();
-
-    let length = resource_name_data.len();
-    let mut chars_vec = Vec::with_capacity(length);
-    for i in 0..length {
-        chars_vec.push(resource_name_data[i].get());
-    }
-
-    let resource_name = String::from_utf16_lossy(&chars_vec);
-    let resource_data = class_loader.load_resource(&resource_name);
-
-    if let Some(resource_data) = resource_data {
-        let resource_data = resource_data.iter().map(|d| *d as i8).collect::<Box<_>>();
-        let resource_bytes = Object::byte_array(context, resource_data);
-
-        Ok(Some(Value::Object(Some(resource_bytes))))
-    } else {
-        Ok(Some(Value::Object(None)))
-    }
 }
 
 fn math_atan2(_context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
@@ -500,25 +472,19 @@ fn double_to_string(context: &Context, args: &[Value]) -> Result<Option<Value>, 
     Ok(Some(Value::Object(Some(context.create_string(&chars)))))
 }
 
-fn class_class_loader(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
+fn class_get_class_loader(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
     // Receiver should never be null
     let class_obj = args[0].object().unwrap();
     let class_id = class_obj.get_field(0).int();
     let class = context.class_object_by_id(class_id);
 
-    let class_loader = class.loader();
-    let class_loader_object = class_loader.and_then(|l| l.get_or_init_object(context));
+    let Some(class_loader) = class.loader() else {
+        return Ok(Some(Value::Object(None)));
+    };
+
+    let class_loader_object = class_loader.object();
 
     Ok(Some(Value::Object(class_loader_object)))
-}
-
-fn get_system_class_loader(context: &Context, _args: &[Value]) -> Result<Option<Value>, Error> {
-    let system_loader_obj = context
-        .system_loader()
-        .get_or_init_object(context)
-        .expect("System loader should have an object");
-
-    Ok(Some(Value::Object(Some(system_loader_obj))))
 }
 
 fn class_get_component_type(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
@@ -570,4 +536,77 @@ fn class_get_superclass(context: &Context, args: &[Value]) -> Result<Option<Valu
     let class_object = super_class.get_or_init_object(context);
 
     Ok(Some(Value::Object(Some(class_object))))
+}
+
+fn make_platform_loader(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
+    let class_loader_obj = args[0].object().unwrap();
+
+    // We are passed an invalid loader object and are supposed to make it
+    // into a valid loader, the platform loader
+    let loader = ClassLoader::with_parent(
+        context.gc_ctx,
+        context.bootstrap_loader(),
+        class_loader_obj,
+        context.loader_backend,
+    );
+
+    let id = context.add_class_loader_object(loader);
+    class_loader_obj.set_field(0, Value::Integer(id));
+
+    Ok(None)
+}
+
+fn make_sys_loader(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
+    // Args should never be null
+    let platform_loader_obj = args[0].object().unwrap();
+    let platform_loader_id = platform_loader_obj.get_field(0).int();
+    let platform_loader = context.class_loader_object_by_id(platform_loader_id);
+
+    let class_loader_obj = args[1].object().unwrap();
+
+    // We are passed an invalid loader object and are supposed to make it
+    // into a valid loader, the system loader
+    let loader = ClassLoader::with_parent(
+        context.gc_ctx,
+        platform_loader,
+        class_loader_obj,
+        context.loader_backend,
+    );
+
+    let id = context.add_class_loader_object(loader);
+    class_loader_obj.set_field(0, Value::Integer(id));
+
+    context.init_system_loader(loader);
+
+    Ok(None)
+}
+
+// jvm/internal/SysClassLoader : byte[] getResourceData(String)
+fn get_resource_data(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
+    // Receiver should never be null
+    let class_loader_obj = args[0].object().unwrap();
+    let class_loader_id = class_loader_obj.get_field(0).int();
+    let class_loader = context.class_loader_object_by_id(class_loader_id);
+
+    // First argument should never be null
+    let resource_name_data = args[1].object().unwrap().get_field(0).object().unwrap();
+    let resource_name_data = resource_name_data.array_data().as_char_array();
+
+    let length = resource_name_data.len();
+    let mut chars_vec = Vec::with_capacity(length);
+    for i in 0..length {
+        chars_vec.push(resource_name_data[i].get());
+    }
+
+    let resource_name = String::from_utf16_lossy(&chars_vec);
+    let resource_data = class_loader.load_resource(&resource_name);
+
+    if let Some(resource_data) = resource_data {
+        let resource_data = resource_data.iter().map(|d| *d as i8).collect::<Box<_>>();
+        let resource_bytes = Object::byte_array(context, resource_data);
+
+        Ok(Some(Value::Object(Some(resource_bytes))))
+    } else {
+        Ok(Some(Value::Object(None)))
+    }
 }

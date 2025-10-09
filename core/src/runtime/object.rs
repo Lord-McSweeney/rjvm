@@ -74,27 +74,6 @@ impl Object {
         ))
     }
 
-    // Creates a new instance of jvm.internal.ConcreteClassLoader. The caller is
-    // responsible for making it a valid `ClassLoader` object (see how
-    // `ClassLoader::get_or_init_object` does it).
-    pub fn class_loader_object(context: &Context) -> Self {
-        let class_loader_class = context.builtins().jvm_internal_concrete_class_loader;
-
-        let fields = class_loader_class
-            .instance_fields()
-            .iter()
-            .map(|f| Cell::new(f.value()))
-            .collect::<Box<_>>();
-
-        Self(Gc::new(
-            context.gc_ctx,
-            ObjectData {
-                class: class_loader_class,
-                data: FieldOrArrayData::Fields(fields),
-            },
-        ))
-    }
-
     pub fn bool_array(context: &Context, data: Box<[i8]>) -> Self {
         let class = context.builtins().array_bool;
 

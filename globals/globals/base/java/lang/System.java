@@ -19,6 +19,25 @@ public final class System {
 
     private System() { }
 
+    // Java code to initialize the VM. This method is called by the native
+    // function `Context::load_builtins`.
+    private static void initSystemClass() {
+        ClassLoader.getSystemClassLoader();
+
+        properties = new Properties();
+        // TODO initialize these natively
+        properties.setProperty("file.separator", "/");
+        properties.setProperty("path.separator", ":");
+        properties.setProperty("line.separator", "\n");
+
+        in = new FileInputStream(FileDescriptor.in);
+        // Enable `autoFlush` on these streams. If we don't, reading from stdin
+        // after writing to stdout without writing a newline to flush the
+        // terminal buffer won't work
+        out = new PrintStream(new FileOutputStream(FileDescriptor.out), true);
+        err = new PrintStream(new FileOutputStream(FileDescriptor.err), true);
+    }
+
     // Stream code
     public static void setIn(InputStream in) {
         System.in = in;
@@ -74,21 +93,5 @@ public final class System {
 
     public static void exit(int status) {
         Runtime.getRuntime().exit(status);
-    }
-
-    // Initialize class
-    static {
-        properties = new Properties();
-        // TODO initialize these natively
-        properties.setProperty("file.separator", "/");
-        properties.setProperty("path.separator", ":");
-        properties.setProperty("line.separator", "\n");
-
-        in = new FileInputStream(FileDescriptor.in);
-        // Enable `autoFlush` on these streams. If we don't, reading from stdin
-        // after writing to stdout without writing a newline to flush the
-        // terminal buffer won't work
-        out = new PrintStream(new FileOutputStream(FileDescriptor.out), true);
-        err = new PrintStream(new FileOutputStream(FileDescriptor.err), true);
     }
 }

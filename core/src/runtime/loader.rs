@@ -4,14 +4,13 @@ use super::context::Context;
 use super::descriptor::{Descriptor, ResolvedDescriptor};
 use super::error::Error;
 use super::object::Object;
-use super::value::Value;
 
 use crate::classfile::class::ClassFile;
 use crate::gc::{Gc, GcCtx, Trace};
 use crate::jar::Jar;
 use crate::string::JvmString;
 
-use std::cell::{OnceCell, RefCell};
+use std::cell::RefCell;
 use std::collections::HashMap;
 use std::fmt;
 
@@ -27,8 +26,8 @@ struct ClassLoaderData {
     class_registry: RefCell<HashMap<JvmString, Class>>,
     array_classes: RefCell<HashMap<ResolvedDescriptor, Class>>,
 
-    // The `java.lang.ClassLoader` object for this `ClassLoader`, lazily initialized
-    object: OnceCell<Object>,
+    // The `java.lang.ClassLoader` object for this `ClassLoader`
+    object: Option<Object>,
 }
 
 impl fmt::Debug for ClassLoader {
@@ -40,20 +39,35 @@ impl fmt::Debug for ClassLoader {
 }
 
 impl ClassLoader {
+    pub fn bootstrap(gc_ctx: GcCtx, backend: Gc<Box<dyn LoaderBackend>>) -> Self {
+        Self(Gc::new(
+            gc_ctx,
+            ClassLoaderData {
+                parent: None,
+                backend,
+                load_sources: RefCell::new(Vec::new()),
+                class_registry: RefCell::new(HashMap::new()),
+                array_classes: RefCell::new(HashMap::new()),
+                object: None,
+            },
+        ))
+    }
+
     pub fn with_parent(
         gc_ctx: GcCtx,
-        parent: Option<ClassLoader>,
+        parent: ClassLoader,
+        object: Object,
         backend: Gc<Box<dyn LoaderBackend>>,
     ) -> Self {
         Self(Gc::new(
             gc_ctx,
             ClassLoaderData {
-                parent,
+                parent: Some(parent),
                 backend,
                 load_sources: RefCell::new(Vec::new()),
                 class_registry: RefCell::new(HashMap::new()),
                 array_classes: RefCell::new(HashMap::new()),
-                object: OnceCell::new(),
+                object: Some(object),
             },
         ))
     }
@@ -218,28 +232,8 @@ impl ClassLoader {
 
     // Return an instance of `java.lang.ClassLoader` for this `ClassLoader`.
     // This will return `None` if this `ClassLoader` is the bootstrap loader.
-    pub fn get_or_init_object(self, context: &Context) -> Option<Object> {
-        if self == context.bootstrap_loader() {
-            None
-        } else {
-            let object = *self.0.object.get_or_init(|| {
-                let id = context.add_class_loader_object(self);
-
-                let object = Object::class_loader_object(context);
-                object.set_field(0, Value::Integer(id));
-
-                // This doesn't recurse forever because it must eventually reach
-                // the bootstrap loader, which returns `None`
-                if let Some(parent) = self.parent() {
-                    let parent_obj = parent.get_or_init_object(context);
-                    object.set_field(1, Value::Object(parent_obj));
-                }
-
-                object
-            });
-
-            Some(object)
-        }
+    pub fn object(self) -> Option<Object> {
+        self.0.object
     }
 }
 

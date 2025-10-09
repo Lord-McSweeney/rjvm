@@ -2,10 +2,14 @@ package java.lang;
 
 import java.io.InputStream;
 
+import jvm.internal.ClassLoaderUtils;
+
 public abstract class ClassLoader {
     // NOTE: THIS FIELD IS ACCESSED FROM NATIVE CODE! FIELD ORDERING MATTERS!
     private int internalId;
     private ClassLoader parent;
+
+    private static ClassLoader systemClassLoader;
 
     // Constructors
     protected ClassLoader() {
@@ -22,7 +26,18 @@ public abstract class ClassLoader {
         return this.parent;
     }
 
-    public static native ClassLoader getSystemClassLoader();
+    public static ClassLoader getSystemClassLoader() {
+        // This method is responsible for creating the system class loader the
+        // first time it's called
+        if (ClassLoader.systemClassLoader == null) {
+            ClassLoader platformLoader = ClassLoaderUtils.createPlatformLoader();
+            ClassLoader systemLoader = ClassLoaderUtils.createSystemLoader(platformLoader);
+
+            ClassLoader.systemClassLoader = systemLoader;
+        }
+
+        return ClassLoader.systemClassLoader;
+    }
 
     // Functions to get resources
     public static InputStream getSystemResourceAsStream(String resourceName) {

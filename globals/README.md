@@ -36,7 +36,10 @@ If you want to replace or edit the classes defined here, be sure to keep the fol
 - `java/lang/NullPointerException`
 - `java/lang/Object`
 - `java/lang/String`
+- `java/lang/System`
 - `java/lang/Throwable`
 - `java/lang/reflect/Constructor`
 
 These are critical to the JVM and it will panic on startup if they are missing.
+
+Additionally, the first static method of the `System` class will be called immediately after VM startup. This method is responsible for calling `ClassLoader.getSystemClassLoader()`. In turn, the first time `getSystemClassLoader` is called, it is responsible for setting the system class loader on the native `Context` using `Context::init_system_loader`. If the system class loader is not set, attempting to access it will cause the VM to panic.
