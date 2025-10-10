@@ -50,16 +50,8 @@ pub fn register_native_mappings(context: &Context) {
 fn string_to_utf8(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
     // Expecting non-null object
     let string_object = args[0].object().unwrap();
-    let char_array = string_object.get_field(0).object().unwrap();
-    let char_array = char_array.array_data().as_char_array();
+    let string = Context::string_object_to_string(string_object);
 
-    let length = char_array.len();
-    let mut chars_vec = Vec::with_capacity(length);
-    for i in 0..length {
-        chars_vec.push(char_array[i].get());
-    }
-
-    let string = String::from_utf16_lossy(&chars_vec);
     let bytes = string.as_bytes();
     let bytes = bytes.iter().copied().map(|b| b as i8).collect::<Box<_>>();
 
@@ -347,16 +339,9 @@ fn object_hash_code(_context: &Context, args: &[Value]) -> Result<Option<Value>,
 
 fn class_for_name_native(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
     // First argument should never be null
-    let class_name_data = args[0].object().unwrap().get_field(0).object().unwrap();
-    let class_name_data = class_name_data.array_data().as_char_array();
+    let class_name = args[0].object().unwrap();
+    let class_name = Context::string_object_to_string(class_name);
 
-    let length = class_name_data.len();
-    let mut chars_vec = Vec::with_capacity(length);
-    for i in 0..length {
-        chars_vec.push(class_name_data[i].get());
-    }
-
-    let class_name = String::from_utf16_lossy(&chars_vec);
     // FIXME fix this- we need to make sure `/` doesn't work as a delimiter somehow
     let class_name = class_name.replace('/', "*");
     // Make `.`s `/`s
@@ -600,16 +585,9 @@ fn get_resource_data(context: &Context, args: &[Value]) -> Result<Option<Value>,
     let class_loader = context.class_loader_object_by_id(class_loader_id);
 
     // First argument should never be null
-    let resource_name_data = args[1].object().unwrap().get_field(0).object().unwrap();
-    let resource_name_data = resource_name_data.array_data().as_char_array();
+    let resource_name = args[1].object().unwrap();
+    let resource_name = Context::string_object_to_string(resource_name);
 
-    let length = resource_name_data.len();
-    let mut chars_vec = Vec::with_capacity(length);
-    for i in 0..length {
-        chars_vec.push(resource_name_data[i].get());
-    }
-
-    let resource_name = String::from_utf16_lossy(&chars_vec);
     let resource_data = class_loader.load_resource(&resource_name);
 
     if let Some(resource_data) = resource_data {
