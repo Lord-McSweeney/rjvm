@@ -8,14 +8,13 @@ use super::object::Object;
 use super::op::{ArrayType, Op};
 use super::value::Value;
 
+use crate::classfile::constant_pool::ConstantPoolEntry;
 use crate::string::JvmString;
 
 use std::cell::Cell;
 use std::cmp::Ordering;
 
 pub struct Interpreter<'a> {
-    // This field is useful for debugging
-    #[allow(dead_code)]
     method: Method,
 
     frame_index: &'a Cell<usize>,
@@ -149,8 +148,9 @@ impl<'a> Interpreter<'a> {
                 Op::LConst(val) => self.op_l_const(*val),
                 Op::FConst(val) => self.op_f_const(*val),
                 Op::DConst(val) => self.op_d_const(*val),
-                Op::Ldc(info) => self.op_ldc(info.0.value),
-                Op::Ldc2(info) => self.op_ldc_2(info.0.value),
+                Op::Ldc(entry) => self.op_ldc(**entry),
+                Op::LoadLong(long) => self.op_load_long(*long),
+                Op::LoadDouble(long) => self.op_load_double(*long),
                 Op::ILoad(index) => self.op_i_load(*index),
                 Op::LLoad(index) => self.op_l_load(*index),
                 Op::FLoad(index) => self.op_f_load(*index),
@@ -355,14 +355,60 @@ impl<'a> Interpreter<'a> {
         Ok(ControlFlow::Continue)
     }
 
-    fn op_ldc(&mut self, value: Value) -> Result<ControlFlow, Error> {
-        self.stack_push(value);
+    fn op_ldc(&mut self, cpool_entry: ConstantPoolEntry) -> Result<ControlFlow, Error> {
+        let class = self.method.class();
+
+        let loader = class
+            .loader()
+            .expect("Bytecode method running from class with loader");
+
+        let class_file = class
+            .class_file()
+            .expect("Bytecode method running from class with classfile");
+        let constant_pool = class_file.constant_pool();
+
+        let result = match cpool_entry {
+            ConstantPoolEntry::String { string_idx } => {
+                let string = constant_pool
+                    .get_utf8(string_idx)
+                    .expect("Should refer to valid entry");
+
+                let string_chars = string.encode_utf16().collect::<Vec<_>>();
+
+                let string_obj = self.context.create_string(&string_chars);
+
+                // All string literals are interned
+                let string_obj = self.context.intern_string_obj(string_obj);
+
+                Value::Object(Some(string_obj))
+            }
+            ConstantPoolEntry::Integer { value } => Value::Integer(value),
+            ConstantPoolEntry::Float { value } => Value::Float(value),
+            ConstantPoolEntry::Class { name_idx } => {
+                let class_name = constant_pool
+                    .get_utf8(name_idx)
+                    .expect("Should refer to valid entry");
+
+                let class = loader.lookup_class(self.context, class_name)?;
+
+                Value::Object(Some(class.get_or_init_object(self.context)))
+            }
+            _ => unimplemented!(),
+        };
+
+        self.stack_push(result);
 
         Ok(ControlFlow::Continue)
     }
 
-    fn op_ldc_2(&mut self, value: Value) -> Result<ControlFlow, Error> {
-        self.stack_push_wide(value);
+    fn op_load_long(&mut self, long: i64) -> Result<ControlFlow, Error> {
+        self.stack_push_wide(Value::Long(long));
+
+        Ok(ControlFlow::Continue)
+    }
+
+    fn op_load_double(&mut self, double: f64) -> Result<ControlFlow, Error> {
+        self.stack_push_wide(Value::Double(double));
 
         Ok(ControlFlow::Continue)
     }

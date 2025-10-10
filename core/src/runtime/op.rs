@@ -2,9 +2,7 @@ use super::class::Class;
 use super::context::Context;
 use super::descriptor::{Descriptor, MethodDescriptor, ResolvedDescriptor};
 use super::error::{Error, NativeError};
-use super::loader::ClassLoader;
 use super::method::Method;
-use super::value::Value;
 
 use crate::classfile::constant_pool::{ConstantPool, ConstantPoolEntry};
 use crate::classfile::flags::FieldFlags;
@@ -22,8 +20,9 @@ pub enum Op {
     LConst(i8),
     FConst(f32),
     DConst(f64),
-    Ldc(LdcInfo),
-    Ldc2(LdcInfo),
+    Ldc(Gc<ConstantPoolEntry>),
+    LoadLong(i64),
+    LoadDouble(f64),
     ILoad(usize),
     LLoad(usize),
     FLoad(usize),
@@ -180,9 +179,11 @@ impl Trace for Op {
             Op::LConst(_) => {}
             Op::FConst(_) => {}
             Op::DConst(_) => {}
-            Op::Ldc(entry) | Op::Ldc2(entry) => {
+            Op::Ldc(entry) => {
                 entry.trace();
             }
+            Op::LoadLong(_) => {}
+            Op::LoadDouble(_) => {}
             Op::ILoad(_) => {}
             Op::LLoad(_) => {}
             Op::FLoad(_) => {}
@@ -673,43 +674,26 @@ impl Op {
                 let constant_pool_idx = data.read_u8()?;
                 let entry = constant_pool.entry(constant_pool_idx as u16)?;
 
-                let value = ldc_value(context, loader, constant_pool, entry)?;
-
-                Ok(Op::Ldc(LdcInfo(Gc::new(
-                    context.gc_ctx,
-                    LdcInfoData {
-                        cpool_entry: entry,
-                        value,
-                    },
-                ))))
+                Ok(Op::Ldc(Gc::new(context.gc_ctx, entry)))
             }
             LDC_W => {
                 let constant_pool_idx = data.read_u16()?;
                 let entry = constant_pool.entry(constant_pool_idx)?;
 
-                let value = ldc_value(context, loader, constant_pool, entry)?;
-
-                Ok(Op::Ldc(LdcInfo(Gc::new(
-                    context.gc_ctx,
-                    LdcInfoData {
-                        cpool_entry: entry,
-                        value,
-                    },
-                ))))
+                Ok(Op::Ldc(Gc::new(context.gc_ctx, entry)))
             }
             LDC_2_W => {
                 let constant_pool_idx = data.read_u16()?;
                 let entry = constant_pool.entry(constant_pool_idx)?;
 
-                let value = ldc_2_value(entry);
+                let op = match entry {
+                    ConstantPoolEntry::Long { value } => Op::LoadLong(value),
+                    ConstantPoolEntry::Double { value } => Op::LoadDouble(value),
+                    // TODO error handling
+                    _ => panic!("Ldc2 only works on Double and Long"),
+                };
 
-                Ok(Op::Ldc2(LdcInfo(Gc::new(
-                    context.gc_ctx,
-                    LdcInfoData {
-                        cpool_entry: entry,
-                        value,
-                    },
-                ))))
+                Ok(op)
             }
             I_LOAD => {
                 let local_idx = data.read_u8()?;
@@ -1424,7 +1408,8 @@ impl Op {
     pub fn can_throw_error(&self) -> bool {
         matches!(
             self,
-            Op::IaLoad
+            Op::Ldc(_)
+                | Op::IaLoad
                 | Op::LaLoad
                 | Op::FaLoad
                 | Op::DaLoad
@@ -1459,73 +1444,5 @@ impl Op {
                 | Op::MonitorExit
                 | Op::MultiANewArray(_, _)
         )
-    }
-}
-
-fn ldc_value(
-    context: &Context,
-    loader: ClassLoader,
-    constant_pool: &ConstantPool,
-    cpool_entry: ConstantPoolEntry,
-) -> Result<Value, Error> {
-    let result = match cpool_entry {
-        ConstantPoolEntry::String { string_idx } => {
-            let string = constant_pool
-                .get_utf8(string_idx)
-                .expect("Should refer to valid entry");
-
-            let string_chars = string.encode_utf16().collect::<Vec<_>>();
-
-            let string_obj = context.create_string(&string_chars);
-
-            // All string literals are interned
-            let string_obj = context.intern_string_obj(string_obj);
-
-            Value::Object(Some(string_obj))
-        }
-        ConstantPoolEntry::Integer { value } => Value::Integer(value),
-        ConstantPoolEntry::Float { value } => Value::Float(value),
-        ConstantPoolEntry::Class { name_idx } => {
-            let class_name = constant_pool
-                .get_utf8(name_idx)
-                .expect("Should refer to valid entry");
-
-            let class = loader.lookup_class(context, class_name)?;
-
-            Value::Object(Some(class.get_or_init_object(context)))
-        }
-        _ => unimplemented!(),
-    };
-
-    Ok(result)
-}
-
-fn ldc_2_value(cpool_entry: ConstantPoolEntry) -> Value {
-    match cpool_entry {
-        ConstantPoolEntry::Double { value } => Value::Double(value),
-        ConstantPoolEntry::Long { value } => Value::Long(value),
-        _ => panic!("Ldc2 only works on Double and Long"),
-    }
-}
-
-#[derive(Clone, Debug)]
-pub struct LdcInfo(pub Gc<LdcInfoData>);
-
-#[derive(Clone, Debug)]
-pub struct LdcInfoData {
-    pub cpool_entry: ConstantPoolEntry,
-    pub value: Value,
-}
-
-impl Trace for LdcInfo {
-    fn trace(&self) {
-        self.0.trace();
-    }
-}
-
-impl Trace for LdcInfoData {
-    fn trace(&self) {
-        self.cpool_entry.trace();
-        self.value.trace();
     }
 }

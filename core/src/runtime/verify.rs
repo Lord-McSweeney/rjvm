@@ -520,7 +520,7 @@ fn verify_block<'a>(
             Op::DConst(_) => {
                 push_stack!(Double);
             }
-            Op::Ldc(info) => match info.0.cpool_entry {
+            Op::Ldc(entry) => match **entry {
                 ConstantPoolEntry::String { .. } | ConstantPoolEntry::Class { .. } => {
                     push_stack!(Reference);
                 }
@@ -532,15 +532,12 @@ fn verify_block<'a>(
                 }
                 _ => unreachable!(),
             },
-            Op::Ldc2(info) => match info.0.cpool_entry {
-                ConstantPoolEntry::Long { .. } => {
-                    push_stack!(Long);
-                }
-                ConstantPoolEntry::Double { .. } => {
-                    push_stack!(Double);
-                }
-                _ => unreachable!(),
-            },
+            Op::LoadLong(_) => {
+                push_stack!(Long);
+            }
+            Op::LoadDouble(_) => {
+                push_stack!(Double);
+            }
             Op::ILoad(index) => {
                 expect_local!(*index, Integer);
                 push_stack!(Integer);
