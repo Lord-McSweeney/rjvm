@@ -3,6 +3,7 @@ package java.lang;
 import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.GenericDeclaration;
+import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 
 import java.io.InputStream;
@@ -112,6 +113,35 @@ public final class Class<T> implements AnnotatedElement, GenericDeclaration, Typ
     }
 
     public native Constructor<?>[] getConstructors();
+
+    public Method getMethod(String name, Class<?>... parameterTypes) throws NoSuchMethodException {
+        if (name == null) {
+            throw new NullPointerException();
+        }
+
+        // Special-case: init and clinit aren't found
+        if (name.equals("<init>") || name.equals("<clinit>")) {
+            throw new NoSuchMethodException();
+        }
+
+        // Special-case: clone method is not found on arrays
+        if (this.isArray() && name.equals("clone")) {
+            throw new NoSuchMethodException();
+        }
+
+        // If `null` is passed, try to find a method with no parameters
+        if (parameterTypes == null) {
+            parameterTypes = new Class<?>[0];
+        }
+
+        Method result = this.getMethodNative(name, parameterTypes);
+        if (result == null) {
+            throw new NoSuchMethodException();
+        } else {
+            return result;
+        }
+    }
+    private native Method getMethodNative(String name, Class[] parameterTypes);
 
     public String toString() {
         if (this.isPrimitive()) {

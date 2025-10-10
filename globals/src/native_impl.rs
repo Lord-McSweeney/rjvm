@@ -34,6 +34,7 @@ pub fn register_native_mappings(context: &Context) {
         ("java/lang/Class.getClassLoader.()Ljava/lang/ClassLoader;", class_get_class_loader),
         ("java/lang/Class.getComponentType.()Ljava/lang/Class;", class_get_component_type),
         ("java/lang/Class.getSuperclass.()Ljava/lang/Class;", class_get_superclass),
+        ("java/lang/Class.getMethodNative.(Ljava/lang/String;[Ljava/lang/Class;)Ljava/lang/reflect/Method;", class_get_method),
 
         ("jvm/internal/ClassLoaderUtils.makePlatformLoader.(Ljava/lang/ClassLoader;)V", make_platform_loader),
         ("jvm/internal/ClassLoaderUtils.makeSystemLoader.(Ljava/lang/ClassLoader;Ljava/lang/ClassLoader;)V", make_sys_loader),
@@ -536,6 +537,16 @@ fn class_get_superclass(context: &Context, args: &[Value]) -> Result<Option<Valu
     let class_object = super_class.get_or_init_object(context);
 
     Ok(Some(Value::Object(Some(class_object))))
+}
+
+fn class_get_method(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
+    // Receiver should never be null
+    let class_obj = args[0].object().unwrap();
+    let class_id = class_obj.get_field(0).int();
+    let class = context.class_object_by_id(class_id);
+
+    // TODO: Implement return type specificity rules
+    todo!()
 }
 
 fn make_platform_loader(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {

@@ -26,6 +26,7 @@ pub struct BuiltinClasses {
     pub java_lang_no_such_method_error: Class,
     pub java_lang_null_pointer_exception: Class,
     pub java_lang_reflect_constructor: Class,
+    pub java_lang_reflect_method: Class,
     pub java_lang_system: Class,
 
     pub array_byte: Class,
@@ -81,6 +82,7 @@ impl BuiltinClasses {
                 ("java/lang/NoSuchMethodError", java_lang_no_such_method_error),
                 ("java/lang/NullPointerException", java_lang_null_pointer_exception),
                 ("java/lang/reflect/Constructor", java_lang_reflect_constructor),
+                ("java/lang/reflect/Method", java_lang_reflect_method),
                 ("java/lang/System", java_lang_system),
 
                 ("[B", array_byte),
@@ -116,6 +118,7 @@ impl Trace for BuiltinClasses {
         self.java_lang_no_such_method_error.trace();
         self.java_lang_null_pointer_exception.trace();
         self.java_lang_reflect_constructor.trace();
+        self.java_lang_reflect_method.trace();
         self.java_lang_system.trace();
 
         self.array_byte.trace();

@@ -74,6 +74,27 @@ impl Object {
         ))
     }
 
+    // Creates a new instance of java.lang.reflect.Method. The caller is
+    // responsible for making it a valid `Method` object (see how
+    // `Method::get_or_init_object` does it).
+    pub fn method_object(context: &Context) -> Self {
+        let method_class = context.builtins().java_lang_reflect_method;
+
+        let fields = method_class
+            .instance_fields()
+            .iter()
+            .map(|f| Cell::new(f.value()))
+            .collect::<Box<_>>();
+
+        Self(Gc::new(
+            context.gc_ctx,
+            ObjectData {
+                class: method_class,
+                data: FieldOrArrayData::Fields(fields),
+            },
+        ))
+    }
+
     pub fn bool_array(context: &Context, data: Box<[i8]>) -> Self {
         let class = context.builtins().array_bool;
 

@@ -177,7 +177,7 @@ impl Method {
             let object = if self.0.name.as_bytes() == b"<init>" {
                 Object::constructor_object(context)
             } else {
-                unimplemented!("java.lang.reflect.Method")
+                Object::method_object(context)
             };
 
             object.set_field(0, Value::Integer(id));
