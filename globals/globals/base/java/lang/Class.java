@@ -124,10 +124,9 @@ public final class Class<T> implements AnnotatedElement, GenericDeclaration, Typ
             throw new NoSuchMethodException();
         }
 
-        // Special-case: clone method is not found on arrays
-        if (this.isArray() && name.equals("clone")) {
-            throw new NoSuchMethodException();
-        }
+        // NOTE docs say there is a special-case that the clone method is not
+        // found on arrays, but `clone` is `protected` anyway, so there's no
+        // need to actually add a special-case
 
         // If `null` is passed, try to find a method with no parameters
         if (parameterTypes == null) {
