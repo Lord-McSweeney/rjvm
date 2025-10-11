@@ -189,6 +189,29 @@ impl ResolvedDescriptor {
         })
     }
 
+    pub fn descriptor(self, gc_ctx: GcCtx) -> Descriptor {
+        match self {
+            ResolvedDescriptor::Class(class) => Descriptor::Class(class.name()),
+            ResolvedDescriptor::Array(class) => {
+                let inner_type = class
+                    .array_value_type()
+                    .expect("Array class should have component type");
+                let inner_desc = inner_type.descriptor(gc_ctx);
+
+                Descriptor::Array(Gc::new(gc_ctx, inner_desc))
+            }
+            ResolvedDescriptor::Byte => Descriptor::Byte,
+            ResolvedDescriptor::Character => Descriptor::Character,
+            ResolvedDescriptor::Double => Descriptor::Double,
+            ResolvedDescriptor::Float => Descriptor::Float,
+            ResolvedDescriptor::Integer => Descriptor::Integer,
+            ResolvedDescriptor::Long => Descriptor::Long,
+            ResolvedDescriptor::Short => Descriptor::Short,
+            ResolvedDescriptor::Boolean => Descriptor::Boolean,
+            ResolvedDescriptor::Void => Descriptor::Void,
+        }
+    }
+
     pub fn is_primitive(self) -> bool {
         match self {
             ResolvedDescriptor::Class(_) => false,

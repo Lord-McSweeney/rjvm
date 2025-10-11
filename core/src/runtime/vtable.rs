@@ -37,7 +37,7 @@ impl<T: Copy + Debug + Eq + Hash> VTable<T> {
         gc_ctx: GcCtx,
         class: Option<Class>,
         parent: Option<VTable<T>>,
-        keys: Vec<T>,
+        keys: Vec<(JvmString, T)>,
     ) -> Self {
         let mut first_unused = if let Some(parent) = parent {
             parent.first_unused()
@@ -67,7 +67,7 @@ impl<T: Copy + Debug + Eq + Hash> VTable<T> {
         self.0.first_unused
     }
 
-    pub fn lookup(self, key: T) -> Option<usize> {
+    pub fn lookup(self, key: (JvmString, T)) -> Option<usize> {
         if let Some(idx) = self.0.mapping.get(&key) {
             Some(*idx)
         } else if let Some(parent) = self.0.parent {
@@ -77,6 +77,17 @@ impl<T: Copy + Debug + Eq + Hash> VTable<T> {
             // No parent and mapping didn't include key: lookup failed
             None
         }
+    }
+
+    pub fn slots_for_name(self, name: JvmString) -> Box<[usize]> {
+        let mut result_indices = Vec::new();
+        for ((key_name, _), index) in &self.0.mapping {
+            if *key_name == name {
+                result_indices.push(*index);
+            }
+        }
+
+        result_indices.into_boxed_slice()
     }
 }
 
@@ -96,7 +107,7 @@ struct VTableData<T> {
     class: Option<Class>,
 
     /// A mapping of T (a tuple (name, descriptor) ) to slot index.
-    mapping: HashMap<T, usize>,
+    mapping: HashMap<(JvmString, T), usize>,
 
     /// The first unused slot index for this VTable, taking into account
     /// those used by the parent vtable. This will be 0 for empty vtables.

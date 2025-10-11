@@ -48,10 +48,10 @@ struct ClassData {
     // The primitive type that this class represents.
     primitive_type: Option<PrimitiveType>,
 
-    static_field_vtable: VTable<(JvmString, Descriptor)>,
+    static_field_vtable: VTable<Descriptor>,
     static_fields: Box<[FieldRef]>,
 
-    instance_field_vtable: VTable<(JvmString, Descriptor)>,
+    instance_field_vtable: VTable<Descriptor>,
     // The values present on the class are the default values: when instantiating
     // an instance, the `instance_fields` should be cloned and added to the instance.
     instance_fields: Box<[Field]>,
@@ -63,7 +63,7 @@ struct ClassData {
 }
 
 struct MethodData {
-    static_method_vtable: VTable<(JvmString, MethodDescriptor)>,
+    static_method_vtable: VTable<MethodDescriptor>,
     static_methods: Box<[Method]>,
 
     instance_method_vtable: InstanceMethodVTable,
@@ -366,7 +366,11 @@ impl Class {
     }
 
     pub fn is_primitive(self) -> bool {
-        self.0.primitive_type.is_some()
+        self.primitive_type().is_some()
+    }
+
+    pub fn primitive_type(self) -> Option<PrimitiveType> {
+        self.0.primitive_type
     }
 
     pub fn name(self) -> JvmString {
@@ -393,7 +397,7 @@ impl Class {
         self.0.array_value_type
     }
 
-    pub fn static_method_vtable(&self) -> Ref<VTable<(JvmString, MethodDescriptor)>> {
+    pub fn static_method_vtable(&self) -> Ref<VTable<MethodDescriptor>> {
         Ref::map(self.0.method_data.borrow(), |data| {
             &data.as_ref().unwrap().static_method_vtable
         })
@@ -405,7 +409,7 @@ impl Class {
         })
     }
 
-    pub fn static_field_vtable(self) -> VTable<(JvmString, Descriptor)> {
+    pub fn static_field_vtable(self) -> VTable<Descriptor> {
         self.0.static_field_vtable
     }
 
@@ -419,7 +423,7 @@ impl Class {
         })
     }
 
-    pub fn instance_field_vtable(self) -> VTable<(JvmString, Descriptor)> {
+    pub fn instance_field_vtable(self) -> VTable<Descriptor> {
         self.0.instance_field_vtable
     }
 
