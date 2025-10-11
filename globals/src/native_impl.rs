@@ -530,8 +530,36 @@ fn class_get_method(context: &Context, args: &[Value]) -> Result<Option<Value>, 
     let class_id = class_obj.get_field(0).int();
     let class = context.class_object_by_id(class_id);
 
-    // TODO: Implement return type specificity rules
-    todo!()
+    let method_name = args[1].object().unwrap();
+    let method_name = Context::string_object_to_string(method_name);
+    let method_name = JvmString::new(context.gc_ctx, method_name);
+
+    let arg_classes = args[2].object().unwrap();
+    let arg_classes = arg_classes.array_data().as_object_array();
+
+    let mut arg_descriptors = Vec::with_capacity(arg_classes.len());
+    for arg_class in arg_classes {
+        let arg_class = arg_class.get();
+
+        // `null` args always result in `NoSuchMethodFoundException`
+        let Some(arg_class_obj) = arg_class else {
+            return Ok(Some(Value::Object(None)));
+        };
+
+        let arg_class_id = arg_class_obj.get_field(0).int();
+        let arg_class = context.class_object_by_id(arg_class_id);
+
+        arg_descriptors.push(crate::reflect::descriptor_for_class(context, arg_class));
+    }
+
+    let method = crate::reflect::get_class_method(class, method_name, &arg_descriptors);
+
+    if let Some(method) = method {
+        let method_object = method.get_or_init_object(context);
+        Ok(Some(Value::Object(Some(method_object))))
+    } else {
+        Ok(Some(Value::Object(None)))
+    }
 }
 
 fn make_platform_loader(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {

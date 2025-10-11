@@ -1,6 +1,9 @@
 // Helper functions for reflection methods
 
-use rjvm_core::{Class, Context, Descriptor, Error, Method, MethodFlags, Object, Value};
+use rjvm_core::{
+    Class, Context, Descriptor, Error, Gc, JvmString, Method, MethodFlags, Object, PrimitiveType,
+    Value,
+};
 
 pub(crate) fn constructors_for_class(context: &Context, class: Class) -> Box<[Method]> {
     class
@@ -16,6 +19,70 @@ pub(crate) fn constructors_for_class(context: &Context, class: Class) -> Box<[Me
             }
         })
         .collect::<Box<_>>()
+}
+
+pub(crate) fn get_class_method(
+    class: Class,
+    name: JvmString,
+    args: &[Descriptor],
+) -> Option<Method> {
+    // TODO: Implement return type specificity rules
+
+    let instance_elems = class.instance_method_vtable().elements_for_name(name);
+
+    let instance_method = instance_elems.iter().find(|m| {
+        // Make sure we're only picking up public methods
+        m.flags().contains(MethodFlags::PUBLIC) && m.descriptor().args() == args
+    });
+
+    if let Some(instance_method) = instance_method {
+        return Some(*instance_method);
+    }
+
+    // We need to do static methods separately because they aren't inherited
+
+    let mut current_class = Some(class);
+    while let Some(cls) = current_class {
+        let static_vtable = cls.static_method_vtable();
+        let static_methods = cls.static_methods();
+
+        let slots = static_vtable.slots_for_name(name);
+        let static_method_index = slots.iter().find(|i| {
+            let method = static_methods[**i];
+            // Make sure we're only picking up public methods
+            method.flags().contains(MethodFlags::PUBLIC) && method.descriptor().args() == args
+        });
+
+        if let Some(static_method_index) = static_method_index {
+            return Some(static_methods[*static_method_index]);
+        }
+
+        current_class = cls.super_class();
+    }
+
+    None
+}
+
+pub(crate) fn descriptor_for_class(context: &Context, class: Class) -> Descriptor {
+    match class.primitive_type() {
+        Some(PrimitiveType::Boolean) => Descriptor::Boolean,
+        Some(PrimitiveType::Byte) => Descriptor::Byte,
+        Some(PrimitiveType::Char) => Descriptor::Character,
+        Some(PrimitiveType::Double) => Descriptor::Double,
+        Some(PrimitiveType::Float) => Descriptor::Float,
+        Some(PrimitiveType::Int) => Descriptor::Integer,
+        Some(PrimitiveType::Long) => Descriptor::Long,
+        Some(PrimitiveType::Short) => Descriptor::Short,
+        Some(PrimitiveType::Void) => Descriptor::Void,
+        None => {
+            if let Some(inner_type) = class.array_value_type() {
+                let inner_desc = inner_type.descriptor(context.gc_ctx);
+                Descriptor::Array(Gc::new(context.gc_ctx, inner_desc))
+            } else {
+                Descriptor::Class(class.name())
+            }
+        }
+    }
 }
 
 // Change the provided args into a form suitable for calling the given method.
