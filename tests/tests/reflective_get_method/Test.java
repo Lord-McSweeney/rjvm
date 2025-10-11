@@ -27,6 +27,7 @@ public class Test {
         getMethod(Test.class, "main", new Class<?>[]{Class.forName("[Ljava.lang.String;")});
         getMethod(Test.class, "getMethod", new Class<?>[]{Class.forName("java.lang.Class"), Class.forName("java.lang.String"), Class.forName("[Ljava.lang.Class;")});
         getMethod(ClassLoader.getSystemClassLoader().getClass(), "getSystemClassLoader", new Class<?>[0]);
+        getMethod(Comparable.class, "compareTo", new Class<?>[]{Class.forName("java.lang.Object")});
     }
     
     static void getMethod(Class<?> clazz, String name, Class<?>[] args) {
