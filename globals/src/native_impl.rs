@@ -27,7 +27,8 @@ pub fn register_native_mappings(context: &Context) {
         ("java/lang/Class.forNameNative.(Ljava/lang/String;)Ljava/lang/Class;", class_for_name_native),
         ("java/lang/Class.getConstructors.()[Ljava/lang/reflect/Constructor;", get_constructors),
         ("java/lang/reflect/Constructor.newInstanceNative.([Ljava/lang/Object;)Ljava/lang/Object;", new_instance_native),
-        ("java/lang/reflect/Constructor.getParameterCount.()I", ctor_get_parameter_count),
+        ("java/lang/reflect/Constructor.getParameterCount.()I", exec_get_parameter_count),
+        ("java/lang/reflect/Method.getParameterCount.()I", exec_get_parameter_count),
         ("java/lang/String.intern.()Ljava/lang/String;", string_intern),
         ("java/lang/Double.doubleToRawLongBits.(D)J", double_to_raw_long_bits),
         ("java/lang/Double.toString.(D)Ljava/lang/String;", double_to_string),
@@ -408,13 +409,13 @@ fn new_instance_native(context: &Context, args: &[Value]) -> Result<Option<Value
     }
 }
 
-fn ctor_get_parameter_count(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
+fn exec_get_parameter_count(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
     // Receiver should never be null
-    let ctor_obj = args[0].object().unwrap();
-    let ctor_id = ctor_obj.get_field(0).int();
-    let ctor_method = context.executable_object_by_id(ctor_id);
+    let exec_obj = args[0].object().unwrap();
+    let exec_id = exec_obj.get_field(0).int();
+    let method = context.executable_object_by_id(exec_id);
 
-    Ok(Some(Value::Integer(ctor_method.arg_count() as i32)))
+    Ok(Some(Value::Integer(method.arg_count() as i32)))
 }
 
 fn string_intern(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {

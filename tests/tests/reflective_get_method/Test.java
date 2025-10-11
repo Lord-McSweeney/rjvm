@@ -1,3 +1,5 @@
+import java.lang.reflect.Method;
+
 public class Test {
     private void privMethod() { }
 
@@ -29,8 +31,8 @@ public class Test {
     
     static void getMethod(Class<?> clazz, String name, Class<?>[] args) {
         try {
-            clazz.getMethod(name, args);
-            System.out.println(name + " was found");
+            Method result = clazz.getMethod(name, args);
+            System.out.println(name + " was found with argc " + result.getParameterCount());
         } catch(Exception e) {
             System.out.println(e.getClass() + " while trying to find " + name);
         }
