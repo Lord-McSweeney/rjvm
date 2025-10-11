@@ -1,3 +1,5 @@
+import java.util.Dictionary;
+
 public class Test {
     private int i;
     private Object o;
@@ -15,7 +17,14 @@ public class Test {
             System.out.println(instance.i);
             System.out.println(instance.o);
         } catch(Exception e) {
-            System.out.println("other exception");
+            System.out.println("other exception " + e.getClass());
+        }
+        System.out.println(Dictionary.class.getConstructors().length);
+        System.out.println(Dictionary.class.getConstructors()[0].getParameterCount());
+        try {
+            Dictionary.class.getConstructors()[0].newInstance();
+        } catch(Exception e) {
+            System.out.println("exception " + e.getClass());
         }
     }
 }

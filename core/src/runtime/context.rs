@@ -438,6 +438,21 @@ impl Context {
         Error::Java(exception_instance)
     }
 
+    pub fn instantiation_exception(&self) -> Error {
+        let exception_class = self.builtins().java_lang_instantiation_exception;
+
+        let exception_instance = exception_class.new_instance(self.gc_ctx);
+        exception_instance
+            .call_construct(
+                &self,
+                self.common.noargs_void_desc,
+                &[Value::Object(Some(exception_instance))],
+            )
+            .expect("Exception class should construct");
+
+        Error::Java(exception_instance)
+    }
+
     pub fn negative_array_size_exception(&self) -> Error {
         let exception_class = self.builtins().java_lang_negative_array_size_exception;
 

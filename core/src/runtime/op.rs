@@ -1291,7 +1291,7 @@ impl Op {
                     class_dependencies.push(class);
                 }
 
-                if class.is_interface() || class.is_abstract() {
+                if class.cant_instantiate() {
                     return Err(context.instantiation_error());
                 }
 

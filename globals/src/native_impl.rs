@@ -396,6 +396,10 @@ fn new_instance_native(context: &Context, args: &[Value]) -> Result<Option<Value
         args_array.push(Value::Object(raw_args[i].get()));
     }
 
+    if ctor_method.class().cant_instantiate() {
+        return Err(context.instantiation_exception());
+    }
+
     let instance = Object::from_class(context.gc_ctx, ctor_method.class());
 
     let real_args =

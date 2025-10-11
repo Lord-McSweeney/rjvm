@@ -365,6 +365,10 @@ impl Class {
         self.0.flags.contains(ClassFlags::INTERFACE)
     }
 
+    pub fn cant_instantiate(self) -> bool {
+        self.is_interface() || self.is_abstract()
+    }
+
     pub fn is_primitive(self) -> bool {
         self.primitive_type().is_some()
     }

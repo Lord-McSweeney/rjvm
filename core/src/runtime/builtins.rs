@@ -20,6 +20,7 @@ pub struct BuiltinClasses {
     pub java_lang_cloneable: Class,
     pub java_lang_illegal_access_error: Class,
     pub java_lang_instantiation_error: Class,
+    pub java_lang_instantiation_exception: Class,
     pub java_lang_negative_array_size_exception: Class,
     pub java_lang_no_class_def_found_error: Class,
     pub java_lang_no_such_field_error: Class,
@@ -76,6 +77,7 @@ impl BuiltinClasses {
                 ("java/lang/Cloneable", java_lang_cloneable),
                 ("java/lang/IllegalAccessError", java_lang_illegal_access_error),
                 ("java/lang/InstantiationError", java_lang_instantiation_error),
+                ("java/lang/InstantiationException", java_lang_instantiation_exception),
                 ("java/lang/NegativeArraySizeException", java_lang_negative_array_size_exception),
                 ("java/lang/NoClassDefFoundError", java_lang_no_class_def_found_error),
                 ("java/lang/NoSuchFieldError", java_lang_no_such_field_error),
@@ -112,6 +114,7 @@ impl Trace for BuiltinClasses {
         self.java_lang_cloneable.trace();
         self.java_lang_illegal_access_error.trace();
         self.java_lang_instantiation_error.trace();
+        self.java_lang_instantiation_exception.trace();
         self.java_lang_negative_array_size_exception.trace();
         self.java_lang_no_class_def_found_error.trace();
         self.java_lang_no_such_field_error.trace();
