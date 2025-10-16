@@ -66,6 +66,13 @@ public class LinkedList<E> extends AbstractSequentialList<E> implements Cloneabl
         }
     }
 
+    private void removeNode(Node<E> node) {
+        node.prev().setNext(node.next());
+        node.next().setPrev(node.prev());
+        this.size -= 1;
+    }
+
+    // Add functions
     public boolean add(E element) {
         Node<E> node = new Node<E>(element);
         this.tail.prev().setNext(node);
@@ -90,6 +97,7 @@ public class LinkedList<E> extends AbstractSequentialList<E> implements Cloneabl
         }
     }
 
+    // Element access functions
     public E get(int index) {
         return this.getNode(index).getData();
     }
@@ -101,12 +109,35 @@ public class LinkedList<E> extends AbstractSequentialList<E> implements Cloneabl
         return oldData;
     }
 
+    // Remove functions
     public E remove(int index) {
         Node<E> oldNode = this.getNode(index);
-        oldNode.prev().setNext(oldNode.next());
-        oldNode.next().setPrev(oldNode.prev());
-        this.size -= 1;
+        this.removeNode(oldNode);
         return oldNode.getData();
+    }
+
+    public boolean remove(Object obj) {
+        if (this.size == 0) {
+            return false;
+        }
+
+        Node<E> current = this.head.next();
+        while (current != this.tail) {
+            E thisElem = current.getData();
+            if (obj == null) {
+                if (thisElem == null) {
+                    this.removeNode(current);
+                    return true;
+                }
+            } else if (obj.equals(thisElem)) {
+                this.removeNode(current);
+                return true;
+            }
+
+            current = current.next();
+        }
+
+        return false;
     }
 
     public E removeFirst() {
