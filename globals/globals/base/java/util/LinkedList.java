@@ -76,6 +76,20 @@ public class LinkedList<E> extends AbstractSequentialList<E> implements Cloneabl
         return true;
     }
 
+    public void add(int index, E element) {
+        if (index == this.size) {
+            this.add(element);
+        } else {
+            Node<E> newNode = new Node<E>(element);
+            Node<E> oldNode = this.getNode(index);
+            oldNode.prev().setNext(newNode);
+            newNode.setPrev(oldNode.prev());
+            newNode.setNext(oldNode);
+            oldNode.setPrev(newNode);
+            this.size ++;
+        }
+    }
+
     public E get(int index) {
         return this.getNode(index).getData();
     }
