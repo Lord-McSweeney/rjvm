@@ -93,7 +93,7 @@ public class LinkedList<E> extends AbstractSequentialList<E> implements Cloneabl
             newNode.setPrev(oldNode.prev());
             newNode.setNext(oldNode);
             oldNode.setPrev(newNode);
-            this.size ++;
+            this.size += 1;
         }
     }
 
@@ -159,6 +159,7 @@ public class LinkedList<E> extends AbstractSequentialList<E> implements Cloneabl
     public void clear() {
         this.head.setNext(this.tail);
         this.tail.setPrev(this.head);
+        this.size = 0;
     }
 
     // `Queue` functions
