@@ -401,13 +401,13 @@ impl Class {
         self.0.array_value_type
     }
 
-    pub fn static_method_vtable(&self) -> Ref<VTable<MethodDescriptor>> {
+    pub fn static_method_vtable(&self) -> Ref<'_, VTable<MethodDescriptor>> {
         Ref::map(self.0.method_data.borrow(), |data| {
             &data.as_ref().unwrap().static_method_vtable
         })
     }
 
-    pub fn static_methods(&self) -> Ref<Box<[Method]>> {
+    pub fn static_methods(&self) -> Ref<'_, Box<[Method]>> {
         Ref::map(self.0.method_data.borrow(), |data| {
             &data.as_ref().unwrap().static_methods
         })
@@ -421,7 +421,7 @@ impl Class {
         &self.0.static_fields
     }
 
-    pub fn instance_method_vtable(&self) -> Ref<InstanceMethodVTable> {
+    pub fn instance_method_vtable(&self) -> Ref<'_, InstanceMethodVTable> {
         Ref::map(self.0.method_data.borrow(), |data| {
             &data.as_ref().unwrap().instance_method_vtable
         })
