@@ -30,6 +30,7 @@ static_trace!(bool);
 static_trace!(char);
 
 static_trace!(String);
+static_trace!(());
 
 impl<T> Trace for Option<T>
 where

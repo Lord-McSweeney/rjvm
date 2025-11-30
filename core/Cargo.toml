@@ -5,4 +5,8 @@ edition = "2024"
 
 [dependencies]
 bitflags = "2.9.2"
-zip = { version = "4.5.0", default-features = false, features = ["deflate"] }
+zip = { version = "4.5.0", default-features = false, features = ["deflate"], optional = true }
+
+[features]
+default = ["jar"]
+jar = ["zip"]

@@ -1,3 +1,5 @@
+// Thin wrapper for reading JAR files
+
 use crate::gc::{Gc, GcCtx, Trace};
 use crate::runtime::error::{Error, NativeError};
 use crate::string::JvmString;
