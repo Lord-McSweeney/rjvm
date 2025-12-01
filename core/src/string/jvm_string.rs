@@ -5,8 +5,10 @@
 use crate::gc::{Gc, GcCtx, Trace};
 
 use std::fmt;
-use std::hash::{DefaultHasher, Hash, Hasher};
+use std::hash::{Hash, Hasher};
 use std::ops::Deref;
+
+const MAX_HASHED_STRING_LEN: usize = 4096;
 
 #[derive(Clone, Copy, Debug)]
 pub struct JvmString(Gc<JvmStringData>);
@@ -43,10 +45,15 @@ impl fmt::Display for JvmString {
 
 impl JvmString {
     pub fn new(gc_ctx: GcCtx, string: String) -> Self {
-        // Precompute hash
-        let mut hasher = DefaultHasher::new();
-        string.hash(&mut hasher);
-        let hash = hasher.finish();
+        // Precompute hash. Anything better than just the length of the string
+        // is probably enough. The GC allocation is probably always much more
+        // expensive than any hashing we do here.
+        let mut hash = string.len() as u64;
+        if string.len() < MAX_HASHED_STRING_LEN {
+            for (i, byte) in string.as_bytes().iter().enumerate() {
+                hash += ((byte ^ 0xAA) as u64) << (i as u64);
+            }
+        }
 
         Self(Gc::new(
             gc_ctx,
