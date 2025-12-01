@@ -10,6 +10,9 @@ use crate::gc::{Gc, GcCtx, Trace};
 use crate::jar::Jar;
 use crate::string::JvmString;
 
+use alloc::boxed::Box;
+use alloc::string::ToString;
+use alloc::vec::Vec;
 use core::cell::RefCell;
 use core::fmt;
 use hashbrown::HashMap;

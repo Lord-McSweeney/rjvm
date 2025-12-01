@@ -4,6 +4,8 @@ use super::context::Context;
 use crate::gc::Trace;
 use crate::string::JvmString;
 
+use alloc::string::ToString;
+
 // The builtin classes, looked-up at VM startup. NOTE: `java/lang/Object` is
 // accessed with `context.object_class()` because it needs to be loaded before
 // the rest of the builtins

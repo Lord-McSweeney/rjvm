@@ -9,6 +9,9 @@ use super::value::Value;
 use crate::gc::{Gc, GcCtx, Trace};
 use crate::string::JvmString;
 
+use alloc::boxed::Box;
+use alloc::string::String;
+use alloc::vec::Vec;
 use core::fmt;
 use core::hash::{Hash, Hasher};
 

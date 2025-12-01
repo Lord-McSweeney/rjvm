@@ -8,6 +8,7 @@ use super::value::Value;
 
 use crate::gc::{Gc, GcCtx, Trace};
 
+use alloc::boxed::Box;
 use core::cell::Cell;
 use core::fmt;
 use core::hash::{Hash, Hasher};

@@ -13,6 +13,9 @@ use crate::classfile::flags::{ClassFlags, FieldFlags, MethodFlags};
 use crate::gc::{Gc, GcCtx, Trace};
 use crate::string::JvmString;
 
+use alloc::boxed::Box;
+use alloc::string::{String, ToString};
+use alloc::vec::Vec;
 use core::cell::{Cell, OnceCell, Ref, RefCell};
 use core::fmt;
 use core::hash::{Hash, Hasher};

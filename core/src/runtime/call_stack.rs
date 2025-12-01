@@ -2,6 +2,9 @@ use super::method::Method;
 
 use crate::gc::Trace;
 
+use alloc::string::String;
+use alloc::vec::Vec;
+
 pub struct CallStack {
     entries: Vec<Method>,
 }

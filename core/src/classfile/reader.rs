@@ -1,5 +1,8 @@
 use super::error::Error;
 
+use alloc::string::String;
+use alloc::vec::Vec;
+
 pub struct FileData<'a> {
     data: &'a [u8],
     position: usize,

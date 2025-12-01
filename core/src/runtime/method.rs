@@ -15,6 +15,7 @@ use crate::classfile::reader::{FileData, Reader};
 use crate::gc::{Gc, Trace};
 use crate::string::JvmString;
 
+use alloc::vec::Vec;
 use core::cell::{Cell, OnceCell, RefCell};
 use core::fmt;
 use core::hash::{Hash, Hasher};

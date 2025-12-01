@@ -9,6 +9,9 @@ use super::reader::{FileData, Reader};
 use crate::gc::{Gc, GcCtx, Trace};
 use crate::string::JvmString;
 
+use alloc::boxed::Box;
+use alloc::vec::Vec;
+
 #[derive(Clone, Copy)]
 pub struct ClassFile(Gc<ClassFileData>);
 

@@ -4,6 +4,8 @@ use super::reader::{FileData, Reader};
 use crate::gc::{GcCtx, Trace};
 use crate::string::JvmString;
 
+use alloc::vec::Vec;
+
 const PLACEHOLDER: u8 = 0;
 const UTF8: u8 = 1;
 const INTEGER: u8 = 3;

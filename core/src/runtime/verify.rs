@@ -6,6 +6,8 @@ use super::op::Op;
 use crate::classfile::constant_pool::ConstantPoolEntry;
 use crate::classfile::flags::MethodFlags;
 
+use alloc::boxed::Box;
+use alloc::vec::Vec;
 use hashbrown::{HashMap, HashSet};
 
 // The possible ways a block can be exited.

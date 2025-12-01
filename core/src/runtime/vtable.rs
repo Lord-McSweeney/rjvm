@@ -5,6 +5,8 @@ use super::method::Method;
 use crate::gc::{Gc, GcCtx, Trace};
 use crate::string::JvmString;
 
+use alloc::boxed::Box;
+use alloc::vec::Vec;
 use core::fmt::Debug;
 use core::hash::Hash;
 use hashbrown::HashMap;

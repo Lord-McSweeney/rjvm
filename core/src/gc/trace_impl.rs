@@ -1,5 +1,8 @@
 use super::gc::Trace;
 
+use alloc::boxed::Box;
+use alloc::string::String;
+use alloc::vec::Vec;
 use core::cell::{Cell, OnceCell, RefCell};
 use hashbrown::{HashMap, HashSet};
 

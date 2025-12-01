@@ -11,6 +11,7 @@ use super::value::Value;
 use crate::classfile::constant_pool::ConstantPoolEntry;
 use crate::string::JvmString;
 
+use alloc::vec::Vec;
 use core::cell::Cell;
 use core::cmp::Ordering;
 

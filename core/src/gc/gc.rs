@@ -8,6 +8,7 @@
 //     it is the caller's responsibility to call it properly
 //   - Almost zero-cost pointers
 
+use alloc::boxed::Box;
 use core::cell::Cell;
 use core::hash::{Hash, Hasher};
 use core::mem::drop;

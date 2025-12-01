@@ -4,6 +4,7 @@
 
 use crate::gc::{Gc, GcCtx, Trace};
 
+use alloc::string::String;
 use core::fmt;
 use core::hash::{Hash, Hasher};
 use core::ops::Deref;

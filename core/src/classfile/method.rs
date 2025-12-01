@@ -7,6 +7,9 @@ use super::reader::{FileData, Reader};
 use crate::gc::Trace;
 use crate::string::JvmString;
 
+use alloc::boxed::Box;
+use alloc::vec::Vec;
+
 pub struct Method {
     flags: MethodFlags,
     name: JvmString,

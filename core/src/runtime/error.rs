@@ -5,6 +5,7 @@ use super::value::Value;
 
 use crate::classfile::error::Error as ClassFileError;
 
+use alloc::string::String;
 use core::fmt;
 
 pub enum Error {

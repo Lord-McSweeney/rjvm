@@ -6,6 +6,8 @@ use crate::gc::{Gc, GcCtx, Trace};
 use crate::runtime::error::Error;
 use crate::string::JvmString;
 
+use alloc::vec::Vec;
+
 #[derive(Clone, Copy)]
 pub struct Jar(Gc<()>);
 

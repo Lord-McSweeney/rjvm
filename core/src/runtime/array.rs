@@ -2,6 +2,7 @@ use super::object::Object;
 
 use crate::gc::Trace;
 
+use alloc::boxed::Box;
 use core::cell::Cell;
 
 #[derive(Clone, Debug)]
