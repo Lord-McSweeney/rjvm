@@ -6,7 +6,7 @@ use super::op::Op;
 use crate::classfile::constant_pool::ConstantPoolEntry;
 use crate::classfile::flags::MethodFlags;
 
-use std::collections::{HashMap, HashSet};
+use hashbrown::{HashMap, HashSet};
 
 // The possible ways a block can be exited.
 #[derive(Debug)]

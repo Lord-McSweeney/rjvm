@@ -10,7 +10,7 @@ use crate::classfile::reader::{FileData, Reader};
 use crate::gc::{Gc, Trace};
 use crate::string::JvmString;
 
-use std::collections::HashMap;
+use hashbrown::HashMap;
 
 #[derive(Clone, Debug)]
 pub enum Op {

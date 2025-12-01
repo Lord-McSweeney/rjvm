@@ -3,7 +3,7 @@ use super::object::Object;
 
 use crate::gc::Trace;
 
-use std::collections::HashSet;
+use hashbrown::HashSet;
 use std::hash::{Hash, Hasher};
 
 #[derive(Clone, Copy)]

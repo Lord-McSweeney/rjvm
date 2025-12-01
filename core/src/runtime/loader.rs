@@ -10,8 +10,8 @@ use crate::gc::{Gc, GcCtx, Trace};
 use crate::jar::Jar;
 use crate::string::JvmString;
 
+use hashbrown::HashMap;
 use std::cell::RefCell;
-use std::collections::HashMap;
 use std::fmt;
 
 #[derive(Clone, Copy)]

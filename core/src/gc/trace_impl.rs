@@ -1,7 +1,7 @@
-use std::cell::{Cell, OnceCell, RefCell};
-use std::collections::{HashMap, HashSet, VecDeque};
-
 use super::gc::Trace;
+
+use hashbrown::{HashMap, HashSet};
+use std::cell::{Cell, OnceCell, RefCell};
 
 macro_rules! static_trace {
     ($type:ty) => {
@@ -56,18 +56,6 @@ where
 }
 
 impl<T> Trace for Vec<T>
-where
-    T: Trace,
-{
-    #[inline(always)]
-    fn trace(&self) {
-        for value in self {
-            value.trace();
-        }
-    }
-}
-
-impl<T> Trace for VecDeque<T>
 where
     T: Trace,
 {
