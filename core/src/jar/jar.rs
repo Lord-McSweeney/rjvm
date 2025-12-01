@@ -4,7 +4,7 @@ use crate::gc::{Gc, GcCtx, Trace};
 use crate::runtime::error::{Error, NativeError};
 use crate::string::JvmString;
 
-use std::cell::RefCell;
+use core::cell::RefCell;
 use std::io::{Cursor, Read};
 use zip::ZipArchive;
 

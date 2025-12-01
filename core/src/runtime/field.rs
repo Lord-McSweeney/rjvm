@@ -11,7 +11,7 @@ use crate::classfile::reader::{FileData, Reader};
 use crate::gc::{Gc, Trace};
 use crate::string::JvmString;
 
-use std::cell::Cell;
+use core::cell::Cell;
 
 // IMPORTANT NOTE: DON'T MAKE THIS Copy, WE NEED TO CREATE AN ACTUAL CLONE OF
 // THE FIELD FOR OBJECT CREATION

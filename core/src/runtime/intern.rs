@@ -3,8 +3,8 @@ use super::object::Object;
 
 use crate::gc::Trace;
 
+use core::hash::{Hash, Hasher};
 use hashbrown::HashSet;
-use std::hash::{Hash, Hasher};
 
 #[derive(Clone, Copy)]
 struct StringObject(Object);

@@ -11,8 +11,8 @@ use super::value::Value;
 use crate::classfile::constant_pool::ConstantPoolEntry;
 use crate::string::JvmString;
 
-use std::cell::Cell;
-use std::cmp::Ordering;
+use core::cell::Cell;
+use core::cmp::Ordering;
 
 pub struct Interpreter<'a> {
     method: Method,

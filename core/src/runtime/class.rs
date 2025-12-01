@@ -13,10 +13,10 @@ use crate::classfile::flags::{ClassFlags, FieldFlags, MethodFlags};
 use crate::gc::{Gc, GcCtx, Trace};
 use crate::string::JvmString;
 
+use core::cell::{Cell, OnceCell, Ref, RefCell};
+use core::fmt;
+use core::hash::{Hash, Hasher};
 use hashbrown::HashSet;
-use std::cell::{Cell, OnceCell, Ref, RefCell};
-use std::fmt;
-use std::hash::{Hash, Hasher};
 
 #[derive(Clone, Copy)]
 pub struct Class(Gc<ClassData>);

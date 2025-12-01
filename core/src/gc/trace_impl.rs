@@ -1,7 +1,7 @@
 use super::gc::Trace;
 
+use core::cell::{Cell, OnceCell, RefCell};
 use hashbrown::{HashMap, HashSet};
-use std::cell::{Cell, OnceCell, RefCell};
 
 macro_rules! static_trace {
     ($type:ty) => {

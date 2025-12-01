@@ -8,11 +8,11 @@
 //     it is the caller's responsibility to call it properly
 //   - Almost zero-cost pointers
 
-use std::cell::Cell;
-use std::hash::{Hash, Hasher};
-use std::mem::drop;
-use std::ops::Deref;
-use std::ptr::NonNull;
+use core::cell::Cell;
+use core::hash::{Hash, Hasher};
+use core::mem::drop;
+use core::ops::Deref;
+use core::ptr::NonNull;
 
 #[derive(Clone, Copy)]
 enum CollectionStatus {
@@ -53,11 +53,11 @@ impl<T> Clone for Gc<T> {
 
 impl<T> Copy for Gc<T> {}
 
-impl<T> std::fmt::Debug for Gc<T>
+impl<T> core::fmt::Debug for Gc<T>
 where
-    T: std::fmt::Debug,
+    T: core::fmt::Debug,
 {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         unsafe { write!(f, "{:?}", self.ptr.as_ref().value) }
     }
 }

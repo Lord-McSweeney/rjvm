@@ -4,9 +4,9 @@
 
 use crate::gc::{Gc, GcCtx, Trace};
 
-use std::fmt;
-use std::hash::{Hash, Hasher};
-use std::ops::Deref;
+use core::fmt;
+use core::hash::{Hash, Hasher};
+use core::ops::Deref;
 
 const MAX_HASHED_STRING_LEN: usize = 4096;
 

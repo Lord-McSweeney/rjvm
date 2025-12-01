@@ -8,9 +8,9 @@ use super::value::Value;
 
 use crate::gc::{Gc, GcCtx, Trace};
 
-use std::cell::Cell;
-use std::fmt;
-use std::hash::{Hash, Hasher};
+use core::cell::Cell;
+use core::fmt;
+use core::hash::{Hash, Hasher};
 
 #[derive(Clone, Copy)]
 pub struct Object(Gc<ObjectData>);
@@ -311,8 +311,8 @@ impl Object {
     }
 }
 
-const _: () = assert!(std::mem::size_of::<Object>() <= 8);
-const _: () = assert!(std::mem::size_of::<Option<Object>>() <= 8);
+const _: () = assert!(core::mem::size_of::<Object>() <= 8);
+const _: () = assert!(core::mem::size_of::<Option<Object>>() <= 8);
 
 impl fmt::Debug for Object {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {

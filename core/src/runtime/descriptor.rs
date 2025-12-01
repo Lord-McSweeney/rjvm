@@ -9,8 +9,8 @@ use super::value::Value;
 use crate::gc::{Gc, GcCtx, Trace};
 use crate::string::JvmString;
 
-use std::fmt;
-use std::hash::{Hash, Hasher};
+use core::fmt;
+use core::hash::{Hash, Hasher};
 
 #[derive(Clone, Copy, Eq, Hash, PartialEq)]
 pub enum Descriptor {

@@ -72,7 +72,7 @@ impl Value {
     }
 }
 
-const _: () = assert!(std::mem::size_of::<Value>() <= 16);
+const _: () = assert!(core::mem::size_of::<Value>() <= 16);
 
 impl Trace for Value {
     #[inline(always)]

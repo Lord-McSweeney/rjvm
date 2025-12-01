@@ -13,8 +13,8 @@ use crate::gc::{Gc, GcCtx, Trace};
 use crate::jar::Jar;
 use crate::string::JvmString;
 
+use core::cell::{Cell, OnceCell, Ref, RefCell};
 use hashbrown::HashMap;
-use std::cell::{Cell, OnceCell, Ref, RefCell};
 
 // Various magic fields
 pub const OBJECT_TO_STRING_METHOD: usize = 2;

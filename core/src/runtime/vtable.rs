@@ -5,9 +5,9 @@ use super::method::Method;
 use crate::gc::{Gc, GcCtx, Trace};
 use crate::string::JvmString;
 
+use core::fmt::Debug;
+use core::hash::Hash;
 use hashbrown::HashMap;
-use std::fmt::Debug;
-use std::hash::Hash;
 
 pub struct VTable<T>(Gc<VTableData<T>>);
 

@@ -5,7 +5,7 @@ use super::value::Value;
 
 use crate::classfile::error::Error as ClassFileError;
 
-use std::fmt;
+use core::fmt;
 
 pub enum Error {
     Native(NativeError),

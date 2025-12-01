@@ -2,7 +2,7 @@ use super::object::Object;
 
 use crate::gc::Trace;
 
-use std::cell::Cell;
+use core::cell::Cell;
 
 #[derive(Clone, Debug)]
 pub enum Array {

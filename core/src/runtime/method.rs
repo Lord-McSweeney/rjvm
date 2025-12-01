@@ -15,9 +15,9 @@ use crate::classfile::reader::{FileData, Reader};
 use crate::gc::{Gc, Trace};
 use crate::string::JvmString;
 
-use std::cell::{Cell, OnceCell, RefCell};
-use std::fmt;
-use std::hash::{Hash, Hasher};
+use core::cell::{Cell, OnceCell, RefCell};
+use core::fmt;
+use core::hash::{Hash, Hasher};
 
 #[derive(Clone, Copy)]
 pub struct Method(Gc<MethodData>);

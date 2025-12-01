@@ -10,9 +10,9 @@ use crate::gc::{Gc, GcCtx, Trace};
 use crate::jar::Jar;
 use crate::string::JvmString;
 
+use core::cell::RefCell;
+use core::fmt;
 use hashbrown::HashMap;
-use std::cell::RefCell;
-use std::fmt;
 
 #[derive(Clone, Copy)]
 pub struct ClassLoader(Gc<ClassLoaderData>);
