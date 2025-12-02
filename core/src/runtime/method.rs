@@ -9,6 +9,7 @@ use super::op::Op;
 use super::value::Value;
 use super::verify::verify_ops;
 
+use crate::classfile::constant_pool::ConstantPool;
 use crate::classfile::flags::MethodFlags;
 use crate::classfile::method::Method as ClassFileMethod;
 use crate::classfile::reader::{FileData, Reader};
@@ -20,6 +21,7 @@ use alloc::vec::Vec;
 use core::cell::{Cell, OnceCell, RefCell};
 use core::fmt;
 use core::hash::{Hash, Hasher};
+use hashbrown::HashMap;
 
 #[derive(Clone, Copy)]
 pub struct Method(Gc<MethodData>);
@@ -317,6 +319,39 @@ impl BytecodeMethodInfo {
         let (code, offset_to_idx_map, class_dependencies) =
             Op::read_ops(context, method, constant_pool, &mut reader)?;
 
+        let exceptions = BytecodeMethodInfo::read_exceptions(
+            context,
+            method,
+            constant_pool,
+            &mut reader,
+            offset_to_idx_map,
+        )?;
+
+        verify_ops(
+            method,
+            max_stack as usize,
+            max_locals as usize,
+            &code,
+            &exceptions,
+        )?;
+
+        Ok(Self {
+            max_stack,
+            max_locals,
+            code,
+            exceptions,
+            class_dependencies,
+            deps_initialized: Cell::new(false),
+        })
+    }
+
+    fn read_exceptions(
+        context: &Context,
+        method: Method,
+        constant_pool: &ConstantPool,
+        reader: &mut FileData<'_>,
+        offset_to_idx_map: HashMap<usize, usize>,
+    ) -> Result<Box<[Exception]>, Error> {
         let exception_count = reader.read_u16()?;
         let mut exceptions = Vec::with_capacity(exception_count as usize);
         for _ in 0..exception_count {
@@ -360,24 +395,7 @@ impl BytecodeMethodInfo {
             });
         }
 
-        let exceptions = exceptions.into_boxed_slice();
-
-        verify_ops(
-            method,
-            max_stack as usize,
-            max_locals as usize,
-            &code,
-            &exceptions,
-        )?;
-
-        Ok(Self {
-            max_stack,
-            max_locals,
-            code,
-            exceptions,
-            class_dependencies,
-            deps_initialized: Cell::new(false),
-        })
+        Ok(exceptions.into_boxed_slice())
     }
 }
 
