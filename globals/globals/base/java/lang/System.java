@@ -91,6 +91,8 @@ public final class System {
         return System.currentTimeMillis() * 1000000;
     }
 
+    public static native int identityHashCode(Object x);
+
     public static void exit(int status) {
         Runtime.getRuntime().exit(status);
     }

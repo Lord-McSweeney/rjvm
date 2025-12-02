@@ -1,5 +1,5 @@
 use rjvm_core::{
-    Array, Class, ClassLoader, Context, Error, JvmString, NativeMethod, Object, PrimitiveType,
+    Array, ClassLoader, Context, Error, JvmString, NativeMethod, Object, PrimitiveType,
     ResolvedDescriptor, Value,
 };
 
@@ -36,6 +36,7 @@ pub fn register_native_mappings(context: &Context) {
         ("java/lang/Class.getComponentType.()Ljava/lang/Class;", class_get_component_type),
         ("java/lang/Class.getSuperclass.()Ljava/lang/Class;", class_get_superclass),
         ("java/lang/Class.getMethodNative.(Ljava/lang/String;[Ljava/lang/Class;)Ljava/lang/reflect/Method;", class_get_method),
+        ("java/lang/System.identityHashCode.(Ljava/lang/Object;)I", identity_hash_code),
 
         ("jvm/internal/ClassLoaderUtils.makePlatformLoader.(Ljava/lang/ClassLoader;)V", make_platform_loader),
         ("jvm/internal/ClassLoaderUtils.makeSystemLoader.(Ljava/lang/ClassLoader;Ljava/lang/ClassLoader;)V", make_sys_loader),
@@ -324,18 +325,10 @@ fn get_primitive_class(context: &Context, args: &[Value]) -> Result<Option<Value
 
 fn object_hash_code(_context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
     let this = args[0].object().unwrap();
-    let this_class = this.class();
 
-    let ptr_obj = Object::as_ptr(this) as usize;
-    let ptr_cls = Class::as_ptr(this_class) as usize;
+    let result = crate::hash_code::calc_hash_code(this);
 
-    let mut result = (ptr_cls << 8) + ptr_obj;
-    result >>= 3;
-    result ^= 0xed0f87;
-    result ^= (91 + (result & 0xFF)) << 24;
-    result += 143;
-
-    Ok(Some(Value::Integer(result as i32)))
+    Ok(Some(Value::Integer(result)))
 }
 
 fn class_for_name_native(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
@@ -565,6 +558,15 @@ fn class_get_method(context: &Context, args: &[Value]) -> Result<Option<Value>, 
     } else {
         Ok(Some(Value::Object(None)))
     }
+}
+
+fn identity_hash_code(_context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
+    let object = args[0].object();
+
+    // `identityHashCode(null)` is `0`
+    let result = object.map(crate::hash_code::calc_hash_code).unwrap_or(0);
+
+    Ok(Some(Value::Integer(result)))
 }
 
 fn make_platform_loader(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
