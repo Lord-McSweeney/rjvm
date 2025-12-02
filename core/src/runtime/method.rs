@@ -15,6 +15,7 @@ use crate::classfile::reader::{FileData, Reader};
 use crate::gc::{Gc, Trace};
 use crate::string::JvmString;
 
+use alloc::boxed::Box;
 use alloc::vec::Vec;
 use core::cell::{Cell, OnceCell, RefCell};
 use core::fmt;
@@ -277,10 +278,10 @@ impl Trace for MethodInfo {
 struct BytecodeMethodInfo {
     max_stack: u16,
     max_locals: u16,
-    code: Vec<Op>,
-    exceptions: Vec<Exception>,
+    code: Box<[Op]>,
+    exceptions: Box<[Exception]>,
 
-    class_dependencies: Vec<Class>,
+    class_dependencies: Box<[Class]>,
     deps_initialized: Cell<bool>,
 }
 
@@ -358,6 +359,8 @@ impl BytecodeMethodInfo {
                 catch_class: class,
             });
         }
+
+        let exceptions = exceptions.into_boxed_slice();
 
         verify_ops(
             method,

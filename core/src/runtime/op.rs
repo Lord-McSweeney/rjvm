@@ -554,7 +554,7 @@ impl Op {
         method: Method,
         constant_pool: &ConstantPool,
         data: &mut FileData<'_>,
-    ) -> Result<(Vec<Op>, HashMap<usize, usize>, Vec<Class>), Error> {
+    ) -> Result<(Box<[Op]>, HashMap<usize, usize>, Box<[Class]>), Error> {
         let code_length = data.read_u32()? as usize;
         let code_start = data.position();
         let mut code = Vec::with_capacity(code_length / 2);
@@ -578,6 +578,9 @@ impl Op {
 
             op_index += 1;
         }
+
+        let mut code = code.into_boxed_slice();
+        let class_dependencies = class_dependencies.into_boxed_slice();
 
         offset_to_idx_map.insert(data.position() - code_start, op_index);
 
