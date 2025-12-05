@@ -2,9 +2,9 @@ use super::attribute::Attribute;
 use super::constant_pool::ConstantPool;
 use super::error::Error;
 use super::flags::MethodFlags;
-use super::reader::{FileData, Reader};
 
 use crate::gc::Trace;
+use crate::reader::{FileData, Reader};
 use crate::string::JvmString;
 
 use alloc::boxed::Box;

@@ -6,8 +6,8 @@ use super::method::Method;
 
 use crate::classfile::constant_pool::{ConstantPool, ConstantPoolEntry};
 use crate::classfile::flags::FieldFlags;
-use crate::classfile::reader::{FileData, Reader};
 use crate::gc::{Gc, Trace};
+use crate::reader::{FileData, Reader};
 use crate::string::JvmString;
 
 use alloc::boxed::Box;

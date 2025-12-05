@@ -4,9 +4,9 @@ use super::error::Error;
 use super::field::Field;
 use super::flags::ClassFlags;
 use super::method::Method;
-use super::reader::{FileData, Reader};
 
 use crate::gc::{Gc, GcCtx, Trace};
+use crate::reader::{FileData, Reader};
 use crate::string::JvmString;
 
 use alloc::boxed::Box;

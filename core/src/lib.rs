@@ -6,6 +6,7 @@ extern crate alloc;
 mod classfile;
 mod gc;
 mod jar;
+mod reader;
 mod runtime;
 mod string;
 

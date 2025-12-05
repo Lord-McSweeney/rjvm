@@ -12,8 +12,8 @@ use super::verify::verify_ops;
 use crate::classfile::constant_pool::ConstantPool;
 use crate::classfile::flags::MethodFlags;
 use crate::classfile::method::Method as ClassFileMethod;
-use crate::classfile::reader::{FileData, Reader};
 use crate::gc::{Gc, Trace};
+use crate::reader::{FileData, Reader};
 use crate::string::JvmString;
 
 use alloc::boxed::Box;

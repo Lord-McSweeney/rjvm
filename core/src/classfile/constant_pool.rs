@@ -1,7 +1,7 @@
 use super::error::Error;
-use super::reader::{FileData, Reader};
 
 use crate::gc::{GcCtx, Trace};
+use crate::reader::{FileData, Reader};
 use crate::string::JvmString;
 
 use alloc::vec::Vec;

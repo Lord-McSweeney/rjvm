@@ -7,8 +7,8 @@ use crate::classfile::class::ClassFile;
 use crate::classfile::constant_pool::ConstantPoolEntry;
 use crate::classfile::field::Field as ClassFileField;
 use crate::classfile::flags::FieldFlags;
-use crate::classfile::reader::{FileData, Reader};
 use crate::gc::{Gc, Trace};
+use crate::reader::{FileData, Reader};
 use crate::string::JvmString;
 
 use alloc::vec::Vec;

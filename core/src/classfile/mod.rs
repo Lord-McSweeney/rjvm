@@ -5,4 +5,3 @@ pub(crate) mod error;
 pub(crate) mod field;
 pub(crate) mod flags;
 pub(crate) mod method;
-pub(crate) mod reader;

@@ -1,8 +1,8 @@
 use super::constant_pool::ConstantPool;
 use super::error::Error;
-use super::reader::{FileData, Reader};
 
 use crate::gc::Trace;
+use crate::reader::{FileData, Reader};
 use crate::string::JvmString;
 
 use alloc::vec::Vec;

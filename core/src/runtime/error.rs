@@ -4,6 +4,7 @@ use super::object::Object;
 use super::value::Value;
 
 use crate::classfile::error::Error as ClassFileError;
+use crate::reader::ReadError;
 
 use alloc::string::String;
 use core::fmt;
@@ -99,6 +100,12 @@ pub enum NativeError {
 
 impl From<ClassFileError> for Error {
     fn from(_error: ClassFileError) -> Self {
+        Error::Native(NativeError::ReadError)
+    }
+}
+
+impl From<ReadError> for Error {
+    fn from(_error: ReadError) -> Self {
         Error::Native(NativeError::ReadError)
     }
 }
