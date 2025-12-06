@@ -27,6 +27,5 @@
 - `invokedynamic` (Java 8 lambdas) support
 - Multithreading (`Thread.start`) support
 - Lots of API
-- Proper garbage collection
-- `no_std` JAR file support
+- Better garbage collection
 - A JIT compiler
