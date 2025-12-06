@@ -1,26 +1,28 @@
 // Thin wrapper for reading JAR files
 
+use super::parse::JarArchive;
 use crate::gc::{Gc, GcCtx, Trace};
 use crate::runtime::error::{Error, NativeError};
 use crate::string::JvmString;
 
+use alloc::string::String;
 use core::cell::RefCell;
-use std::io::{Cursor, Read};
-use zip::ZipArchive;
+use hashbrown::HashMap;
+use hashbrown::hash_map::Entry;
 
 #[derive(Clone, Copy)]
 pub struct Jar(Gc<JarData>);
 
 impl Jar {
     pub fn from_bytes(gc_ctx: GcCtx, bytes: Vec<u8>) -> Result<Self, Error> {
-        let file_data = Cursor::new(bytes);
-        let zip_file =
-            ZipArchive::new(file_data).map_err(|_| Error::Native(NativeError::InvalidJar))?;
+        let jar_file =
+            JarArchive::new(bytes).map_err(|_| Error::Native(NativeError::InvalidJar))?;
 
         Ok(Self(Gc::new(
             gc_ctx,
             JarData {
-                zip_file: RefCell::new(zip_file),
+                jar_file,
+                cached_files: RefCell::new(HashMap::new()),
             },
         )))
     }
@@ -36,31 +38,35 @@ impl Jar {
         let mut modified_name = class_name.to_string().clone();
         modified_name.push_str(".class");
 
-        self.read_file(&modified_name)
+        self.read_file(modified_name)
     }
 
-    pub fn has_file(self, file_name: &str) -> bool {
-        let zip_file = self.0.zip_file.borrow();
-
-        zip_file.index_for_name(file_name).is_some()
+    pub fn has_file(self, file_name: &String) -> bool {
+        self.0.jar_file.has_file(file_name)
     }
 
-    pub fn read_file(self, file_name: &str) -> Result<Vec<u8>, Error> {
-        let mut zip_file = self.0.zip_file.borrow_mut();
+    pub fn read_file(self, file_name: String) -> Result<Vec<u8>, Error> {
+        let mut cached_files = self.0.cached_files.borrow_mut();
+        match cached_files.entry(file_name.clone()) {
+            Entry::Occupied(occupied) => Ok(occupied.get().clone()),
+            Entry::Vacant(vacant) => {
+                let result = self
+                    .0
+                    .jar_file
+                    .read_file(&file_name)
+                    .map_err(|_| Error::Native(NativeError::InvalidJar))?;
 
-        let result = zip_file
-            .by_name(file_name)
-            .map_err(|_| Error::Native(NativeError::InvalidJar))?;
+                vacant.insert(result.clone());
 
-        Ok(result
-            .bytes()
-            .map(|b| b.expect("Byte should be Ok"))
-            .collect::<Vec<_>>())
+                Ok(result)
+            }
+        }
     }
 }
 
 struct JarData {
-    zip_file: RefCell<ZipArchive<Cursor<Vec<u8>>>>,
+    jar_file: JarArchive,
+    cached_files: RefCell<HashMap<String, Vec<u8>>>,
 }
 
 impl Trace for Jar {
@@ -70,5 +76,7 @@ impl Trace for Jar {
 }
 
 impl Trace for JarData {
-    fn trace(&self) {}
+    fn trace(&self) {
+        self.cached_files.trace();
+    }
 }

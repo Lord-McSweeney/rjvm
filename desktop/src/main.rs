@@ -183,7 +183,7 @@ fn init_main_class(context: &Context, options: &PassedOptions) -> Result<Class, 
                 }
 
                 let manifest_data = jar_data
-                    .read_file(&manifest_name)
+                    .read_file(manifest_name)
                     .expect("MANIFEST should read");
 
                 get_main_class_from_manifest(manifest_data)

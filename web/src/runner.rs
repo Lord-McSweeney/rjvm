@@ -43,7 +43,7 @@ fn init_main_class(
         }
 
         let manifest_data = jar_data
-            .read_file(&manifest_name)
+            .read_file(manifest_name)
             .expect("MANIFEST should read");
 
         let main_class_name = get_main_class_from_manifest(manifest_data);

@@ -29,7 +29,8 @@ impl LoaderBackend for WebLoaderBackend {
                 }
             }
             ResourceLoadSource::Jar(jar) => {
-                if jar.has_file(resource_name) {
+                let resource_name = resource_name.to_string();
+                if jar.has_file(&resource_name) {
                     jar.read_file(resource_name).ok()
                 } else {
                     None
