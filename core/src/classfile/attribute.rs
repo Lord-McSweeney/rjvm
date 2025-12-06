@@ -15,10 +15,10 @@ pub struct Attribute {
 
 impl Attribute {
     pub fn read_from(data: &mut FileData<'_>, constant_pool: &ConstantPool) -> Result<Self, Error> {
-        let name_idx = data.read_u16()?;
+        let name_idx = data.read_u16_be()?;
         let name = constant_pool.get_utf8(name_idx)?;
 
-        let length = data.read_u32()?;
+        let length = data.read_u32_be()?;
         let data = data.read_bytes(length as usize)?;
 
         Ok(Self { name, data })

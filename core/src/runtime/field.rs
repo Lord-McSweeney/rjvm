@@ -172,7 +172,7 @@ fn field_constant_value(
     for attribute in field.attributes() {
         if attribute.name().as_bytes() == b"ConstantValue" {
             let mut data = FileData::new(attribute.data());
-            let cpool_index = data.read_u16()?;
+            let cpool_index = data.read_u16_be()?;
             let constant_pool = class_file.constant_pool();
             let cpool_entry = constant_pool.entry(cpool_index)?;
 

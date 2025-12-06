@@ -387,7 +387,7 @@ fn read_constant_pool_entry(
     let tag = data.read_u8()?;
     match tag {
         UTF8 => {
-            let length = data.read_u16()?;
+            let length = data.read_u16_be()?;
 
             let string = data.read_string(length as usize)?;
             let string = JvmString::new(gc_ctx, string);
@@ -395,13 +395,13 @@ fn read_constant_pool_entry(
             Ok(ConstantPoolEntry::Utf8 { string })
         }
         INTEGER => {
-            let value = data.read_u32()? as i32;
+            let value = data.read_u32_be()? as i32;
 
             Ok(ConstantPoolEntry::Integer { value })
         }
         LONG => {
-            let high_value = data.read_u32()? as u64;
-            let low_value = data.read_u32()? as u64;
+            let high_value = data.read_u32_be()? as u64;
+            let low_value = data.read_u32_be()? as u64;
 
             let value = (high_value << 32) + low_value;
 
@@ -410,15 +410,15 @@ fn read_constant_pool_entry(
             })
         }
         FLOAT => {
-            let value = data.read_u32()?;
+            let value = data.read_u32_be()?;
 
             Ok(ConstantPoolEntry::Float {
                 value: f32::from_bits(value),
             })
         }
         DOUBLE => {
-            let high_value = data.read_u32()? as u64;
-            let low_value = data.read_u32()? as u64;
+            let high_value = data.read_u32_be()? as u64;
+            let low_value = data.read_u32_be()? as u64;
 
             let value = (high_value << 32) + low_value;
 
@@ -427,18 +427,18 @@ fn read_constant_pool_entry(
             })
         }
         CLASS => {
-            let name_idx = data.read_u16()?;
+            let name_idx = data.read_u16_be()?;
 
             Ok(ConstantPoolEntry::Class { name_idx })
         }
         STRING => {
-            let string_idx = data.read_u16()?;
+            let string_idx = data.read_u16_be()?;
 
             Ok(ConstantPoolEntry::String { string_idx })
         }
         FIELD_REF => {
-            let class_idx = data.read_u16()?;
-            let name_and_type_idx = data.read_u16()?;
+            let class_idx = data.read_u16_be()?;
+            let name_and_type_idx = data.read_u16_be()?;
 
             Ok(ConstantPoolEntry::FieldRef {
                 class_idx,
@@ -446,8 +446,8 @@ fn read_constant_pool_entry(
             })
         }
         METHOD_REF => {
-            let class_idx = data.read_u16()?;
-            let name_and_type_idx = data.read_u16()?;
+            let class_idx = data.read_u16_be()?;
+            let name_and_type_idx = data.read_u16_be()?;
 
             Ok(ConstantPoolEntry::MethodRef {
                 class_idx,
@@ -455,8 +455,8 @@ fn read_constant_pool_entry(
             })
         }
         INTERFACE_METHOD_REF => {
-            let class_idx = data.read_u16()?;
-            let name_and_type_idx = data.read_u16()?;
+            let class_idx = data.read_u16_be()?;
+            let name_and_type_idx = data.read_u16_be()?;
 
             Ok(ConstantPoolEntry::InterfaceMethodRef {
                 class_idx,
@@ -464,8 +464,8 @@ fn read_constant_pool_entry(
             })
         }
         NAME_AND_TYPE => {
-            let name_idx = data.read_u16()?;
-            let descriptor_idx = data.read_u16()?;
+            let name_idx = data.read_u16_be()?;
+            let descriptor_idx = data.read_u16_be()?;
 
             Ok(ConstantPoolEntry::NameAndType {
                 name_idx,
@@ -474,7 +474,7 @@ fn read_constant_pool_entry(
         }
         METHOD_HANDLE => {
             let kind = data.read_u8()?;
-            let cpool_idx = data.read_u16()?;
+            let cpool_idx = data.read_u16_be()?;
 
             let method_handle = match kind {
                 1 => MethodHandle::GetField(cpool_idx),
@@ -492,13 +492,13 @@ fn read_constant_pool_entry(
             Ok(ConstantPoolEntry::MethodHandle { method_handle })
         }
         METHOD_TYPE => {
-            let descriptor_idx = data.read_u16()?;
+            let descriptor_idx = data.read_u16_be()?;
 
             Ok(ConstantPoolEntry::MethodType { descriptor_idx })
         }
         INVOKE_DYNAMIC => {
-            let bootstrap_method_idx = data.read_u16()?;
-            let name_and_type_idx = data.read_u16()?;
+            let bootstrap_method_idx = data.read_u16_be()?;
+            let name_and_type_idx = data.read_u16_be()?;
 
             Ok(ConstantPoolEntry::InvokeDynamic {
                 bootstrap_method_idx,
@@ -510,7 +510,7 @@ fn read_constant_pool_entry(
 }
 
 pub fn read_constant_pool(gc_ctx: GcCtx, data: &mut FileData<'_>) -> Result<ConstantPool, Error> {
-    let entry_count = match data.read_u16()? {
+    let entry_count = match data.read_u16_be()? {
         0 => return Err(Error::ExpectedNonZero),
         entry_count => entry_count - 1,
     };

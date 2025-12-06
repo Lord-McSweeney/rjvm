@@ -1,11 +1,12 @@
 // Thin wrapper for reading JAR files
 
-use super::parse::JarArchive;
+use super::read_zip::ZipFile;
 use crate::gc::{Gc, GcCtx, Trace};
 use crate::runtime::error::{Error, NativeError};
 use crate::string::JvmString;
 
 use alloc::string::String;
+use alloc::vec::Vec;
 use core::cell::RefCell;
 use hashbrown::HashMap;
 use hashbrown::hash_map::Entry;
@@ -15,8 +16,7 @@ pub struct Jar(Gc<JarData>);
 
 impl Jar {
     pub fn from_bytes(gc_ctx: GcCtx, bytes: Vec<u8>) -> Result<Self, Error> {
-        let jar_file =
-            JarArchive::new(bytes).map_err(|_| Error::Native(NativeError::InvalidJar))?;
+        let jar_file = ZipFile::new(bytes).map_err(|_| Error::Native(NativeError::InvalidJar))?;
 
         Ok(Self(Gc::new(
             gc_ctx,
@@ -65,7 +65,7 @@ impl Jar {
 }
 
 struct JarData {
-    jar_file: JarArchive,
+    jar_file: ZipFile,
     cached_files: RefCell<HashMap<String, Vec<u8>>>,
 }
 

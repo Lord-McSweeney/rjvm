@@ -34,53 +34,53 @@ impl ClassFile {
     pub fn from_data(gc_ctx: GcCtx, data: Vec<u8>) -> Result<Self, Error> {
         let mut reader = FileData::new(&data);
 
-        let magic = reader.read_u32()?;
+        let magic = reader.read_u32_be()?;
         if magic != 0xCAFEBABE {
-            return Err(Error::MagicMismatch);
+            return Err(Error::InvalidMagic);
         }
 
-        let _minor_version = reader.read_u16()?;
-        let _major_version = reader.read_u16()?;
+        let _minor_version = reader.read_u16_be()?;
+        let _major_version = reader.read_u16_be()?;
 
         let constant_pool = read_constant_pool(gc_ctx, &mut reader)?;
 
-        let flag_bits = reader.read_u16()?;
+        let flag_bits = reader.read_u16_be()?;
         let flags = ClassFlags::from_bits_truncate(flag_bits);
 
         // Read this-class name
-        let this_class_idx = reader.read_u16()?;
+        let this_class_idx = reader.read_u16_be()?;
         let this_class = constant_pool.get_class(this_class_idx)?;
 
         // Read superclass name
-        let super_class_idx = reader.read_u16()?;
+        let super_class_idx = reader.read_u16_be()?;
         let super_class = if super_class_idx == 0 {
             None
         } else {
             Some(constant_pool.get_class(super_class_idx)?)
         };
 
-        let interface_count = reader.read_u16()?;
+        let interface_count = reader.read_u16_be()?;
         let mut interface_list = Vec::with_capacity(interface_count as usize);
         for _ in 0..interface_count {
-            let interface_idx = reader.read_u16()?;
+            let interface_idx = reader.read_u16_be()?;
             let interface = constant_pool.get_class(interface_idx)?;
 
             interface_list.push(interface);
         }
 
-        let field_count = reader.read_u16()?;
+        let field_count = reader.read_u16_be()?;
         let mut field_list = Vec::with_capacity(field_count as usize);
         for _ in 0..field_count {
             field_list.push(Field::read_from(&mut reader, &constant_pool)?);
         }
 
-        let method_count = reader.read_u16()?;
+        let method_count = reader.read_u16_be()?;
         let mut method_list = Vec::with_capacity(method_count as usize);
         for _ in 0..method_count {
             method_list.push(Method::read_from(&mut reader, &constant_pool)?);
         }
 
-        let attribute_count = reader.read_u16()?;
+        let attribute_count = reader.read_u16_be()?;
         let mut attribute_list = Vec::with_capacity(attribute_count as usize);
         for _ in 0..attribute_count {
             attribute_list.push(Attribute::read_from(&mut reader, &constant_pool)?);

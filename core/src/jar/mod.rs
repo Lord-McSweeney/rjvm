@@ -1,4 +1,4 @@
 mod jar;
-mod parse;
+mod read_zip;
 
 pub use jar::Jar;

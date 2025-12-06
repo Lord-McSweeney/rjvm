@@ -7,14 +7,15 @@ pub enum Error {
     ConstantPoolVerifyError,
     EndOfFile,
     ExpectedNonZero,
+    InvalidMagic,
     InvalidString,
-    MagicMismatch,
 }
 
 impl From<ReadError> for Error {
     fn from(value: ReadError) -> Self {
         match value {
             ReadError::EndOfFile => Self::EndOfFile,
+            ReadError::InvalidMagic => Self::InvalidMagic,
             ReadError::InvalidString => Self::InvalidString,
         }
     }

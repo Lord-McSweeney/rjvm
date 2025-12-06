@@ -313,8 +313,8 @@ impl BytecodeMethodInfo {
         let class_file = method.class().class_file().unwrap();
         let constant_pool = class_file.constant_pool();
 
-        let max_stack = reader.read_u16()?;
-        let max_locals = reader.read_u16()?;
+        let max_stack = reader.read_u16_be()?;
+        let max_locals = reader.read_u16_be()?;
 
         let (code, offset_to_idx_map, class_dependencies) =
             Op::read_ops(context, method, constant_pool, &mut reader)?;
@@ -352,12 +352,12 @@ impl BytecodeMethodInfo {
         reader: &mut FileData<'_>,
         offset_to_idx_map: HashMap<usize, usize>,
     ) -> Result<Box<[Exception]>, Error> {
-        let exception_count = reader.read_u16()?;
+        let exception_count = reader.read_u16_be()?;
         let mut exceptions = Vec::with_capacity(exception_count as usize);
         for _ in 0..exception_count {
-            let start_offset = reader.read_u16()? as usize;
-            let end_offset = reader.read_u16()? as usize;
-            let target_offset = reader.read_u16()? as usize;
+            let start_offset = reader.read_u16_be()? as usize;
+            let end_offset = reader.read_u16_be()? as usize;
+            let target_offset = reader.read_u16_be()? as usize;
 
             let start = offset_to_idx_map
                 .get(&start_offset)
@@ -372,7 +372,7 @@ impl BytecodeMethodInfo {
                 .copied()
                 .ok_or(Error::Native(NativeError::ErrorClassNotThrowable))?;
 
-            let class_idx = reader.read_u16()?;
+            let class_idx = reader.read_u16_be()?;
             let class = if class_idx != 0 {
                 let class_name = constant_pool.get_class(class_idx)?;
                 let class = method.class_loader().lookup_class(context, class_name)?;

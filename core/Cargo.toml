@@ -6,8 +6,4 @@ edition = "2024"
 [dependencies]
 bitflags = "2.9.2"
 hashbrown = "0.16.1"
-zip = { version = "4.5.0", default-features = false, features = ["deflate"], optional = true }
-
-[features]
-default = ["jar"]
-jar = ["zip"]
+miniz_oxide = "0.8.9"
