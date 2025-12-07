@@ -7,7 +7,7 @@
 - I/O operations, including file I/O (only for native platforms)
 - support for some classes in the `java.io`, `java.lang`, and `java.util` packages
 - ability to run Java on the browser through WASM
-- `no_std` support, when the default `jar` feature is disabled
+- `no_std` support
     - `alloc` is still required
 
 ## Upcoming features

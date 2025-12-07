@@ -1,9 +1,11 @@
+use alloc::boxed::Box;
+use alloc::string::ToString;
+use alloc::vec::Vec;
+use core::cell::Cell;
 use rjvm_core::{
     Array, ClassLoader, Context, Error, JvmString, NativeMethod, Object, PrimitiveType,
     ResolvedDescriptor, Value,
 };
-
-use std::cell::Cell;
 
 pub fn register_native_mappings(context: &Context) {
     #[rustfmt::skip]
@@ -251,32 +253,32 @@ fn math_atan2(_context: &Context, args: &[Value]) -> Result<Option<Value>, Error
 
     // TODO docs say this has some special-cases
 
-    Ok(Some(Value::Double(y.atan2(x))))
+    Ok(Some(Value::Double(libm::atan2(y, x))))
 }
 
 fn math_floor(_context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
     let value = args[0].double();
 
-    Ok(Some(Value::Double(value.floor())))
+    Ok(Some(Value::Double(libm::floor(value))))
 }
 
 fn math_log(_context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
     let value = args[0].double();
 
-    Ok(Some(Value::Double(value.ln())))
+    Ok(Some(Value::Double(libm::log(value))))
 }
 
 fn math_pow(_context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
     let base = args[0].double();
     let exp = args[2].double();
 
-    Ok(Some(Value::Double(base.powf(exp))))
+    Ok(Some(Value::Double(libm::pow(base, exp))))
 }
 
 fn math_sqrt(_context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
     let value = args[0].double();
 
-    Ok(Some(Value::Double(value.sqrt())))
+    Ok(Some(Value::Double(libm::sqrt(value))))
 }
 
 fn object_clone(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {

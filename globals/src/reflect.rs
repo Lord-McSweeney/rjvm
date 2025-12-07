@@ -1,5 +1,7 @@
 // Helper functions for reflection methods
 
+use alloc::boxed::Box;
+use alloc::vec::Vec;
 use rjvm_core::{
     Class, Context, Descriptor, Error, Gc, JvmString, Method, MethodFlags, Object, PrimitiveType,
     Value,

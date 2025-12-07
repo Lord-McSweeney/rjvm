@@ -1,3 +1,11 @@
+// Implementations of some native methods such as `Object.getClass`- these
+// aren't environment-dependent, so we can stuff them all in one crate.
+
+#![no_std]
+
+#[macro_use]
+extern crate alloc;
+
 pub(crate) mod hash_code;
 pub mod native_impl;
 pub(crate) mod reflect;
