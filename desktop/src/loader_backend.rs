@@ -1,4 +1,4 @@
-use rjvm_core::{LoaderBackend, ResourceLoadSource};
+use rjvm_core::LoaderBackend;
 
 use std::fs;
 use std::path;
@@ -12,25 +12,9 @@ impl DesktopLoaderBackend {
 }
 
 impl LoaderBackend for DesktopLoaderBackend {
-    fn load_resource(
-        &self,
-        load_type: &ResourceLoadSource,
-        resource_name: &str,
-    ) -> Option<Vec<u8>> {
-        match load_type {
-            ResourceLoadSource::FileSystem => {
-                let path_buf = path::PathBuf::from(resource_name);
+    fn load_filesystem_resource(&self, resource_name: &str) -> Option<Vec<u8>> {
+        let path_buf = path::PathBuf::from(resource_name);
 
-                fs::read(path_buf).ok()
-            }
-            ResourceLoadSource::Jar(jar) => {
-                let resource_name = resource_name.to_string();
-                if jar.has_file(&resource_name) {
-                    jar.read_file(resource_name).ok()
-                } else {
-                    None
-                }
-            }
-        }
+        fs::read(path_buf).ok()
     }
 }

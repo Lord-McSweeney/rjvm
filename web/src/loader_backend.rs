@@ -1,4 +1,4 @@
-use rjvm_core::{LoaderBackend, ResourceLoadSource};
+use rjvm_core::LoaderBackend;
 
 pub struct WebLoaderBackend {
     main_class_name: String,
@@ -15,27 +15,11 @@ impl WebLoaderBackend {
 }
 
 impl LoaderBackend for WebLoaderBackend {
-    fn load_resource(
-        &self,
-        load_type: &ResourceLoadSource,
-        resource_name: &str,
-    ) -> Option<Vec<u8>> {
-        match load_type {
-            ResourceLoadSource::FileSystem => {
-                if resource_name == &self.main_class_name {
-                    Some(self.main_class_data.clone())
-                } else {
-                    None
-                }
-            }
-            ResourceLoadSource::Jar(jar) => {
-                let resource_name = resource_name.to_string();
-                if jar.has_file(&resource_name) {
-                    jar.read_file(resource_name).ok()
-                } else {
-                    None
-                }
-            }
+    fn load_filesystem_resource(&self, resource_name: &str) -> Option<Vec<u8>> {
+        if resource_name == &self.main_class_name {
+            Some(self.main_class_data.clone())
+        } else {
+            None
         }
     }
 }

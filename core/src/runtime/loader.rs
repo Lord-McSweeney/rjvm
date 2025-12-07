@@ -223,7 +223,7 @@ impl ClassLoader {
     fn load_own_resource(self, resource_name: &str) -> Option<Vec<u8>> {
         let sources = self.0.load_sources.borrow();
         for source in &*sources {
-            let result = self.0.backend.load_resource(source, resource_name);
+            let result = source.load(&**self.0.backend, resource_name);
 
             if let Some(result) = result {
                 return Some(result);
@@ -266,14 +266,9 @@ impl Trace for ClassLoaderData {
 }
 
 pub trait LoaderBackend {
-    fn load_resource(
-        &self,
-        load_source: &ResourceLoadSource,
-        resource_name: &str,
-    ) -> Option<Vec<u8>>;
+    fn load_filesystem_resource(&self, resource_name: &str) -> Option<Vec<u8>>;
 }
 
-#[derive(Clone)]
 pub enum ResourceLoadSource {
     // This class was loaded directly from the filesystem. When searching
     // for resources, look at the files in the directory of this class.
@@ -282,6 +277,22 @@ pub enum ResourceLoadSource {
     // This class was loaded from a JAR file. When searching for resources,
     // look at the files in the directory of this class in the JAR.
     Jar(Jar),
+}
+
+impl ResourceLoadSource {
+    fn load(&self, backend: &dyn LoaderBackend, resource_name: &str) -> Option<Vec<u8>> {
+        match self {
+            ResourceLoadSource::FileSystem => backend.load_filesystem_resource(resource_name),
+            ResourceLoadSource::Jar(jar) => {
+                let resource_name = resource_name.to_string();
+                if jar.has_file(&resource_name) {
+                    jar.read_file(resource_name).ok()
+                } else {
+                    None
+                }
+            }
+        }
+    }
 }
 
 impl Trace for ResourceLoadSource {
