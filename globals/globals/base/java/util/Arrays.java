@@ -1,6 +1,8 @@
 package java.util;
 
 public class Arrays {
+    private Arrays() {}
+
     public static <E> List<E> asList​(E... arr) {
         return new ArrayBackedList<E>(arr);
     }
