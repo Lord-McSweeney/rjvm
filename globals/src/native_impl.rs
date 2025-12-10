@@ -23,7 +23,7 @@ pub fn register_native_mappings(context: &Context) {
         ("java/lang/Math.pow.(DD)D", math_pow),
         ("java/lang/Math.sqrt.(D)D", math_sqrt),
         ("java/lang/Object.clone.()Ljava/lang/Object;", object_clone),
-        ("java/lang/Throwable.internalFillInStackTrace.()Ljava/lang/String;", capture_stack_trace),
+        ("java/lang/Throwable.internalFillInStackTrace.()[Ljava/lang/StackTraceElement;", capture_stack_trace),
         ("java/lang/Class.getPrimitiveClass.(I)Ljava/lang/Class;", get_primitive_class),
         ("java/lang/Object.hashCode.()I", object_hash_code),
         ("java/lang/Class.forNameNative.(Ljava/lang/String;)Ljava/lang/Class;", class_for_name_native),
@@ -301,10 +301,14 @@ fn object_clone(context: &Context, args: &[Value]) -> Result<Option<Value>, Erro
 }
 
 fn capture_stack_trace(context: &Context, _args: &[Value]) -> Result<Option<Value>, Error> {
-    let stack_data = context.capture_call_stack();
-    let chars = stack_data.chars().map(|c| c as u16).collect::<Box<_>>();
+    let stack_elements = context.capture_call_stack();
+    let stack_elements = stack_elements.iter().map(|o| Some(*o)).collect::<Box<_>>();
 
-    Ok(Some(Value::Object(Some(context.create_string(&chars)))))
+    let elements_class = context.builtins().array_stack_trace_element;
+
+    let array = Object::obj_array(context, elements_class, stack_elements);
+
+    Ok(Some(Value::Object(Some(array))))
 }
 
 fn get_primitive_class(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {

@@ -5,9 +5,8 @@ import java.io.PrintStream;
 public class Throwable {
     private String message;
 
-    // Should technically be an array of stack trace elements
     // NOTE field ordering is important
-    private String stackTrace;
+    private StackTraceElement[] stackTrace;
 
     public Throwable() {
         this.fillInStackTrace();
@@ -23,10 +22,14 @@ public class Throwable {
         return this;
     }
 
-    private native String internalFillInStackTrace();
+    private native StackTraceElement[] internalFillInStackTrace();
 
     public String getMessage() {
         return this.message;
+    }
+
+    public StackTraceElement[] getStackTrace() {
+        return this.stackTrace;
     }
 
     public String toString() {
@@ -46,6 +49,12 @@ public class Throwable {
     public void printStackTrace(PrintStream s) {
         s.println(this);
 
-        s.print(this.stackTrace);
+        for (int i = 0; i < this.stackTrace.length; i ++) {
+            StringBuilder builder = new StringBuilder();
+            builder.append("\tat ");
+            builder.append(this.stackTrace[i]);
+
+            s.println(builder);
+        }
     }
 }

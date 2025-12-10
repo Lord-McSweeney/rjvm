@@ -30,6 +30,7 @@ pub struct BuiltinClasses {
     pub java_lang_null_pointer_exception: Class,
     pub java_lang_reflect_constructor: Class,
     pub java_lang_reflect_method: Class,
+    pub java_lang_stack_trace_element: Class,
     pub java_lang_system: Class,
 
     pub array_byte: Class,
@@ -40,6 +41,8 @@ pub struct BuiltinClasses {
     pub array_long: Class,
     pub array_short: Class,
     pub array_bool: Class,
+
+    pub array_stack_trace_element: Class,
 }
 
 macro_rules! builtin_classes {
@@ -87,6 +90,7 @@ impl BuiltinClasses {
                 ("java/lang/NullPointerException", java_lang_null_pointer_exception),
                 ("java/lang/reflect/Constructor", java_lang_reflect_constructor),
                 ("java/lang/reflect/Method", java_lang_reflect_method),
+                ("java/lang/StackTraceElement", java_lang_stack_trace_element),
                 ("java/lang/System", java_lang_system),
 
                 ("[B", array_byte),
@@ -97,6 +101,8 @@ impl BuiltinClasses {
                 ("[J", array_long),
                 ("[S", array_short),
                 ("[Z", array_bool),
+
+                ("[Ljava/lang/StackTraceElement;", array_stack_trace_element),
             ]
         )
     }
@@ -124,6 +130,7 @@ impl Trace for BuiltinClasses {
         self.java_lang_null_pointer_exception.trace();
         self.java_lang_reflect_constructor.trace();
         self.java_lang_reflect_method.trace();
+        self.java_lang_stack_trace_element.trace();
         self.java_lang_system.trace();
 
         self.array_byte.trace();
@@ -134,5 +141,7 @@ impl Trace for BuiltinClasses {
         self.array_long.trace();
         self.array_short.trace();
         self.array_bool.trace();
+
+        self.array_stack_trace_element.trace();
     }
 }

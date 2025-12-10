@@ -1,8 +1,11 @@
+use super::context::Context;
+use super::context::STACK_TRACE_ELEMENT_CREATE_METHOD;
 use super::method::Method;
+use super::object::Object;
+use super::value::Value;
 
 use crate::gc::Trace;
 
-use alloc::string::String;
 use alloc::vec::Vec;
 
 pub struct CallStack {
@@ -30,8 +33,8 @@ impl CallStack {
 
     // This needs to do some hacky stuff to remove the error initializer frames
     // to make the call stack look correct
-    pub fn display(&self) -> String {
-        let mut result = String::with_capacity(self.entries.len() * 20);
+    pub fn get_entries(&self) -> Vec<Method> {
+        let mut result = Vec::with_capacity(self.entries.len() - 2);
 
         // If we are currently removing initializer frames, this will be `Some`
         let mut last_entry_class = None;
@@ -57,11 +60,33 @@ impl CallStack {
                 }
             }
 
-            result.push_str(&format!(
-                "\tat {}.{}()\n",
-                entry.class().dot_name(),
-                entry.name()
-            ));
+            result.push(*entry);
+        }
+
+        result
+    }
+
+    pub fn display(context: &Context, entries: &[Method]) -> Vec<Object> {
+        let mut result = Vec::with_capacity(entries.len());
+
+        // Skip the first two entries because they are
+        // `Throwable.internalFillInStackTrace` and `Throwable.fillInStackTrace`
+        for entry in entries {
+            let method_object = entry.get_or_init_object(context);
+
+            let element_class = context.builtins().java_lang_stack_trace_element;
+            let args = &[Value::Object(Some(method_object))];
+
+            let create_method = element_class.static_methods()[STACK_TRACE_ELEMENT_CREATE_METHOD];
+
+            let created_element = create_method
+                .exec(context, args)
+                .unwrap()
+                .unwrap()
+                .object()
+                .unwrap();
+
+            result.push(created_element);
         }
 
         result

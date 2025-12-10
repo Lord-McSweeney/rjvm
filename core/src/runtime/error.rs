@@ -7,6 +7,7 @@ use crate::classfile::error::Error as ClassFileError;
 use crate::reader::ReadError;
 
 use alloc::string::String;
+use alloc::vec::Vec;
 use core::fmt;
 
 pub enum Error {
@@ -64,10 +65,45 @@ impl Error {
 
                 // Now write the stack trace, if it exists. (TODO: Shouldn't it
                 // always exist?)
+                // This is a little complicated because we need to interact with
+                // Java code a lot.
 
                 let stack_trace = error_object.get_field(THROWABLE_STACK_TRACE_FIELD).object();
                 if let Some(stack_trace) = stack_trace {
-                    result_string.push_str(&Context::string_object_to_string(stack_trace));
+                    let mut result = Vec::new();
+
+                    let stack_trace = stack_trace.array_data().as_object_array();
+
+                    // Now we have the array of stack trace elements.
+                    for stack_trace_element in stack_trace {
+                        let stack_trace_element = stack_trace_element.get().unwrap();
+
+                        let to_string_method = stack_trace_element
+                            .class()
+                            .instance_method_vtable()
+                            .get_element(OBJECT_TO_STRING_METHOD);
+
+                        let args = &[Value::Object(Some(stack_trace_element))];
+                        // We know exactly what `StackTraceElement.toString` does
+                        let stringified = to_string_method
+                            .exec(context, args)
+                            .unwrap()
+                            .unwrap()
+                            .object()
+                            .unwrap();
+                        let stringified = Context::unwrap_string(stringified);
+
+                        // "\tat "
+                        result.push(b'\t' as u16);
+                        result.push(b'a' as u16);
+                        result.push(b't' as u16);
+                        result.push(b' ' as u16);
+
+                        result.extend_from_slice(&stringified);
+
+                        result.push(b'\n' as u16);
+                    }
+                    result_string.push_str(&String::from_utf16_lossy(&result));
                 }
 
                 result_string

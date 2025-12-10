@@ -27,6 +27,8 @@ pub const THROWABLE_STACK_TRACE_FIELD: usize = 1;
 
 pub const STRING_DATA_FIELD: usize = 0;
 
+pub const STACK_TRACE_ELEMENT_CREATE_METHOD: usize = 0;
+
 const DEFAULT_GC_THRESHOLD: u32 = 131072;
 
 #[derive(Clone)]
@@ -245,8 +247,9 @@ impl Context {
         self.call_stack.borrow_mut().pop_call();
     }
 
-    pub fn capture_call_stack(&self) -> String {
-        self.call_stack.borrow().display()
+    pub fn capture_call_stack(&self) -> Vec<Object> {
+        let entries = self.call_stack.borrow().get_entries();
+        CallStack::display(self, &entries)
     }
 
     pub fn increment_gc_counter(&self) {
@@ -265,9 +268,7 @@ impl Context {
 
     /// Convert a Java String object to a Rust `String`.
     pub fn string_object_to_string(string_obj: Object) -> String {
-        let chars = string_obj.get_field(STRING_DATA_FIELD).object().unwrap();
-        let chars = chars.array_data().as_char_array();
-        let chars = chars.iter().map(|c| c.get()).collect::<Box<_>>();
+        let chars = Context::unwrap_string(string_obj);
 
         return String::from_utf16_lossy(&chars);
     }
@@ -296,6 +297,15 @@ impl Context {
         string_instance.set_field(STRING_DATA_FIELD, Value::Object(Some(chars_array_object)));
 
         string_instance
+    }
+
+    /// Convert a Java String object to a Rust `Box<[u16]>`.
+    pub fn unwrap_string(string_obj: Object) -> Box<[u16]> {
+        let chars = string_obj.get_field(STRING_DATA_FIELD).object().unwrap();
+        let chars = chars.array_data().as_char_array();
+        let chars = chars.iter().map(|c| c.get()).collect::<Box<_>>();
+
+        chars
     }
 
     pub fn object_class(&self) -> Class {
