@@ -35,6 +35,13 @@ public class Color {
         this.a = a;
     }
 
+    public Color(int rgb) {
+        this.r = (rgb >> 16) & 0xFF;
+        this.g = (rgb >> 8) & 0xFF;
+        this.b = rgb & 0xFF;
+        this.a = 255;
+    }
+
     public int getAlpha() {
         return this.a;
     }
