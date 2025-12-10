@@ -42,6 +42,10 @@ public class Color {
         this.a = 255;
     }
 
+    public int getRGB() {
+        return (this.a << 24) + (this.r << 16) + (this.g << 8) + this.b;
+    }
+
     public int getAlpha() {
         return this.a;
     }
