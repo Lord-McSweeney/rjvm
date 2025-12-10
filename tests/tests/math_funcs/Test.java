@@ -56,5 +56,25 @@ public class Test {
         System.out.println((int) Math.floor(2839.2));
         System.out.println((int) Math.floor(-0.9));
         System.out.println((int) Math.floor(-0.2));
+
+        System.out.println(Math.min(-2, 8));
+        System.out.println(Math.min(-19, -7));
+        System.out.println(Math.min(2, 8));
+        System.out.println(Math.min(19, 7));
+        System.out.println(Math.min(0, 0));
+        System.out.println(Math.min(Integer.MIN_VALUE, 0));
+        System.out.println(Math.min(Integer.MAX_VALUE, Integer.MIN_VALUE));
+        System.out.println(Math.min(Integer.MAX_VALUE, Integer.MAX_VALUE));
+        System.out.println(Math.min(Integer.MIN_VALUE, Integer.MIN_VALUE));
+
+        System.out.println(Math.max(-2, 8));
+        System.out.println(Math.max(-19, -7));
+        System.out.println(Math.max(2, 8));
+        System.out.println(Math.max(19, 7));
+        System.out.println(Math.max(0, 0));
+        System.out.println(Math.max(Integer.MIN_VALUE, 0));
+        System.out.println(Math.max(Integer.MAX_VALUE, Integer.MIN_VALUE));
+        System.out.println(Math.max(Integer.MAX_VALUE, Integer.MAX_VALUE));
+        System.out.println(Math.max(Integer.MIN_VALUE, Integer.MIN_VALUE));
     }
 }
