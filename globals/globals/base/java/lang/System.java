@@ -93,6 +93,10 @@ public final class System {
 
     public static native int identityHashCode(Object x);
 
+    public static void gc() {
+        Runtime.getRuntime().gc();
+    }
+
     public static void exit(int status) {
         Runtime.getRuntime().exit(status);
     }

@@ -9,6 +9,12 @@ public class Runtime {
         return Runtime.theRuntime;
     }
 
+    // Methods
+
+    public void gc() {
+        // TODO implement
+    }
+
     public native void exit(int status);
 
     public void addShutdownHook(Thread hook) {
