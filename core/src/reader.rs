@@ -67,7 +67,7 @@ impl Reader for FileData<'_> {
     }
 
     fn read_bytes(&mut self, count: usize) -> Result<Vec<u8>, ReadError> {
-        let mut bytes = Vec::new();
+        let mut bytes = Vec::with_capacity(count);
         for _ in 0..count {
             if self.position == self.data.len() {
                 return Err(ReadError::EndOfFile);
