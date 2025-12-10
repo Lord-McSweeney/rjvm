@@ -7,6 +7,8 @@ public abstract class Graphics {
 
     public abstract void fillRect(int x, int y, int width, int height);
 
+    public abstract void fillPolygon(int xPoints[], int yPoints[], int nPoints);
+
     public abstract void setColor(Color color);
 
     public abstract void translate(int x, int y);
