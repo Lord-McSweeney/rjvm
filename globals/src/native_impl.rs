@@ -39,6 +39,9 @@ pub fn register_native_mappings(context: &Context) {
         ("java/lang/Class.getSuperclass.()Ljava/lang/Class;", class_get_superclass),
         ("java/lang/Class.getMethodNative.(Ljava/lang/String;[Ljava/lang/Class;)Ljava/lang/reflect/Method;", class_get_method),
         ("java/lang/System.identityHashCode.(Ljava/lang/Object;)I", identity_hash_code),
+        ("java/lang/reflect/Constructor.getDeclaringClass.()Ljava/lang/Class;", exec_get_declaring_class),
+        ("java/lang/reflect/Method.getDeclaringClass.()Ljava/lang/Class;", exec_get_declaring_class),
+        ("java/lang/reflect/Method.getName.()Ljava/lang/String;", method_get_name),
 
         ("jvm/internal/ClassLoaderUtils.makePlatformLoader.(Ljava/lang/ClassLoader;)V", make_platform_loader),
         ("jvm/internal/ClassLoaderUtils.makeSystemLoader.(Ljava/lang/ClassLoader;Ljava/lang/ClassLoader;)V", make_sys_loader),
@@ -569,6 +572,30 @@ fn identity_hash_code(_context: &Context, args: &[Value]) -> Result<Option<Value
     let result = object.map(crate::hash_code::calc_hash_code).unwrap_or(0);
 
     Ok(Some(Value::Integer(result)))
+}
+
+fn exec_get_declaring_class(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
+    // Receiver should never be null
+    let exec_obj = args[0].object().unwrap();
+    let exec_id = exec_obj.get_field(0).int();
+    let method = context.executable_object_by_id(exec_id);
+
+    let class = method.class();
+    let class_object = class.get_or_init_object(context);
+
+    Ok(Some(Value::Object(Some(class_object))))
+}
+
+fn method_get_name(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
+    // Receiver should never be null
+    let exec_obj = args[0].object().unwrap();
+    let exec_id = exec_obj.get_field(0).int();
+    let method = context.executable_object_by_id(exec_id);
+
+    let name = method.name();
+    let name_object = context.jvm_string_to_string(name);
+
+    Ok(Some(Value::Object(Some(name_object))))
 }
 
 fn make_platform_loader(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
