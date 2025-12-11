@@ -1,6 +1,7 @@
 package java.applet;
 
 import java.awt.Panel;
+import java.net.URL;
 
 public class Applet extends Panel {
     private AppletStub stub;
@@ -12,6 +13,10 @@ public class Applet extends Panel {
     }
 
     // Methods that use the stub
+
+    public URL getDocumentBase() {
+        return this.stub.getDocumentBase();
+    }
 
     public String getParameter(String name) {
         return this.stub.getParameter(name);
