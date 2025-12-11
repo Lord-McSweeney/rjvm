@@ -1,6 +1,8 @@
 package java.applet;
 
+import java.awt.Image;
 import java.awt.Panel;
+import java.net.MalformedURLException;
 import java.net.URL;
 
 public class Applet extends Panel {
@@ -10,6 +12,10 @@ public class Applet extends Panel {
 
     public final void setStub(AppletStub stub) {
         this.stub = stub;
+    }
+
+    public AppletContext getAppletContext() {
+        return this.stub.getAppletContext();
     }
 
     // Methods that use the stub
@@ -27,6 +33,20 @@ public class Applet extends Panel {
             return this.stub.isActive();
         } else {
             return false;
+        }
+    }
+
+    // Methods that use the context
+
+    public Image getImage(URL url) {
+        return this.stub.getAppletContext().getImage(url);
+    }
+
+    public Image getImage(URL url, String name) {
+        try {
+            return this.getImage(new URL(url, name));
+        } catch (MalformedURLException e) {
+            return null;
         }
     }
 
