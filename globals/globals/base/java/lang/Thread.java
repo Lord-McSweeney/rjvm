@@ -19,4 +19,8 @@ public class Thread implements Runnable {
             this.target.run();
         }
     }
+
+    public static void sleep(long millis) throws InterruptedException {
+        // TODO implement
+    }
 }
