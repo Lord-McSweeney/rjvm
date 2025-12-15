@@ -49,6 +49,8 @@ public final class Class<T> implements AnnotatedElement, GenericDeclaration, Typ
 
     public native ClassLoader getClassLoader();
 
+    public native boolean isInstance(Object obj);
+
     public InputStream getResourceAsStream(String resourceName) {
         // Resolve the name relative to this class's name. For example, if in
         // `com/example/MyClass`, looking up `rsrc.txt` looks up

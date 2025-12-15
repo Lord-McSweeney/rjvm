@@ -42,6 +42,7 @@ pub fn register_native_mappings(context: &Context) {
         ("java/lang/reflect/Constructor.getDeclaringClass.()Ljava/lang/Class;", exec_get_declaring_class),
         ("java/lang/reflect/Method.getDeclaringClass.()Ljava/lang/Class;", exec_get_declaring_class),
         ("java/lang/reflect/Method.getName.()Ljava/lang/String;", method_get_name),
+        ("java/lang/Class.isInstance.(Ljava/lang/Object;)Z", class_is_instance),
 
         ("jvm/internal/ClassLoaderUtils.makePlatformLoader.(Ljava/lang/ClassLoader;)V", make_platform_loader),
         ("jvm/internal/ClassLoaderUtils.makeSystemLoader.(Ljava/lang/ClassLoader;Ljava/lang/ClassLoader;)V", make_sys_loader),
@@ -600,6 +601,20 @@ fn method_get_name(context: &Context, args: &[Value]) -> Result<Option<Value>, E
     let name_object = context.jvm_string_to_string(name);
 
     Ok(Some(Value::Object(Some(name_object))))
+}
+
+fn class_is_instance(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
+    // Receiver should never be null
+    let class_obj = args[0].object().unwrap();
+    let class_id = class_obj.get_field(0).int();
+    let class = context.class_object_by_id(class_id);
+
+    let object = args[1].object();
+    if object.is_some_and(|o| o.class().check_cast(class)) {
+        Ok(Some(Value::Integer(1)))
+    } else {
+        Ok(Some(Value::Integer(0)))
+    }
 }
 
 fn make_platform_loader(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
