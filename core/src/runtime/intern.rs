@@ -7,29 +7,41 @@ use core::hash::{Hash, Hasher};
 use hashbrown::HashSet;
 
 #[derive(Clone, Copy)]
-struct StringObject(Object);
+struct StringObject {
+    object: Object,
+    hash: u32,
+}
 
 impl StringObject {
     fn new(object: Object) -> Self {
-        // Should we assert that this is of the String class here?
+        // Should we assert that `object` is of the String class here?
 
-        StringObject(object)
+        let chars = object.get_field(STRING_DATA_FIELD).object().unwrap();
+        let chars = chars.array_data().as_char_array();
+
+        let mut hash = chars.len() as u32;
+        for character in chars {
+            hash = hash.rotate_left(7);
+            hash ^= (character.get() as u32) & 0xB5;
+        }
+
+        StringObject { object, hash }
     }
 }
 
 impl Trace for StringObject {
     fn trace(&self) {
-        self.0.trace();
+        self.object.trace();
     }
 }
 
 impl PartialEq for StringObject {
     fn eq(&self, other: &Self) -> bool {
         // Compare the characters stored in the strings
-        let these_chars = self.0.get_field(STRING_DATA_FIELD).object().unwrap();
+        let these_chars = self.object.get_field(STRING_DATA_FIELD).object().unwrap();
         let these_chars = these_chars.array_data().as_char_array();
 
-        let other_chars = other.0.get_field(STRING_DATA_FIELD).object().unwrap();
+        let other_chars = other.object.get_field(STRING_DATA_FIELD).object().unwrap();
         let other_chars = other_chars.array_data().as_char_array();
 
         these_chars == other_chars
@@ -40,11 +52,7 @@ impl Eq for StringObject {}
 
 impl Hash for StringObject {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        let chars = self.0.get_field(STRING_DATA_FIELD).object().unwrap();
-        let chars = chars.array_data().as_char_array();
-
-        // TODO :)
-        chars.len().hash(state);
+        self.hash.hash(state);
     }
 }
 
@@ -56,16 +64,16 @@ impl InternedStrings {
         InternedStrings(HashSet::new())
     }
 
-    pub fn intern(&mut self, object: Object) -> Object {
-        let object = StringObject::new(object);
+    pub fn intern(&mut self, string_object: Object) -> Object {
+        let new_object = StringObject::new(string_object);
 
         // TODO use `get_or_insert` once it's stabilized
-        let value = self.0.get(&object);
-        if let Some(value) = value {
-            return value.0;
+        let existing_object = self.0.get(&new_object);
+        if let Some(existing_object) = existing_object {
+            existing_object.object
         } else {
-            self.0.insert(object);
-            return object.0;
+            self.0.insert(new_object);
+            new_object.object
         }
     }
 }
