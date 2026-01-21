@@ -1,4 +1,4 @@
-use super::builtins::BuiltinClasses;
+use super::builtins::{BuiltinClasses, PrimitiveArrayClasses};
 use super::call_stack::CallStack;
 use super::class::{Class, PrimitiveType};
 use super::descriptor::MethodDescriptor;
@@ -87,6 +87,9 @@ pub struct Context {
     // access quickly
     builtins: Gc<RefCell<Option<BuiltinClasses>>>,
 
+    // Like `builtins`, but for the primitive array classes.
+    primitive_arrays: Gc<RefCell<Option<PrimitiveArrayClasses>>>,
+
     // Common strings and descriptors.
     pub common: CommonData,
 
@@ -127,6 +130,7 @@ impl Context {
             gc_threshold: Gc::new(gc_ctx, Cell::new(DEFAULT_GC_THRESHOLD)),
             object_class: Gc::new(gc_ctx, OnceCell::new()),
             builtins: Gc::new(gc_ctx, RefCell::new(None)),
+            primitive_arrays: Gc::new(gc_ctx, RefCell::new(None)),
             common: CommonData::new(gc_ctx),
             gc_ctx,
         }
@@ -322,7 +326,16 @@ impl Context {
         })
     }
 
+    pub fn primitive_arrays(&self) -> Ref<'_, PrimitiveArrayClasses> {
+        let primitive_arrays = self.primitive_arrays.borrow();
+        Ref::map(primitive_arrays, |b| {
+            b.as_ref()
+                .expect("Primitive array classes should have been loaded")
+        })
+    }
+
     pub fn load_builtins(&self) {
+        // First load the `Object` class
         let object_class_name = "java/lang/Object".to_string();
         let object_class_name = JvmString::new(self.gc_ctx, object_class_name);
 
@@ -333,6 +346,11 @@ impl Context {
             .expect("Object class did not exist");
 
         let _ = self.object_class.set(object_class);
+
+        // The primitive array classes require absolutely nothing to initialize,
+        // except for `Object`, so get them loaded next
+        let builtin_primitive_arrays = PrimitiveArrayClasses::new(self);
+        *self.primitive_arrays.borrow_mut() = Some(builtin_primitive_arrays);
 
         let builtin_classes = BuiltinClasses::new(self);
         *self.builtins.borrow_mut() = Some(builtin_classes);
@@ -580,6 +598,7 @@ impl Trace for Context {
 
         self.object_class.trace();
         self.builtins.trace();
+        self.primitive_arrays.trace();
         self.common.trace();
     }
 }

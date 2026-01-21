@@ -97,7 +97,7 @@ impl Object {
     }
 
     pub fn bool_array(context: &Context, data: Box<[i8]>) -> Self {
-        let class = context.builtins().array_bool;
+        let class = context.primitive_arrays().array_bool;
 
         let data = data.into_iter().map(Cell::new).collect::<Box<_>>();
 
@@ -111,7 +111,7 @@ impl Object {
     }
 
     pub fn byte_array(context: &Context, data: Box<[i8]>) -> Self {
-        let class = context.builtins().array_byte;
+        let class = context.primitive_arrays().array_byte;
 
         let data = data.into_iter().map(Cell::new).collect::<Box<_>>();
 
@@ -125,7 +125,7 @@ impl Object {
     }
 
     pub fn char_array(context: &Context, data: Box<[u16]>) -> Self {
-        let class = context.builtins().array_char;
+        let class = context.primitive_arrays().array_char;
 
         let data = data.into_iter().map(Cell::new).collect::<Box<_>>();
 
@@ -139,7 +139,7 @@ impl Object {
     }
 
     pub fn double_array(context: &Context, data: Box<[f64]>) -> Self {
-        let class = context.builtins().array_double;
+        let class = context.primitive_arrays().array_double;
 
         let data = data.into_iter().map(Cell::new).collect::<Box<_>>();
 
@@ -153,7 +153,7 @@ impl Object {
     }
 
     pub fn float_array(context: &Context, data: Box<[f32]>) -> Self {
-        let class = context.builtins().array_float;
+        let class = context.primitive_arrays().array_float;
 
         let data = data.into_iter().map(Cell::new).collect::<Box<_>>();
 
@@ -167,7 +167,7 @@ impl Object {
     }
 
     pub fn int_array(context: &Context, data: Box<[i32]>) -> Self {
-        let class = context.builtins().array_int;
+        let class = context.primitive_arrays().array_int;
 
         let data = data.into_iter().map(Cell::new).collect::<Box<_>>();
 
@@ -181,7 +181,7 @@ impl Object {
     }
 
     pub fn long_array(context: &Context, data: Box<[i64]>) -> Self {
-        let class = context.builtins().array_long;
+        let class = context.primitive_arrays().array_long;
 
         let data = data.into_iter().map(Cell::new).collect::<Box<_>>();
 
@@ -195,7 +195,7 @@ impl Object {
     }
 
     pub fn short_array(context: &Context, data: Box<[i16]>) -> Self {
-        let class = context.builtins().array_short;
+        let class = context.primitive_arrays().array_short;
 
         let data = data.into_iter().map(Cell::new).collect::<Box<_>>();
 

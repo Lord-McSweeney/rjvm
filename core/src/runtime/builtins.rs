@@ -6,9 +6,27 @@ use crate::string::JvmString;
 
 use alloc::string::ToString;
 
-// The builtin classes, looked-up at VM startup. NOTE: `java/lang/Object` is
-// accessed with `context.object_class()` because it needs to be loaded before
-// the rest of the builtins
+macro_rules! builtin_classes {
+    ($struct_name:ident, $context:expr, [$(($class_name:literal, $field:ident)),* $(,)?]) => {
+        $struct_name {
+            $(
+                $field: {
+                    let string = JvmString::new($context.gc_ctx, $class_name.to_string());
+
+                    $context
+                        .bootstrap_loader()
+                        .find_class($context, string)
+                        .expect("Builtin class parsing failed")
+                        .unwrap_or_else(|| panic!("Builtin class {} was not found", $class_name))
+                },
+            )*
+        }
+    }
+}
+
+/// The builtin classes, looked-up at VM startup. NOTE: `java/lang/Object` is
+/// accessed with `context.object_class()` because it needs to be loaded before
+/// the rest of the builtins
 pub struct BuiltinClasses {
     pub java_lang_class: Class,
     pub java_lang_string: Class,
@@ -33,40 +51,14 @@ pub struct BuiltinClasses {
     pub java_lang_stack_trace_element: Class,
     pub java_lang_system: Class,
 
-    pub array_byte: Class,
-    pub array_char: Class,
-    pub array_double: Class,
-    pub array_float: Class,
-    pub array_int: Class,
-    pub array_long: Class,
-    pub array_short: Class,
-    pub array_bool: Class,
-
     pub array_stack_trace_element: Class,
-}
-
-macro_rules! builtin_classes {
-    ($context:expr, [$(($class_name:literal, $field:ident)),* $(,)?]) => {
-        BuiltinClasses {
-            $(
-                $field: {
-                    let string = JvmString::new($context.gc_ctx, $class_name.to_string());
-
-                    $context
-                        .bootstrap_loader()
-                        .find_class($context, string)
-                        .expect("Builtin class parsing failed")
-                        .unwrap_or_else(|| panic!("Builtin class {} was not found", $class_name))
-                },
-            )*
-        }
-    }
 }
 
 impl BuiltinClasses {
     #[rustfmt::skip]
     pub fn new(context: &Context) -> Self {
         builtin_classes!(
+            BuiltinClasses,
             context,
             [
                 // String, then Throwable, then Class
@@ -93,6 +85,32 @@ impl BuiltinClasses {
                 ("java/lang/StackTraceElement", java_lang_stack_trace_element),
                 ("java/lang/System", java_lang_system),
 
+                ("[Ljava/lang/StackTraceElement;", array_stack_trace_element),
+            ]
+        )
+    }
+}
+
+/// The primitive array classes. These are separate from `BuiltinClasses`
+/// because the latter may require the former for static initialization.
+pub struct PrimitiveArrayClasses {
+    pub array_byte: Class,
+    pub array_char: Class,
+    pub array_double: Class,
+    pub array_float: Class,
+    pub array_int: Class,
+    pub array_long: Class,
+    pub array_short: Class,
+    pub array_bool: Class,
+}
+
+impl PrimitiveArrayClasses {
+    #[rustfmt::skip]
+    pub fn new(context: &Context) -> Self {
+        builtin_classes!(
+            PrimitiveArrayClasses,
+            context,
+            [
                 ("[B", array_byte),
                 ("[C", array_char),
                 ("[D", array_double),
@@ -101,8 +119,6 @@ impl BuiltinClasses {
                 ("[J", array_long),
                 ("[S", array_short),
                 ("[Z", array_bool),
-
-                ("[Ljava/lang/StackTraceElement;", array_stack_trace_element),
             ]
         )
     }
@@ -133,6 +149,12 @@ impl Trace for BuiltinClasses {
         self.java_lang_stack_trace_element.trace();
         self.java_lang_system.trace();
 
+        self.array_stack_trace_element.trace();
+    }
+}
+
+impl Trace for PrimitiveArrayClasses {
+    fn trace(&self) {
         self.array_byte.trace();
         self.array_char.trace();
         self.array_double.trace();
@@ -141,7 +163,5 @@ impl Trace for BuiltinClasses {
         self.array_long.trace();
         self.array_short.trace();
         self.array_bool.trace();
-
-        self.array_stack_trace_element.trace();
     }
 }
