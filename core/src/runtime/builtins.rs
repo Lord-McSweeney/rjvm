@@ -126,9 +126,9 @@ impl PrimitiveArrayClasses {
 
 impl Trace for BuiltinClasses {
     fn trace(&self) {
-        self.java_lang_class.trace();
         self.java_lang_string.trace();
         self.java_lang_throwable.trace();
+        self.java_lang_class.trace();
 
         self.java_lang_arithmetic_exception.trace();
         self.java_lang_array_index_oob_exception.trace();
