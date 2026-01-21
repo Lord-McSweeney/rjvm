@@ -6,21 +6,19 @@ use crate::string::JvmString;
 
 use alloc::string::ToString;
 
-macro_rules! builtin_classes {
-    ($struct_name:ident, $context:expr, [$(($class_name:literal, $field:ident)),* $(,)?]) => {
-        $struct_name {
-            $(
-                $field: {
-                    let string = JvmString::new($context.gc_ctx, $class_name.to_string());
+macro_rules! set_builtin_classes {
+    ($context:expr, [$(($class_name:literal, $field:ident)),* $(,)?]) => {
+        $(
+            let string = JvmString::new($context.gc_ctx, $class_name.to_string());
 
-                    $context
-                        .bootstrap_loader()
-                        .find_class($context, string)
-                        .expect("Builtin class parsing failed")
-                        .unwrap_or_else(|| panic!("Builtin class {} was not found", $class_name))
-                },
-            )*
-        }
+            let class = $context
+                .bootstrap_loader()
+                .find_class($context, string)
+                .expect("Builtin class parsing failed")
+                .unwrap_or_else(|| panic!("Builtin class {} was not found", $class_name));
+
+            $context.builtins_mut().$field = class;
+        )*
     }
 }
 
@@ -55,10 +53,41 @@ pub struct BuiltinClasses {
 }
 
 impl BuiltinClasses {
+    /// Create an invalid version of `BuiltinClasses`, with each class set to
+    /// the `java/lang/Object` class.
     #[rustfmt::skip]
-    pub fn new(context: &Context) -> Self {
-        builtin_classes!(
-            BuiltinClasses,
+    pub fn invalid(object_class: Class) -> Self {
+        BuiltinClasses {
+            java_lang_class: object_class,
+            java_lang_string: object_class,
+            java_lang_throwable: object_class,
+
+            java_lang_arithmetic_exception: object_class,
+            java_lang_array_index_oob_exception: object_class,
+            java_lang_array_store_exception: object_class,
+            java_lang_class_cast_exception: object_class,
+            java_lang_clone_not_supported_exception: object_class,
+            java_lang_cloneable: object_class,
+            java_lang_illegal_access_error: object_class,
+            java_lang_instantiation_error: object_class,
+            java_lang_instantiation_exception: object_class,
+            java_lang_negative_array_size_exception: object_class,
+            java_lang_no_class_def_found_error: object_class,
+            java_lang_no_such_field_error: object_class,
+            java_lang_no_such_method_error: object_class,
+            java_lang_null_pointer_exception: object_class,
+            java_lang_reflect_constructor: object_class,
+            java_lang_reflect_method: object_class,
+            java_lang_stack_trace_element: object_class,
+            java_lang_system: object_class,
+
+            array_stack_trace_element: object_class,
+        }
+    }
+
+    #[rustfmt::skip]
+    pub fn initialize_on_context(context: &Context) {
+        set_builtin_classes!(
             context,
             [
                 // String, then Throwable, then Class
@@ -87,7 +116,25 @@ impl BuiltinClasses {
 
                 ("[Ljava/lang/StackTraceElement;", array_stack_trace_element),
             ]
-        )
+        );
+    }
+}
+
+macro_rules! primitive_arrays {
+    ($context:expr, [$(($class_name:literal, $field:ident)),* $(,)?]) => {
+        PrimitiveArrayClasses {
+            $(
+                $field: {
+                    let string = JvmString::new($context.gc_ctx, $class_name.to_string());
+
+                    $context
+                        .bootstrap_loader()
+                        .find_class($context, string)
+                        .expect("Builtin class parsing failed")
+                        .unwrap_or_else(|| panic!("Builtin class {} was not found", $class_name))
+                },
+            )*
+        }
     }
 }
 
@@ -107,8 +154,7 @@ pub struct PrimitiveArrayClasses {
 impl PrimitiveArrayClasses {
     #[rustfmt::skip]
     pub fn new(context: &Context) -> Self {
-        builtin_classes!(
-            PrimitiveArrayClasses,
+        primitive_arrays!(
             context,
             [
                 ("[B", array_byte),

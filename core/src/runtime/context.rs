@@ -16,7 +16,7 @@ use crate::string::JvmString;
 use alloc::boxed::Box;
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
-use core::cell::{Cell, OnceCell, Ref, RefCell};
+use core::cell::{Cell, OnceCell, Ref, RefCell, RefMut};
 use hashbrown::HashMap;
 
 // Various magic fields
@@ -316,13 +316,20 @@ impl Context {
         self.object_class
             .get()
             .copied()
-            .expect("Builtin classes should have been loaded")
+            .expect("Object class should have been loaded")
     }
 
     pub fn builtins(&self) -> Ref<'_, BuiltinClasses> {
         let builtins = self.builtins.borrow();
         Ref::map(builtins, |b| {
-            b.as_ref().expect("Builtin classes should have been loaded")
+            b.as_ref().expect("Builtin classes should exist")
+        })
+    }
+
+    pub fn builtins_mut(&self) -> RefMut<'_, BuiltinClasses> {
+        let builtins = self.builtins.borrow_mut();
+        RefMut::map(builtins, |b| {
+            b.as_mut().expect("Builtin classes should exist")
         })
     }
 
@@ -335,7 +342,7 @@ impl Context {
     }
 
     pub fn load_builtins(&self) {
-        // First load the `Object` class
+        // First load the `java/lang/Object` class
         let object_class_name = "java/lang/Object".to_string();
         let object_class_name = JvmString::new(self.gc_ctx, object_class_name);
 
@@ -348,12 +355,17 @@ impl Context {
         let _ = self.object_class.set(object_class);
 
         // The primitive array classes require absolutely nothing to initialize,
-        // except for `Object`, so get them loaded next
+        // except for `java/lang/Object`, so get them loaded next
         let builtin_primitive_arrays = PrimitiveArrayClasses::new(self);
         *self.primitive_arrays.borrow_mut() = Some(builtin_primitive_arrays);
 
-        let builtin_classes = BuiltinClasses::new(self);
+        // Some builtin classes depend on other ones, so this is initialized
+        // class-by-class rather than all-at-once.
+        // TODO this will fail dramatically if the provided `rt.jar` doesn't
+        // initialize the classes in the expected order
+        let builtin_classes = BuiltinClasses::invalid(object_class);
         *self.builtins.borrow_mut() = Some(builtin_classes);
+        BuiltinClasses::initialize_on_context(self);
 
         // Run the Java-side initialization method, which is the first static
         // method of the `System` class
