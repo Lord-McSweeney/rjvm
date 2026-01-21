@@ -2,6 +2,7 @@ use super::context::STRING_DATA_FIELD;
 use super::object::Object;
 
 use crate::gc::Trace;
+use crate::string::hash_chars;
 
 use core::hash::{Hash, Hasher};
 use hashbrown::HashSet;
@@ -19,11 +20,7 @@ impl StringObject {
         let chars = object.get_field(STRING_DATA_FIELD).object().unwrap();
         let chars = chars.array_data().as_char_array();
 
-        let mut hash = chars.len() as u32;
-        for character in chars {
-            hash = hash.rotate_left(7);
-            hash ^= (character.get() as u32) & 0xB5;
-        }
+        let hash = hash_chars(chars.len(), chars.iter().map(|c| c.get() as u32));
 
         StringObject { object, hash }
     }

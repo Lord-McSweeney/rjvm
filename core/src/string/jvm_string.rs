@@ -9,14 +9,12 @@ use core::fmt;
 use core::hash::{Hash, Hasher};
 use core::ops::Deref;
 
-const MAX_HASHED_STRING_LEN: usize = 4096;
-
 #[derive(Clone, Copy, Debug)]
 pub struct JvmString(Gc<JvmStringData>);
 
 #[derive(Debug)]
 struct JvmStringData {
-    hash: u64,
+    hash: u32,
     contents: String,
 }
 
@@ -46,15 +44,7 @@ impl fmt::Display for JvmString {
 
 impl JvmString {
     pub fn new(gc_ctx: GcCtx, string: String) -> Self {
-        // Precompute hash. Anything better than just the length of the string
-        // is probably enough. The GC allocation is probably always much more
-        // expensive than any hashing we do here.
-        let mut hash = string.len() as u64;
-        if string.len() < MAX_HASHED_STRING_LEN {
-            for (i, byte) in string.as_bytes().iter().enumerate() {
-                hash += ((byte ^ 0xAA) as u64) << (i as u64);
-            }
-        }
+        let hash = hash_chars(string.len(), string.as_bytes().iter().map(|b| *b as u32));
 
         Self(Gc::new(
             gc_ctx,
@@ -82,4 +72,15 @@ impl Trace for JvmString {
     fn trace(&self) {
         self.0.trace();
     }
+}
+
+#[inline]
+pub fn hash_chars(length: usize, chars: impl core::iter::Iterator<Item = u32>) -> u32 {
+    let mut hash = length as u32;
+    for character in chars {
+        hash = hash.rotate_left(7);
+        hash ^= character & 0xB5;
+    }
+
+    hash
 }
