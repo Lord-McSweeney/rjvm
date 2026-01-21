@@ -1,43 +1,47 @@
 package java.lang;
 
-// TODO capacity
-public final class StringBuilder {
-    private char[] data;
-
+public final class StringBuilder extends AbstractStringBuilder implements CharSequence {
     public StringBuilder() {
-        this.data = new char[0];
+        super(16);
     }
 
     public StringBuilder(int capacity) {
-        this.data = new char[0];
+        super(capacity);
     }
 
     public StringBuilder(String initial) {
         int length = initial.length();
 
-        char[] copyData = new char[length];
+        char[] copyData = new char[length + 8];
         initial.getChars(0, length, copyData, 0);
 
-        this.data = copyData;
+        this.value = copyData;
+        this.count = length;
+    }
+
+    public void ensureCapacity(int minimumCapacity) {
+        if (this.value.length < minimumCapacity) {
+            char[] newData = new char[minimumCapacity + 8];
+            System.arraycopy(this.value, 0, newData, 0, this.value.length);
+            this.value = newData;
+        }
     }
 
     public StringBuilder append(char character) {
-        char[] newData = new char[this.data.length + 1];
-        System.arraycopy(this.data, 0, newData, 0, this.data.length);
-        newData[this.data.length] = character;
+        ensureCapacity(this.count + 1);
+        this.value[this.count] = character;
 
-        this.data = newData;
+        this.count += 1;
 
         return this;
     }
 
     public StringBuilder append(char[] chars) {
-        char[] newData = new char[this.data.length + chars.length];
-        System.arraycopy(this.data, 0, newData, 0, this.data.length);
+        ensureCapacity(this.count + chars.length);
 
-        System.arraycopy(chars, 0, newData, this.data.length, chars.length);
+        System.arraycopy(chars, 0, this.value, this.count, chars.length);
 
-        this.data = newData;
+        this.count += chars.length;
 
         return this;
     }
@@ -47,12 +51,11 @@ public final class StringBuilder {
             return this.append("null");
         }
 
-        char[] newData = new char[this.data.length + string.length()];
-        System.arraycopy(this.data, 0, newData, 0, this.data.length);
+        ensureCapacity(this.count + string.length());
 
-        string.getChars(0, string.length(), newData, this.data.length);
+        string.getChars(0, string.length(), this.value, this.count);
 
-        this.data = newData;
+        this.count += string.length();
 
         return this;
     }
@@ -85,10 +88,14 @@ public final class StringBuilder {
     }
 
     public int length() {
-        return this.data.length;
+        return this.count;
+    }
+
+    public int capacity() {
+        return this.value.length;
     }
 
     public String toString() {
-        return new String(this.data);
+        return new String(this.value, 0, this.count);
     }
 }

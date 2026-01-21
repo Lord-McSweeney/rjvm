@@ -3,7 +3,7 @@ package java.lang;
 import rjvm.internal.Todo;
 import java.nio.charset.Charset;
 
-public final class String implements Comparable<String> {
+public final class String implements CharSequence, Comparable<String> {
     // NOTE: This must always be non-null
     private char[] data;
 

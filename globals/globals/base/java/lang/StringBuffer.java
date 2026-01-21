@@ -1,58 +1,61 @@
 package java.lang;
 
-// TODO capacity
-public final class StringBuffer {
-    private char[] data;
-
+public final class StringBuffer extends AbstractStringBuilder implements CharSequence {
     public StringBuffer() {
-        this.data = new char[0];
+        super(16);
     }
 
     public StringBuffer(int capacity) {
-        this.data = new char[0];
+        super(capacity);
     }
 
     public StringBuffer(String initial) {
         int length = initial.length();
 
-        char[] copyData = new char[length];
+        char[] copyData = new char[length + 8];
         initial.getChars(0, length, copyData, 0);
 
-        this.data = copyData;
+        this.value = copyData;
+        this.count = length;
     }
 
-    public StringBuffer append(char character) {
-        char[] newData = new char[this.data.length + 1];
-        System.arraycopy(this.data, 0, newData, 0, this.data.length);
-        newData[this.data.length] = character;
+    public synchronized void ensureCapacity(int minimumCapacity) {
+        if (this.value.length < minimumCapacity) {
+            char[] newData = new char[minimumCapacity + 8];
+            System.arraycopy(this.value, 0, newData, 0, this.value.length);
+            this.value = newData;
+        }
+    }
 
-        this.data = newData;
+    public synchronized StringBuffer append(char character) {
+        ensureCapacity(this.count + 1);
+        this.value[this.count] = character;
+
+        this.count += 1;
 
         return this;
     }
 
-    public StringBuffer append(char[] chars) {
-        char[] newData = new char[this.data.length + chars.length];
-        System.arraycopy(this.data, 0, newData, 0, this.data.length);
+    public synchronized StringBuffer append(char[] chars) {
+        ensureCapacity(this.count + chars.length);
 
-        System.arraycopy(chars, 0, newData, this.data.length, chars.length);
+        System.arraycopy(chars, 0, this.value, this.count, chars.length);
 
-        this.data = newData;
+        this.count += chars.length;
 
         return this;
     }
 
-    public StringBuffer append(String string) {
+    public synchronized StringBuffer append(String string) {
         if (string == null) {
             return this.append("null");
         }
 
-        char[] newData = new char[this.data.length + string.length()];
-        System.arraycopy(this.data, 0, newData, 0, this.data.length);
+        ensureCapacity(this.count + string.length());
 
-        string.getChars(0, string.length(), newData, this.data.length);
+        string.getChars(0, string.length(), this.value, this.count);
 
-        this.data = newData;
+        this.count += string.length();
 
         return this;
     }
@@ -76,11 +79,23 @@ public final class StringBuffer {
         return this.append(stringified);
     }
 
-    public int length() {
-        return this.data.length;
+    public StringBuffer append(boolean b) {
+        if (b) {
+            return this.append("true");
+        } else {
+            return this.append("false");
+        }
     }
 
-    public String toString() {
-        return new String(this.data);
+    public synchronized int length() {
+        return this.count;
+    }
+
+    public synchronized int capacity() {
+        return this.value.length;
+    }
+
+    public synchronized String toString() {
+        return new String(this.value, 0, this.count);
     }
 }
