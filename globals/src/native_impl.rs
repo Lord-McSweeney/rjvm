@@ -112,25 +112,25 @@ fn array_copy(context: &Context, args: &[Value]) -> Result<Option<Value>, Error>
 
     match (source_array_data, dest_array_data) {
         (Array::ByteArray(source_data), Array::ByteArray(dest_data)) => {
-            primitive_array_copy::<_>(source_data, dest_data, source_start, dest_start, length);
+            primitive_array_copy::<_>(&source_data, &dest_data, source_start, dest_start, length);
         }
         (Array::CharArray(source_data), Array::CharArray(dest_data)) => {
-            primitive_array_copy::<_>(source_data, dest_data, source_start, dest_start, length);
+            primitive_array_copy::<_>(&source_data, &dest_data, source_start, dest_start, length);
         }
         (Array::DoubleArray(source_data), Array::DoubleArray(dest_data)) => {
-            primitive_array_copy::<_>(source_data, dest_data, source_start, dest_start, length);
+            primitive_array_copy::<_>(&source_data, &dest_data, source_start, dest_start, length);
         }
         (Array::FloatArray(source_data), Array::FloatArray(dest_data)) => {
-            primitive_array_copy::<_>(source_data, dest_data, source_start, dest_start, length);
+            primitive_array_copy::<_>(&source_data, &dest_data, source_start, dest_start, length);
         }
         (Array::IntArray(source_data), Array::IntArray(dest_data)) => {
-            primitive_array_copy::<_>(source_data, dest_data, source_start, dest_start, length);
+            primitive_array_copy::<_>(&source_data, &dest_data, source_start, dest_start, length);
         }
         (Array::LongArray(source_data), Array::LongArray(dest_data)) => {
-            primitive_array_copy::<_>(source_data, dest_data, source_start, dest_start, length);
+            primitive_array_copy::<_>(&source_data, &dest_data, source_start, dest_start, length);
         }
         (Array::ShortArray(source_data), Array::ShortArray(dest_data)) => {
-            primitive_array_copy::<_>(source_data, dest_data, source_start, dest_start, length);
+            primitive_array_copy::<_>(&source_data, &dest_data, source_start, dest_start, length);
         }
         (Array::ObjectArray(source_data), Array::ObjectArray(dest_data)) => {
             let Some(dest_value_class) = dest_value_type.class() else {
@@ -164,24 +164,68 @@ fn array_copy(context: &Context, args: &[Value]) -> Result<Option<Value>, Error>
     Ok(None)
 }
 
+#[inline(never)]
 fn primitive_array_copy<T: Copy + Default>(
-    source_data: &[Cell<T>],
-    dest_data: &[Cell<T>],
+    source_data: &Box<[Cell<T>]>,
+    dest_data: &Box<[Cell<T>]>,
     source_start: usize,
     dest_start: usize,
     length: usize,
 ) {
-    // TODO optimize this
-    let temp_arr = vec![Cell::new(T::default()); length];
+    #[inline(never)]
+    fn copy_nonoverlapping<T: Copy + Default>(
+        source_data: &[Cell<T>],
+        dest_data: &[Cell<T>],
+        source_start: usize,
+        dest_start: usize,
+        length: usize,
+    ) {
+        // TODO optimize this
 
-    for i in 0..length {
-        let source_idx = source_start + i;
-        temp_arr[i].set(source_data[source_idx].get());
+        for i in 0..length {
+            let source_idx = source_start + i;
+            let dest_idx = dest_start + i;
+            dest_data[dest_idx].set(source_data[source_idx].get());
+        }
     }
 
-    for i in 0..length {
-        let dest_idx = dest_start + i;
-        dest_data[dest_idx].set(temp_arr[i].get());
+    #[inline(never)]
+    fn copy_overlapping<T: Copy + Default>(
+        source_data: &[Cell<T>],
+        dest_data: &[Cell<T>],
+        source_start: usize,
+        dest_start: usize,
+        length: usize,
+    ) {
+        // TODO: Can we avoid the temporary allocation?
+
+        let temp_arr = vec![Cell::new(T::default()); length];
+
+        for i in 0..length {
+            let source_idx = source_start + i;
+            temp_arr[i].set(source_data[source_idx].get());
+        }
+
+        for i in 0..length {
+            let dest_idx = dest_start + i;
+            dest_data[dest_idx].set(temp_arr[i].get());
+        }
+    }
+
+    let overlapping = if core::ptr::eq(&**source_data, &**dest_data) {
+        let dst_start_in_source = source_start <= dest_start && source_start + length > dest_start;
+        let src_start_in_dest = dest_start <= source_start && dest_start + length > source_start;
+
+        dst_start_in_source || src_start_in_dest
+    } else {
+        // Not the same array, can't be overlapping
+        false
+    };
+
+    if overlapping {
+        copy_overlapping(source_data, dest_data, source_start, dest_start, length);
+    } else {
+        copy_nonoverlapping(source_data, dest_data, source_start, dest_start, length);
     }
 }
 
