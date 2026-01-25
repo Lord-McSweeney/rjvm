@@ -79,8 +79,8 @@ impl CallStack {
 
             let create_method = element_class.static_methods()[STACK_TRACE_ELEMENT_CREATE_METHOD];
 
-            let created_element = create_method
-                .exec(context, args)
+            let created_element = context
+                .exec_method(create_method, args)
                 .unwrap()
                 .unwrap()
                 .object()

@@ -217,12 +217,12 @@ impl Class {
 
         for method in methods {
             if method.flags().contains(MethodFlags::STATIC) {
-                let created_method = Method::from_method(context, method, self)?;
+                let created_method = Method::from_method(context, method, self, false)?;
 
                 static_method_names.push((method.name(), created_method.descriptor()));
                 static_methods.push(created_method);
             } else {
-                let created_method = Method::from_method(context, method, self)?;
+                let created_method = Method::from_method(context, method, self, true)?;
 
                 let key = (method.name(), created_method.descriptor());
 
@@ -254,12 +254,15 @@ impl Class {
         let void_descriptor = context.common.noargs_void_desc;
         let clinit_method_idx = static_method_vtable.lookup((clinit_string, void_descriptor));
 
+        let clinit_method = clinit_method_idx.map(|i| self.static_methods()[i]);
+        if clinit_method.is_some_and(|m| m.physical_arg_count() != 0) {
+            panic!("Clinit methods should not have declared arguments");
+        }
+
         // If this class actually has a clinit method, queue it
         // (don't run it now as it could potentially trigger a GC, and we
         // may have Gc pointers stored only on the stack at the moment)
-        self.0
-            .clinit_method
-            .set(clinit_method_idx.map(|i| self.static_methods()[i]));
+        self.0.clinit_method.set(clinit_method);
 
         Ok(())
     }
@@ -510,7 +513,7 @@ impl Class {
             self.0.clinit_run.set(true);
 
             if let Some(clinit) = self.0.clinit_method.get() {
-                clinit.exec(context, &[])?;
+                clinit.exec(context)?;
             }
 
             if let Some(super_class) = self.super_class() {

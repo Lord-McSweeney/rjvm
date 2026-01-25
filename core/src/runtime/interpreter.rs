@@ -35,30 +35,28 @@ enum ControlFlow {
 }
 
 impl<'a> Interpreter<'a> {
-    pub fn new(context: &'a Context, method: Method, args: &[Value]) -> Result<Self, Error> {
+    /// Create a new `Interpreter`, ready for executing ops. This method expects
+    /// arguments to be passed on the stack.
+    pub fn new(context: &'a Context, method: Method) -> Result<Self, Error> {
         let frame_reference = &context.frame_data;
 
-        let prev_index = context.frame_index.get();
+        // Locals are passed on stack
+        let local_base = context.frame_index.get() - method.physical_arg_count();
 
-        let mut i = 0;
-        while i < method.max_locals() {
-            if i < args.len() {
-                frame_reference[prev_index + i].set(args[i]);
-            } else {
-                frame_reference[prev_index + i].set(Value::Integer(0));
-            }
-
-            i += 1;
+        // Initialize the empty locals ("scratch locals"?)
+        let empty_locals_count = method.max_locals() - method.physical_arg_count();
+        for _ in 0..empty_locals_count {
+            let current_index = context.frame_index.get();
+            frame_reference[current_index].set(Value::Integer(0));
+            context.frame_index.set(current_index + 1);
         }
-
-        context.frame_index.set(prev_index + method.max_locals());
 
         Ok(Self {
             method,
             frame_index: &*context.frame_index,
             frame_reference,
             local_count: method.max_locals(),
-            local_base: prev_index,
+            local_base,
 
             ip: 0,
 
@@ -118,6 +116,12 @@ impl<'a> Interpreter<'a> {
         self.frame_index.set(new);
 
         result
+    }
+
+    fn stack_peek(&self, depth: usize) -> Value {
+        let position = self.frame_index.get() - depth - 1;
+
+        self.frame_reference[position].get()
     }
 
     fn stack_clear(&self) {
@@ -303,7 +307,8 @@ impl<'a> Interpreter<'a> {
                 Ok(ControlFlow::ManualContinue) => {}
                 Ok(ControlFlow::Return(value)) => {
                     // Reset frame index before returning
-                    self.frame_index.set(self.local_base);
+                    self.frame_index
+                        .set(self.local_base + self.method.physical_arg_count());
 
                     return Ok(value);
                 }
@@ -312,7 +317,8 @@ impl<'a> Interpreter<'a> {
 
                     if let Err(error) = result {
                         // Reset frame index before returning
-                        self.frame_index.set(self.local_base);
+                        self.frame_index
+                            .set(self.local_base + self.method.physical_arg_count());
 
                         return Err(error);
                     }
@@ -1822,12 +1828,9 @@ impl<'a> Interpreter<'a> {
             .get_element(method_index)
             .descriptor();
 
-        let mut args = vec![Value::Object(None); method_descriptor.physical_arg_count() + 1];
-        for arg in args.iter_mut().skip(1).rev() {
-            *arg = self.stack_pop();
-        }
-
-        let receiver = self.stack_pop().object();
+        let receiver = self
+            .stack_peek(method_descriptor.physical_arg_count())
+            .object();
 
         if let Some(receiver) = receiver {
             if !receiver.is_of_class(class) {
@@ -1840,9 +1843,10 @@ impl<'a> Interpreter<'a> {
                 .instance_method_vtable()
                 .get_element(method_index);
 
-            args[0] = Value::Object(Some(receiver));
+            // `method.exec` takes arguments from the stack, which they're
+            // already on at this point
+            let result = method.exec(self.context)?;
 
-            let result = method.exec(self.context, &args)?;
             if let Some(result) = result {
                 if method_descriptor.return_type().is_wide() {
                     self.stack_push_wide(result);
@@ -1861,21 +1865,18 @@ impl<'a> Interpreter<'a> {
         // Increment the gc counter (can this even do an allocation?)
         self.context.increment_gc_counter();
 
-        let mut args = vec![Value::Integer(0); method.physical_arg_count() + 1];
-        for arg in args.iter_mut().skip(1).rev() {
-            *arg = self.stack_pop();
-        }
+        let receiver = self.stack_peek(method.physical_arg_count() - 1).object();
 
-        let receiver = self.stack_pop().object();
         if let Some(receiver) = receiver {
             if !receiver.is_of_class(class) {
                 // TODO verify this in verifier
                 panic!("Object on stack was of wrong Class");
             }
 
-            args[0] = Value::Object(Some(receiver));
+            // `method.exec` takes arguments from the stack, which they're
+            // already on at this point
+            let result = method.exec(self.context)?;
 
-            let result = method.exec(self.context, &args)?;
             if let Some(result) = result {
                 if method.descriptor().return_type().is_wide() {
                     self.stack_push_wide(result);
@@ -1894,12 +1895,10 @@ impl<'a> Interpreter<'a> {
         // Increment the gc counter (can this even do an allocation?)
         self.context.increment_gc_counter();
 
-        let mut args = vec![Value::Integer(0); method.physical_arg_count()];
-        for arg in args.iter_mut().rev() {
-            *arg = self.stack_pop();
-        }
+        // `method.exec` takes arguments from the stack, which they're already
+        // on at this point
+        let result = method.exec(self.context)?;
 
-        let result = method.exec(self.context, &args)?;
         if let Some(result) = result {
             if method.descriptor().return_type().is_wide() {
                 self.stack_push_wide(result);
@@ -1920,12 +1919,9 @@ impl<'a> Interpreter<'a> {
         // Increment the gc counter (can this even do an allocation?)
         self.context.increment_gc_counter();
 
-        let mut args = vec![Value::Integer(0); method_descriptor.physical_arg_count() + 1];
-        for arg in args.iter_mut().skip(1).rev() {
-            *arg = self.stack_pop();
-        }
-
-        let receiver = self.stack_pop().object();
+        let receiver = self
+            .stack_peek(method_descriptor.physical_arg_count())
+            .object();
 
         if let Some(receiver) = receiver {
             // Should we check that the receiver is of the class?
@@ -1937,9 +1933,10 @@ impl<'a> Interpreter<'a> {
                 .ok_or_else(|| self.context.no_such_method_error())?;
             let method = method_vtable.get_element(method_idx);
 
-            args[0] = Value::Object(Some(receiver));
+            // `method.exec` takes arguments from the stack, which they're
+            // already on at this point
+            let result = method.exec(self.context)?;
 
-            let result = method.exec(self.context, &args)?;
             if let Some(result) = result {
                 if method_descriptor.return_type().is_wide() {
                     self.stack_push_wide(result);

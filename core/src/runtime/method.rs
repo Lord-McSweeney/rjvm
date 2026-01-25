@@ -44,6 +44,8 @@ impl fmt::Debug for Method {
 struct MethodData {
     descriptor: MethodDescriptor,
 
+    physical_arg_count: usize,
+
     flags: MethodFlags,
 
     name: JvmString,
@@ -62,6 +64,7 @@ impl Method {
         context: &Context,
         method: &ClassFileMethod,
         class: Class,
+        has_receiver: bool,
     ) -> Result<Self, Error> {
         let descriptor = MethodDescriptor::from_string(context.gc_ctx, method.descriptor())
             .ok_or(Error::Native(NativeError::InvalidDescriptor))?;
@@ -91,10 +94,17 @@ impl Method {
             MethodInfo::Empty
         };
 
+        let mut physical_arg_count = descriptor.physical_arg_count();
+        if has_receiver {
+            // +1 for the receiver arg
+            physical_arg_count += 1;
+        }
+
         Ok(Self(Gc::new(
             context.gc_ctx,
             MethodData {
                 descriptor,
+                physical_arg_count,
                 flags: method.flags(),
                 name: method.name(),
                 class,
@@ -105,8 +115,11 @@ impl Method {
     }
 
     /// Internal method for executing a method- `pub(crate)` so it's not
-    /// accidentally called by user code
-    pub(crate) fn exec(self, context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
+    /// accidentally called by user code.
+    ///
+    /// NOTE: This method reads arguments from the stack, and pops them after
+    /// execution!
+    pub(crate) fn exec(self, context: &Context) -> Result<Option<Value>, Error> {
         // Run everything in a closure so we can handle the call stack more easily
         let closure = || -> Result<Option<Value>, Error> {
             // Parse bytecode if it hasn't been already
@@ -128,12 +141,21 @@ impl Method {
                         bytecode_info.deps_initialized.set(true);
                     }
 
-                    let mut interpreter = Interpreter::new(context, self, args)?;
+                    let mut interpreter = Interpreter::new(context, self)?;
 
                     interpreter.interpret_ops(&bytecode_info.code, &bytecode_info.exceptions)
                 }
                 MethodInfo::BytecodeUnparsed(_) => unreachable!(),
-                MethodInfo::Native(native_method) => native_method(context, &args),
+                MethodInfo::Native(native_method) => {
+                    let physical_arg_count = self.physical_arg_count();
+                    let current_position = context.frame_index.get();
+                    let slice = &context.frame_data
+                        [(current_position - physical_arg_count)..current_position];
+
+                    let args = slice.iter().map(|a| a.get()).collect::<Vec<_>>();
+
+                    native_method(context, &args)
+                }
                 MethodInfo::NativeNotFound => {
                     panic!(
                         "associated native method for {}.{} not found",
@@ -152,6 +174,11 @@ impl Method {
         context.pop_call();
 
         assert!(initial_frame_index == context.frame_index.get());
+
+        // Pop args
+        context
+            .frame_index
+            .set(context.frame_index.get() - self.physical_arg_count());
 
         result
     }
@@ -200,12 +227,16 @@ impl Method {
         self.0.descriptor
     }
 
+    /// The number of arguments the method was declared to have in Java.
     pub fn arg_count(self) -> usize {
         self.descriptor().args().len()
     }
 
+    /// The "physical" argument count of this method. This counts two arguments
+    /// for doubles and longs, and includes the receiver if this method takes
+    /// one.
     pub fn physical_arg_count(self) -> usize {
-        self.descriptor().physical_arg_count()
+        self.0.physical_arg_count
     }
 
     pub fn flags(self) -> MethodFlags {

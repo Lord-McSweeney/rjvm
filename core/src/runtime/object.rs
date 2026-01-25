@@ -302,7 +302,7 @@ impl Object {
 
         let method = instance_method_vtable.get_element(method_idx);
 
-        method.exec(context, args)?;
+        context.exec_method(method, args)?;
 
         Ok(())
     }

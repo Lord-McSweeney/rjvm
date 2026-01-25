@@ -42,7 +42,7 @@ impl Error {
                     .get_element(OBJECT_TO_STRING_METHOD);
 
                 let args = &[Value::Object(Some(*error_object))];
-                let result = to_string_method.exec(context, args);
+                let result = context.exec_method(to_string_method, args);
                 let value = match result {
                     Ok(value) => value.unwrap(),
                     Err(e) => {
@@ -85,8 +85,8 @@ impl Error {
 
                         let args = &[Value::Object(Some(stack_trace_element))];
                         // We know exactly what `StackTraceElement.toString` does
-                        let stringified = to_string_method
-                            .exec(context, args)
+                        let stringified = context
+                            .exec_method(to_string_method, args)
                             .unwrap()
                             .unwrap()
                             .object()

@@ -156,7 +156,10 @@ impl Context {
     }
 
     pub fn exec_method(&self, method: Method, args: &[Value]) -> Result<Option<Value>, Error> {
-        let initial_index = self.frame_index.get();
+        assert!(
+            args.len() == method.physical_arg_count(),
+            "exec_method called with wrong number of arguments"
+        );
 
         // Store args on the stack so that they don't get gc-ed
         for arg in args {
@@ -167,9 +170,7 @@ impl Context {
 
         // TODO: Should we verify that args match the descriptor?
 
-        let result = method.exec(self, args);
-
-        self.frame_index.set(initial_index);
+        let result = method.exec(self);
 
         result
     }
@@ -390,8 +391,14 @@ impl Context {
         // method of the `System` class
         let system_class = self.builtins().java_lang_system;
         let init_method = system_class.static_methods()[0];
+        if init_method.physical_arg_count() != 0 {
+            panic!(
+                "Java-side initialization method on `System` class should have no declared arguments"
+            );
+        }
+
         init_method
-            .exec(self, &[])
+            .exec(self)
             .expect("System initializer method failed");
     }
 
