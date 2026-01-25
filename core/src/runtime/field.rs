@@ -86,15 +86,7 @@ impl Trace for Field {
 // This is intentionally Copy, so that a subclass can simply hold references
 // to its superclass's static fields.
 #[derive(Clone, Copy, Debug)]
-pub struct FieldRef(Gc<FieldRefData>);
-
-#[derive(Clone, Debug)]
-struct FieldRefData {
-    descriptor: Descriptor,
-    flags: FieldFlags,
-    name: JvmString,
-    value: Cell<Value>,
-}
+pub struct FieldRef(Gc<Field>);
 
 impl FieldRef {
     pub fn from_field(
@@ -119,7 +111,7 @@ impl FieldRef {
 
         Ok(Self(Gc::new(
             context.gc_ctx,
-            FieldRefData {
+            Field {
                 descriptor,
                 flags: field.flags(),
                 name,
@@ -153,14 +145,6 @@ impl FieldRef {
 impl Trace for FieldRef {
     fn trace(&self) {
         self.0.trace();
-    }
-}
-
-impl Trace for FieldRefData {
-    fn trace(&self) {
-        self.descriptor.trace();
-        self.name.trace();
-        self.value.trace();
     }
 }
 
