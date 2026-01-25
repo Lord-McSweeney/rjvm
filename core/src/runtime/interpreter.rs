@@ -1817,9 +1817,6 @@ impl<'a> Interpreter<'a> {
         class: Class,
         method_index: usize,
     ) -> Result<ControlFlow, Error> {
-        // Increment the gc counter (can this even do an allocation?)
-        self.context.increment_gc_counter();
-
         // We need to know the number of args, so let's lookup the method defined by
         // the base class to get the descriptor- this is the wrong method, but we
         // can still use its descriptor
@@ -1862,9 +1859,6 @@ impl<'a> Interpreter<'a> {
     }
 
     fn op_invoke_special(&mut self, class: Class, method: Method) -> Result<ControlFlow, Error> {
-        // Increment the gc counter (can this even do an allocation?)
-        self.context.increment_gc_counter();
-
         let receiver = self.stack_peek(method.physical_arg_count() - 1).object();
 
         if let Some(receiver) = receiver {
@@ -1892,9 +1886,6 @@ impl<'a> Interpreter<'a> {
     }
 
     fn op_invoke_static(&mut self, method: Method) -> Result<ControlFlow, Error> {
-        // Increment the gc counter (can this even do an allocation?)
-        self.context.increment_gc_counter();
-
         // `method.exec` takes arguments from the stack, which they're already
         // on at this point
         let result = method.exec(self.context)?;
@@ -1916,9 +1907,6 @@ impl<'a> Interpreter<'a> {
         method_name: JvmString,
         method_descriptor: MethodDescriptor,
     ) -> Result<ControlFlow, Error> {
-        // Increment the gc counter (can this even do an allocation?)
-        self.context.increment_gc_counter();
-
         let receiver = self
             .stack_peek(method_descriptor.physical_arg_count())
             .object();

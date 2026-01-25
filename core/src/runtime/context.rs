@@ -29,7 +29,7 @@ pub const STRING_DATA_FIELD: usize = 0;
 
 pub const STACK_TRACE_ELEMENT_CREATE_METHOD: usize = 0;
 
-const DEFAULT_GC_THRESHOLD: u32 = 131072;
+const DEFAULT_GC_THRESHOLD: u32 = 65536;
 
 #[derive(Clone)]
 pub struct Context {
