@@ -35,12 +35,9 @@ enum ControlFlow {
 }
 
 impl<'a> Interpreter<'a> {
-    pub fn new(
-        context: &'a Context,
-        frame_reference: &'a [Cell<Value>],
-        method: Method,
-        args: &[Value],
-    ) -> Result<Self, Error> {
+    pub fn new(context: &'a Context, method: Method, args: &[Value]) -> Result<Self, Error> {
+        let frame_reference = &context.frame_data;
+
         let prev_index = context.frame_index.get();
 
         let mut i = 0;

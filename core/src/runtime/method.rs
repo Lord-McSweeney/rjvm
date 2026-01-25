@@ -126,8 +126,7 @@ impl Method {
                         bytecode_info.deps_initialized.set(true);
                     }
 
-                    let frame_reference = &context.frame_data;
-                    let mut interpreter = Interpreter::new(context, frame_reference, self, args)?;
+                    let mut interpreter = Interpreter::new(context, self, args)?;
 
                     interpreter.interpret_ops(&bytecode_info.code, &bytecode_info.exceptions)
                 }
