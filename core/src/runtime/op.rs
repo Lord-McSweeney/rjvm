@@ -168,6 +168,13 @@ pub enum Op {
     GetField(Class, usize),
     PutField(Class, usize),
 
+    // Wide field get/set
+    // It's slightly faster to separate these than to check wideness at runtime
+    GetStaticWide(Class, usize),
+    PutStaticWide(Class, usize),
+    GetFieldWide(Class, usize),
+    PutFieldWide(Class, usize),
+
     // Method invocation
     InvokeVirtual(Class, usize),
     InvokeSpecial(Class, Method),
@@ -340,6 +347,18 @@ impl Trace for Op {
                 class.trace();
             }
             Op::PutField(class, _) => {
+                class.trace();
+            }
+            Op::GetStaticWide(class, _) => {
+                class.trace();
+            }
+            Op::PutStaticWide(class, _) => {
+                class.trace();
+            }
+            Op::GetFieldWide(class, _) => {
+                class.trace();
+            }
+            Op::PutFieldWide(class, _) => {
                 class.trace();
             }
             Op::InvokeVirtual(class, _) => {
@@ -1121,7 +1140,11 @@ impl Op {
                     return Err(context.illegal_access_error());
                 }
 
-                Ok(Op::GetStatic(class, field_slot))
+                if descriptor.is_wide() {
+                    Ok(Op::GetStaticWide(class, field_slot))
+                } else {
+                    Ok(Op::GetStatic(class, field_slot))
+                }
             }
             PUT_STATIC => {
                 let field_ref_idx = data.read_u16_be()?;
@@ -1148,7 +1171,11 @@ impl Op {
                     return Err(context.illegal_access_error());
                 }
 
-                Ok(Op::PutStatic(class, field_slot))
+                if descriptor.is_wide() {
+                    Ok(Op::PutStaticWide(class, field_slot))
+                } else {
+                    Ok(Op::PutStatic(class, field_slot))
+                }
             }
             GET_FIELD => {
                 let field_ref_idx = data.read_u16_be()?;
@@ -1175,7 +1202,11 @@ impl Op {
                     return Err(context.illegal_access_error());
                 }
 
-                Ok(Op::GetField(class, field_slot))
+                if descriptor.is_wide() {
+                    Ok(Op::GetFieldWide(class, field_slot))
+                } else {
+                    Ok(Op::GetField(class, field_slot))
+                }
             }
             PUT_FIELD => {
                 let field_ref_idx = data.read_u16_be()?;
@@ -1202,7 +1233,11 @@ impl Op {
                     return Err(context.illegal_access_error());
                 }
 
-                Ok(Op::PutField(class, field_slot))
+                if descriptor.is_wide() {
+                    Ok(Op::PutFieldWide(class, field_slot))
+                } else {
+                    Ok(Op::PutField(class, field_slot))
+                }
             }
             INVOKE_VIRTUAL => {
                 let method_ref_idx = data.read_u16_be()?;
@@ -1467,6 +1502,8 @@ impl Op {
                 | Op::LRem
                 | Op::GetField(_, _)
                 | Op::PutField(_, _)
+                | Op::GetFieldWide(_, _)
+                | Op::PutFieldWide(_, _)
                 | Op::InvokeVirtual(_, _)
                 | Op::InvokeSpecial(_, _)
                 | Op::InvokeStatic(_)

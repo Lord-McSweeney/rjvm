@@ -278,6 +278,14 @@ impl<'a> Interpreter<'a> {
                 }
                 Op::GetField(class, field_idx) => self.op_get_field(*class, *field_idx),
                 Op::PutField(class, field_idx) => self.op_put_field(*class, *field_idx),
+                Op::GetStaticWide(class, static_field_idx) => {
+                    self.op_get_static_wide(*class, *static_field_idx)
+                }
+                Op::PutStaticWide(class, static_field_idx) => {
+                    self.op_put_static_wide(*class, *static_field_idx)
+                }
+                Op::GetFieldWide(class, field_idx) => self.op_get_field_wide(*class, *field_idx),
+                Op::PutFieldWide(class, field_idx) => self.op_put_field_wide(*class, *field_idx),
                 Op::InvokeVirtual(class, method_index) => {
                     self.op_invoke_virtual(*class, *method_index)
                 }
@@ -1735,11 +1743,7 @@ impl<'a> Interpreter<'a> {
         let static_field = class.static_fields()[static_field_idx];
         let value = static_field.value();
 
-        if static_field.descriptor().is_wide() {
-            self.stack_push_wide(value);
-        } else {
-            self.stack_push(value);
-        }
+        self.stack_push(value);
 
         Ok(ControlFlow::Continue)
     }
@@ -1751,11 +1755,7 @@ impl<'a> Interpreter<'a> {
     ) -> Result<ControlFlow, Error> {
         let static_field = class.static_fields()[static_field_idx];
 
-        let value = if static_field.descriptor().is_wide() {
-            self.stack_pop_wide()
-        } else {
-            self.stack_pop()
-        };
+        let value = self.stack_pop();
 
         static_field.set_value(value);
 
@@ -1763,8 +1763,6 @@ impl<'a> Interpreter<'a> {
     }
 
     fn op_get_field(&mut self, class: Class, field_idx: usize) -> Result<ControlFlow, Error> {
-        let is_wide = class.instance_fields()[field_idx].descriptor().is_wide();
-
         let object = self.stack_pop().object();
 
         if let Some(object) = object {
@@ -1775,11 +1773,7 @@ impl<'a> Interpreter<'a> {
 
             let value = object.get_field(field_idx);
 
-            if is_wide {
-                self.stack_push_wide(value);
-            } else {
-                self.stack_push(value);
-            }
+            self.stack_push(value);
 
             Ok(ControlFlow::Continue)
         } else {
@@ -1788,13 +1782,72 @@ impl<'a> Interpreter<'a> {
     }
 
     fn op_put_field(&mut self, class: Class, field_idx: usize) -> Result<ControlFlow, Error> {
-        let is_wide = class.instance_fields()[field_idx].descriptor().is_wide();
+        let value = self.stack_pop();
 
-        let value = if is_wide {
-            self.stack_pop_wide()
+        let object = self.stack_pop().object();
+
+        if let Some(object) = object {
+            if !object.is_of_class(class) {
+                // TODO verify this in verifier
+                panic!("Object on stack was of wrong Class");
+            }
+
+            object.set_field(field_idx, value);
+
+            Ok(ControlFlow::Continue)
         } else {
-            self.stack_pop()
-        };
+            Err(self.context.null_pointer_exception())
+        }
+    }
+
+    fn op_get_static_wide(
+        &mut self,
+        class: Class,
+        static_field_idx: usize,
+    ) -> Result<ControlFlow, Error> {
+        let static_field = class.static_fields()[static_field_idx];
+        let value = static_field.value();
+
+        self.stack_push_wide(value);
+
+        Ok(ControlFlow::Continue)
+    }
+
+    fn op_put_static_wide(
+        &mut self,
+        class: Class,
+        static_field_idx: usize,
+    ) -> Result<ControlFlow, Error> {
+        let static_field = class.static_fields()[static_field_idx];
+
+        let value = self.stack_pop_wide();
+
+        static_field.set_value(value);
+
+        Ok(ControlFlow::Continue)
+    }
+
+    fn op_get_field_wide(&mut self, class: Class, field_idx: usize) -> Result<ControlFlow, Error> {
+        let object = self.stack_pop().object();
+
+        if let Some(object) = object {
+            if !object.is_of_class(class) {
+                // TODO verify this in verifier
+                panic!("Object on stack was of wrong Class");
+            }
+
+            let value = object.get_field(field_idx);
+
+            self.stack_push_wide(value);
+
+            Ok(ControlFlow::Continue)
+        } else {
+            Err(self.context.null_pointer_exception())
+        }
+    }
+
+    fn op_put_field_wide(&mut self, class: Class, field_idx: usize) -> Result<ControlFlow, Error> {
+        let value = self.stack_pop_wide();
 
         let object = self.stack_pop().object();
 
