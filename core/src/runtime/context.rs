@@ -155,6 +155,25 @@ impl Context {
         }
     }
 
+    pub fn exec_method(&self, method: Method, args: &[Value]) -> Result<Option<Value>, Error> {
+        let initial_index = self.frame_index.get();
+
+        // Store args on the stack so that they don't get gc-ed
+        for arg in args {
+            let cur_index = self.frame_index.get();
+            self.frame_data[cur_index].set(*arg);
+            self.frame_index.set(cur_index + 1);
+        }
+
+        // TODO: Should we verify that args match the descriptor?
+
+        let result = method.exec(self, args);
+
+        self.frame_index.set(initial_index);
+
+        result
+    }
+
     pub fn set_gc_threshold(&self, gc_threshold: u32) {
         self.gc_threshold.set(gc_threshold);
     }

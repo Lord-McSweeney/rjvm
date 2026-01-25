@@ -326,10 +326,6 @@ Link options:
         program_args.into_boxed_slice(),
     )));
 
-    // Store this on the stack so that GC doesn't decide to collect it
-    context.frame_data[0].set(args_array);
-    context.frame_index.set(1);
-
     // Call main method
     let main_name = JvmString::new(context.gc_ctx, "main".to_string());
     let main_descriptor_name = JvmString::new(context.gc_ctx, "([Ljava/lang/String;)V".to_string());
@@ -343,7 +339,7 @@ Link options:
 
     if let Some(method_idx) = method_idx {
         let method = main_class.static_methods()[method_idx];
-        let result = method.exec(&context, &[args_array]);
+        let result = context.exec_method(method, &[args_array]);
 
         if let Err(error) = result {
             eprint!("Error while running main: {}", error.display(&context));

@@ -452,7 +452,7 @@ fn new_instance_native(context: &Context, args: &[Value]) -> Result<Option<Value
     let real_args =
         crate::reflect::args_for_instance_call(context, ctor_method, instance, &args_array)?;
 
-    if let Err(e) = ctor_method.exec(context, &real_args) {
+    if let Err(e) = context.exec_method(ctor_method, &real_args) {
         // FIXME this should throw `InvocationTargetException`
         Err(e)
     } else {

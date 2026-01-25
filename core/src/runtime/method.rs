@@ -104,7 +104,9 @@ impl Method {
         )))
     }
 
-    pub fn exec(self, context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
+    /// Internal method for executing a method- `pub(crate)` so it's not
+    /// accidentally called by user code
+    pub(crate) fn exec(self, context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
         // Run everything in a closure so we can handle the call stack more easily
         let closure = || -> Result<Option<Value>, Error> {
             // Parse bytecode if it hasn't been already
