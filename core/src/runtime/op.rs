@@ -17,6 +17,8 @@ use hashbrown::HashMap;
 #[derive(Clone, Debug)]
 pub enum Op {
     Nop,
+
+    // Push constant
     AConstNull,
     IConst(i32),
     LConst(i8),
@@ -25,11 +27,15 @@ pub enum Op {
     Ldc(Gc<ConstantPoolEntry>),
     LoadLong(i64),
     LoadDouble(f64),
+
+    // Load local
     ILoad(usize),
     LLoad(usize),
     FLoad(usize),
     DLoad(usize),
     ALoad(usize),
+
+    // Array get
     IaLoad,
     LaLoad,
     FaLoad,
@@ -38,11 +44,15 @@ pub enum Op {
     BaLoad,
     CaLoad,
     SaLoad,
+
+    // Store local
     IStore(usize),
     LStore(usize),
     FStore(usize),
     DStore(usize),
     AStore(usize),
+
+    // Array set
     IaStore,
     LaStore,
     FaStore,
@@ -51,6 +61,8 @@ pub enum Op {
     BaStore,
     CaStore,
     SaStore,
+
+    // Stack
     Pop,
     Pop2,
     Dup,
@@ -58,6 +70,8 @@ pub enum Op {
     DupX2,
     Dup2,
     Swap,
+
+    // Arithmetic
     IAdd,
     LAdd,
     FAdd,
@@ -94,7 +108,10 @@ pub enum Op {
     LOr,
     IXor,
     LXor,
+
     IInc(usize, i32),
+
+    // Conversion
     I2L,
     I2F,
     I2D,
@@ -110,11 +127,15 @@ pub enum Op {
     I2B,
     I2C,
     I2S,
+
+    // Comparison
     LCmp,
     FCmpL,
     FCmpG,
     DCmpL,
     DCmpG,
+
+    // Branching
     IfEq(usize),
     IfNe(usize),
     IfLt(usize),
@@ -132,23 +153,33 @@ pub enum Op {
     Goto(usize),
     TableSwitch(i32, i32, Box<[usize]>, usize),
     LookupSwitch(Box<[(i32, usize)]>, usize),
+
+    // Return
     IReturn,
     LReturn,
     FReturn,
     DReturn,
     AReturn,
     Return,
+
+    // Field get/set
     GetStatic(Class, usize),
     PutStatic(Class, usize),
     GetField(Class, usize),
     PutField(Class, usize),
+
+    // Method invocation
     InvokeVirtual(Class, usize),
     InvokeSpecial(Class, Method),
     InvokeStatic(Method),
     InvokeInterface(Class, (JvmString, MethodDescriptor)),
+
+    // Memory allocation
     New(Class),
     NewArray(ArrayType),
     ANewArray(Class),
+
+    // Misc
     ArrayLength,
     AThrow,
     CheckCast(Class),
