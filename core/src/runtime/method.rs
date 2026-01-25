@@ -143,9 +143,14 @@ impl Method {
             }
         };
 
+        let initial_frame_index = context.frame_index.get();
+
         context.push_call(self);
         let result = closure();
         context.pop_call();
+
+        assert!(initial_frame_index == context.frame_index.get());
+
         result
     }
 
