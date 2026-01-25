@@ -66,15 +66,16 @@ impl Reader for FileData<'_> {
             + ((self.read_u8()? as u32) << 24))
     }
 
+    #[inline(never)]
     fn read_bytes(&mut self, count: usize) -> Result<Vec<u8>, ReadError> {
-        let mut bytes = Vec::with_capacity(count);
-        for _ in 0..count {
-            if self.position == self.data.len() {
-                return Err(ReadError::EndOfFile);
-            }
-
-            bytes.push(self.read_u8()?);
+        if self.position + count > self.len() {
+            return Err(ReadError::EndOfFile);
         }
+
+        // This `map` and `collect` result in much better codegen than a loop-
+        // make sure to benchmark/check codegen before changing this
+        let bytes = (0..count).map(|e| self.data[self.position + e]).collect::<Vec<_>>();
+        self.position += count;
 
         Ok(bytes)
     }
