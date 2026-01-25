@@ -18,7 +18,6 @@
 - Object class verification in verifier
 - Better performance
     - 8-byte Value
-    - don't allocate on call
     - split fields into object and primitive fields?
     - other?
 
