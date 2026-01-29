@@ -57,6 +57,10 @@ pub struct Context {
     // All interned Java String objects.
     interned_strings: Gc<RefCell<InternedStrings>>,
 
+    // Cache of JvmString->MethodDescriptor. TODO should this be made into a
+    // weak map?
+    method_descriptor_cache: Gc<RefCell<HashMap<JvmString, MethodDescriptor>>>,
+
     // The builtin primitive classes, constructed on JVM startup.
     primitive_classes: Gc<HashMap<PrimitiveType, Class>>,
 
@@ -101,8 +105,10 @@ impl Context {
     pub fn new(loader_backend: Box<dyn LoaderBackend>) -> Self {
         let gc_ctx = GcCtx::new();
 
+        // Frame data
         let empty_frame_data = vec![Cell::new(Value::Integer(0)); 80000].into_boxed_slice();
 
+        // Primitive classes
         let mut primitive_classes = HashMap::new();
         let primitive_types = PrimitiveType::get_all();
         for primitive_type in primitive_types {
@@ -110,8 +116,27 @@ impl Context {
             primitive_classes.insert(primitive_type, Class::for_primitive(gc_ctx, primitive_type));
         }
 
+        // Bootstrap loader
         let loader_backend = Gc::new(gc_ctx, loader_backend);
         let bootstrap_loader = ClassLoader::bootstrap(gc_ctx, loader_backend);
+
+        // Common data
+        let void_descriptor_name = JvmString::new(gc_ctx, "()V".to_string());
+
+        let noargs_void_desc = MethodDescriptor::new_from_string(gc_ctx, void_descriptor_name)
+            .expect("Valid descriptor");
+
+        // We need the void descriptor to create `CommonData`, but we also need
+        // to insert it into the method descriptor cache, so we create the
+        // method descriptor cache now
+        let mut method_descriptor_cache = HashMap::new();
+        method_descriptor_cache.insert(void_descriptor_name, noargs_void_desc);
+
+        let common = CommonData {
+            init_name: JvmString::new(gc_ctx, "<init>".to_string()),
+            clinit_name: JvmString::new(gc_ctx, "<clinit>".to_string()),
+            noargs_void_desc,
+        };
 
         Self {
             loader_backend,
@@ -121,6 +146,7 @@ impl Context {
             java_executables: Gc::new(gc_ctx, RefCell::new(Vec::new())),
             java_class_loaders: Gc::new(gc_ctx, RefCell::new(Vec::new())),
             interned_strings: Gc::new(gc_ctx, RefCell::new(InternedStrings::new())),
+            method_descriptor_cache: Gc::new(gc_ctx, RefCell::new(method_descriptor_cache)),
             primitive_classes: Gc::new(gc_ctx, primitive_classes),
             native_mapping: Gc::new(gc_ctx, RefCell::new(HashMap::new())),
             frame_data: Gc::new(gc_ctx, empty_frame_data),
@@ -131,7 +157,7 @@ impl Context {
             object_class: Gc::new(gc_ctx, OnceCell::new()),
             builtins: Gc::new(gc_ctx, RefCell::new(None)),
             primitive_arrays: Gc::new(gc_ctx, RefCell::new(None)),
-            common: CommonData::new(gc_ctx),
+            common,
             gc_ctx,
         }
     }
@@ -144,8 +170,8 @@ impl Context {
             let method_name = JvmString::new(self.gc_ctx, name[1].to_string());
             let descriptor_name = JvmString::new(self.gc_ctx, name[2].to_string());
 
-            let descriptor = MethodDescriptor::from_string(self.gc_ctx, descriptor_name)
-                .expect("Valid descriptor");
+            let descriptor =
+                MethodDescriptor::from_string(self, descriptor_name).expect("Valid descriptor");
 
             let method = mapping.1;
 
@@ -402,6 +428,20 @@ impl Context {
             .expect("System initializer method failed");
     }
 
+    pub fn get_cached_method_descriptor(&self, name: JvmString) -> Option<MethodDescriptor> {
+        let cache = self.method_descriptor_cache.borrow();
+
+        cache.get(&name).copied()
+    }
+
+    pub fn put_cached_method_descriptor(&self, name: JvmString, descriptor: MethodDescriptor) {
+        let mut cache = self.method_descriptor_cache.borrow_mut();
+
+        if cache.insert(name, descriptor).is_some() {
+            panic!("Attempted to insert duplicate method descriptor into method descriptor cache");
+        }
+    }
+
     pub fn arithmetic_exception(&self) -> Error {
         let exception_class = self.builtins().java_lang_arithmetic_exception;
 
@@ -645,39 +685,13 @@ impl Trace for Context {
 pub struct CommonData {
     pub init_name: JvmString,
     pub clinit_name: JvmString,
-
     pub noargs_void_desc: MethodDescriptor,
-    pub arg_char_array_void_desc: MethodDescriptor,
-}
-
-impl CommonData {
-    fn new(gc_ctx: GcCtx) -> Self {
-        let void_descriptor_name = JvmString::new(gc_ctx, "()V".to_string());
-
-        let noargs_void_desc =
-            MethodDescriptor::from_string(gc_ctx, void_descriptor_name).expect("Valid descriptor");
-
-        let arg_char_array_void_descriptor_name = JvmString::new(gc_ctx, "([C)V".to_string());
-
-        let arg_char_array_void_desc =
-            MethodDescriptor::from_string(gc_ctx, arg_char_array_void_descriptor_name)
-                .expect("Valid descriptor");
-
-        Self {
-            init_name: JvmString::new(gc_ctx, "<init>".to_string()),
-            clinit_name: JvmString::new(gc_ctx, "<clinit>".to_string()),
-            noargs_void_desc,
-            arg_char_array_void_desc,
-        }
-    }
 }
 
 impl Trace for CommonData {
     fn trace(&self) {
         self.init_name.trace();
         self.clinit_name.trace();
-
         self.noargs_void_desc.trace();
-        self.arg_char_array_void_desc.trace();
     }
 }

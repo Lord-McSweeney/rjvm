@@ -1251,7 +1251,7 @@ impl Op {
                     class_dependencies.push(class);
                 }
 
-                let descriptor = MethodDescriptor::from_string(context.gc_ctx, descriptor_name)
+                let descriptor = MethodDescriptor::from_string(context, descriptor_name)
                     .ok_or(Error::Native(NativeError::InvalidDescriptor))?;
 
                 let method_index = class
@@ -1288,7 +1288,7 @@ impl Op {
 
                 let method_vtable = real_class.instance_method_vtable();
 
-                let descriptor = MethodDescriptor::from_string(context.gc_ctx, descriptor_name)
+                let descriptor = MethodDescriptor::from_string(context, descriptor_name)
                     .ok_or(Error::Native(NativeError::InvalidDescriptor))?;
 
                 let method_slot = method_vtable
@@ -1312,7 +1312,7 @@ impl Op {
                     class_dependencies.push(class);
                 }
 
-                let descriptor = MethodDescriptor::from_string(context.gc_ctx, descriptor_name)
+                let descriptor = MethodDescriptor::from_string(context, descriptor_name)
                     .ok_or(Error::Native(NativeError::InvalidDescriptor))?;
 
                 let method_slot = class
@@ -1338,7 +1338,7 @@ impl Op {
                     class_dependencies.push(class);
                 }
 
-                let descriptor = MethodDescriptor::from_string(context.gc_ctx, descriptor_name)
+                let descriptor = MethodDescriptor::from_string(context, descriptor_name)
                     .ok_or(Error::Native(NativeError::InvalidDescriptor))?;
 
                 // According to the JVMS, this byte states the argument count

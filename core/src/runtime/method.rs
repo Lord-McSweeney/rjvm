@@ -66,7 +66,7 @@ impl Method {
         class: Class,
         has_receiver: bool,
     ) -> Result<Self, Error> {
-        let descriptor = MethodDescriptor::from_string(context.gc_ctx, method.descriptor())
+        let descriptor = MethodDescriptor::from_string(context, method.descriptor())
             .ok_or(Error::Native(NativeError::InvalidDescriptor))?;
 
         let attributes = method.attributes();

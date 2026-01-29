@@ -128,8 +128,8 @@ pub(crate) fn run_file(class_name: &str, class_data: &[u8], args: Vec<String>) {
     let main_name = JvmString::new(context.gc_ctx, "main".to_string());
     let main_descriptor_name = JvmString::new(context.gc_ctx, "([Ljava/lang/String;)V".to_string());
 
-    let main_descriptor = MethodDescriptor::from_string(context.gc_ctx, main_descriptor_name)
-        .expect("Valid descriptor");
+    let main_descriptor =
+        MethodDescriptor::from_string(&context, main_descriptor_name).expect("Valid descriptor");
 
     let method_idx = main_class
         .static_method_vtable()

@@ -74,7 +74,9 @@ impl Reader for FileData<'_> {
 
         // This `map` and `collect` result in much better codegen than a loop-
         // make sure to benchmark/check codegen before changing this
-        let bytes = (0..count).map(|e| self.data[self.position + e]).collect::<Vec<_>>();
+        let bytes = (0..count)
+            .map(|e| self.data[self.position + e])
+            .collect::<Vec<_>>();
         self.position += count;
 
         Ok(bytes)
