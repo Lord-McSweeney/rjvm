@@ -48,6 +48,7 @@ pub struct BuiltinClasses {
     pub java_lang_reflect_method: Class,
     pub java_lang_stack_trace_element: Class,
     pub java_lang_system: Class,
+    pub java_lang_verify_error: Class,
 
     pub array_stack_trace_element: Class,
 }
@@ -80,6 +81,7 @@ impl BuiltinClasses {
             java_lang_reflect_method: object_class,
             java_lang_stack_trace_element: object_class,
             java_lang_system: object_class,
+            java_lang_verify_error: object_class,
 
             array_stack_trace_element: object_class,
         }
@@ -113,6 +115,7 @@ impl BuiltinClasses {
                 ("java/lang/reflect/Method", java_lang_reflect_method),
                 ("java/lang/StackTraceElement", java_lang_stack_trace_element),
                 ("java/lang/System", java_lang_system),
+                ("java/lang/VerifyError", java_lang_verify_error),
 
                 ("[Ljava/lang/StackTraceElement;", array_stack_trace_element),
             ]
@@ -194,6 +197,7 @@ impl Trace for BuiltinClasses {
         self.java_lang_reflect_method.trace();
         self.java_lang_stack_trace_element.trace();
         self.java_lang_system.trace();
+        self.java_lang_verify_error.trace();
 
         self.array_stack_trace_element.trace();
     }

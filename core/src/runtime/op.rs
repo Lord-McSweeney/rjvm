@@ -1378,7 +1378,7 @@ impl Op {
                     9 => ArrayType::Short,
                     10 => ArrayType::Int,
                     11 => ArrayType::Long,
-                    _ => return Err(Error::Native(NativeError::InvalidArrayType)),
+                    _ => return Err(context.verify_error()),
                 };
 
                 Ok(Op::NewArray(array_type))

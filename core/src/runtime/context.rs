@@ -642,6 +642,21 @@ impl Context {
 
         Error::Java(exception_instance)
     }
+
+    pub fn verify_error(&self) -> Error {
+        let error_class = self.builtins().java_lang_verify_error;
+
+        let error_instance = error_class.new_instance(self.gc_ctx);
+        error_instance
+            .call_construct(
+                &self,
+                self.common.noargs_void_desc,
+                &[Value::Object(Some(error_instance))],
+            )
+            .expect("Exception class should construct");
+
+        Error::Java(error_instance)
+    }
 }
 
 impl Trace for Context {

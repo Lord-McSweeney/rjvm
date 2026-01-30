@@ -40,6 +40,7 @@ If you want to replace or edit the classes defined here, be sure to keep the fol
 - `java/lang/String`
 - `java/lang/System`
 - `java/lang/Throwable`
+- `java/lang/VerifyError`
 - `java/lang/reflect/Constructor`
 - `java/lang/reflect/Method`
 
