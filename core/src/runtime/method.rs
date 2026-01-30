@@ -390,15 +390,15 @@ impl BytecodeMethodInfo {
             let start = offset_to_idx_map
                 .get(&start_offset)
                 .copied()
-                .ok_or(Error::Native(NativeError::ErrorClassNotThrowable))?;
+                .ok_or_else(|| context.verify_error("Invalid try area start"))?;
             let end = offset_to_idx_map
                 .get(&end_offset)
                 .copied()
-                .ok_or(Error::Native(NativeError::ErrorClassNotThrowable))?;
+                .ok_or_else(|| context.verify_error("Invalid try area end"))?;
             let target = offset_to_idx_map
                 .get(&target_offset)
                 .copied()
-                .ok_or(Error::Native(NativeError::ErrorClassNotThrowable))?;
+                .ok_or_else(|| context.verify_error("Invalid catch target"))?;
 
             let class_idx = reader.read_u16_be()?;
             let class = if class_idx != 0 {
@@ -407,7 +407,10 @@ impl BytecodeMethodInfo {
 
                 let throwable_class = context.builtins().java_lang_throwable;
                 if !class.matches_class(throwable_class) {
-                    return Err(Error::Native(NativeError::ErrorClassNotThrowable));
+                    return Err(context.verify_error(&format!(
+                        "Catch type {} is not a subclass of Throwable",
+                        class.name()
+                    )));
                 }
 
                 Some(class)

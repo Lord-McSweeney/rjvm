@@ -114,9 +114,6 @@ impl Error {
 
 #[derive(Debug)]
 pub enum NativeError {
-    ErrorClassNotThrowable,
-
-    InvalidBranchPosition,
     InvalidJar,
 
     ReadError,

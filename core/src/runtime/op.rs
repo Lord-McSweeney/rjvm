@@ -656,28 +656,28 @@ impl Op {
                 | Op::IfNonNull(position) => {
                     *position = *offset_to_idx_map
                         .get(position)
-                        .ok_or(Error::Native(NativeError::InvalidBranchPosition))?;
+                        .ok_or_else(|| context.verify_error("Invalid branch target"))?;
                 }
                 Op::TableSwitch(_, _, matches, default_offset) => {
-                    *default_offset = *offset_to_idx_map
-                        .get(default_offset)
-                        .ok_or(Error::Native(NativeError::InvalidBranchPosition))?;
+                    *default_offset = *offset_to_idx_map.get(default_offset).ok_or_else(|| {
+                        context.verify_error("Invalid tableswitch default target")
+                    })?;
 
                     for offset in matches.iter_mut() {
-                        *offset = *offset_to_idx_map
-                            .get(offset)
-                            .ok_or(Error::Native(NativeError::InvalidBranchPosition))?;
+                        *offset = *offset_to_idx_map.get(offset).ok_or_else(|| {
+                            context.verify_error("Invalid tableswitch case target")
+                        })?;
                     }
                 }
                 Op::LookupSwitch(matches, default_offset) => {
-                    *default_offset = *offset_to_idx_map
-                        .get(default_offset)
-                        .ok_or(Error::Native(NativeError::InvalidBranchPosition))?;
+                    *default_offset = *offset_to_idx_map.get(default_offset).ok_or_else(|| {
+                        context.verify_error("Invalid lookupswitch branch target")
+                    })?;
 
                     for (_, offset) in matches.iter_mut() {
-                        *offset = *offset_to_idx_map
-                            .get(offset)
-                            .ok_or(Error::Native(NativeError::InvalidBranchPosition))?;
+                        *offset = *offset_to_idx_map.get(offset).ok_or_else(|| {
+                            context.verify_error("Invalid lookupswitch case target")
+                        })?;
                     }
                 }
                 _ => {}
