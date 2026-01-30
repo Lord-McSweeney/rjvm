@@ -115,7 +115,6 @@ impl Error {
 #[derive(Debug)]
 pub enum NativeError {
     ErrorClassNotThrowable,
-    MethodMustHaveCode,
 
     InvalidBranchPosition,
     InvalidDescriptor,
