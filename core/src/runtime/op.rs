@@ -1262,7 +1262,7 @@ impl Op {
             }
             INVOKE_SPECIAL => {
                 let method_ref_idx = data.read_u16_be()?;
-                let method_ref = constant_pool.get_method_ref(method_ref_idx)?;
+                let method_ref = constant_pool.get_any_method_ref(method_ref_idx)?;
 
                 let (class_name, method_name, descriptor_name) = method_ref;
 
@@ -1299,7 +1299,7 @@ impl Op {
             }
             INVOKE_STATIC => {
                 let method_ref_idx = data.read_u16_be()?;
-                let method_ref = constant_pool.get_method_ref(method_ref_idx)?;
+                let method_ref = constant_pool.get_any_method_ref(method_ref_idx)?;
 
                 let (class_name, method_name, descriptor_name) = method_ref;
 

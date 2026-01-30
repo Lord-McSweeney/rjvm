@@ -116,14 +116,10 @@ impl ConstantPool {
                             return Err(Error::ConstantPoolTypeMismatch);
                         }
 
-                        let method_info = if tag == METHOD_REF {
-                            self.get_method_ref(cpool_idx)
-                                .expect("Just checked it to be MethodRef")
-                        } else {
-                            self.get_interface_method_ref(cpool_idx)
-                                .expect("Just checked it to be InterfaceMethodRef")
-                        };
-                        let method_name = method_info.1;
+                        let method_name = self
+                            .get_any_method_ref(cpool_idx)
+                            .expect("Just checked it to be correct")
+                            .1;
 
                         if *method_name == "<init>" || *method_name == "<clinit>" {
                             return Err(Error::ConstantPoolVerifyError);
@@ -250,6 +246,29 @@ impl ConstantPool {
     ) -> Result<(JvmString, JvmString, JvmString), Error> {
         match self.entry(index)? {
             ConstantPoolEntry::InterfaceMethodRef {
+                class_idx,
+                name_and_type_idx,
+            } => {
+                let class = self.get_class(class_idx)?;
+                let name_and_type = self.get_name_and_type(name_and_type_idx)?;
+
+                Ok((class, name_and_type.0, name_and_type.1))
+            }
+            _ => Err(Error::ConstantPoolTypeMismatch),
+        }
+    }
+
+    /// Get either a `MethodRef` or a `InterfaceMethodRef` at the location
+    pub fn get_any_method_ref(
+        &self,
+        index: u16,
+    ) -> Result<(JvmString, JvmString, JvmString), Error> {
+        match self.entry(index)? {
+            ConstantPoolEntry::MethodRef {
+                class_idx,
+                name_and_type_idx,
+            }
+            | ConstantPoolEntry::InterfaceMethodRef {
                 class_idx,
                 name_and_type_idx,
             } => {
