@@ -336,7 +336,15 @@ impl MethodDescriptor {
                 b')' => {
                     i += 1;
 
-                    return_type = Descriptor::from_data_counting(gc_ctx, &desc_bytes[i..], true)?.0;
+                    let return_desc =
+                        Descriptor::from_data_counting(gc_ctx, &desc_bytes[i..], true)?;
+
+                    // Trailing garbage = invalid descriptor
+                    if i + return_desc.1 != descriptor.len() {
+                        return None;
+                    }
+
+                    return_type = return_desc.0;
                     break;
                 }
                 _ => {
