@@ -304,7 +304,7 @@ Link options:
     let main_class = match init_main_class(&context, &options) {
         Ok(main_class) => main_class,
         Err(error_msg) => {
-            eprintln!("Error while loading main class: {}", error_msg);
+            eprint!("Error while loading main class: {}", error_msg);
             return;
         }
     };
