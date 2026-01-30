@@ -34,6 +34,7 @@ pub struct BuiltinClasses {
     pub java_lang_array_index_oob_exception: Class,
     pub java_lang_array_store_exception: Class,
     pub java_lang_class_cast_exception: Class,
+    pub java_lang_class_circularity_error: Class,
     pub java_lang_class_format_error: Class,
     pub java_lang_clone_not_supported_exception: Class,
     pub java_lang_cloneable: Class,
@@ -69,6 +70,7 @@ impl BuiltinClasses {
             java_lang_array_index_oob_exception: object_class,
             java_lang_array_store_exception: object_class,
             java_lang_class_cast_exception: object_class,
+            java_lang_class_circularity_error: object_class,
             java_lang_class_format_error: object_class,
             java_lang_clone_not_supported_exception: object_class,
             java_lang_cloneable: object_class,
@@ -105,6 +107,7 @@ impl BuiltinClasses {
                 ("java/lang/ArrayIndexOutOfBoundsException", java_lang_array_index_oob_exception),
                 ("java/lang/ArrayStoreException", java_lang_array_store_exception),
                 ("java/lang/ClassCastException", java_lang_class_cast_exception),
+                ("java/lang/ClassCircularityError", java_lang_class_circularity_error),
                 ("java/lang/ClassFormatError", java_lang_class_format_error),
                 ("java/lang/CloneNotSupportedException", java_lang_clone_not_supported_exception),
                 ("java/lang/Cloneable", java_lang_cloneable),
@@ -189,6 +192,7 @@ impl Trace for BuiltinClasses {
         self.java_lang_array_index_oob_exception.trace();
         self.java_lang_array_store_exception.trace();
         self.java_lang_class_cast_exception.trace();
+        self.java_lang_class_circularity_error.trace();
         self.java_lang_class_format_error.trace();
         self.java_lang_clone_not_supported_exception.trace();
         self.java_lang_cloneable.trace();
