@@ -512,18 +512,14 @@ impl Class {
 
     pub fn run_clinit(self, context: &Context) -> Result<(), Error> {
         if !self.0.clinit_run.get() {
-            self.0.clinit_run.set(true);
-
-            if let Some(clinit) = self.0.clinit_method.get() {
-                clinit.exec(context)?;
-            }
-
             if let Some(super_class) = self.super_class() {
                 super_class.run_clinit(context)?;
             }
 
-            for interface in self.own_interfaces() {
-                interface.run_clinit(context)?;
+            self.0.clinit_run.set(true);
+
+            if let Some(clinit) = self.0.clinit_method.get() {
+                clinit.exec(context)?;
             }
         }
 
