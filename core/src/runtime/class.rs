@@ -96,7 +96,9 @@ impl Class {
             // Hopefully we won't get a class that tries to implement itself as an interface
             let class = loader.lookup_class(context, *interface)?;
             if !class.is_interface() {
-                return Err(context.incompatible_class_change_error());
+                return Err(
+                    context.incompatible_class_change_error("Class cannot implement non-interface")
+                );
             }
 
             own_interfaces.push(class);

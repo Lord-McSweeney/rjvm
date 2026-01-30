@@ -323,8 +323,8 @@ impl Context {
         return String::from_utf16_lossy(&chars);
     }
 
-    /// Convert a Rust `JvmString` to a Java String object.
-    pub fn jvm_string_to_string(&self, string: JvmString) -> Object {
+    /// Convert a Rust `&str` to a Java String object.
+    pub fn str_to_string(&self, string: &str) -> Object {
         let chars = string.chars().map(|c| c as u16).collect::<Box<_>>();
 
         let chars_array_object = Object::char_array(&self, chars);
@@ -532,7 +532,7 @@ impl Context {
         Error::Java(exception_instance)
     }
 
-    pub fn incompatible_class_change_error(&self) -> Error {
+    pub fn incompatible_class_change_error(&self, message: &str) -> Error {
         let error_class = self.builtins().java_lang_incompatible_class_change_error;
 
         let error_instance = error_class.new_instance(self.gc_ctx);
@@ -543,6 +543,12 @@ impl Context {
                 &[Value::Object(Some(error_instance))],
             )
             .expect("Exception class should construct");
+
+        // Set the `message` field
+        error_instance.set_field(
+            THROWABLE_MESSAGE_FIELD,
+            Value::Object(Some(self.str_to_string(message))),
+        );
 
         Error::Java(error_instance)
     }
@@ -562,7 +568,7 @@ impl Context {
         // Set the `message` field
         error_instance.set_field(
             THROWABLE_MESSAGE_FIELD,
-            Value::Object(Some(self.jvm_string_to_string(class_name))),
+            Value::Object(Some(self.str_to_string(&class_name))),
         );
 
         Error::Java(error_instance)
@@ -613,7 +619,7 @@ impl Context {
         // Set the `message` field
         error_instance.set_field(
             THROWABLE_MESSAGE_FIELD,
-            Value::Object(Some(self.jvm_string_to_string(class_name))),
+            Value::Object(Some(self.str_to_string(&class_name))),
         );
 
         Error::Java(error_instance)

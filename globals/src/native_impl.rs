@@ -642,7 +642,7 @@ fn method_get_name(context: &Context, args: &[Value]) -> Result<Option<Value>, E
     let method = context.executable_object_by_id(exec_id);
 
     let name = method.name();
-    let name_object = context.jvm_string_to_string(name);
+    let name_object = context.str_to_string(&name);
 
     Ok(Some(Value::Object(Some(name_object))))
 }
