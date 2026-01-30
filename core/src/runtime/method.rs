@@ -119,6 +119,8 @@ impl Method {
     /// NOTE: This method reads arguments from the stack, and pops them after
     /// execution!
     pub(crate) fn exec(self, context: &Context) -> Result<Option<Value>, Error> {
+        self.class().run_clinit(context)?;
+
         // Run everything in a closure so we can handle the call stack more easily
         let closure = || -> Result<Option<Value>, Error> {
             // Parse bytecode if it hasn't been already
@@ -133,8 +135,6 @@ impl Method {
 
             match &*self.0.method_info.borrow() {
                 MethodInfo::Bytecode(bytecode_info) => {
-                    self.class().run_clinit(context)?;
-
                     let mut interpreter = Interpreter::new(context, self)?;
 
                     interpreter.interpret_ops(&bytecode_info.code, &bytecode_info.exceptions)
