@@ -1,6 +1,6 @@
 use super::context::Context;
 use super::descriptor::{Descriptor, MethodDescriptor, ResolvedDescriptor};
-use super::error::{Error, NativeError};
+use super::error::Error;
 use super::field::{Field, FieldRef};
 use super::loader::ClassLoader;
 use super::method::Method;
@@ -96,7 +96,7 @@ impl Class {
             // Hopefully we won't get a class that tries to implement itself as an interface
             let class = loader.lookup_class(context, *interface)?;
             if !class.is_interface() {
-                return Err(Error::Native(NativeError::ClassNotInterface));
+                return Err(context.incompatible_class_change_error());
             }
 
             own_interfaces.push(class);

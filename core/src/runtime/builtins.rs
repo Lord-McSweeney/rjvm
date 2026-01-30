@@ -37,6 +37,7 @@ pub struct BuiltinClasses {
     pub java_lang_clone_not_supported_exception: Class,
     pub java_lang_cloneable: Class,
     pub java_lang_illegal_access_error: Class,
+    pub java_lang_incompatible_class_change_error: Class,
     pub java_lang_instantiation_error: Class,
     pub java_lang_instantiation_exception: Class,
     pub java_lang_negative_array_size_exception: Class,
@@ -70,6 +71,7 @@ impl BuiltinClasses {
             java_lang_clone_not_supported_exception: object_class,
             java_lang_cloneable: object_class,
             java_lang_illegal_access_error: object_class,
+            java_lang_incompatible_class_change_error: object_class,
             java_lang_instantiation_error: object_class,
             java_lang_instantiation_exception: object_class,
             java_lang_negative_array_size_exception: object_class,
@@ -104,6 +106,7 @@ impl BuiltinClasses {
                 ("java/lang/CloneNotSupportedException", java_lang_clone_not_supported_exception),
                 ("java/lang/Cloneable", java_lang_cloneable),
                 ("java/lang/IllegalAccessError", java_lang_illegal_access_error),
+                ("java/lang/IncompatibleClassChangeError", java_lang_incompatible_class_change_error),
                 ("java/lang/InstantiationError", java_lang_instantiation_error),
                 ("java/lang/InstantiationException", java_lang_instantiation_exception),
                 ("java/lang/NegativeArraySizeException", java_lang_negative_array_size_exception),
@@ -186,6 +189,7 @@ impl Trace for BuiltinClasses {
         self.java_lang_clone_not_supported_exception.trace();
         self.java_lang_cloneable.trace();
         self.java_lang_illegal_access_error.trace();
+        self.java_lang_incompatible_class_change_error.trace();
         self.java_lang_instantiation_error.trace();
         self.java_lang_instantiation_exception.trace();
         self.java_lang_negative_array_size_exception.trace();
