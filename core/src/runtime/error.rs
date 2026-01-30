@@ -123,10 +123,6 @@ pub enum NativeError {
 
     ReadError,
 
-    CodeFellOffMethod,
-    VerifyCountWrong,
-    VerifyTypeWrong,
-
     WrongReturnType,
 }
 

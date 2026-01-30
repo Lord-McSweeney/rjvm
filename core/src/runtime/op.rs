@@ -1423,7 +1423,7 @@ impl Op {
                 let dim_count = data.read_u8()?;
 
                 if dim_count == 0 {
-                    return Err(Error::Native(NativeError::VerifyCountWrong));
+                    return Err(context.verify_error("multianewarray: dim_count must be > 0"));
                 }
 
                 let descriptor = Descriptor::from_string(context.gc_ctx, class_name)
@@ -1432,12 +1432,15 @@ impl Op {
                     ResolvedDescriptor::from_descriptor(context, loader, descriptor)?;
 
                 for _ in 0..dim_count {
-                    resolved_descriptor = match resolved_descriptor {
-                        ResolvedDescriptor::Array(array_class) => {
-                            array_class.array_value_type().unwrap()
+                    resolved_descriptor =
+                        match resolved_descriptor {
+                            ResolvedDescriptor::Array(array_class) => {
+                                array_class.array_value_type().unwrap()
+                            }
+                            _ => return Err(context.verify_error(
+                                "multianewarray: class must be a dim_count-dimensional array type",
+                            )),
                         }
-                        _ => return Err(Error::Native(NativeError::VerifyTypeWrong)),
-                    }
                 }
 
                 if let Some(class) = resolved_descriptor.class() {

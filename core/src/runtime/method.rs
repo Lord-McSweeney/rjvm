@@ -364,13 +364,16 @@ impl BytecodeMethodInfo {
             offset_to_idx_map,
         )?;
 
-        verify_ops(
+        match verify_ops(
             method,
             max_stack as usize,
             max_locals as usize,
             &code,
             &exceptions,
-        )?;
+        ) {
+            Ok(()) => {}
+            Err(verify_error) => return Err(verify_error.to_error(context)),
+        }
 
         Ok(Self {
             max_stack,

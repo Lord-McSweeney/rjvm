@@ -1,5 +1,6 @@
+use super::context::Context;
 use super::descriptor::Descriptor;
-use super::error::{Error, NativeError};
+use super::error::Error;
 use super::method::{Exception, Method};
 use super::op::Op;
 
@@ -56,7 +57,7 @@ pub fn verify_ops<'a>(
     max_locals: usize,
     ops: &'a [Op],
     exceptions: &[Exception],
-) -> Result<(), Error> {
+) -> Result<(), VerifyError> {
     let blocks = collect_basic_blocks(ops, exceptions)?;
 
     verify_blocks(method, max_stack, max_locals, blocks)
@@ -65,7 +66,7 @@ pub fn verify_ops<'a>(
 fn collect_basic_blocks<'a>(
     ops: &'a [Op],
     exceptions: &[Exception],
-) -> Result<Vec<BasicBlock<'a>>, Error> {
+) -> Result<Vec<BasicBlock<'a>>, VerifyError> {
     let mut block_list = Vec::with_capacity(2);
     let mut current_block_start = 0;
 
@@ -75,7 +76,7 @@ fn collect_basic_blocks<'a>(
     worklist.push(0);
     while let Some(mut i) = worklist.pop() {
         if i >= ops.len() {
-            return Err(Error::Native(NativeError::CodeFellOffMethod));
+            return Err(VerifyError::CodeFellOffMethod);
         }
 
         loop {
@@ -166,7 +167,7 @@ fn collect_basic_blocks<'a>(
             i += 1;
 
             if i >= ops.len() {
-                return Err(Error::Native(NativeError::CodeFellOffMethod));
+                return Err(VerifyError::CodeFellOffMethod);
             }
         }
     }
@@ -377,7 +378,7 @@ fn verify_blocks<'a>(
     max_stack: usize,
     max_locals: usize,
     blocks: Vec<BasicBlock<'a>>,
-) -> Result<(), Error> {
+) -> Result<(), VerifyError> {
     let descriptor = method.descriptor();
     let mut args = Vec::with_capacity(2);
     if !method.flags().contains(MethodFlags::STATIC) {
@@ -412,7 +413,7 @@ fn verify_blocks<'a>(
     }
 
     if args.len() > max_locals {
-        return Err(Error::Native(NativeError::VerifyCountWrong));
+        return Err(VerifyError::WrongCount);
     }
 
     let mut entry_locals = vec![ValueType::Invalid; max_locals];
@@ -458,7 +459,7 @@ fn verify_block<'a>(
     max_stack: usize,
     mut frame_state: FrameState,
     worklist: &mut Vec<(usize, FrameState)>,
-) -> Result<(), Error> {
+) -> Result<(), VerifyError> {
     let ops = block.ops;
 
     let stack = &mut frame_state.stack;
@@ -468,7 +469,7 @@ fn verify_block<'a>(
         ($value_type:ident) => {
             stack.push(ValueType::$value_type);
             if stack.len() > max_stack {
-                return Err(Error::Native(NativeError::VerifyCountWrong));
+                return Err(VerifyError::WrongCount);
             }
         };
     }
@@ -477,10 +478,10 @@ fn verify_block<'a>(
         ($expected_type:ident) => {
             if let Some(value) = stack.pop() {
                 if !matches!(value, ValueType::$expected_type) {
-                    return Err(Error::Native(NativeError::VerifyTypeWrong));
+                    return Err(VerifyError::WrongType);
                 }
             } else {
-                return Err(Error::Native(NativeError::VerifyCountWrong));
+                return Err(VerifyError::WrongCount);
             }
         };
     }
@@ -489,17 +490,15 @@ fn verify_block<'a>(
         ($local_index:expr, $value_type:ident) => {
             *locals
                 .get_mut($local_index)
-                .ok_or(Error::Native(NativeError::VerifyCountWrong))? = ValueType::$value_type;
+                .ok_or(VerifyError::WrongCount)? = ValueType::$value_type;
         };
     }
 
     macro_rules! expect_local {
         ($local_index:expr, $expected_type:ident) => {
-            let value = locals
-                .get($local_index)
-                .ok_or(Error::Native(NativeError::VerifyCountWrong))?;
+            let value = locals.get($local_index).ok_or(VerifyError::WrongCount)?;
             if !matches!(value, ValueType::$expected_type) {
-                return Err(Error::Native(NativeError::VerifyTypeWrong));
+                return Err(VerifyError::WrongType);
             }
         };
     }
@@ -547,7 +546,7 @@ fn verify_block<'a>(
             Op::LLoad(index) => {
                 expect_local!(*index, Long);
                 if index + 1 >= locals.len() {
-                    return Err(Error::Native(NativeError::VerifyCountWrong));
+                    return Err(VerifyError::WrongCount);
                 }
 
                 push_stack!(Long);
@@ -559,7 +558,7 @@ fn verify_block<'a>(
             Op::DLoad(index) => {
                 expect_local!(*index, Double);
                 if index + 1 >= locals.len() {
-                    return Err(Error::Native(NativeError::VerifyCountWrong));
+                    return Err(VerifyError::WrongCount);
                 }
 
                 push_stack!(Double);
@@ -645,52 +644,40 @@ fn verify_block<'a>(
                 expect_pop_stack!(Reference);
             }
             Op::Pop => {
-                let value = stack
-                    .pop()
-                    .ok_or(Error::Native(NativeError::VerifyCountWrong))?;
+                let value = stack.pop().ok_or(VerifyError::WrongCount)?;
 
                 if value.is_wide() {
-                    return Err(Error::Native(NativeError::VerifyTypeWrong));
+                    return Err(VerifyError::WrongType);
                 }
             }
             Op::Pop2 => {
-                let value = stack
-                    .pop()
-                    .ok_or(Error::Native(NativeError::VerifyCountWrong))?;
+                let value = stack.pop().ok_or(VerifyError::WrongCount)?;
 
                 if !value.is_wide() {
-                    stack
-                        .pop()
-                        .ok_or(Error::Native(NativeError::VerifyCountWrong))?;
+                    stack.pop().ok_or(VerifyError::WrongCount)?;
                 }
             }
             Op::Dup => {
-                let value = stack
-                    .pop()
-                    .ok_or(Error::Native(NativeError::VerifyCountWrong))?;
+                let value = stack.pop().ok_or(VerifyError::WrongCount)?;
 
                 if value.is_wide() {
-                    return Err(Error::Native(NativeError::VerifyTypeWrong));
+                    return Err(VerifyError::WrongType);
                 } else {
                     stack.push(value);
                     stack.push(value);
 
                     if stack.len() > max_stack {
-                        return Err(Error::Native(NativeError::VerifyCountWrong));
+                        return Err(VerifyError::WrongCount);
                     }
                 }
             }
             Op::DupX1 => {
-                let top_value = stack
-                    .pop()
-                    .ok_or(Error::Native(NativeError::VerifyCountWrong))?;
+                let top_value = stack.pop().ok_or(VerifyError::WrongCount)?;
 
-                let under_value = stack
-                    .pop()
-                    .ok_or(Error::Native(NativeError::VerifyCountWrong))?;
+                let under_value = stack.pop().ok_or(VerifyError::WrongCount)?;
 
                 if top_value.is_wide() || under_value.is_wide() {
-                    return Err(Error::Native(NativeError::VerifyTypeWrong));
+                    return Err(VerifyError::WrongType);
                 }
 
                 stack.push(top_value);
@@ -698,30 +685,24 @@ fn verify_block<'a>(
                 stack.push(top_value);
 
                 if stack.len() > max_stack {
-                    return Err(Error::Native(NativeError::VerifyCountWrong));
+                    return Err(VerifyError::WrongCount);
                 }
             }
             Op::DupX2 => {
-                let top_value = stack
-                    .pop()
-                    .ok_or(Error::Native(NativeError::VerifyCountWrong))?;
+                let top_value = stack.pop().ok_or(VerifyError::WrongCount)?;
 
                 if top_value.is_wide() {
-                    return Err(Error::Native(NativeError::VerifyTypeWrong));
+                    return Err(VerifyError::WrongType);
                 }
 
-                let under_value = stack
-                    .pop()
-                    .ok_or(Error::Native(NativeError::VerifyCountWrong))?;
+                let under_value = stack.pop().ok_or(VerifyError::WrongCount)?;
 
                 if under_value.is_wide() {
                     stack.push(top_value);
                     stack.push(under_value);
                     stack.push(top_value);
                 } else {
-                    let under_value_2 = stack
-                        .pop()
-                        .ok_or(Error::Native(NativeError::VerifyCountWrong))?;
+                    let under_value_2 = stack.pop().ok_or(VerifyError::WrongCount)?;
                     stack.push(top_value);
                     stack.push(under_value_2);
                     stack.push(under_value);
@@ -729,24 +710,20 @@ fn verify_block<'a>(
                 }
 
                 if stack.len() > max_stack {
-                    return Err(Error::Native(NativeError::VerifyCountWrong));
+                    return Err(VerifyError::WrongCount);
                 }
             }
             Op::Dup2 => {
-                let value = stack
-                    .pop()
-                    .ok_or(Error::Native(NativeError::VerifyCountWrong))?;
+                let value = stack.pop().ok_or(VerifyError::WrongCount)?;
 
                 if value.is_wide() {
                     stack.push(value);
                     stack.push(value);
                 } else {
-                    let second_value = stack
-                        .pop()
-                        .ok_or(Error::Native(NativeError::VerifyCountWrong))?;
+                    let second_value = stack.pop().ok_or(VerifyError::WrongCount)?;
 
                     if second_value.is_wide() {
-                        return Err(Error::Native(NativeError::VerifyTypeWrong));
+                        return Err(VerifyError::WrongType);
                     } else {
                         stack.push(second_value);
                         stack.push(value);
@@ -756,24 +733,20 @@ fn verify_block<'a>(
                 }
 
                 if stack.len() > max_stack {
-                    return Err(Error::Native(NativeError::VerifyCountWrong));
+                    return Err(VerifyError::WrongCount);
                 }
             }
             Op::Swap => {
-                let first_value = stack
-                    .pop()
-                    .ok_or(Error::Native(NativeError::VerifyCountWrong))?;
+                let first_value = stack.pop().ok_or(VerifyError::WrongCount)?;
 
                 if first_value.is_wide() {
-                    return Err(Error::Native(NativeError::VerifyTypeWrong));
+                    return Err(VerifyError::WrongType);
                 }
 
-                let second_value = stack
-                    .pop()
-                    .ok_or(Error::Native(NativeError::VerifyCountWrong))?;
+                let second_value = stack.pop().ok_or(VerifyError::WrongCount)?;
 
                 if second_value.is_wide() {
-                    return Err(Error::Native(NativeError::VerifyTypeWrong));
+                    return Err(VerifyError::WrongType);
                 }
 
                 stack.push(first_value);
@@ -1342,5 +1315,24 @@ fn verify_block<'a>(
         }
         BlockExits::Return => {}
     }
+
     Ok(())
+}
+
+pub enum VerifyError {
+    CodeFellOffMethod,
+    WrongCount,
+    WrongType,
+}
+
+impl VerifyError {
+    pub fn to_error(self, context: &Context) -> Error {
+        let message = match self {
+            VerifyError::CodeFellOffMethod => "Code fell off method",
+            VerifyError::WrongCount => "Wrong count",
+            VerifyError::WrongType => "Wrong type",
+        };
+
+        context.verify_error(message)
+    }
 }
