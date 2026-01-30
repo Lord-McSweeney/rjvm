@@ -613,6 +613,8 @@ impl Op {
         let mut offset_to_idx_map = HashMap::new();
 
         let mut class_dependencies = Vec::new();
+        // Method's class should have its clinit run before the method is run
+        class_dependencies.push(method.class());
 
         while data.position() < code_start + code_length {
             offset_to_idx_map.insert(data.position() - code_start, op_index);
