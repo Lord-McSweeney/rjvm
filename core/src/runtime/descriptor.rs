@@ -299,15 +299,15 @@ struct MethodDescriptorData {
 }
 
 impl MethodDescriptor {
-    pub fn from_string(context: &Context, descriptor: JvmString) -> Option<Self> {
+    pub fn from_string(context: &Context, descriptor: JvmString) -> Result<Self, Error> {
         if let Some(method_desc) = context.get_cached_method_descriptor(descriptor) {
-            Some(method_desc)
+            Ok(method_desc)
         } else if let Some(method_desc) = Self::new_from_string(context.gc_ctx, descriptor) {
             context.put_cached_method_descriptor(descriptor, method_desc);
 
-            Some(method_desc)
+            Ok(method_desc)
         } else {
-            None
+            Err(context.class_format_error(&format!("Illegal method signature \"{}\"", descriptor)))
         }
     }
 

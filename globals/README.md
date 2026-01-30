@@ -25,6 +25,7 @@ If you want to replace or edit the classes defined here, be sure to keep the fol
 - `java/lang/ArrayStoreException`
 - `java/lang/Class`
 - `java/lang/ClassCastException`
+- `java/lang/ClassFormatError`
 - `java/lang/CloneNotSupportedException`
 - `java/lang/Cloneable`
 - `java/lang/IllegalAccessError`

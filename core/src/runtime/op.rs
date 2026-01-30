@@ -1251,8 +1251,7 @@ impl Op {
                     class_dependencies.push(class);
                 }
 
-                let descriptor = MethodDescriptor::from_string(context, descriptor_name)
-                    .ok_or(Error::Native(NativeError::InvalidDescriptor))?;
+                let descriptor = MethodDescriptor::from_string(context, descriptor_name)?;
 
                 let method_index = class
                     .instance_method_vtable()
@@ -1288,8 +1287,7 @@ impl Op {
 
                 let method_vtable = real_class.instance_method_vtable();
 
-                let descriptor = MethodDescriptor::from_string(context, descriptor_name)
-                    .ok_or(Error::Native(NativeError::InvalidDescriptor))?;
+                let descriptor = MethodDescriptor::from_string(context, descriptor_name)?;
 
                 let method_slot = method_vtable
                     .lookup((method_name, descriptor))
@@ -1312,8 +1310,7 @@ impl Op {
                     class_dependencies.push(class);
                 }
 
-                let descriptor = MethodDescriptor::from_string(context, descriptor_name)
-                    .ok_or(Error::Native(NativeError::InvalidDescriptor))?;
+                let descriptor = MethodDescriptor::from_string(context, descriptor_name)?;
 
                 let method_slot = class
                     .static_method_vtable()
@@ -1338,8 +1335,7 @@ impl Op {
                     class_dependencies.push(class);
                 }
 
-                let descriptor = MethodDescriptor::from_string(context, descriptor_name)
-                    .ok_or(Error::Native(NativeError::InvalidDescriptor))?;
+                let descriptor = MethodDescriptor::from_string(context, descriptor_name)?;
 
                 // According to the JVMS, this byte states the argument count
                 // of the method (despite that also being defined in the

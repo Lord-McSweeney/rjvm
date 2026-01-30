@@ -502,6 +502,27 @@ impl Context {
         Error::Java(exception_instance)
     }
 
+    pub fn class_format_error(&self, message: &str) -> Error {
+        let error_class = self.builtins().java_lang_class_format_error;
+
+        let error_instance = error_class.new_instance(self.gc_ctx);
+        error_instance
+            .call_construct(
+                &self,
+                self.common.noargs_void_desc,
+                &[Value::Object(Some(error_instance))],
+            )
+            .expect("Exception class should construct");
+
+        // Set the `message` field
+        error_instance.set_field(
+            THROWABLE_MESSAGE_FIELD,
+            Value::Object(Some(self.str_to_string(message))),
+        );
+
+        Error::Java(error_instance)
+    }
+
     pub fn clone_not_supported_exception(&self) -> Error {
         let exception_class = self.builtins().java_lang_clone_not_supported_exception;
 
