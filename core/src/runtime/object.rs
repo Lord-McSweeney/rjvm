@@ -2,7 +2,7 @@ use super::array::Array;
 use super::class::Class;
 use super::context::Context;
 use super::descriptor::{MethodDescriptor, ResolvedDescriptor};
-use super::error::{Error, NativeError};
+use super::error::Error;
 use super::loader::ClassLoader;
 use super::value::Value;
 
@@ -298,7 +298,7 @@ impl Object {
 
         let method_idx = instance_method_vtable
             .lookup((init_name, descriptor))
-            .ok_or(Error::Native(NativeError::VTableLookupFailed))?;
+            .expect("Class should have specified instantiation method");
 
         let method = instance_method_vtable.get_element(method_idx);
 
