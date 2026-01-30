@@ -117,7 +117,6 @@ pub enum NativeError {
     ErrorClassNotThrowable,
 
     InvalidBranchPosition,
-    InvalidDescriptor,
     InvalidJar,
 
     ReadError,

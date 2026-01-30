@@ -114,7 +114,7 @@ impl ClassLoader {
         if let Some(element_name) = class_name.strip_prefix('[') {
             // Special handling for array classes
             let element_name = JvmString::new(context.gc_ctx, element_name.to_string());
-            let element_descriptor = Descriptor::from_string(context.gc_ctx, element_name)
+            let element_descriptor = Descriptor::try_from_string(context.gc_ctx, element_name)
                 .ok_or_else(|| context.no_class_def_found_error(class_name))?;
 
             let resolved_descriptor =

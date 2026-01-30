@@ -85,8 +85,20 @@ impl Descriptor {
         Some((result, consumed_bytes))
     }
 
-    pub fn from_string(gc_ctx: GcCtx, descriptor: JvmString) -> Option<Self> {
-        Self::from_data_counting(gc_ctx, descriptor.as_bytes(), false).map(|o| o.0)
+    pub fn try_from_string(gc_ctx: GcCtx, descriptor: JvmString) -> Option<Self> {
+        let result = Self::from_data_counting(gc_ctx, descriptor.as_bytes(), false);
+
+        result
+            .filter(|r| r.1 == descriptor.len()) // Trailing garbage = invalid descriptor
+            .map(|r| r.0)
+    }
+
+    pub fn from_string(context: &Context, descriptor: JvmString) -> Result<Self, Error> {
+        if let Some(result) = Self::try_from_string(context.gc_ctx, descriptor) {
+            Ok(result)
+        } else {
+            Err(context.class_format_error(&format!("Illegal field signature \"{}\"", descriptor)))
+        }
     }
 
     pub fn default_value(self) -> Value {

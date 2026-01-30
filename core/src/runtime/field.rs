@@ -1,6 +1,6 @@
 use super::context::Context;
 use super::descriptor::Descriptor;
-use super::error::{Error, NativeError};
+use super::error::Error;
 use super::value::Value;
 
 use crate::classfile::class::ClassFile;
@@ -32,8 +32,7 @@ impl Field {
     ) -> Result<Self, Error> {
         let descriptor_name = field.descriptor();
 
-        let descriptor = Descriptor::from_string(context.gc_ctx, descriptor_name)
-            .ok_or(Error::Native(NativeError::InvalidDescriptor))?;
+        let descriptor = Descriptor::from_string(context, descriptor_name)?;
 
         let name = field.name();
 
@@ -96,8 +95,7 @@ impl FieldRef {
     ) -> Result<Self, Error> {
         let descriptor_name = field.descriptor();
 
-        let descriptor = Descriptor::from_string(context.gc_ctx, descriptor_name)
-            .ok_or(Error::Native(NativeError::InvalidDescriptor))?;
+        let descriptor = Descriptor::from_string(context, descriptor_name)?;
 
         let name = field.name();
 

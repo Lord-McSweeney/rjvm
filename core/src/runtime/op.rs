@@ -1126,8 +1126,7 @@ impl Op {
                     class_dependencies.push(class);
                 }
 
-                let descriptor = Descriptor::from_string(context.gc_ctx, descriptor_name)
-                    .ok_or(Error::Native(NativeError::InvalidDescriptor))?;
+                let descriptor = Descriptor::from_string(context, descriptor_name)?;
 
                 let field_slot = class
                     .static_field_vtable()
@@ -1157,8 +1156,7 @@ impl Op {
                     class_dependencies.push(class);
                 }
 
-                let descriptor = Descriptor::from_string(context.gc_ctx, descriptor_name)
-                    .ok_or(Error::Native(NativeError::InvalidDescriptor))?;
+                let descriptor = Descriptor::from_string(context, descriptor_name)?;
 
                 let field_slot = class
                     .static_field_vtable()
@@ -1188,8 +1186,7 @@ impl Op {
                     class_dependencies.push(class);
                 }
 
-                let descriptor = Descriptor::from_string(context.gc_ctx, descriptor_name)
-                    .ok_or(Error::Native(NativeError::InvalidDescriptor))?;
+                let descriptor = Descriptor::from_string(context, descriptor_name)?;
 
                 let field_slot = class
                     .instance_field_vtable()
@@ -1219,8 +1216,7 @@ impl Op {
                     class_dependencies.push(class);
                 }
 
-                let descriptor = Descriptor::from_string(context.gc_ctx, descriptor_name)
-                    .ok_or(Error::Native(NativeError::InvalidDescriptor))?;
+                let descriptor = Descriptor::from_string(context, descriptor_name)?;
 
                 let field_slot = class
                     .instance_field_vtable()
@@ -1422,8 +1418,10 @@ impl Op {
                     return Err(context.verify_error("multianewarray: dim_count must be > 0"));
                 }
 
-                let descriptor = Descriptor::from_string(context.gc_ctx, class_name)
-                    .ok_or(Error::Native(NativeError::InvalidDescriptor))?;
+                // TODO this probably should go through a different path than
+                // `Descriptor::from_string`, as that function is meant for
+                // field descriptors (maybe a "lookup class" function)?
+                let descriptor = Descriptor::from_string(context, class_name)?;
                 let mut resolved_descriptor =
                     ResolvedDescriptor::from_descriptor(context, loader, descriptor)?;
 
