@@ -921,7 +921,7 @@ fn verify_block<'a>(
             Op::Return => {
                 // This does nothing
             }
-            Op::GetStatic(class, index) | Op::GetStaticWide(class, index) => {
+            Op::GetStatic(class, _, index) | Op::GetStaticWide(class, _, index) => {
                 let field_descriptor = class.static_fields()[*index].descriptor();
                 match field_descriptor {
                     Descriptor::Class(_) | Descriptor::Array(_) => {
@@ -946,7 +946,7 @@ fn verify_block<'a>(
                     Descriptor::Void => unreachable!(),
                 }
             }
-            Op::PutStatic(class, index) | Op::PutStaticWide(class, index) => {
+            Op::PutStatic(class, _, index) | Op::PutStaticWide(class, _, index) => {
                 let field_descriptor = class.static_fields()[*index].descriptor();
                 match field_descriptor {
                     Descriptor::Class(_) | Descriptor::Array(_) => {

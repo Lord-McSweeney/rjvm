@@ -270,19 +270,19 @@ impl<'a> Interpreter<'a> {
                 Op::DReturn => self.op_d_return(),
                 Op::AReturn => self.op_a_return(),
                 Op::Return => Ok(ControlFlow::Return(None)),
-                Op::GetStatic(class, static_field_idx) => {
-                    self.op_get_static(*class, *static_field_idx)
+                Op::GetStatic(class, defining_class, static_field_idx) => {
+                    self.op_get_static(*class, *defining_class, *static_field_idx)
                 }
-                Op::PutStatic(class, static_field_idx) => {
-                    self.op_put_static(*class, *static_field_idx)
+                Op::PutStatic(class, defining_class, static_field_idx) => {
+                    self.op_put_static(*class, *defining_class, *static_field_idx)
                 }
                 Op::GetField(class, field_idx) => self.op_get_field(*class, *field_idx),
                 Op::PutField(class, field_idx) => self.op_put_field(*class, *field_idx),
-                Op::GetStaticWide(class, static_field_idx) => {
-                    self.op_get_static_wide(*class, *static_field_idx)
+                Op::GetStaticWide(class, defining_class, static_field_idx) => {
+                    self.op_get_static_wide(*class, *defining_class, *static_field_idx)
                 }
-                Op::PutStaticWide(class, static_field_idx) => {
-                    self.op_put_static_wide(*class, *static_field_idx)
+                Op::PutStaticWide(class, defining_class, static_field_idx) => {
+                    self.op_put_static_wide(*class, *defining_class, *static_field_idx)
                 }
                 Op::GetFieldWide(class, field_idx) => self.op_get_field_wide(*class, *field_idx),
                 Op::PutFieldWide(class, field_idx) => self.op_put_field_wide(*class, *field_idx),
@@ -1738,9 +1738,10 @@ impl<'a> Interpreter<'a> {
     fn op_get_static(
         &mut self,
         class: Class,
+        defining_class: Class,
         static_field_idx: usize,
     ) -> Result<ControlFlow, Error> {
-        class.run_clinit(self.context)?;
+        defining_class.run_clinit(self.context)?;
 
         let static_field = class.static_fields()[static_field_idx];
         let value = static_field.value();
@@ -1753,9 +1754,10 @@ impl<'a> Interpreter<'a> {
     fn op_put_static(
         &mut self,
         class: Class,
+        defining_class: Class,
         static_field_idx: usize,
     ) -> Result<ControlFlow, Error> {
-        class.run_clinit(self.context)?;
+        defining_class.run_clinit(self.context)?;
 
         let static_field = class.static_fields()[static_field_idx];
 
@@ -1807,9 +1809,10 @@ impl<'a> Interpreter<'a> {
     fn op_get_static_wide(
         &mut self,
         class: Class,
+        defining_class: Class,
         static_field_idx: usize,
     ) -> Result<ControlFlow, Error> {
-        class.run_clinit(self.context)?;
+        defining_class.run_clinit(self.context)?;
 
         let static_field = class.static_fields()[static_field_idx];
         let value = static_field.value();
@@ -1822,9 +1825,10 @@ impl<'a> Interpreter<'a> {
     fn op_put_static_wide(
         &mut self,
         class: Class,
+        defining_class: Class,
         static_field_idx: usize,
     ) -> Result<ControlFlow, Error> {
-        class.run_clinit(self.context)?;
+        defining_class.run_clinit(self.context)?;
 
         let static_field = class.static_fields()[static_field_idx];
 

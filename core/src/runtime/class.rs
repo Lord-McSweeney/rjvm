@@ -51,9 +51,6 @@ struct ClassData {
     // The primitive type that this class represents.
     primitive_type: Option<PrimitiveType>,
 
-    static_field_vtable: VTable<Descriptor>,
-    static_fields: Box<[FieldRef]>,
-
     instance_field_vtable: VTable<Descriptor>,
     // The values present on the class are the default values: when instantiating
     // an instance, the `instance_fields` should be cloned and added to the instance.
@@ -66,6 +63,9 @@ struct ClassData {
 }
 
 struct MethodData {
+    static_field_vtable: VTable<Descriptor>,
+    static_fields: Box<[FieldRef]>,
+
     static_method_vtable: VTable<MethodDescriptor>,
     static_methods: Box<[Method]>,
 
@@ -129,40 +129,17 @@ impl Class {
 
         let fields = class_file.fields();
 
-        let mut static_field_names = Vec::with_capacity(fields.len());
-        let mut static_fields = super_class.map_or(Vec::new(), |c| c.static_fields().to_vec());
         let mut instance_field_names = Vec::with_capacity(fields.len());
         let mut instance_fields = super_class.map_or(Vec::new(), |c| c.instance_fields().to_vec());
 
-        for interface in &all_interfaces {
-            let interface_statics = interface.static_fields();
-
-            for field in interface_statics {
-                static_field_names.push((field.name(), field.descriptor()));
-                static_fields.push(*field);
-            }
-        }
-
         for field in fields {
-            if field.flags().contains(FieldFlags::STATIC) {
-                let created_field = FieldRef::from_field(context, class_file, field)?;
-
-                static_field_names.push((field.name(), created_field.descriptor()));
-                static_fields.push(created_field);
-            } else {
+            if !field.flags().contains(FieldFlags::STATIC) {
                 let created_field = Field::from_field(context, class_file, field)?;
 
                 instance_field_names.push((field.name(), created_field.descriptor()));
                 instance_fields.push(created_field);
             }
         }
-
-        let static_field_vtable = VTable::from_parent_and_keys(
-            context.gc_ctx,
-            None,
-            super_class.map(|c| c.static_field_vtable()),
-            static_field_names,
-        );
 
         let instance_field_vtable = VTable::from_parent_and_keys(
             context.gc_ctx,
@@ -190,8 +167,6 @@ impl Class {
                 array_value_type: None,
                 primitive_type: None,
 
-                static_field_vtable,
-                static_fields: static_fields.into_boxed_slice(),
                 instance_field_vtable,
                 instance_fields: instance_fields.into_boxed_slice(),
 
@@ -208,6 +183,36 @@ impl Class {
     pub fn load_methods(self, context: &Context) -> Result<(), Error> {
         let class_file = self.class_file().unwrap();
         let super_class = self.super_class();
+
+        let fields = class_file.fields();
+
+        let mut static_field_names = Vec::with_capacity(fields.len());
+        let mut static_fields = super_class.map_or(Vec::new(), |c| c.static_fields().to_vec());
+
+        for interface in &self.0.all_interfaces {
+            let interface_statics = interface.static_fields();
+
+            for field in &*interface_statics {
+                static_field_names.push((field.name(), field.descriptor()));
+                static_fields.push(*field);
+            }
+        }
+
+        for field in fields {
+            if field.flags().contains(FieldFlags::STATIC) {
+                let created_field = FieldRef::from_field(context, self, field)?;
+
+                static_field_names.push((field.name(), created_field.descriptor()));
+                static_fields.push(created_field);
+            }
+        }
+
+        let static_field_vtable = VTable::from_parent_and_keys(
+            context.gc_ctx,
+            Some(self),
+            super_class.map(|c| c.static_field_vtable()),
+            static_field_names,
+        );
 
         let methods = class_file.methods();
 
@@ -235,7 +240,7 @@ impl Class {
         let static_method_vtable = VTable::from_parent_and_keys(
             context.gc_ctx,
             Some(self),
-            super_class.map(|c| *c.static_method_vtable()),
+            super_class.map(|c| c.static_method_vtable()),
             static_method_names,
         );
 
@@ -247,6 +252,8 @@ impl Class {
         );
 
         *self.0.method_data.borrow_mut() = Some(MethodData {
+            static_field_vtable,
+            static_fields: static_fields.into_boxed_slice(),
             static_method_vtable,
             static_methods: static_methods.into_boxed_slice(),
             instance_method_vtable,
@@ -277,6 +284,8 @@ impl Class {
         let instance_method_vtable = *object_class.instance_method_vtable();
 
         let method_data = MethodData {
+            static_field_vtable: VTable::empty(context.gc_ctx),
+            static_fields: Box::new([]),
             static_method_vtable: VTable::empty(context.gc_ctx),
             static_methods: Box::new([]),
             // FIXME is this correct?
@@ -307,8 +316,6 @@ impl Class {
                 array_value_type: Some(array_type),
                 primitive_type: None,
 
-                static_field_vtable: VTable::empty(context.gc_ctx),
-                static_fields: Box::new([]),
                 instance_field_vtable: VTable::empty(context.gc_ctx),
                 instance_fields: Box::new([]),
 
@@ -323,6 +330,8 @@ impl Class {
     // Creates a builtin class for one of the primitive types.
     pub fn for_primitive(gc_ctx: GcCtx, primitive_type: PrimitiveType) -> Self {
         let method_data = MethodData {
+            static_field_vtable: VTable::empty(gc_ctx),
+            static_fields: Box::new([]),
             static_method_vtable: VTable::empty(gc_ctx),
             static_methods: Box::new([]),
             // FIXME do we need to add any methods to this vtable?
@@ -348,8 +357,6 @@ impl Class {
                 array_value_type: None,
                 primitive_type: Some(primitive_type),
 
-                static_field_vtable: VTable::empty(gc_ctx),
-                static_fields: Box::new([]),
                 instance_field_vtable: VTable::empty(gc_ctx),
                 instance_fields: Box::new([]),
 
@@ -409,8 +416,8 @@ impl Class {
         self.0.array_value_type
     }
 
-    pub fn static_method_vtable(&self) -> Ref<'_, VTable<MethodDescriptor>> {
-        Ref::map(self.0.method_data.borrow(), |data| {
+    pub fn static_method_vtable(&self) -> VTable<MethodDescriptor> {
+        *Ref::map(self.0.method_data.borrow(), |data| {
             &data.as_ref().unwrap().static_method_vtable
         })
     }
@@ -422,11 +429,15 @@ impl Class {
     }
 
     pub fn static_field_vtable(self) -> VTable<Descriptor> {
-        self.0.static_field_vtable
+        *Ref::map(self.0.method_data.borrow(), |data| {
+            &data.as_ref().unwrap().static_field_vtable
+        })
     }
 
-    pub fn static_fields(&self) -> &[FieldRef] {
-        &self.0.static_fields
+    pub fn static_fields(&self) -> Ref<'_, Box<[FieldRef]>> {
+        Ref::map(self.0.method_data.borrow(), |data| {
+            &data.as_ref().unwrap().static_fields
+        })
     }
 
     pub fn instance_method_vtable(&self) -> Ref<'_, InstanceMethodVTable> {
@@ -564,12 +575,13 @@ impl Trace for ClassData {
         self.all_interfaces.trace();
         self.array_value_type.trace();
 
-        self.static_field_vtable.trace();
-        self.static_fields.trace();
         self.instance_field_vtable.trace();
         self.instance_fields.trace();
 
         if let Some(method_data) = &*self.method_data.borrow() {
+            method_data.static_field_vtable.trace();
+            method_data.static_fields.trace();
+
             method_data.static_method_vtable.trace();
             method_data.static_methods.trace();
 

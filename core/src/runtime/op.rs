@@ -163,15 +163,15 @@ pub enum Op {
     Return,
 
     // Field get/set
-    GetStatic(Class, usize),
-    PutStatic(Class, usize),
+    GetStatic(Class, Class, usize),
+    PutStatic(Class, Class, usize),
     GetField(Class, usize),
     PutField(Class, usize),
 
     // Wide field get/set
     // It's slightly faster to separate these than to check wideness at runtime
-    GetStaticWide(Class, usize),
-    PutStaticWide(Class, usize),
+    GetStaticWide(Class, Class, usize),
+    PutStaticWide(Class, Class, usize),
     GetFieldWide(Class, usize),
     PutFieldWide(Class, usize),
 
@@ -337,11 +337,13 @@ impl Trace for Op {
             Op::DReturn => {}
             Op::AReturn => {}
             Op::Return => {}
-            Op::GetStatic(class, _) => {
+            Op::GetStatic(class, defining_class, _) => {
                 class.trace();
+                defining_class.trace();
             }
-            Op::PutStatic(class, _) => {
+            Op::PutStatic(class, defining_class, _) => {
                 class.trace();
+                defining_class.trace();
             }
             Op::GetField(class, _) => {
                 class.trace();
@@ -349,11 +351,13 @@ impl Trace for Op {
             Op::PutField(class, _) => {
                 class.trace();
             }
-            Op::GetStaticWide(class, _) => {
+            Op::GetStaticWide(class, defining_class, _) => {
                 class.trace();
+                defining_class.trace();
             }
-            Op::PutStaticWide(class, _) => {
+            Op::PutStaticWide(class, defining_class, _) => {
                 class.trace();
+                defining_class.trace();
             }
             Op::GetFieldWide(class, _) => {
                 class.trace();
@@ -1125,16 +1129,20 @@ impl Op {
                     .lookup((field_name, descriptor))
                     .ok_or_else(|| context.no_such_field_error())?;
 
+                let field = class.static_fields()[field_slot];
+
                 // TODO "package-private" and "protected" access control
-                let flags = class.static_fields()[field_slot].flags();
+                let flags = field.flags();
                 if flags.contains(FieldFlags::PRIVATE) && method.class() != class {
                     return Err(context.illegal_access_error());
                 }
 
+                let defining_class = field.defining_class();
+
                 if descriptor.is_wide() {
-                    Ok(Op::GetStaticWide(class, field_slot))
+                    Ok(Op::GetStaticWide(class, defining_class, field_slot))
                 } else {
-                    Ok(Op::GetStatic(class, field_slot))
+                    Ok(Op::GetStatic(class, defining_class, field_slot))
                 }
             }
             PUT_STATIC => {
@@ -1152,16 +1160,20 @@ impl Op {
                     .lookup((field_name, descriptor))
                     .ok_or_else(|| context.no_such_field_error())?;
 
+                let field = class.static_fields()[field_slot];
+
                 // TODO "package-private" and "protected" access control
-                let flags = class.static_fields()[field_slot].flags();
+                let flags = field.flags();
                 if flags.contains(FieldFlags::PRIVATE) && method.class() != class {
                     return Err(context.illegal_access_error());
                 }
 
+                let defining_class = field.defining_class();
+
                 if descriptor.is_wide() {
-                    Ok(Op::PutStaticWide(class, field_slot))
+                    Ok(Op::PutStaticWide(class, defining_class, field_slot))
                 } else {
-                    Ok(Op::PutStatic(class, field_slot))
+                    Ok(Op::PutStatic(class, defining_class, field_slot))
                 }
             }
             GET_FIELD => {

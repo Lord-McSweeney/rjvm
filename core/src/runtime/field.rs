@@ -1,3 +1,4 @@
+use super::class::Class;
 use super::context::Context;
 use super::descriptor::Descriptor;
 use super::error::Error;
@@ -30,11 +31,7 @@ impl Field {
         class_file: ClassFile,
         field: &ClassFileField,
     ) -> Result<Self, Error> {
-        let descriptor_name = field.descriptor();
-
-        let descriptor = Descriptor::from_string(context, descriptor_name)?;
-
-        let name = field.name();
+        let descriptor = Descriptor::from_string(context, field.descriptor())?;
 
         let constant_value = field_constant_value(context, class_file, field)?;
 
@@ -47,7 +44,7 @@ impl Field {
         Ok(Self {
             descriptor,
             flags: field.flags(),
-            name,
+            name: field.name(),
             value: Cell::new(value),
         })
     }
@@ -85,19 +82,26 @@ impl Trace for Field {
 // This is intentionally Copy, so that a subclass can simply hold references
 // to its superclass's static fields.
 #[derive(Clone, Copy, Debug)]
-pub struct FieldRef(Gc<Field>);
+pub struct FieldRef(Gc<FieldRefData>);
+
+#[derive(Clone, Debug)]
+struct FieldRefData {
+    descriptor: Descriptor,
+    flags: FieldFlags,
+    name: JvmString,
+    defining_class: Class,
+    value: Cell<Value>,
+}
 
 impl FieldRef {
     pub fn from_field(
         context: &Context,
-        class_file: ClassFile,
+        defining_class: Class,
         field: &ClassFileField,
     ) -> Result<Self, Error> {
-        let descriptor_name = field.descriptor();
+        let class_file = defining_class.class_file().unwrap();
 
-        let descriptor = Descriptor::from_string(context, descriptor_name)?;
-
-        let name = field.name();
+        let descriptor = Descriptor::from_string(context, field.descriptor())?;
 
         let constant_value = field_constant_value(context, class_file, field)?;
 
@@ -109,10 +113,11 @@ impl FieldRef {
 
         Ok(Self(Gc::new(
             context.gc_ctx,
-            Field {
+            FieldRefData {
                 descriptor,
                 flags: field.flags(),
-                name,
+                name: field.name(),
+                defining_class,
                 value: Cell::new(value),
             },
         )))
@@ -130,6 +135,10 @@ impl FieldRef {
         self.0.name
     }
 
+    pub fn defining_class(self) -> Class {
+        self.0.defining_class
+    }
+
     pub fn value(self) -> Value {
         self.0.value.get()
     }
@@ -143,6 +152,15 @@ impl FieldRef {
 impl Trace for FieldRef {
     fn trace(&self) {
         self.0.trace();
+    }
+}
+
+impl Trace for FieldRefData {
+    fn trace(&self) {
+        self.descriptor.trace();
+        self.name.trace();
+        self.defining_class.trace();
+        self.value.trace();
     }
 }
 
