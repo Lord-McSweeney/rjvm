@@ -69,12 +69,10 @@ fn init_main_class(
         JvmString::new(context.gc_ctx, class_name.to_string())
     };
 
-    let main_class = context
+    context
         .system_loader()
         .lookup_class(context, main_class_name)
-        .expect("Failed to load main class");
-
-    Ok(main_class)
+        .map_err(|e| e.display(context))
 }
 
 pub(crate) fn run_file(class_name: &str, class_data: &[u8], args: Vec<String>) {
@@ -101,7 +99,7 @@ pub(crate) fn run_file(class_name: &str, class_data: &[u8], args: Vec<String>) {
     let main_class = match init_main_class(&context, class_name, class_data.to_vec(), is_jar) {
         Ok(class) => class,
         Err(error) => {
-            output_to_err(&format!("Error: {}\n", error));
+            output_to_err(&format!("Error: {}", error));
 
             return;
         }
