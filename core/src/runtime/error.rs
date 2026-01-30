@@ -115,17 +115,13 @@ impl Error {
 #[derive(Debug)]
 pub enum NativeError {
     ErrorClassNotThrowable,
-    ClassNotInterface,
     MethodMustHaveCode,
 
-    InvalidArrayType,
     InvalidBranchPosition,
     InvalidDescriptor,
     InvalidJar,
 
     ReadError,
-
-    VTableLookupFailed,
 
     CodeFellOffMethod,
     VerifyCountWrong,
