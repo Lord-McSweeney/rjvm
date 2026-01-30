@@ -532,19 +532,25 @@ impl Context {
         Error::Java(exception_instance)
     }
 
-    pub fn instantiation_error(&self) -> Error {
-        let exception_class = self.builtins().java_lang_instantiation_error;
+    pub fn instantiation_error(&self, class_name: JvmString) -> Error {
+        let error_class = self.builtins().java_lang_instantiation_error;
 
-        let exception_instance = exception_class.new_instance(self.gc_ctx);
-        exception_instance
+        let error_instance = error_class.new_instance(self.gc_ctx);
+        error_instance
             .call_construct(
                 &self,
                 self.common.noargs_void_desc,
-                &[Value::Object(Some(exception_instance))],
+                &[Value::Object(Some(error_instance))],
             )
             .expect("Exception class should construct");
 
-        Error::Java(exception_instance)
+        // Set the `message` field
+        error_instance.set_field(
+            THROWABLE_MESSAGE_FIELD,
+            Value::Object(Some(self.jvm_string_to_string(class_name))),
+        );
+
+        Error::Java(error_instance)
     }
 
     pub fn instantiation_exception(&self) -> Error {

@@ -1996,11 +1996,16 @@ impl<'a> Interpreter<'a> {
         // This does an allocation; we should increment the gc counter
         self.context.increment_gc_counter();
 
-        let instance = class.new_instance(self.context.gc_ctx);
+        if class.cant_instantiate() {
+            // Yes, this is a runtime error
+            Err(self.context.instantiation_error(class.name()))
+        } else {
+            let instance = class.new_instance(self.context.gc_ctx);
 
-        self.stack_push(Value::Object(Some(instance)));
+            self.stack_push(Value::Object(Some(instance)));
 
-        Ok(ControlFlow::Continue)
+            Ok(ControlFlow::Continue)
+        }
     }
 
     fn op_new_array(&mut self, array_type: ArrayType) -> Result<ControlFlow, Error> {

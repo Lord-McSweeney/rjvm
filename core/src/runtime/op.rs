@@ -1362,10 +1362,6 @@ impl Op {
                     class_dependencies.push(class);
                 }
 
-                if class.cant_instantiate() {
-                    return Err(context.instantiation_error());
-                }
-
                 Ok(Op::New(class))
             }
             NEW_ARRAY => {
