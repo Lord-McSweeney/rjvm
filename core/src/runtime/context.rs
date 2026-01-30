@@ -670,7 +670,7 @@ impl Context {
         Error::Java(exception_instance)
     }
 
-    pub fn verify_error(&self) -> Error {
+    pub fn verify_error(&self, message: &str) -> Error {
         let error_class = self.builtins().java_lang_verify_error;
 
         let error_instance = error_class.new_instance(self.gc_ctx);
@@ -681,6 +681,12 @@ impl Context {
                 &[Value::Object(Some(error_instance))],
             )
             .expect("Exception class should construct");
+
+        // Set the `message` field
+        error_instance.set_field(
+            THROWABLE_MESSAGE_FIELD,
+            Value::Object(Some(self.str_to_string(message))),
+        );
 
         Error::Java(error_instance)
     }
