@@ -1740,6 +1740,8 @@ impl<'a> Interpreter<'a> {
         class: Class,
         static_field_idx: usize,
     ) -> Result<ControlFlow, Error> {
+        class.run_clinit(self.context)?;
+
         let static_field = class.static_fields()[static_field_idx];
         let value = static_field.value();
 
@@ -1753,6 +1755,8 @@ impl<'a> Interpreter<'a> {
         class: Class,
         static_field_idx: usize,
     ) -> Result<ControlFlow, Error> {
+        class.run_clinit(self.context)?;
+
         let static_field = class.static_fields()[static_field_idx];
 
         let value = self.stack_pop();
@@ -1805,6 +1809,8 @@ impl<'a> Interpreter<'a> {
         class: Class,
         static_field_idx: usize,
     ) -> Result<ControlFlow, Error> {
+        class.run_clinit(self.context)?;
+
         let static_field = class.static_fields()[static_field_idx];
         let value = static_field.value();
 
@@ -1818,6 +1824,8 @@ impl<'a> Interpreter<'a> {
         class: Class,
         static_field_idx: usize,
     ) -> Result<ControlFlow, Error> {
+        class.run_clinit(self.context)?;
+
         let static_field = class.static_fields()[static_field_idx];
 
         let value = self.stack_pop_wide();
@@ -1995,6 +2003,8 @@ impl<'a> Interpreter<'a> {
     fn op_new(&mut self, class: Class) -> Result<ControlFlow, Error> {
         // This does an allocation; we should increment the gc counter
         self.context.increment_gc_counter();
+
+        class.run_clinit(self.context)?;
 
         if class.cant_instantiate() {
             // Yes, this is a runtime error

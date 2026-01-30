@@ -604,17 +604,13 @@ impl Op {
         method: Method,
         constant_pool: &ConstantPool,
         data: &mut FileData<'_>,
-    ) -> Result<(Box<[Op]>, HashMap<usize, usize>, Box<[Class]>), Error> {
+    ) -> Result<(Box<[Op]>, HashMap<usize, usize>), Error> {
         let code_length = data.read_u32_be()? as usize;
         let code_start = data.position();
         let mut code = Vec::with_capacity(code_length / 2);
 
         let mut op_index = 0;
         let mut offset_to_idx_map = HashMap::new();
-
-        let mut class_dependencies = Vec::new();
-        // Method's class should have its clinit run before the method is run
-        class_dependencies.push(method.class());
 
         while data.position() < code_start + code_length {
             offset_to_idx_map.insert(data.position() - code_start, op_index);
@@ -625,14 +621,12 @@ impl Op {
                 constant_pool,
                 data,
                 data.position() - code_start,
-                &mut class_dependencies,
             )?);
 
             op_index += 1;
         }
 
         let mut code = code.into_boxed_slice();
-        let class_dependencies = class_dependencies.into_boxed_slice();
 
         offset_to_idx_map.insert(data.position() - code_start, op_index);
 
@@ -686,7 +680,7 @@ impl Op {
             }
         }
 
-        Ok((code, offset_to_idx_map, class_dependencies))
+        Ok((code, offset_to_idx_map))
     }
 
     fn read_op(
@@ -695,7 +689,6 @@ impl Op {
         constant_pool: &ConstantPool,
         data: &mut FileData<'_>,
         data_position: usize,
-        class_dependencies: &mut Vec<Class>,
     ) -> Result<Op, Error> {
         let loader = method.class_loader();
 
@@ -1124,9 +1117,6 @@ impl Op {
                 let (class_name, field_name, descriptor_name) = field_ref;
 
                 let class = loader.lookup_class(context, class_name)?;
-                if !class_dependencies.contains(&class) {
-                    class_dependencies.push(class);
-                }
 
                 let descriptor = Descriptor::from_string(context, descriptor_name)?;
 
@@ -1154,9 +1144,6 @@ impl Op {
                 let (class_name, field_name, descriptor_name) = field_ref;
 
                 let class = loader.lookup_class(context, class_name)?;
-                if !class_dependencies.contains(&class) {
-                    class_dependencies.push(class);
-                }
 
                 let descriptor = Descriptor::from_string(context, descriptor_name)?;
 
@@ -1184,9 +1171,6 @@ impl Op {
                 let (class_name, field_name, descriptor_name) = field_ref;
 
                 let class = loader.lookup_class(context, class_name)?;
-                if !class_dependencies.contains(&class) {
-                    class_dependencies.push(class);
-                }
 
                 let descriptor = Descriptor::from_string(context, descriptor_name)?;
 
@@ -1214,9 +1198,6 @@ impl Op {
                 let (class_name, field_name, descriptor_name) = field_ref;
 
                 let class = loader.lookup_class(context, class_name)?;
-                if !class_dependencies.contains(&class) {
-                    class_dependencies.push(class);
-                }
 
                 let descriptor = Descriptor::from_string(context, descriptor_name)?;
 
@@ -1245,9 +1226,6 @@ impl Op {
 
                 // Method is called based on class of object on stack
                 let class = loader.lookup_class(context, class_name)?;
-                if !class_dependencies.contains(&class) {
-                    class_dependencies.push(class);
-                }
 
                 let descriptor = MethodDescriptor::from_string(context, descriptor_name)?;
 
@@ -1267,9 +1245,6 @@ impl Op {
                 let (class_name, method_name, descriptor_name) = method_ref;
 
                 let class = loader.lookup_class(context, class_name)?;
-                if !class_dependencies.contains(&class) {
-                    class_dependencies.push(class);
-                }
 
                 let current_class = method.class();
 
@@ -1304,9 +1279,6 @@ impl Op {
                 let (class_name, method_name, descriptor_name) = method_ref;
 
                 let class = loader.lookup_class(context, class_name)?;
-                if !class_dependencies.contains(&class) {
-                    class_dependencies.push(class);
-                }
 
                 let descriptor = MethodDescriptor::from_string(context, descriptor_name)?;
 
@@ -1329,9 +1301,6 @@ impl Op {
 
                 // Method is called based on class of object on stack
                 let class = loader.lookup_class(context, class_name)?;
-                if !class_dependencies.contains(&class) {
-                    class_dependencies.push(class);
-                }
 
                 let descriptor = MethodDescriptor::from_string(context, descriptor_name)?;
 
@@ -1352,9 +1321,6 @@ impl Op {
                 let class_name = constant_pool.get_class(class_idx)?;
 
                 let class = loader.lookup_class(context, class_name)?;
-                if !class_dependencies.contains(&class) {
-                    class_dependencies.push(class);
-                }
 
                 Ok(Op::New(class))
             }
@@ -1378,9 +1344,6 @@ impl Op {
                 let class_name = constant_pool.get_class(class_idx)?;
 
                 let class = loader.lookup_class(context, class_name)?;
-                if !class_dependencies.contains(&class) {
-                    class_dependencies.push(class);
-                }
 
                 Ok(Op::ANewArray(class))
             }
@@ -1391,9 +1354,6 @@ impl Op {
                 let class_name = constant_pool.get_class(class_idx)?;
 
                 let class = loader.lookup_class(context, class_name)?;
-                if !class_dependencies.contains(&class) {
-                    class_dependencies.push(class);
-                }
 
                 Ok(Op::CheckCast(class))
             }
@@ -1402,9 +1362,6 @@ impl Op {
                 let class_name = constant_pool.get_class(class_idx)?;
 
                 let class = loader.lookup_class(context, class_name)?;
-                if !class_dependencies.contains(&class) {
-                    class_dependencies.push(class);
-                }
 
                 Ok(Op::InstanceOf(class))
             }
@@ -1437,12 +1394,6 @@ impl Op {
                                 "multianewarray: class must be a dim_count-dimensional array type",
                             )),
                         }
-                }
-
-                if let Some(class) = resolved_descriptor.class() {
-                    if !class_dependencies.contains(&class) {
-                        class_dependencies.push(class);
-                    }
                 }
 
                 Ok(Op::MultiANewArray(resolved_descriptor, dim_count))

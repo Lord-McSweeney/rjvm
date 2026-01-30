@@ -18,7 +18,7 @@ use crate::string::JvmString;
 
 use alloc::boxed::Box;
 use alloc::vec::Vec;
-use core::cell::{Cell, OnceCell, RefCell};
+use core::cell::{OnceCell, RefCell};
 use core::fmt;
 use core::hash::{Hash, Hasher};
 use hashbrown::HashMap;
@@ -133,12 +133,7 @@ impl Method {
 
             match &*self.0.method_info.borrow() {
                 MethodInfo::Bytecode(bytecode_info) => {
-                    if !bytecode_info.deps_initialized.get() {
-                        for class in &bytecode_info.class_dependencies {
-                            class.run_clinit(context)?;
-                        }
-                        bytecode_info.deps_initialized.set(true);
-                    }
+                    self.class().run_clinit(context)?;
 
                     let mut interpreter = Interpreter::new(context, self)?;
 
@@ -318,9 +313,6 @@ struct BytecodeMethodInfo {
     max_locals: u16,
     code: Box<[Op]>,
     exceptions: Box<[Exception]>,
-
-    class_dependencies: Box<[Class]>,
-    deps_initialized: Cell<bool>,
 }
 
 pub struct Exception {
@@ -352,8 +344,7 @@ impl BytecodeMethodInfo {
         let max_stack = reader.read_u16_be()?;
         let max_locals = reader.read_u16_be()?;
 
-        let (code, offset_to_idx_map, class_dependencies) =
-            Op::read_ops(context, method, constant_pool, &mut reader)?;
+        let (code, offset_to_idx_map) = Op::read_ops(context, method, constant_pool, &mut reader)?;
 
         let exceptions = BytecodeMethodInfo::read_exceptions(
             context,
@@ -379,8 +370,6 @@ impl BytecodeMethodInfo {
             max_locals,
             code,
             exceptions,
-            class_dependencies,
-            deps_initialized: Cell::new(false),
         })
     }
 
@@ -443,7 +432,6 @@ impl Trace for BytecodeMethodInfo {
     fn trace(&self) {
         self.code.trace();
         self.exceptions.trace();
-        self.class_dependencies.trace();
     }
 }
 
