@@ -9,6 +9,7 @@ use crate::classfile::constant_pool::ConstantPoolEntry;
 use crate::classfile::field::Field as ClassFileField;
 use crate::classfile::flags::FieldFlags;
 use crate::gc::{Gc, Trace};
+use crate::read_u16_be;
 use crate::reader::{FileData, Reader};
 use crate::string::JvmString;
 
@@ -172,9 +173,11 @@ fn field_constant_value(
     for attribute in field.attributes() {
         if attribute.name().as_bytes() == b"ConstantValue" {
             let mut data = FileData::new(attribute.data());
-            let cpool_index = data.read_u16_be()?;
+            let cpool_index = read_u16_be!(context, data);
             let constant_pool = class_file.constant_pool();
-            let cpool_entry = constant_pool.entry(cpool_index)?;
+            let cpool_entry = constant_pool
+                .entry(cpool_index)
+                .map_err(|e| Error::from_class_file_error(context, e))?;
 
             // TODO validate that this matches the descriptor
             let cpool_value = match cpool_entry {

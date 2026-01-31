@@ -22,6 +22,32 @@ impl fmt::Debug for Error {
 }
 
 impl Error {
+    pub fn from_class_file_error(context: &Context, error: ClassFileError) -> Error {
+        let message = match error {
+            ClassFileError::ConstantPoolIndexOutOfBounds => "Out-of-bounds constant pool index",
+            ClassFileError::ConstantPoolInvalidEntry => "Invalid constant pool entry",
+            ClassFileError::ConstantPoolTypeMismatch => "Type mismatch for constant pool entry",
+            ClassFileError::ConstantPoolVerifyError => "Constant pool failed verification",
+            ClassFileError::EndOfFile => "Truncated class file",
+            ClassFileError::ExpectedNonZero => "Illegal zero constant pool index",
+            ClassFileError::InvalidMagic => "Invalid magic value",
+            ClassFileError::InvalidString => "Illegal UTF8 string",
+        };
+
+        let chosen_function = match error {
+            ClassFileError::ConstantPoolIndexOutOfBounds => Context::verify_error,
+            ClassFileError::ConstantPoolInvalidEntry => Context::verify_error,
+            ClassFileError::ConstantPoolTypeMismatch => Context::verify_error,
+            ClassFileError::ConstantPoolVerifyError => Context::verify_error,
+            ClassFileError::EndOfFile => Context::class_format_error,
+            ClassFileError::ExpectedNonZero => Context::verify_error,
+            ClassFileError::InvalidMagic => Context::class_format_error,
+            ClassFileError::InvalidString => Context::class_format_error,
+        };
+
+        chosen_function(context, message)
+    }
+
     pub fn display_infallible(&self) -> String {
         match self {
             Error::Native(native) => format!("NativeError({:?})", native),
@@ -115,16 +141,4 @@ impl Error {
 #[derive(Debug)]
 pub enum NativeError {
     ReadError,
-}
-
-impl From<ClassFileError> for Error {
-    fn from(_error: ClassFileError) -> Self {
-        Error::Native(NativeError::ReadError)
-    }
-}
-
-impl From<ReadError> for Error {
-    fn from(_error: ReadError) -> Self {
-        Error::Native(NativeError::ReadError)
-    }
 }

@@ -12,6 +12,7 @@ pub(crate) mod loader;
 pub(crate) mod method;
 pub(crate) mod object;
 pub(crate) mod op;
+pub(crate) mod read_macros;
 pub(crate) mod value;
 pub(crate) mod verify;
 pub(crate) mod vtable;

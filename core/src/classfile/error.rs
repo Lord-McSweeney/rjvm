@@ -2,12 +2,12 @@ use crate::reader::ReadError;
 
 #[derive(Debug)]
 pub enum Error {
+    ConstantPoolIndexOutOfBounds,
     ConstantPoolInvalidEntry,
     ConstantPoolTypeMismatch,
     ConstantPoolVerifyError,
     EndOfFile,
     ExpectedNonZero,
-    CpoolIndexOutOfBounds,
     InvalidMagic,
     InvalidString,
 }

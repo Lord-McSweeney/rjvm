@@ -161,7 +161,8 @@ impl ClassLoader {
         let full_name = class_name.to_string().clone() + ".class";
         let data = self.load_own_resource(&full_name);
         if let Some(data) = data {
-            let class_file = ClassFile::from_data(context.gc_ctx, data)?;
+            let class_file = ClassFile::from_data(context.gc_ctx, data)
+                .map_err(|e| Error::from_class_file_error(context, e))?;
 
             let class = Class::from_class_file(&context, self, class_file)?;
 

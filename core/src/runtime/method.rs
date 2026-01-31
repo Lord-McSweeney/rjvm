@@ -13,6 +13,7 @@ use crate::classfile::constant_pool::ConstantPool;
 use crate::classfile::flags::MethodFlags;
 use crate::classfile::method::Method as ClassFileMethod;
 use crate::gc::{Gc, Trace};
+use crate::read_u16_be;
 use crate::reader::{FileData, Reader};
 use crate::string::JvmString;
 
@@ -341,8 +342,8 @@ impl BytecodeMethodInfo {
         let class_file = method.class().class_file().unwrap();
         let constant_pool = class_file.constant_pool();
 
-        let max_stack = reader.read_u16_be()?;
-        let max_locals = reader.read_u16_be()?;
+        let max_stack = read_u16_be!(context, reader);
+        let max_locals = read_u16_be!(context, reader);
 
         let (code, offset_to_idx_map) = Op::read_ops(context, method, constant_pool, &mut reader)?;
 
@@ -380,12 +381,12 @@ impl BytecodeMethodInfo {
         reader: &mut FileData<'_>,
         offset_to_idx_map: HashMap<usize, usize>,
     ) -> Result<Box<[Exception]>, Error> {
-        let exception_count = reader.read_u16_be()?;
+        let exception_count = read_u16_be!(context, reader);
         let mut exceptions = Vec::with_capacity(exception_count as usize);
         for _ in 0..exception_count {
-            let start_offset = reader.read_u16_be()? as usize;
-            let end_offset = reader.read_u16_be()? as usize;
-            let target_offset = reader.read_u16_be()? as usize;
+            let start_offset = read_u16_be!(context, reader) as usize;
+            let end_offset = read_u16_be!(context, reader) as usize;
+            let target_offset = read_u16_be!(context, reader) as usize;
 
             let start = offset_to_idx_map
                 .get(&start_offset)
@@ -400,9 +401,12 @@ impl BytecodeMethodInfo {
                 .copied()
                 .ok_or_else(|| context.verify_error("Invalid catch target"))?;
 
-            let class_idx = reader.read_u16_be()?;
+            let class_idx = read_u16_be!(context, reader);
             let class = if class_idx != 0 {
-                let class_name = constant_pool.get_class(class_idx)?;
+                let class_name = constant_pool
+                    .get_class(class_idx)
+                    .map_err(|e| Error::from_class_file_error(context, e))?;
+
                 let class = method.class_loader().lookup_class(context, class_name)?;
 
                 let throwable_class = context.builtins().java_lang_throwable;

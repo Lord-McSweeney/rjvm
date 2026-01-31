@@ -185,7 +185,7 @@ impl ConstantPool {
         } else if let Some(entry) = self.entries.get(index as usize - 1) {
             Ok(*entry)
         } else {
-            Err(Error::CpoolIndexOutOfBounds)
+            Err(Error::ConstantPoolIndexOutOfBounds)
         }
     }
 

@@ -9,6 +9,7 @@ use crate::classfile::flags::FieldFlags;
 use crate::gc::{Gc, Trace};
 use crate::reader::{FileData, Reader};
 use crate::string::JvmString;
+use crate::{read_u8, read_u16_be, read_u32_be};
 
 use alloc::boxed::Box;
 use alloc::vec::Vec;
@@ -609,7 +610,7 @@ impl Op {
         constant_pool: &ConstantPool,
         data: &mut FileData<'_>,
     ) -> Result<(Box<[Op]>, HashMap<usize, usize>), Error> {
-        let code_length = data.read_u32_be()? as usize;
+        let code_length = read_u32_be!(context, data) as usize;
         let code_start = data.position();
         let mut code = Vec::with_capacity(code_length / 2);
 
@@ -696,7 +697,7 @@ impl Op {
     ) -> Result<Op, Error> {
         let loader = method.class_loader();
 
-        let opcode = data.read_u8()?;
+        let opcode = read_u8!(context, data);
         match opcode {
             NOP => Ok(Op::Nop),
             A_CONST_NULL => Ok(Op::AConstNull),
@@ -715,30 +716,36 @@ impl Op {
             D_CONST_0 => Ok(Op::DConst(0.0)),
             D_CONST_1 => Ok(Op::DConst(1.0)),
             B_I_PUSH => {
-                let byte = data.read_u8()? as i8 as i32;
+                let byte = read_u8!(context, data) as i8 as i32;
 
                 Ok(Op::IConst(byte))
             }
             S_I_PUSH => {
-                let byte = data.read_u16_be()? as i16 as i32;
+                let byte = read_u16_be!(context, data) as i16 as i32;
 
                 Ok(Op::IConst(byte))
             }
             LDC => {
-                let constant_pool_idx = data.read_u8()?;
-                let entry = constant_pool.entry(constant_pool_idx as u16)?;
+                let constant_pool_idx = read_u8!(context, data);
+                let entry = constant_pool
+                    .entry(constant_pool_idx as u16)
+                    .map_err(|e| Error::from_class_file_error(context, e))?;
 
                 Ok(Op::Ldc(Gc::new(context.gc_ctx, entry)))
             }
             LDC_W => {
-                let constant_pool_idx = data.read_u16_be()?;
-                let entry = constant_pool.entry(constant_pool_idx)?;
+                let constant_pool_idx = read_u16_be!(context, data);
+                let entry = constant_pool
+                    .entry(constant_pool_idx)
+                    .map_err(|e| Error::from_class_file_error(context, e))?;
 
                 Ok(Op::Ldc(Gc::new(context.gc_ctx, entry)))
             }
             LDC_2_W => {
-                let constant_pool_idx = data.read_u16_be()?;
-                let entry = constant_pool.entry(constant_pool_idx)?;
+                let constant_pool_idx = read_u16_be!(context, data);
+                let entry = constant_pool
+                    .entry(constant_pool_idx)
+                    .map_err(|e| Error::from_class_file_error(context, e))?;
 
                 let op = match entry {
                     ConstantPoolEntry::Long { value } => Op::LoadLong(value),
@@ -750,27 +757,27 @@ impl Op {
                 Ok(op)
             }
             I_LOAD => {
-                let local_idx = data.read_u8()?;
+                let local_idx = read_u8!(context, data);
 
                 Ok(Op::ILoad(local_idx as usize))
             }
             L_LOAD => {
-                let local_idx = data.read_u8()?;
+                let local_idx = read_u8!(context, data);
 
                 Ok(Op::LLoad(local_idx as usize))
             }
             F_LOAD => {
-                let local_idx = data.read_u8()?;
+                let local_idx = read_u8!(context, data);
 
                 Ok(Op::FLoad(local_idx as usize))
             }
             D_LOAD => {
-                let local_idx = data.read_u8()?;
+                let local_idx = read_u8!(context, data);
 
                 Ok(Op::DLoad(local_idx as usize))
             }
             A_LOAD => {
-                let local_idx = data.read_u8()?;
+                let local_idx = read_u8!(context, data);
 
                 Ok(Op::ALoad(local_idx as usize))
             }
@@ -803,27 +810,27 @@ impl Op {
             CA_LOAD => Ok(Op::CaLoad),
             SA_LOAD => Ok(Op::SaLoad),
             I_STORE => {
-                let local_idx = data.read_u8()?;
+                let local_idx = read_u8!(context, data);
 
                 Ok(Op::IStore(local_idx as usize))
             }
             L_STORE => {
-                let local_idx = data.read_u8()?;
+                let local_idx = read_u8!(context, data);
 
                 Ok(Op::LStore(local_idx as usize))
             }
             F_STORE => {
-                let local_idx = data.read_u8()?;
+                let local_idx = read_u8!(context, data);
 
                 Ok(Op::FStore(local_idx as usize))
             }
             D_STORE => {
-                let local_idx = data.read_u8()?;
+                let local_idx = read_u8!(context, data);
 
                 Ok(Op::DStore(local_idx as usize))
             }
             A_STORE => {
-                let local_idx = data.read_u8()?;
+                let local_idx = read_u8!(context, data);
 
                 Ok(Op::AStore(local_idx as usize))
             }
@@ -899,8 +906,8 @@ impl Op {
             I_XOR => Ok(Op::IXor),
             L_XOR => Ok(Op::LXor),
             I_INC => {
-                let local_idx = data.read_u8()?;
-                let constant = data.read_u8()? as i8;
+                let local_idx = read_u8!(context, data);
+                let constant = read_u8!(context, data) as i8;
 
                 Ok(Op::IInc(local_idx as usize, constant as i32))
             }
@@ -925,77 +932,77 @@ impl Op {
             D_CMP_L => Ok(Op::DCmpL),
             D_CMP_G => Ok(Op::DCmpG),
             IF_EQ => {
-                let offset = data.read_u16_be()? as i16 as isize;
+                let offset = read_u16_be!(context, data) as i16 as isize;
 
                 Ok(Op::IfEq(((data_position as isize) + offset) as usize))
             }
             IF_NE => {
-                let offset = data.read_u16_be()? as i16 as isize;
+                let offset = read_u16_be!(context, data) as i16 as isize;
 
                 Ok(Op::IfNe(((data_position as isize) + offset) as usize))
             }
             IF_LT => {
-                let offset = data.read_u16_be()? as i16 as isize;
+                let offset = read_u16_be!(context, data) as i16 as isize;
 
                 Ok(Op::IfLt(((data_position as isize) + offset) as usize))
             }
             IF_GE => {
-                let offset = data.read_u16_be()? as i16 as isize;
+                let offset = read_u16_be!(context, data) as i16 as isize;
 
                 Ok(Op::IfGe(((data_position as isize) + offset) as usize))
             }
             IF_GT => {
-                let offset = data.read_u16_be()? as i16 as isize;
+                let offset = read_u16_be!(context, data) as i16 as isize;
 
                 Ok(Op::IfGt(((data_position as isize) + offset) as usize))
             }
             IF_LE => {
-                let offset = data.read_u16_be()? as i16 as isize;
+                let offset = read_u16_be!(context, data) as i16 as isize;
 
                 Ok(Op::IfLe(((data_position as isize) + offset) as usize))
             }
             IF_I_CMP_EQ => {
-                let offset = data.read_u16_be()? as i16 as isize;
+                let offset = read_u16_be!(context, data) as i16 as isize;
 
                 Ok(Op::IfICmpEq(((data_position as isize) + offset) as usize))
             }
             IF_I_CMP_NE => {
-                let offset = data.read_u16_be()? as i16 as isize;
+                let offset = read_u16_be!(context, data) as i16 as isize;
 
                 Ok(Op::IfICmpNe(((data_position as isize) + offset) as usize))
             }
             IF_I_CMP_LT => {
-                let offset = data.read_u16_be()? as i16 as isize;
+                let offset = read_u16_be!(context, data) as i16 as isize;
 
                 Ok(Op::IfICmpLt(((data_position as isize) + offset) as usize))
             }
             IF_I_CMP_GE => {
-                let offset = data.read_u16_be()? as i16 as isize;
+                let offset = read_u16_be!(context, data) as i16 as isize;
 
                 Ok(Op::IfICmpGe(((data_position as isize) + offset) as usize))
             }
             IF_I_CMP_GT => {
-                let offset = data.read_u16_be()? as i16 as isize;
+                let offset = read_u16_be!(context, data) as i16 as isize;
 
                 Ok(Op::IfICmpGt(((data_position as isize) + offset) as usize))
             }
             IF_I_CMP_LE => {
-                let offset = data.read_u16_be()? as i16 as isize;
+                let offset = read_u16_be!(context, data) as i16 as isize;
 
                 Ok(Op::IfICmpLe(((data_position as isize) + offset) as usize))
             }
             IF_A_CMP_EQ => {
-                let offset = data.read_u16_be()? as i16 as isize;
+                let offset = read_u16_be!(context, data) as i16 as isize;
 
                 Ok(Op::IfACmpEq(((data_position as isize) + offset) as usize))
             }
             IF_A_CMP_NE => {
-                let offset = data.read_u16_be()? as i16 as isize;
+                let offset = read_u16_be!(context, data) as i16 as isize;
 
                 Ok(Op::IfACmpNe(((data_position as isize) + offset) as usize))
             }
             GOTO => {
-                let offset = data.read_u16_be()? as i16 as isize;
+                let offset = read_u16_be!(context, data) as i16 as isize;
 
                 Ok(Op::Goto(((data_position as isize) + offset) as usize))
             }
@@ -1003,20 +1010,20 @@ impl Op {
                 let padding_bytes = (data_position + 1) % 4;
                 if padding_bytes != 0 {
                     for _ in 0..(4 - padding_bytes) {
-                        data.read_u8()?;
+                        read_u8!(context, data);
                     }
                 }
 
-                let default_offset = data.read_u32_be()? as i32 as isize;
+                let default_offset = read_u32_be!(context, data) as i32 as isize;
                 let default_offset = ((data_position as isize) + default_offset) as usize;
 
-                let low_int = data.read_u32_be()? as i32;
-                let high_int = data.read_u32_be()? as i32;
+                let low_int = read_u32_be!(context, data) as i32;
+                let high_int = read_u32_be!(context, data) as i32;
 
                 let num_offsets = (high_int - low_int) as usize + 1;
                 let mut offsets = Vec::with_capacity(num_offsets);
                 for _ in 0..num_offsets {
-                    let offset = data.read_u32_be()? as i32 as isize;
+                    let offset = read_u32_be!(context, data) as i32 as isize;
                     let offset = ((data_position as isize) + offset) as usize;
 
                     offsets.push(offset);
@@ -1033,19 +1040,19 @@ impl Op {
                 let padding_bytes = (data_position + 1) % 4;
                 if padding_bytes != 0 {
                     for _ in 0..(4 - padding_bytes) {
-                        data.read_u8()?;
+                        read_u8!(context, data);
                     }
                 }
 
-                let default_offset = data.read_u32_be()? as i32 as isize;
+                let default_offset = read_u32_be!(context, data) as i32 as isize;
                 let default_offset = ((data_position as isize) + default_offset) as usize;
 
-                let num_pairs = data.read_u32_be()?;
+                let num_pairs = read_u32_be!(context, data);
                 let mut pairs = Vec::with_capacity(num_pairs as usize);
                 for _ in 0..num_pairs {
-                    let matching_value = data.read_u32_be()? as i32;
+                    let matching_value = read_u32_be!(context, data) as i32;
 
-                    let offset = data.read_u32_be()? as i32 as isize;
+                    let offset = read_u32_be!(context, data) as i32 as isize;
                     let offset = ((data_position as isize) + offset) as usize;
 
                     pairs.push((matching_value, offset));
@@ -1115,8 +1122,10 @@ impl Op {
                 }
             }
             GET_STATIC => {
-                let field_ref_idx = data.read_u16_be()?;
-                let field_ref = constant_pool.get_field_ref(field_ref_idx)?;
+                let field_ref_idx = read_u16_be!(context, data);
+                let field_ref = constant_pool
+                    .get_field_ref(field_ref_idx)
+                    .map_err(|e| Error::from_class_file_error(context, e))?;
 
                 let (class_name, field_name, descriptor_name) = field_ref;
 
@@ -1146,8 +1155,10 @@ impl Op {
                 }
             }
             PUT_STATIC => {
-                let field_ref_idx = data.read_u16_be()?;
-                let field_ref = constant_pool.get_field_ref(field_ref_idx)?;
+                let field_ref_idx = read_u16_be!(context, data);
+                let field_ref = constant_pool
+                    .get_field_ref(field_ref_idx)
+                    .map_err(|e| Error::from_class_file_error(context, e))?;
 
                 let (class_name, field_name, descriptor_name) = field_ref;
 
@@ -1177,8 +1188,10 @@ impl Op {
                 }
             }
             GET_FIELD => {
-                let field_ref_idx = data.read_u16_be()?;
-                let field_ref = constant_pool.get_field_ref(field_ref_idx)?;
+                let field_ref_idx = read_u16_be!(context, data);
+                let field_ref = constant_pool
+                    .get_field_ref(field_ref_idx)
+                    .map_err(|e| Error::from_class_file_error(context, e))?;
 
                 let (class_name, field_name, descriptor_name) = field_ref;
 
@@ -1204,8 +1217,10 @@ impl Op {
                 }
             }
             PUT_FIELD => {
-                let field_ref_idx = data.read_u16_be()?;
-                let field_ref = constant_pool.get_field_ref(field_ref_idx)?;
+                let field_ref_idx = read_u16_be!(context, data);
+                let field_ref = constant_pool
+                    .get_field_ref(field_ref_idx)
+                    .map_err(|e| Error::from_class_file_error(context, e))?;
 
                 let (class_name, field_name, descriptor_name) = field_ref;
 
@@ -1231,8 +1246,10 @@ impl Op {
                 }
             }
             INVOKE_VIRTUAL => {
-                let method_ref_idx = data.read_u16_be()?;
-                let method_ref = constant_pool.get_method_ref(method_ref_idx)?;
+                let method_ref_idx = read_u16_be!(context, data);
+                let method_ref = constant_pool
+                    .get_method_ref(method_ref_idx)
+                    .map_err(|e| Error::from_class_file_error(context, e))?;
 
                 let (class_name, method_name, descriptor_name) = method_ref;
 
@@ -1251,8 +1268,10 @@ impl Op {
                 Ok(Op::InvokeVirtual(class, method_index))
             }
             INVOKE_SPECIAL => {
-                let method_ref_idx = data.read_u16_be()?;
-                let method_ref = constant_pool.get_any_method_ref(method_ref_idx)?;
+                let method_ref_idx = read_u16_be!(context, data);
+                let method_ref = constant_pool
+                    .get_any_method_ref(method_ref_idx)
+                    .map_err(|e| Error::from_class_file_error(context, e))?;
 
                 let (class_name, method_name, descriptor_name) = method_ref;
 
@@ -1285,8 +1304,10 @@ impl Op {
                 Ok(Op::InvokeSpecial(class, method))
             }
             INVOKE_STATIC => {
-                let method_ref_idx = data.read_u16_be()?;
-                let method_ref = constant_pool.get_any_method_ref(method_ref_idx)?;
+                let method_ref_idx = read_u16_be!(context, data);
+                let method_ref = constant_pool
+                    .get_any_method_ref(method_ref_idx)
+                    .map_err(|e| Error::from_class_file_error(context, e))?;
 
                 let (class_name, method_name, descriptor_name) = method_ref;
 
@@ -1306,8 +1327,10 @@ impl Op {
                 Ok(Op::InvokeStatic(method))
             }
             INVOKE_INTERFACE => {
-                let method_ref_idx = data.read_u16_be()?;
-                let method_ref = constant_pool.get_interface_method_ref(method_ref_idx)?;
+                let method_ref_idx = read_u16_be!(context, data);
+                let method_ref = constant_pool
+                    .get_interface_method_ref(method_ref_idx)
+                    .map_err(|e| Error::from_class_file_error(context, e))?;
 
                 let (class_name, method_name, descriptor_name) = method_ref;
 
@@ -1319,25 +1342,27 @@ impl Op {
                 // According to the JVMS, this byte states the argument count
                 // of the method (despite that also being defined in the
                 // descriptor) for "historical" reasons.
-                let _arg_count = data.read_u8()?;
+                let _arg_count = read_u8!(context, data);
 
                 // This should always be zero.
-                let _ = data.read_u8()?;
+                let _ = read_u8!(context, data);
 
                 // TODO access control?
 
                 Ok(Op::InvokeInterface(class, (method_name, descriptor)))
             }
             NEW => {
-                let class_idx = data.read_u16_be()?;
-                let class_name = constant_pool.get_class(class_idx)?;
+                let class_idx = read_u16_be!(context, data);
+                let class_name = constant_pool
+                    .get_class(class_idx)
+                    .map_err(|e| Error::from_class_file_error(context, e))?;
 
                 let class = loader.lookup_class(context, class_name)?;
 
                 Ok(Op::New(class))
             }
             NEW_ARRAY => {
-                let array_type = match data.read_u8()? {
+                let array_type = match read_u8!(context, data) {
                     4 => ArrayType::Boolean,
                     5 => ArrayType::Char,
                     6 => ArrayType::Float,
@@ -1352,8 +1377,10 @@ impl Op {
                 Ok(Op::NewArray(array_type))
             }
             A_NEW_ARRAY => {
-                let class_idx = data.read_u16_be()?;
-                let class_name = constant_pool.get_class(class_idx)?;
+                let class_idx = read_u16_be!(context, data);
+                let class_name = constant_pool
+                    .get_class(class_idx)
+                    .map_err(|e| Error::from_class_file_error(context, e))?;
 
                 let class = loader.lookup_class(context, class_name)?;
 
@@ -1362,16 +1389,20 @@ impl Op {
             ARRAY_LENGTH => Ok(Op::ArrayLength),
             A_THROW => Ok(Op::AThrow),
             CHECK_CAST => {
-                let class_idx = data.read_u16_be()?;
-                let class_name = constant_pool.get_class(class_idx)?;
+                let class_idx = read_u16_be!(context, data);
+                let class_name = constant_pool
+                    .get_class(class_idx)
+                    .map_err(|e| Error::from_class_file_error(context, e))?;
 
                 let class = loader.lookup_class(context, class_name)?;
 
                 Ok(Op::CheckCast(class))
             }
             INSTANCE_OF => {
-                let class_idx = data.read_u16_be()?;
-                let class_name = constant_pool.get_class(class_idx)?;
+                let class_idx = read_u16_be!(context, data);
+                let class_name = constant_pool
+                    .get_class(class_idx)
+                    .map_err(|e| Error::from_class_file_error(context, e))?;
 
                 let class = loader.lookup_class(context, class_name)?;
 
@@ -1380,10 +1411,12 @@ impl Op {
             MONITOR_ENTER => Ok(Op::MonitorEnter),
             MONITOR_EXIT => Ok(Op::MonitorExit),
             MULTI_A_NEW_ARRAY => {
-                let class_idx = data.read_u16_be()?;
-                let class_name = constant_pool.get_class(class_idx)?;
+                let class_idx = read_u16_be!(context, data);
+                let class_name = constant_pool
+                    .get_class(class_idx)
+                    .map_err(|e| Error::from_class_file_error(context, e))?;
 
-                let dim_count = data.read_u8()?;
+                let dim_count = read_u8!(context, data);
 
                 if dim_count == 0 {
                     return Err(context.verify_error("multianewarray: dim_count must be > 0"));
@@ -1411,17 +1444,17 @@ impl Op {
                 Ok(Op::MultiANewArray(resolved_descriptor, dim_count))
             }
             IF_NULL => {
-                let offset = data.read_u16_be()? as i16 as isize;
+                let offset = read_u16_be!(context, data) as i16 as isize;
 
                 Ok(Op::IfNull(((data_position as isize) + offset) as usize))
             }
             IF_NON_NULL => {
-                let offset = data.read_u16_be()? as i16 as isize;
+                let offset = read_u16_be!(context, data) as i16 as isize;
 
                 Ok(Op::IfNonNull(((data_position as isize) + offset) as usize))
             }
             GOTO_W => {
-                let offset = data.read_u32_be()? as i32 as isize;
+                let offset = read_u32_be!(context, data) as i32 as isize;
 
                 Ok(Op::Goto(((data_position as isize) + offset) as usize))
             }
