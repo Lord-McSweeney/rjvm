@@ -24,6 +24,7 @@ pub const OBJECT_TO_STRING_METHOD: usize = 2;
 
 pub const THROWABLE_MESSAGE_FIELD: usize = 0;
 pub const THROWABLE_STACK_TRACE_FIELD: usize = 1;
+pub const THROWABLE_CAUSE_FIELD: usize = 2;
 
 pub const STRING_DATA_FIELD: usize = 0;
 
@@ -536,6 +537,24 @@ impl Context {
             .expect("Exception class should construct");
 
         Error(exception_instance)
+    }
+
+    pub fn exception_in_initializer_error(&self, exception: Object) -> Error {
+        let error_class = self.builtins().java_lang_exception_in_initializer_error;
+
+        let error_instance = error_class.new_instance(self.gc_ctx);
+        error_instance
+            .call_construct(
+                &self,
+                self.common.noargs_void_desc,
+                &[Value::Object(Some(error_instance))],
+            )
+            .expect("Exception class should construct");
+
+        // Set the `message` field
+        error_instance.set_field(THROWABLE_CAUSE_FIELD, Value::Object(Some(exception)));
+
+        Error(error_instance)
     }
 
     pub fn illegal_access_error(&self) -> Error {

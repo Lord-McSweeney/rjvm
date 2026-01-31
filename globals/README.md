@@ -29,6 +29,8 @@ If you want to replace or edit the classes defined here, be sure to keep the fol
 - `java/lang/ClassFormatError`
 - `java/lang/CloneNotSupportedException`
 - `java/lang/Cloneable`
+- `java/lang/Exception`
+- `java/lang/ExceptionInInitializerError`
 - `java/lang/IllegalAccessError`
 - `java/lang/IncompatibleClassChangeError`
 - `java/lang/InstantiationError`

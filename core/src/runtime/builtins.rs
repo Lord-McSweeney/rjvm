@@ -38,6 +38,8 @@ pub struct BuiltinClasses {
     pub java_lang_class_format_error: Class,
     pub java_lang_clone_not_supported_exception: Class,
     pub java_lang_cloneable: Class,
+    pub java_lang_exception: Class,
+    pub java_lang_exception_in_initializer_error: Class,
     pub java_lang_illegal_access_error: Class,
     pub java_lang_incompatible_class_change_error: Class,
     pub java_lang_instantiation_error: Class,
@@ -74,6 +76,8 @@ impl BuiltinClasses {
             java_lang_class_format_error: object_class,
             java_lang_clone_not_supported_exception: object_class,
             java_lang_cloneable: object_class,
+            java_lang_exception: object_class,
+            java_lang_exception_in_initializer_error: object_class,
             java_lang_illegal_access_error: object_class,
             java_lang_incompatible_class_change_error: object_class,
             java_lang_instantiation_error: object_class,
@@ -111,6 +115,8 @@ impl BuiltinClasses {
                 ("java/lang/ClassFormatError", java_lang_class_format_error),
                 ("java/lang/CloneNotSupportedException", java_lang_clone_not_supported_exception),
                 ("java/lang/Cloneable", java_lang_cloneable),
+                ("java/lang/Exception", java_lang_exception),
+                ("java/lang/ExceptionInInitializerError", java_lang_exception_in_initializer_error),
                 ("java/lang/IllegalAccessError", java_lang_illegal_access_error),
                 ("java/lang/IncompatibleClassChangeError", java_lang_incompatible_class_change_error),
                 ("java/lang/InstantiationError", java_lang_instantiation_error),
@@ -196,6 +202,8 @@ impl Trace for BuiltinClasses {
         self.java_lang_class_format_error.trace();
         self.java_lang_clone_not_supported_exception.trace();
         self.java_lang_cloneable.trace();
+        self.java_lang_exception.trace();
+        self.java_lang_exception_in_initializer_error.trace();
         self.java_lang_illegal_access_error.trace();
         self.java_lang_incompatible_class_change_error.trace();
         self.java_lang_instantiation_error.trace();

@@ -530,7 +530,17 @@ impl Class {
             self.0.clinit_run.set(true);
 
             if let Some(clinit) = self.0.clinit_method.get() {
-                clinit.exec(context)?;
+                clinit.exec(context).map_err(|throwable| {
+                    // A `java.lang.Exception` thrown in a class initializer
+                    // will be wrapped into a `java.lang.ExceptionInInitializerError`.
+                    let exception_class = context.builtins().java_lang_exception;
+
+                    if throwable.0.is_of_class(exception_class) {
+                        context.exception_in_initializer_error(throwable.0)
+                    } else {
+                        throwable
+                    }
+                })?;
             }
         }
 
