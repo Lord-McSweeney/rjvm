@@ -114,8 +114,6 @@ impl Error {
 
 #[derive(Debug)]
 pub enum NativeError {
-    InvalidJar,
-
     ReadError,
 }
 

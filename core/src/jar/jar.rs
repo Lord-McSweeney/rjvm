@@ -3,8 +3,6 @@
 use super::read_zip::ZipFile;
 use crate::gc::{Gc, GcCtx, Trace};
 use crate::reader::ReadError;
-use crate::runtime::error::{Error, NativeError};
-use crate::string::JvmString;
 
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -28,34 +26,16 @@ impl Jar {
         )))
     }
 
-    pub fn has_class(self, class_name: JvmString) -> bool {
-        let mut modified_name = class_name.to_string().clone();
-        modified_name.push_str(".class");
-
-        self.has_file(&modified_name)
-    }
-
-    pub fn read_class(self, class_name: JvmString) -> Result<Vec<u8>, Error> {
-        let mut modified_name = class_name.to_string().clone();
-        modified_name.push_str(".class");
-
-        self.read_file(modified_name)
-    }
-
     pub fn has_file(self, file_name: &String) -> bool {
         self.0.jar_file.has_file(file_name)
     }
 
-    pub fn read_file(self, file_name: String) -> Result<Vec<u8>, Error> {
+    pub fn read_file(self, file_name: String) -> Result<Vec<u8>, ()> {
         let mut cached_files = self.0.cached_files.borrow_mut();
         match cached_files.entry(file_name.clone()) {
             Entry::Occupied(occupied) => Ok(occupied.get().clone()),
             Entry::Vacant(vacant) => {
-                let result = self
-                    .0
-                    .jar_file
-                    .read_file(&file_name)
-                    .map_err(|_| Error::Native(NativeError::InvalidJar))?;
+                let result = self.0.jar_file.read_file(&file_name)?;
 
                 vacant.insert(result.clone());
 
