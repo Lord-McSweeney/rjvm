@@ -28,7 +28,11 @@ pub const THROWABLE_CAUSE_FIELD: usize = 2;
 
 pub const STRING_DATA_FIELD: usize = 0;
 
-pub const STACK_TRACE_ELEMENT_CREATE_METHOD: usize = 0;
+pub const STACK_TRACE_ELEMENT_DECL_CLASS_FIELD: usize = 0;
+pub const STACK_TRACE_ELEMENT_METHOD_FIELD: usize = 1;
+pub const STACK_TRACE_ELEMENT_FILE_FIELD: usize = 2;
+pub const STACK_TRACE_ELEMENT_LINE_FIELD: usize = 3;
+pub const STACK_TRACE_ELEMENT_IS_NATIVE_FIELD: usize = 4;
 
 const DEFAULT_GC_THRESHOLD: u32 = 65536;
 

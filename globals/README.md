@@ -53,6 +53,6 @@ These are critical to the JVM and it will panic on startup if they are missing.
 
 Additionally:
 - The first static method of the `System` class will be called immediately after VM startup. This method is responsible for calling `ClassLoader.getSystemClassLoader()`. In turn, the first time `getSystemClassLoader` is called, it is responsible for setting the system class loader on the native `Context` using `Context::init_system_loader`. If the system class loader is not set, attempting to access it will cause the VM to panic.
-- The first static method of the `StackTraceElement` class will be called to create a `StackTraceElement` from a `java.lang.reflect.Executable`. It should take one `Executable` as a parameter and return a `StackTraceElement`.
 - Various other methods need to be ordered correctly (e.g. `Object.toString`, `Throwable.message`, `Throwable.stackTrace`).
+- Various fields need to be ordered correctly (e.g. `StackTraceElement` fields, `String` fields, `Throwable` fields).
 - Several classes that represent VM objects need to have an `int` field as their first instance field. This field will be set by the VM when they are created and is used as a unique ID for them.

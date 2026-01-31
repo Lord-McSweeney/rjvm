@@ -1,5 +1,9 @@
 use super::context::Context;
-use super::context::STACK_TRACE_ELEMENT_CREATE_METHOD;
+use super::context::{
+    STACK_TRACE_ELEMENT_DECL_CLASS_FIELD, STACK_TRACE_ELEMENT_FILE_FIELD,
+    STACK_TRACE_ELEMENT_IS_NATIVE_FIELD, STACK_TRACE_ELEMENT_LINE_FIELD,
+    STACK_TRACE_ELEMENT_METHOD_FIELD,
+};
 use super::method::Method;
 use super::object::Object;
 use super::value::Value;
@@ -70,24 +74,36 @@ impl CallStack {
         // Skip the first two entries because they are
         // `Throwable.internalFillInStackTrace` and `Throwable.fillInStackTrace`
         for entry in entries {
-            let method_object = entry.get_or_init_object(context);
-
-            let element_class = context.builtins().java_lang_stack_trace_element;
-            let args = &[Value::Object(Some(method_object))];
-
-            let create_method = element_class.static_methods()[STACK_TRACE_ELEMENT_CREATE_METHOD];
-
-            let created_element = context
-                .exec_method(create_method, args)
-                .unwrap()
-                .unwrap()
-                .object()
-                .unwrap();
+            let created_element = CallStack::stack_trace_element_from_method(context, *entry);
 
             result.push(created_element);
         }
 
         result
+    }
+
+    /// Creates a new `java.lang.StackTraceElement` from a given call stack entry.
+    fn stack_trace_element_from_method(context: &Context, entry: Method) -> Object {
+        let element_class = context.builtins().java_lang_stack_trace_element;
+        let instance = element_class.new_instance(context.gc_ctx);
+
+        // Set class and method name
+        instance.set_field(
+            STACK_TRACE_ELEMENT_DECL_CLASS_FIELD,
+            Value::Object(Some(context.str_to_string(&*entry.class().name()))),
+        );
+        instance.set_field(
+            STACK_TRACE_ELEMENT_METHOD_FIELD,
+            Value::Object(Some(context.str_to_string(&*entry.name()))),
+        );
+
+        // TODO set these three fields properly
+
+        instance.set_field(STACK_TRACE_ELEMENT_FILE_FIELD, Value::Object(None));
+        instance.set_field(STACK_TRACE_ELEMENT_LINE_FIELD, Value::Integer(0));
+        instance.set_field(STACK_TRACE_ELEMENT_IS_NATIVE_FIELD, Value::Integer(0));
+
+        instance
     }
 }
 
