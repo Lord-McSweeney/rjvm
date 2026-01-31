@@ -1,7 +1,7 @@
 use super::class::Class;
 use super::context::Context;
 use super::descriptor::MethodDescriptor;
-use super::error::{Error, NativeError};
+use super::error::Error;
 use super::interpreter::Interpreter;
 use super::loader::ClassLoader;
 use super::object::Object;

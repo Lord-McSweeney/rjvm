@@ -1,7 +1,7 @@
 use super::class::Class;
 use super::context::Context;
 use super::descriptor::{Descriptor, MethodDescriptor, ResolvedDescriptor};
-use super::error::{Error, NativeError};
+use super::error::Error;
 use super::method::Method;
 
 use crate::classfile::constant_pool::{ConstantPool, ConstantPoolEntry};
@@ -1064,7 +1064,7 @@ impl Op {
                         | Descriptor::Integer
                         | Descriptor::Short
                 ) {
-                    Err(Error::Native(NativeError::WrongReturnType))
+                    Err(context.verify_error("ireturn: Bad return type"))
                 } else {
                     Ok(Op::IReturn)
                 }
@@ -1073,7 +1073,7 @@ impl Op {
                 let return_type = method.descriptor().return_type();
 
                 if !matches!(return_type, Descriptor::Long) {
-                    Err(Error::Native(NativeError::WrongReturnType))
+                    Err(context.verify_error("lreturn: Bad return type"))
                 } else {
                     Ok(Op::LReturn)
                 }
@@ -1082,7 +1082,7 @@ impl Op {
                 let return_type = method.descriptor().return_type();
 
                 if !matches!(return_type, Descriptor::Float) {
-                    Err(Error::Native(NativeError::WrongReturnType))
+                    Err(context.verify_error("freturn: Bad return type"))
                 } else {
                     Ok(Op::FReturn)
                 }
@@ -1091,7 +1091,7 @@ impl Op {
                 let return_type = method.descriptor().return_type();
 
                 if !matches!(return_type, Descriptor::Double) {
-                    Err(Error::Native(NativeError::WrongReturnType))
+                    Err(context.verify_error("dreturn: Bad return type"))
                 } else {
                     Ok(Op::DReturn)
                 }
@@ -1100,7 +1100,7 @@ impl Op {
                 let return_type = method.descriptor().return_type();
 
                 if !matches!(return_type, Descriptor::Class(_) | Descriptor::Array(_)) {
-                    Err(Error::Native(NativeError::WrongReturnType))
+                    Err(context.verify_error("areturn: Bad return type"))
                 } else {
                     Ok(Op::AReturn)
                 }
@@ -1109,7 +1109,7 @@ impl Op {
                 let return_type = method.descriptor().return_type();
 
                 if !matches!(return_type, Descriptor::Void) {
-                    Err(Error::Native(NativeError::WrongReturnType))
+                    Err(context.verify_error("return: Bad return type"))
                 } else {
                     Ok(Op::Return)
                 }

@@ -117,8 +117,6 @@ pub enum NativeError {
     InvalidJar,
 
     ReadError,
-
-    WrongReturnType,
 }
 
 impl From<ClassFileError> for Error {
