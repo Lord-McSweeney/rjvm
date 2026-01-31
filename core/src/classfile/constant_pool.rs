@@ -182,8 +182,10 @@ impl ConstantPool {
     pub fn entry(&self, index: u16) -> Result<ConstantPoolEntry, Error> {
         if index == 0 {
             Err(Error::ExpectedNonZero)
+        } else if let Some(entry) = self.entries.get(index as usize - 1) {
+            Ok(*entry)
         } else {
-            Ok(self.entries[index as usize - 1])
+            Err(Error::CpoolIndexOutOfBounds)
         }
     }
 

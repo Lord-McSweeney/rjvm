@@ -7,6 +7,7 @@ pub enum Error {
     ConstantPoolVerifyError,
     EndOfFile,
     ExpectedNonZero,
+    CpoolIndexOutOfBounds,
     InvalidMagic,
     InvalidString,
 }
