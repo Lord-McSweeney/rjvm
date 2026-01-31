@@ -39,6 +39,14 @@ public abstract class ClassLoader {
         return ClassLoader.systemClassLoader;
     }
 
+    protected final void resolveClass(Class<?> cls) {
+        // Despite what the documentation says, this method is actually a no-op
+        // (besides the null check)
+        if (cls == null) {
+            throw new NullPointerException();
+        }
+    }
+
     // Functions to get resources
     public static InputStream getSystemResourceAsStream(String resourceName) {
         return ClassLoader.getSystemClassLoader().getResourceAsStream(resourceName);
