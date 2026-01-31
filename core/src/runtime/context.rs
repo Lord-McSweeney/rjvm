@@ -657,6 +657,7 @@ impl Trace for Context {
         self.java_executables.trace();
         self.java_class_loaders.trace();
         self.interned_strings.trace();
+        self.method_descriptor_cache.trace();
         self.primitive_classes.trace();
         self.native_mapping.trace();
 
