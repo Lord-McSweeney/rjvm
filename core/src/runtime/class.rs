@@ -91,6 +91,16 @@ impl Class {
             .map(|name| loader.lookup_class(context, name))
             .transpose()?;
 
+        if let Some(super_class) = super_class {
+            if super_class.is_final() {
+                return Err(context.incompatible_class_change_error(&format!(
+                    "class {} cannot inherit from final class {}",
+                    name,
+                    super_class.name()
+                )));
+            }
+        }
+
         let mut own_interfaces = Vec::new();
         for interface in class_file.interfaces() {
             // Hopefully we won't get a class that tries to implement itself as an interface
@@ -374,6 +384,10 @@ impl Class {
 
     pub fn is_abstract(self) -> bool {
         self.0.flags.contains(ClassFlags::ABSTRACT)
+    }
+
+    pub fn is_final(self) -> bool {
+        self.0.flags.contains(ClassFlags::FINAL)
     }
 
     pub fn is_interface(self) -> bool {
