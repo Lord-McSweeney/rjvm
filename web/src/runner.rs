@@ -51,14 +51,7 @@ fn init_main_class(
             return Err("Cannot execute JAR file without main class specified".to_string());
         };
 
-        let main_class_name = JvmString::new(context.gc_ctx, main_class_name);
-
-        let has_main_class = jar_data.has_class(main_class_name);
-        if !has_main_class {
-            return Err("Main class specified in MANIFEST.MF was not present in JAR!".to_string());
-        }
-
-        main_class_name
+        JvmString::new(context.gc_ctx, main_class_name)
     } else {
         context
             .system_loader()
