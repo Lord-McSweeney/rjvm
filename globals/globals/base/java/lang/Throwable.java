@@ -38,11 +38,11 @@ public class Throwable {
     }
 
     public Throwable fillInStackTrace() {
-        this.stackTrace = this.internalFillInStackTrace();
+        this.stackTrace = Throwable.internalFillInStackTrace();
         return this;
     }
 
-    private native StackTraceElement[] internalFillInStackTrace();
+    private static native StackTraceElement[] internalFillInStackTrace();
 
     public synchronized Throwable getCause() {
         if (this.cause == this) {

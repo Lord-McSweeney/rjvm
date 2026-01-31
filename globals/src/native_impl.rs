@@ -346,12 +346,9 @@ fn object_clone(context: &Context, args: &[Value]) -> Result<Option<Value>, Erro
 }
 
 fn capture_stack_trace(context: &Context, _args: &[Value]) -> Result<Option<Value>, Error> {
-    let stack_elements = context.capture_call_stack();
-    let stack_elements = stack_elements.iter().map(|o| Some(*o)).collect::<Box<_>>();
-
-    let elements_class = context.builtins().array_stack_trace_element;
-
-    let array = Object::obj_array(context, elements_class, stack_elements);
+    // Skip the first two entries because they are
+    // `Throwable.internalFillInStackTrace` and `Throwable.fillInStackTrace`
+    let array = context.format_call_stack(2);
 
     Ok(Some(Value::Object(Some(array))))
 }

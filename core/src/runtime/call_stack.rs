@@ -33,15 +33,13 @@ impl CallStack {
 
     // This needs to do some hacky stuff to remove the error initializer frames
     // to make the call stack look correct
-    pub fn get_entries(&self) -> Vec<Method> {
-        let mut result = Vec::with_capacity(self.entries.len() - 2);
+    pub fn get_entries(&self, skip_count: usize) -> Vec<Method> {
+        let mut result = Vec::with_capacity(self.entries.len());
 
         // If we are currently removing initializer frames, this will be `Some`
         let mut last_entry_class = None;
 
-        // Skip the first two entries because they are
-        // `Throwable.internalFillInStackTrace` and `Throwable.fillInStackTrace`
-        for entry in self.entries.iter().rev().skip(2) {
+        for entry in self.entries.iter().rev().skip(skip_count) {
             if *entry.class().name() == "java/lang/Throwable" {
                 if *entry.name() == "<init>" {
                     last_entry_class = Some(entry.class());

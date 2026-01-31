@@ -298,9 +298,19 @@ impl Context {
         self.call_stack.borrow_mut().pop_call();
     }
 
-    pub fn capture_call_stack(&self) -> Vec<Object> {
-        let entries = self.call_stack.borrow().get_entries();
+    pub fn capture_call_stack(&self, skip_count: usize) -> Vec<Object> {
+        let entries = self.call_stack.borrow().get_entries(skip_count);
         CallStack::display(self, &entries)
+    }
+
+    pub fn format_call_stack(&self, skip_count: usize) -> Object {
+        let entries = self.capture_call_stack(skip_count);
+
+        let stack_elements = entries.iter().map(|o| Some(*o)).collect::<Box<_>>();
+
+        let elements_class = self.builtins().array_stack_trace_element;
+
+        Object::obj_array(self, elements_class, stack_elements)
     }
 
     pub fn increment_gc_counter(&self) {
@@ -447,13 +457,7 @@ impl Context {
         let exception_class = self.builtins().java_lang_arithmetic_exception;
 
         let exception_instance = exception_class.new_instance(self.gc_ctx);
-        exception_instance
-            .call_construct(
-                &self,
-                self.common.noargs_void_desc,
-                &[Value::Object(Some(exception_instance))],
-            )
-            .expect("Exception class should construct");
+        self.fill_stack_trace(exception_instance);
 
         Error(exception_instance)
     }
@@ -462,13 +466,7 @@ impl Context {
         let exception_class = self.builtins().java_lang_array_index_oob_exception;
 
         let exception_instance = exception_class.new_instance(self.gc_ctx);
-        exception_instance
-            .call_construct(
-                &self,
-                self.common.noargs_void_desc,
-                &[Value::Object(Some(exception_instance))],
-            )
-            .expect("Exception class should construct");
+        self.fill_stack_trace(exception_instance);
 
         Error(exception_instance)
     }
@@ -477,13 +475,7 @@ impl Context {
         let exception_class = self.builtins().java_lang_array_store_exception;
 
         let exception_instance = exception_class.new_instance(self.gc_ctx);
-        exception_instance
-            .call_construct(
-                &self,
-                self.common.noargs_void_desc,
-                &[Value::Object(Some(exception_instance))],
-            )
-            .expect("Exception class should construct");
+        self.fill_stack_trace(exception_instance);
 
         Error(exception_instance)
     }
@@ -492,13 +484,7 @@ impl Context {
         let exception_class = self.builtins().java_lang_class_cast_exception;
 
         let exception_instance = exception_class.new_instance(self.gc_ctx);
-        exception_instance
-            .call_construct(
-                &self,
-                self.common.noargs_void_desc,
-                &[Value::Object(Some(exception_instance))],
-            )
-            .expect("Exception class should construct");
+        self.fill_stack_trace(exception_instance);
 
         Error(exception_instance)
     }
@@ -507,13 +493,7 @@ impl Context {
         let error_class = self.builtins().java_lang_class_format_error;
 
         let error_instance = error_class.new_instance(self.gc_ctx);
-        error_instance
-            .call_construct(
-                &self,
-                self.common.noargs_void_desc,
-                &[Value::Object(Some(error_instance))],
-            )
-            .expect("Exception class should construct");
+        self.fill_stack_trace(error_instance);
 
         // Set the `message` field
         error_instance.set_field(
@@ -528,13 +508,7 @@ impl Context {
         let exception_class = self.builtins().java_lang_clone_not_supported_exception;
 
         let exception_instance = exception_class.new_instance(self.gc_ctx);
-        exception_instance
-            .call_construct(
-                &self,
-                self.common.noargs_void_desc,
-                &[Value::Object(Some(exception_instance))],
-            )
-            .expect("Exception class should construct");
+        self.fill_stack_trace(exception_instance);
 
         Error(exception_instance)
     }
@@ -543,13 +517,7 @@ impl Context {
         let error_class = self.builtins().java_lang_exception_in_initializer_error;
 
         let error_instance = error_class.new_instance(self.gc_ctx);
-        error_instance
-            .call_construct(
-                &self,
-                self.common.noargs_void_desc,
-                &[Value::Object(Some(error_instance))],
-            )
-            .expect("Exception class should construct");
+        self.fill_stack_trace(error_instance);
 
         // Set the `message` field
         error_instance.set_field(THROWABLE_CAUSE_FIELD, Value::Object(Some(exception)));
@@ -561,13 +529,7 @@ impl Context {
         let exception_class = self.builtins().java_lang_illegal_access_error;
 
         let exception_instance = exception_class.new_instance(self.gc_ctx);
-        exception_instance
-            .call_construct(
-                &self,
-                self.common.noargs_void_desc,
-                &[Value::Object(Some(exception_instance))],
-            )
-            .expect("Exception class should construct");
+        self.fill_stack_trace(exception_instance);
 
         Error(exception_instance)
     }
@@ -576,13 +538,7 @@ impl Context {
         let error_class = self.builtins().java_lang_incompatible_class_change_error;
 
         let error_instance = error_class.new_instance(self.gc_ctx);
-        error_instance
-            .call_construct(
-                &self,
-                self.common.noargs_void_desc,
-                &[Value::Object(Some(error_instance))],
-            )
-            .expect("Exception class should construct");
+        self.fill_stack_trace(error_instance);
 
         // Set the `message` field
         error_instance.set_field(
@@ -597,13 +553,7 @@ impl Context {
         let error_class = self.builtins().java_lang_instantiation_error;
 
         let error_instance = error_class.new_instance(self.gc_ctx);
-        error_instance
-            .call_construct(
-                &self,
-                self.common.noargs_void_desc,
-                &[Value::Object(Some(error_instance))],
-            )
-            .expect("Exception class should construct");
+        self.fill_stack_trace(error_instance);
 
         // Set the `message` field
         error_instance.set_field(
@@ -618,13 +568,7 @@ impl Context {
         let exception_class = self.builtins().java_lang_instantiation_exception;
 
         let exception_instance = exception_class.new_instance(self.gc_ctx);
-        exception_instance
-            .call_construct(
-                &self,
-                self.common.noargs_void_desc,
-                &[Value::Object(Some(exception_instance))],
-            )
-            .expect("Exception class should construct");
+        self.fill_stack_trace(exception_instance);
 
         Error(exception_instance)
     }
@@ -633,13 +577,7 @@ impl Context {
         let exception_class = self.builtins().java_lang_negative_array_size_exception;
 
         let exception_instance = exception_class.new_instance(self.gc_ctx);
-        exception_instance
-            .call_construct(
-                &self,
-                self.common.noargs_void_desc,
-                &[Value::Object(Some(exception_instance))],
-            )
-            .expect("Exception class should construct");
+        self.fill_stack_trace(exception_instance);
 
         Error(exception_instance)
     }
@@ -648,13 +586,7 @@ impl Context {
         let error_class = self.builtins().java_lang_no_class_def_found_error;
 
         let error_instance = error_class.new_instance(self.gc_ctx);
-        error_instance
-            .call_construct(
-                &self,
-                self.common.noargs_void_desc,
-                &[Value::Object(Some(error_instance))],
-            )
-            .expect("Error class should construct");
+        self.fill_stack_trace(error_instance);
 
         // Set the `message` field
         error_instance.set_field(
@@ -669,13 +601,7 @@ impl Context {
         let error_class = self.builtins().java_lang_no_such_field_error;
 
         let error_instance = error_class.new_instance(self.gc_ctx);
-        error_instance
-            .call_construct(
-                &self,
-                self.common.noargs_void_desc,
-                &[Value::Object(Some(error_instance))],
-            )
-            .expect("Error class should construct");
+        self.fill_stack_trace(error_instance);
 
         Error(error_instance)
     }
@@ -684,13 +610,7 @@ impl Context {
         let error_class = self.builtins().java_lang_no_such_method_error;
 
         let error_instance = error_class.new_instance(self.gc_ctx);
-        error_instance
-            .call_construct(
-                &self,
-                self.common.noargs_void_desc,
-                &[Value::Object(Some(error_instance))],
-            )
-            .expect("Error class should construct");
+        self.fill_stack_trace(error_instance);
 
         Error(error_instance)
     }
@@ -699,13 +619,7 @@ impl Context {
         let exception_class = self.builtins().java_lang_null_pointer_exception;
 
         let exception_instance = exception_class.new_instance(self.gc_ctx);
-        exception_instance
-            .call_construct(
-                &self,
-                self.common.noargs_void_desc,
-                &[Value::Object(Some(exception_instance))],
-            )
-            .expect("Exception class should construct");
+        self.fill_stack_trace(exception_instance);
 
         Error(exception_instance)
     }
@@ -714,13 +628,7 @@ impl Context {
         let error_class = self.builtins().java_lang_verify_error;
 
         let error_instance = error_class.new_instance(self.gc_ctx);
-        error_instance
-            .call_construct(
-                &self,
-                self.common.noargs_void_desc,
-                &[Value::Object(Some(error_instance))],
-            )
-            .expect("Exception class should construct");
+        self.fill_stack_trace(error_instance);
 
         // Set the `message` field
         error_instance.set_field(
@@ -729,6 +637,13 @@ impl Context {
         );
 
         Error(error_instance)
+    }
+
+    /// Fill the stack trace for an `Throwable` object
+    fn fill_stack_trace(&self, instance: Object) {
+        let array = self.format_call_stack(0);
+
+        instance.set_field(THROWABLE_STACK_TRACE_FIELD, Value::Object(Some(array)));
     }
 }
 
