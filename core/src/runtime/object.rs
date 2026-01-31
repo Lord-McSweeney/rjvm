@@ -1,8 +1,7 @@
 use super::array::Array;
 use super::class::Class;
 use super::context::Context;
-use super::descriptor::{MethodDescriptor, ResolvedDescriptor};
-use super::error::Error;
+use super::descriptor::ResolvedDescriptor;
 use super::loader::ClassLoader;
 use super::value::Value;
 
@@ -284,27 +283,6 @@ impl Object {
                 data: cloned_data,
             },
         ))
-    }
-
-    pub fn call_construct(
-        self,
-        context: &Context,
-        descriptor: MethodDescriptor,
-        args: &[Value],
-    ) -> Result<(), Error> {
-        let init_name = context.common.init_name;
-
-        let instance_method_vtable = self.0.class.instance_method_vtable();
-
-        let method_idx = instance_method_vtable
-            .lookup((init_name, descriptor))
-            .expect("Class should have specified instantiation method");
-
-        let method = instance_method_vtable.get_element(method_idx);
-
-        context.exec_method(method, args)?;
-
-        Ok(())
     }
 
     pub fn as_ptr(self) -> *const () {
