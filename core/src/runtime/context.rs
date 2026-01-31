@@ -454,7 +454,7 @@ impl Context {
             )
             .expect("Exception class should construct");
 
-        Error::Java(exception_instance)
+        Error(exception_instance)
     }
 
     pub fn array_index_oob_exception(&self) -> Error {
@@ -469,7 +469,7 @@ impl Context {
             )
             .expect("Exception class should construct");
 
-        Error::Java(exception_instance)
+        Error(exception_instance)
     }
 
     pub fn array_store_exception(&self) -> Error {
@@ -484,7 +484,7 @@ impl Context {
             )
             .expect("Exception class should construct");
 
-        Error::Java(exception_instance)
+        Error(exception_instance)
     }
 
     pub fn class_cast_exception(&self) -> Error {
@@ -499,7 +499,7 @@ impl Context {
             )
             .expect("Exception class should construct");
 
-        Error::Java(exception_instance)
+        Error(exception_instance)
     }
 
     pub fn class_format_error(&self, message: &str) -> Error {
@@ -520,7 +520,7 @@ impl Context {
             Value::Object(Some(self.str_to_string(message))),
         );
 
-        Error::Java(error_instance)
+        Error(error_instance)
     }
 
     pub fn clone_not_supported_exception(&self) -> Error {
@@ -535,7 +535,7 @@ impl Context {
             )
             .expect("Exception class should construct");
 
-        Error::Java(exception_instance)
+        Error(exception_instance)
     }
 
     pub fn illegal_access_error(&self) -> Error {
@@ -550,7 +550,7 @@ impl Context {
             )
             .expect("Exception class should construct");
 
-        Error::Java(exception_instance)
+        Error(exception_instance)
     }
 
     pub fn incompatible_class_change_error(&self, message: &str) -> Error {
@@ -571,7 +571,7 @@ impl Context {
             Value::Object(Some(self.str_to_string(message))),
         );
 
-        Error::Java(error_instance)
+        Error(error_instance)
     }
 
     pub fn instantiation_error(&self, class_name: JvmString) -> Error {
@@ -592,7 +592,7 @@ impl Context {
             Value::Object(Some(self.str_to_string(&class_name))),
         );
 
-        Error::Java(error_instance)
+        Error(error_instance)
     }
 
     pub fn instantiation_exception(&self) -> Error {
@@ -607,7 +607,7 @@ impl Context {
             )
             .expect("Exception class should construct");
 
-        Error::Java(exception_instance)
+        Error(exception_instance)
     }
 
     pub fn negative_array_size_exception(&self) -> Error {
@@ -622,7 +622,7 @@ impl Context {
             )
             .expect("Exception class should construct");
 
-        Error::Java(exception_instance)
+        Error(exception_instance)
     }
 
     pub fn no_class_def_found_error(&self, class_name: JvmString) -> Error {
@@ -643,7 +643,7 @@ impl Context {
             Value::Object(Some(self.str_to_string(&class_name))),
         );
 
-        Error::Java(error_instance)
+        Error(error_instance)
     }
 
     pub fn no_such_field_error(&self) -> Error {
@@ -658,7 +658,7 @@ impl Context {
             )
             .expect("Error class should construct");
 
-        Error::Java(error_instance)
+        Error(error_instance)
     }
 
     pub fn no_such_method_error(&self) -> Error {
@@ -673,7 +673,7 @@ impl Context {
             )
             .expect("Error class should construct");
 
-        Error::Java(error_instance)
+        Error(error_instance)
     }
 
     pub fn null_pointer_exception(&self) -> Error {
@@ -688,7 +688,7 @@ impl Context {
             )
             .expect("Exception class should construct");
 
-        Error::Java(exception_instance)
+        Error(exception_instance)
     }
 
     pub fn verify_error(&self, message: &str) -> Error {
@@ -709,7 +709,7 @@ impl Context {
             Value::Object(Some(self.str_to_string(message))),
         );
 
-        Error::Java(error_instance)
+        Error(error_instance)
     }
 }
 

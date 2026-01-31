@@ -18,7 +18,7 @@ pub use crate::runtime::array::Array;
 pub use crate::runtime::class::{Class, PrimitiveType};
 pub use crate::runtime::context::Context;
 pub use crate::runtime::descriptor::{Descriptor, MethodDescriptor, ResolvedDescriptor};
-pub use crate::runtime::error::{Error, NativeError};
+pub use crate::runtime::error::Error;
 pub use crate::runtime::loader::{ClassLoader, LoaderBackend, ResourceLoadSource};
 pub use crate::runtime::method::{Method, NativeMethod};
 pub use crate::runtime::object::Object;

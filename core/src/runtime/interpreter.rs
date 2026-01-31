@@ -65,29 +65,24 @@ impl<'a> Interpreter<'a> {
     }
 
     fn handle_err(&mut self, error: Error, exceptions: &[Exception]) -> Result<(), Error> {
-        match error {
-            Error::Native(_) => Err(error),
-            Error::Java(error_object) => {
-                for exception in exceptions {
-                    if self.ip >= exception.start && self.ip < exception.end {
-                        // If the catch_class is None, this catch() { } matches any exception
-                        if exception
-                            .catch_class
-                            .map_or(true, |c| error_object.class().matches_class(c))
-                        {
-                            self.ip = exception.target;
+        for exception in exceptions {
+            if self.ip >= exception.start && self.ip < exception.end {
+                // If the catch_class is None, this catch() { } matches any exception
+                if exception
+                    .catch_class
+                    .map_or(true, |c| error.0.class().matches_class(c))
+                {
+                    self.ip = exception.target;
 
-                            self.stack_clear();
-                            self.stack_push(Value::Object(Some(error_object)));
+                    self.stack_clear();
+                    self.stack_push(Value::Object(Some(error.0)));
 
-                            return Ok(());
-                        }
-                    }
+                    return Ok(());
                 }
-
-                Err(error)
             }
         }
+
+        Err(error)
     }
 
     fn stack_push(&self, value: Value) {
@@ -2122,7 +2117,7 @@ impl<'a> Interpreter<'a> {
                 panic!("Class of object on stack should extend or be Throwable");
             }
 
-            Err(Error::Java(object))
+            Err(Error(object))
         } else {
             Err(self.context.null_pointer_exception())
         }
