@@ -2,6 +2,7 @@
 
 use super::read_zip::ZipFile;
 use crate::gc::{Gc, GcCtx, Trace};
+use crate::reader::ReadError;
 use crate::runtime::error::{Error, NativeError};
 use crate::string::JvmString;
 
@@ -15,8 +16,8 @@ use hashbrown::hash_map::Entry;
 pub struct Jar(Gc<JarData>);
 
 impl Jar {
-    pub fn from_bytes(gc_ctx: GcCtx, bytes: Vec<u8>) -> Result<Self, Error> {
-        let jar_file = ZipFile::new(bytes).map_err(|_| Error::Native(NativeError::InvalidJar))?;
+    pub fn from_bytes(gc_ctx: GcCtx, bytes: Vec<u8>) -> Result<Self, ReadError> {
+        let jar_file = ZipFile::new(bytes)?;
 
         Ok(Self(Gc::new(
             gc_ctx,
