@@ -20,6 +20,15 @@ public class Boolean implements Comparable<Boolean> {
         }
     }
 
+    public static boolean parseBoolean(String string) {
+        if (string != null) {
+            // TODO this should be `equalsIgnoreCase`, not `equals`
+            return string.equals("true");
+        } else {
+            return false;
+        }
+    }
+
     public boolean booleanValue() {
         return this.value;
     }
