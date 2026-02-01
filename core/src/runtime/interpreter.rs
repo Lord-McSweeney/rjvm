@@ -1963,7 +1963,7 @@ impl<'a> Interpreter<'a> {
 
     fn op_invoke_interface(
         &mut self,
-        _class: Class,
+        class: Class,
         method_name: JvmString,
         method_descriptor: MethodDescriptor,
     ) -> Result<ControlFlow, Error> {
@@ -1978,7 +1978,10 @@ impl<'a> Interpreter<'a> {
 
             let method_idx = method_vtable
                 .lookup((method_name, method_descriptor))
-                .ok_or_else(|| self.context.no_such_method_error())?;
+                .ok_or_else(|| {
+                    let message = format!("{}.{}()", class.name(), method_name);
+                    self.context.no_such_method_error(&message)
+                })?;
             let method = method_vtable.get_element(method_idx);
 
             // `method.exec` takes arguments from the stack, which they're

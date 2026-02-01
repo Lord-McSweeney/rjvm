@@ -1261,7 +1261,10 @@ impl Op {
                 let method_index = class
                     .instance_method_vtable()
                     .lookup((method_name, descriptor))
-                    .ok_or_else(|| context.no_such_method_error())?;
+                    .ok_or_else(|| {
+                        let message = format!("{}.{}()", class_name, method_name);
+                        context.no_such_method_error(&message)
+                    })?;
 
                 // TODO access control?
 
@@ -1293,9 +1296,13 @@ impl Op {
 
                 let descriptor = MethodDescriptor::from_string(context, descriptor_name)?;
 
-                let method_slot = method_vtable
-                    .lookup((method_name, descriptor))
-                    .ok_or_else(|| context.no_such_method_error())?;
+                let method_slot =
+                    method_vtable
+                        .lookup((method_name, descriptor))
+                        .ok_or_else(|| {
+                            let message = format!("{}.{}()", class_name, method_name);
+                            context.no_such_method_error(&message)
+                        })?;
 
                 let method = method_vtable.get_element(method_slot);
 
@@ -1318,7 +1325,10 @@ impl Op {
                 let method_slot = class
                     .static_method_vtable()
                     .lookup((method_name, descriptor))
-                    .ok_or_else(|| context.no_such_method_error())?;
+                    .ok_or_else(|| {
+                        let message = format!("{}.{}()", class_name, method_name);
+                        context.no_such_method_error(&message)
+                    })?;
 
                 let method = class.static_methods()[method_slot];
 

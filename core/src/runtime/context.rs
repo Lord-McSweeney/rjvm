@@ -610,11 +610,17 @@ impl Context {
         Error(error_instance)
     }
 
-    pub fn no_such_method_error(&self) -> Error {
+    pub fn no_such_method_error(&self, message: &str) -> Error {
         let error_class = self.builtins().java_lang_no_such_method_error;
 
         let error_instance = error_class.new_instance(self.gc_ctx);
         self.fill_stack_trace(error_instance);
+
+        // Set the `message` field
+        error_instance.set_field(
+            THROWABLE_MESSAGE_FIELD,
+            Value::Object(Some(self.str_to_string(message))),
+        );
 
         Error(error_instance)
     }
