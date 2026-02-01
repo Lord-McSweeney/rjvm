@@ -20,6 +20,18 @@ public class Boolean implements Comparable<Boolean> {
         }
     }
 
+    // Return the boolean system property with the given name
+    public static boolean getBoolean(String name) {
+        try {
+            return Boolean.parseBoolean(System.getProperty(name));
+        } catch (IllegalArgumentException e) {
+
+        } catch (NullPointerException e) {
+
+        }
+        return false;
+    }
+
     public static boolean parseBoolean(String string) {
         if (string != null) {
             // TODO this should be `equalsIgnoreCase`, not `equals`
