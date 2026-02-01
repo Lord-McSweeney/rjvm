@@ -60,6 +60,7 @@ struct ClassData {
 
     clinit_method: Cell<Option<Method>>,
     clinit_run: Cell<bool>,
+    clinit_failed: Cell<bool>,
 }
 
 struct MethodData {
@@ -183,6 +184,7 @@ impl Class {
                 method_data: RefCell::new(None),
                 clinit_method: Cell::new(None),
                 clinit_run: Cell::new(false),
+                clinit_failed: Cell::new(false),
             },
         ));
 
@@ -333,6 +335,7 @@ impl Class {
 
                 clinit_method: Cell::new(None),
                 clinit_run: Cell::new(true),
+                clinit_failed: Cell::new(false),
             },
         ))
     }
@@ -374,6 +377,7 @@ impl Class {
 
                 clinit_method: Cell::new(None),
                 clinit_run: Cell::new(true),
+                clinit_failed: Cell::new(false),
             },
         ))
     }
@@ -544,18 +548,25 @@ impl Class {
             self.0.clinit_run.set(true);
 
             if let Some(clinit) = self.0.clinit_method.get() {
-                clinit.exec(context).map_err(|throwable| {
+                if let Err(throwable) = clinit.exec(context) {
+                    self.0.clinit_failed.set(true);
+
                     // A `java.lang.Exception` thrown in a class initializer
                     // will be wrapped into a `java.lang.ExceptionInInitializerError`.
                     let exception_class = context.builtins().java_lang_exception;
 
-                    if throwable.0.is_of_class(exception_class) {
+                    let error = if throwable.0.is_of_class(exception_class) {
                         context.exception_in_initializer_error(throwable.0)
                     } else {
                         throwable
-                    }
-                })?;
+                    };
+
+                    return Err(error);
+                }
             }
+        } else if self.0.clinit_failed.get() {
+            return Err(context
+                .no_class_def_found_error(&format!("Could not initialize class {}", self.name())));
         }
 
         Ok(())

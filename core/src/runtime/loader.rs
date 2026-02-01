@@ -100,7 +100,7 @@ impl ClassLoader {
     pub fn lookup_class(self, context: &Context, class_name: JvmString) -> Result<Class, Error> {
         match self.find_class(context, class_name) {
             Ok(Some(class)) => Ok(class),
-            Ok(None) => Err(context.no_class_def_found_error(class_name)),
+            Ok(None) => Err(context.no_class_def_found_error(&*class_name)),
             Err(err) => Err(err),
         }
     }
@@ -115,7 +115,7 @@ impl ClassLoader {
             // Special handling for array classes
             let element_name = JvmString::new(context.gc_ctx, element_name.to_string());
             let element_descriptor = Descriptor::try_from_string(context.gc_ctx, element_name)
-                .ok_or_else(|| context.no_class_def_found_error(class_name))?;
+                .ok_or_else(|| context.no_class_def_found_error(&*class_name))?;
 
             let resolved_descriptor =
                 ResolvedDescriptor::from_descriptor(context, self, element_descriptor)?;

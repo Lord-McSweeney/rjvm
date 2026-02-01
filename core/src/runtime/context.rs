@@ -586,7 +586,7 @@ impl Context {
         Error(exception_instance)
     }
 
-    pub fn no_class_def_found_error(&self, class_name: JvmString) -> Error {
+    pub fn no_class_def_found_error(&self, message: &str) -> Error {
         let error_class = self.builtins().java_lang_no_class_def_found_error;
 
         let error_instance = error_class.new_instance(self.gc_ctx);
@@ -595,7 +595,7 @@ impl Context {
         // Set the `message` field
         error_instance.set_field(
             THROWABLE_MESSAGE_FIELD,
-            Value::Object(Some(self.str_to_string(&class_name))),
+            Value::Object(Some(self.str_to_string(message))),
         );
 
         Error(error_instance)
