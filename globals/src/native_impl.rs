@@ -26,7 +26,7 @@ pub fn register_native_mappings(context: &Context) {
         ("java/lang/Throwable.internalFillInStackTrace.()[Ljava/lang/StackTraceElement;", capture_stack_trace),
         ("java/lang/Class.getPrimitiveClass.(I)Ljava/lang/Class;", get_primitive_class),
         ("java/lang/Object.hashCode.()I", object_hash_code),
-        ("java/lang/Class.forNameNative.(Ljava/lang/String;)Ljava/lang/Class;", class_for_name_native),
+        ("java/lang/ClassLoader.loadClassNative.(Ljava/lang/String;)Ljava/lang/Class;", load_class_native),
         ("java/lang/Class.getConstructors.()[Ljava/lang/reflect/Constructor;", get_constructors),
         ("java/lang/reflect/Constructor.newInstanceNative.([Ljava/lang/Object;)Ljava/lang/Object;", new_instance_native),
         ("java/lang/reflect/Constructor.getParameterCount.()I", exec_get_parameter_count),
@@ -382,9 +382,14 @@ fn object_hash_code(_context: &Context, args: &[Value]) -> Result<Option<Value>,
     Ok(Some(Value::Integer(result)))
 }
 
-fn class_for_name_native(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
-    // First argument should never be null
-    let class_name = args[0].object().unwrap();
+fn load_class_native(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
+    // Receiver should never be null
+    let class_loader_obj = args[0].object().unwrap();
+    let class_loader_id = class_loader_obj.get_field(0).int();
+    let class_loader = context.class_loader_object_by_id(class_loader_id);
+
+    // Second argument should never be null
+    let class_name = args[1].object().unwrap();
     let class_name = Context::string_object_to_string(class_name);
 
     // FIXME fix this- we need to make sure `/` doesn't work as a delimiter somehow
@@ -393,9 +398,7 @@ fn class_for_name_native(context: &Context, args: &[Value]) -> Result<Option<Val
     let class_name = class_name.replace('.', "/");
     let class_name = JvmString::new(context.gc_ctx, class_name);
 
-    // FIXME implement `Reflection.getCallerClass` so we can actually use the
-    // loader of the current class
-    let class = context.system_loader().lookup_class(context, class_name);
+    let class = class_loader.lookup_class(context, class_name);
 
     if let Ok(class) = class {
         class.run_clinit(context)?;

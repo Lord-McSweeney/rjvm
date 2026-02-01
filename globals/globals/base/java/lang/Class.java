@@ -74,18 +74,10 @@ public final class Class<T> implements AnnotatedElement, GenericDeclaration, Typ
     static native Class<?> getPrimitiveClass(int id);
 
     public static Class<?> forName(String className) throws ClassNotFoundException {
-        if (className == null) {
-            throw new NullPointerException();
-        }
-
-        Class<?> result = Class.forNameNative(className);
-        if (result == null) {
-            throw new ClassNotFoundException();
-        } else {
-            return result;
-        }
+        // FIXME implement `Reflection.getCallerClass` so we can use the loader
+        // of the class of the caller method
+        return ClassLoader.getSystemClassLoader().loadClass(className);
     }
-    private static native Class<?> forNameNative(String className);
 
     public String getSimpleName() {
         if (this.isArray()) {

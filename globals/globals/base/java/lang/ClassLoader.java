@@ -39,6 +39,27 @@ public abstract class ClassLoader {
         return ClassLoader.systemClassLoader;
     }
 
+    // Functions to load classes
+    public Class<?> loadClass(String className) throws ClassNotFoundException {
+        if (className == null) {
+            throw new NullPointerException();
+        }
+
+        Class<?> result = this.loadClassNative(className);
+        if (result == null) {
+            throw new ClassNotFoundException();
+        } else {
+            return result;
+        }
+    }
+    private native Class<?> loadClassNative(String className);
+
+    protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
+        // The `resolve` parameter is ignored- `ClassLoader.loadClass` always links the class,
+        // even if the parameter is set to `false`
+        return this.loadClass(name);
+    }
+
     protected final void resolveClass(Class<?> cls) {
         // Despite what the documentation says, this method is actually a no-op
         // (besides the null check)
