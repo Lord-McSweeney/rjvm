@@ -398,6 +398,8 @@ fn class_for_name_native(context: &Context, args: &[Value]) -> Result<Option<Val
     let class = context.system_loader().lookup_class(context, class_name);
 
     if let Ok(class) = class {
+        class.run_clinit(context)?;
+
         let class = class.get_or_init_object(context);
         Ok(Some(Value::Object(Some(class))))
     } else {
