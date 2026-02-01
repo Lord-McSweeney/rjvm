@@ -87,6 +87,21 @@ public final class Class<T> implements AnnotatedElement, GenericDeclaration, Typ
     }
     private static native Class<?> forNameNative(String className);
 
+    public String getSimpleName() {
+        if (this.isArray()) {
+            return getComponentType().getSimpleName() + "[]";
+        }
+
+        String name = this.getName();
+        if (name.indexOf(".") == -1) {
+            // Top-level class, return as-is
+            return name;
+        } else {
+            // Skip package name
+            return name.substring(name.lastIndexOf(".") + 1);
+        }
+    }
+
     private String getAbsoluteName(String path) {
         if (path == null) {
             return path;

@@ -12,6 +12,7 @@ public class Test {
             System.out.println(klass.isPrimitive());
             System.out.println(klass.isInterface());
             System.out.println(klass.getName());
+            System.out.println(klass.getSimpleName());
             System.out.println(klass.getClass().getName());
             System.out.println(klass.getSuperclass());
             System.out.println(klass);
