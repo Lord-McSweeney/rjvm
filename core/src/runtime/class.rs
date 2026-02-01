@@ -514,7 +514,8 @@ impl Class {
     }
 
     /// Implements the JVM `checkcast` instruction, returning true if the cast
-    /// was successful and false if an error should be thrown.
+    /// was successful and false if an error should be thrown. This operation
+    /// is also used in the `aastore` and `instanceof` instructions.
     pub fn check_cast(self, checked_class: Class) -> bool {
         if let (Some(our_inner), Some(other_inner)) =
             (self.array_value_type(), checked_class.array_value_type())

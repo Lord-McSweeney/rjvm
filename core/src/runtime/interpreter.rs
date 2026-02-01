@@ -759,9 +759,15 @@ impl<'a> Interpreter<'a> {
             if index < 0 || index as usize >= array_data.len() {
                 Err(self.context.array_index_oob_exception())
             } else {
-                array_data[index as usize].set(value);
+                let array_value_class = array.class().array_value_type().unwrap().class().unwrap();
 
-                Ok(ControlFlow::Continue)
+                if value.is_none_or(|v| v.class().matches_class(array_value_class)) {
+                    array_data[index as usize].set(value);
+
+                    Ok(ControlFlow::Continue)
+                } else {
+                    Err(self.context.array_store_exception())
+                }
             }
         } else {
             Err(self.context.null_pointer_exception())
