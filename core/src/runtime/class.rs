@@ -304,6 +304,13 @@ impl Class {
             instance_method_vtable,
         };
 
+        // If the inner class is `public`, the array class is also marked
+        // `public`. If the array is an array of primitives (i.e.
+        // `array_type.class().is_none()`), it's also marked `public`.
+        let access_flags = array_type.class().map_or(ClassFlags::PUBLIC, |c| {
+            c.0.flags.intersection(ClassFlags::PUBLIC)
+        });
+
         let mut name = String::with_capacity(8);
         name.push('[');
         name.push_str(&array_type.to_string());
@@ -315,7 +322,7 @@ impl Class {
                 // Array classes have the loader of their inner class
                 loader: array_type.class().and_then(|c| c.loader()),
 
-                flags: ClassFlags::PUBLIC | ClassFlags::FINAL,
+                flags: access_flags | ClassFlags::FINAL | ClassFlags::ABSTRACT,
 
                 name: JvmString::new(context.gc_ctx, name),
                 super_class: Some(object_class),
@@ -357,7 +364,7 @@ impl Class {
                 class_file: None,
                 loader: None,
 
-                flags: ClassFlags::PUBLIC | ClassFlags::FINAL,
+                flags: ClassFlags::PUBLIC | ClassFlags::FINAL | ClassFlags::ABSTRACT,
 
                 name: JvmString::new(gc_ctx, primitive_type.name().to_string()),
                 super_class: None,
