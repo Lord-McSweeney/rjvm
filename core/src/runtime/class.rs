@@ -386,6 +386,10 @@ impl Class {
         &self.0.class_file
     }
 
+    pub fn modifiers(self) -> u16 {
+        self.0.flags.bits()
+    }
+
     pub fn is_abstract(self) -> bool {
         self.0.flags.contains(ClassFlags::ABSTRACT)
     }

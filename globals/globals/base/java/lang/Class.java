@@ -51,6 +51,8 @@ public final class Class<T> implements AnnotatedElement, GenericDeclaration, Typ
 
     public native boolean isInstance(Object obj);
 
+    public native int getModifiers();
+
     public InputStream getResourceAsStream(String resourceName) {
         // Resolve the name relative to this class's name. For example, if in
         // `com/example/MyClass`, looking up `rsrc.txt` looks up

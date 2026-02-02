@@ -43,6 +43,7 @@ pub fn register_native_mappings(context: &Context) {
         ("java/lang/reflect/Method.getDeclaringClass.()Ljava/lang/Class;", exec_get_declaring_class),
         ("java/lang/reflect/Method.getName.()Ljava/lang/String;", method_get_name),
         ("java/lang/Class.isInstance.(Ljava/lang/Object;)Z", class_is_instance),
+        ("java/lang/Class.getModifiers.()I", class_get_modifiers),
 
         ("jvm/internal/ClassLoaderUtils.makePlatformLoader.(Ljava/lang/ClassLoader;)V", make_platform_loader),
         ("jvm/internal/ClassLoaderUtils.makeSystemLoader.(Ljava/lang/ClassLoader;Ljava/lang/ClassLoader;)V", make_sys_loader),
@@ -661,6 +662,15 @@ fn class_is_instance(context: &Context, args: &[Value]) -> Result<Option<Value>,
     } else {
         Ok(Some(Value::Integer(0)))
     }
+}
+
+fn class_get_modifiers(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
+    // Receiver should never be null
+    let class_obj = args[0].object().unwrap();
+    let class_id = class_obj.get_field(0).int();
+    let class = context.class_object_by_id(class_id);
+
+    Ok(Some(Value::Integer(class.modifiers() as i32)))
 }
 
 fn make_platform_loader(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
