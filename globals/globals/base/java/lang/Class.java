@@ -37,9 +37,13 @@ public final class Class<T> implements AnnotatedElement, GenericDeclaration, Typ
     }
     private native String getNameNative();
 
-    public native boolean isArray();
+    public boolean isArray() {
+        return this.getComponentType() != null;
+    }
 
-    public native boolean isInterface();
+    public boolean isInterface() {
+        return (this.getModifiers() & 0x200) != 0;
+    }
 
     public native boolean isPrimitive();
 

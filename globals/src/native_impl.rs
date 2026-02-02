@@ -12,8 +12,6 @@ pub fn register_native_mappings(context: &Context) {
     let mappings: &[(&str, NativeMethod)] = &[
         ("java/nio/charset/Charset.stringToUtf8.(Ljava/lang/String;)[B", string_to_utf8),
         ("java/lang/System.arraycopy.(Ljava/lang/Object;ILjava/lang/Object;II)V", array_copy),
-        ("java/lang/Class.isArray.()Z", is_array),
-        ("java/lang/Class.isInterface.()Z", is_interface),
         ("java/lang/Class.isPrimitive.()Z", is_primitive),
         ("java/lang/Object.getClass.()Ljava/lang/Class;", get_class),
         ("java/lang/Class.getNameNative.()Ljava/lang/String;", get_name_native),
@@ -227,34 +225,6 @@ fn primitive_array_copy<T: Copy + Default>(
         copy_overlapping(source_data, dest_data, source_start, dest_start, length);
     } else {
         copy_nonoverlapping(source_data, dest_data, source_start, dest_start, length);
-    }
-}
-
-// java/lang/Class : boolean isArray()
-fn is_array(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
-    // Receiver should never be null
-    let class_obj = args[0].object().unwrap();
-    let class_id = class_obj.get_field(0).int();
-    let class = context.class_object_by_id(class_id);
-
-    if class.array_value_type().is_some() {
-        Ok(Some(Value::Integer(1)))
-    } else {
-        Ok(Some(Value::Integer(0)))
-    }
-}
-
-// java/lang/Class : boolean isInterface()
-fn is_interface(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
-    // Receiver should never be null
-    let class_obj = args[0].object().unwrap();
-    let class_id = class_obj.get_field(0).int();
-    let class = context.class_object_by_id(class_id);
-
-    if class.is_interface() {
-        Ok(Some(Value::Integer(1)))
-    } else {
-        Ok(Some(Value::Integer(0)))
     }
 }
 
