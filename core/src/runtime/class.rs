@@ -4,7 +4,7 @@ use super::error::Error;
 use super::field::{Field, FieldRef};
 use super::loader::ClassLoader;
 use super::method::Method;
-use super::object::Object;
+use super::object::{Object, array_clone_method};
 use super::value::Value;
 use super::vtable::{InstanceMethodVTable, VTable};
 
@@ -293,17 +293,6 @@ impl Class {
     pub fn for_array(context: &Context, array_type: ResolvedDescriptor) -> Self {
         let object_class = context.object_class();
 
-        let instance_method_vtable = *object_class.instance_method_vtable();
-
-        let method_data = MethodData {
-            static_field_vtable: VTable::empty(context.gc_ctx),
-            static_fields: Box::new([]),
-            static_method_vtable: VTable::empty(context.gc_ctx),
-            static_methods: Box::new([]),
-            // FIXME is this correct?
-            instance_method_vtable,
-        };
-
         // If the inner class is `public`, the array class is also marked
         // `public`. If the array is an array of primitives (i.e.
         // `array_type.class().is_none()`), it's also marked `public`.
@@ -315,7 +304,7 @@ impl Class {
         name.push('[');
         name.push_str(&array_type.to_string());
 
-        Self(Gc::new(
+        let class = Self(Gc::new(
             context.gc_ctx,
             ClassData {
                 class_file: None,
@@ -338,13 +327,51 @@ impl Class {
                 instance_field_vtable: VTable::empty(context.gc_ctx),
                 instance_fields: Box::new([]),
 
-                method_data: RefCell::new(Some(method_data)),
+                method_data: RefCell::new(None),
 
                 clinit_method: Cell::new(None),
                 clinit_run: Cell::new(true),
                 clinit_failed: Cell::new(false),
             },
-        ))
+        ));
+
+        // TODO We should probably cache this
+        let clone_method_name = JvmString::new(context.gc_ctx, "clone".to_string());
+
+        let clone_descriptor = JvmString::new(context.gc_ctx, "()Ljava/lang/Object;".to_string());
+        let clone_method_descriptor =
+            MethodDescriptor::from_string(context, clone_descriptor).expect("Valid descriptor");
+
+        let clone_key = (clone_method_name, clone_method_descriptor);
+
+        // Synthesize the `clone` method
+        let clone_method = Method::for_native(
+            context.gc_ctx,
+            array_clone_method,      // Method
+            clone_method_descriptor, // Descriptor
+            0,                       // Declared physical arg count
+            MethodFlags::PUBLIC,     // Flags
+            clone_method_name,       // Name
+            class,                   // Class
+        );
+
+        // Create vtable now
+        let instance_method_vtable = InstanceMethodVTable::from_parent_and_keys(
+            context.gc_ctx,
+            Some(class),
+            Some(*object_class.instance_method_vtable()),
+            vec![(clone_key, clone_method)],
+        );
+
+        *class.0.method_data.borrow_mut() = Some(MethodData {
+            static_field_vtable: VTable::empty(context.gc_ctx),
+            static_fields: Box::new([]),
+            static_method_vtable: VTable::empty(context.gc_ctx),
+            static_methods: Box::new([]),
+            instance_method_vtable,
+        });
+
+        class
     }
 
     // Creates a builtin class for one of the primitive types.

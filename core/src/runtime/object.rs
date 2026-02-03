@@ -2,6 +2,7 @@ use super::array::Array;
 use super::class::Class;
 use super::context::Context;
 use super::descriptor::ResolvedDescriptor;
+use super::error::Error;
 use super::loader::ClassLoader;
 use super::value::Value;
 
@@ -348,4 +349,26 @@ impl Trace for FieldOrArrayData {
             FieldOrArrayData::Array(data) => data.trace(),
         }
     }
+}
+
+// "[Ljava/lang/Object;".clone()Ljava/lang/Object;
+// "[I".clone()Ljava/lang/Object;
+// "[J".clone()Ljava/lang/Object;
+// "[Z".clone()Ljava/lang/Object;
+// etc
+pub fn array_clone_method(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
+    // Receiver should never be null
+    let this_array = args[0].object().unwrap();
+
+    let cloned_data = this_array.array_data().clone();
+
+    let new_array = Object(Gc::new(
+        context.gc_ctx,
+        ObjectData {
+            class: this_array.class(),
+            data: FieldOrArrayData::Array(cloned_data),
+        },
+    ));
+
+    Ok(Some(Value::Object(Some(new_array))))
 }

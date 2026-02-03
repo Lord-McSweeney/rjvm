@@ -12,7 +12,7 @@ use super::verify::verify_ops;
 use crate::classfile::constant_pool::ConstantPool;
 use crate::classfile::flags::MethodFlags;
 use crate::classfile::method::Method as ClassFileMethod;
-use crate::gc::{Gc, Trace};
+use crate::gc::{Gc, GcCtx, Trace};
 use crate::read_u16_be;
 use crate::reader::{FileData, Reader};
 use crate::string::JvmString;
@@ -111,6 +111,35 @@ impl Method {
                 method_info: RefCell::new(method_info),
             },
         )))
+    }
+
+    pub fn for_native(
+        gc_ctx: GcCtx,
+        method: NativeMethod,
+        descriptor: MethodDescriptor,
+        physical_arg_count: usize,
+        flags: MethodFlags,
+        name: JvmString,
+        class: Class,
+    ) -> Self {
+        let mut physical_arg_count = physical_arg_count;
+        if !flags.contains(MethodFlags::STATIC) {
+            // +1 for the receiver arg
+            physical_arg_count += 1;
+        }
+
+        Self(Gc::new(
+            gc_ctx,
+            MethodData {
+                descriptor,
+                physical_arg_count,
+                flags,
+                name,
+                class,
+                object: OnceCell::new(),
+                method_info: RefCell::new(MethodInfo::Native(method)),
+            },
+        ))
     }
 
     /// Internal method for executing a method- `pub(crate)` so it's not
