@@ -1896,7 +1896,7 @@ impl<'a> Interpreter<'a> {
             .object();
 
         if let Some(receiver) = receiver {
-            if !receiver.is_of_class(class) {
+            if !receiver.class().check_cast(class) {
                 // TODO verify this in verifier
                 panic!("Object on stack was of wrong Class");
             }
@@ -1928,7 +1928,7 @@ impl<'a> Interpreter<'a> {
         let receiver = self.stack_peek(method.physical_arg_count() - 1).object();
 
         if let Some(receiver) = receiver {
-            if !receiver.is_of_class(class) {
+            if !receiver.class().check_cast(class) {
                 // TODO verify this in verifier
                 panic!("Object on stack was of wrong Class");
             }
