@@ -236,12 +236,12 @@ impl Class {
 
         for method in methods {
             if method.flags().contains(MethodFlags::STATIC) {
-                let created_method = Method::from_method(context, method, self, false)?;
+                let created_method = Method::from_method(context, method, self)?;
 
                 static_method_names.push((method.name(), created_method.descriptor()));
                 static_methods.push(created_method);
             } else {
-                let created_method = Method::from_method(context, method, self, true)?;
+                let created_method = Method::from_method(context, method, self)?;
 
                 let key = (method.name(), created_method.descriptor());
 

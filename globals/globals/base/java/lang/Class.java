@@ -3,6 +3,7 @@ package java.lang;
 import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.GenericDeclaration;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
 
@@ -41,6 +42,14 @@ public final class Class<T> implements AnnotatedElement, GenericDeclaration, Typ
         return this.getComponentType() != null;
     }
 
+    public boolean isEnum() {
+        boolean hasEnumModifier = (this.getModifiers() & 0x4000) != 0;
+        boolean extendsEnum = this.getSuperclass() == Enum.class;
+
+        // Enum class must have the modifier *and* extend `Enum`
+        return hasEnumModifier && extendsEnum;
+    }
+
     public boolean isInterface() {
         return (this.getModifiers() & 0x200) != 0;
     }
@@ -56,6 +65,29 @@ public final class Class<T> implements AnnotatedElement, GenericDeclaration, Typ
     public native boolean isInstance(Object obj);
 
     public native int getModifiers();
+
+    public T[] getEnumConstants() {
+        if (!this.isEnum()) {
+            return null;
+        }
+
+        try {
+            Method valuesMethod = this.getMethod("values");
+            T[] values = (T[]) valuesMethod.invoke(null);
+
+            if (values == null) {
+                return null;
+            } else {
+                return values.clone();
+            }
+        } catch (InvocationTargetException ex) {
+            return null;
+        } catch (NoSuchMethodException ex) {
+            return null;
+        } catch (IllegalAccessException ex) {
+            return null;
+        }
+    }
 
     public InputStream getResourceAsStream(String resourceName) {
         // Resolve the name relative to this class's name. For example, if in

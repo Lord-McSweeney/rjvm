@@ -65,7 +65,6 @@ impl Method {
         context: &Context,
         method: &ClassFileMethod,
         class: Class,
-        has_receiver: bool,
     ) -> Result<Self, Error> {
         let descriptor = MethodDescriptor::from_string(context, method.descriptor())?;
 
@@ -95,7 +94,7 @@ impl Method {
         };
 
         let mut physical_arg_count = descriptor.physical_arg_count();
-        if has_receiver {
+        if !method.flags().contains(MethodFlags::STATIC) {
             // +1 for the receiver arg
             physical_arg_count += 1;
         }
@@ -236,6 +235,10 @@ impl Method {
 
     pub fn flags(self) -> MethodFlags {
         self.0.flags
+    }
+
+    pub fn is_static(self) -> bool {
+        self.0.flags.contains(MethodFlags::STATIC)
     }
 
     pub fn name(self) -> JvmString {

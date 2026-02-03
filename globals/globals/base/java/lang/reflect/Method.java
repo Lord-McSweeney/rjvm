@@ -10,7 +10,12 @@ public final class Method extends Executable {
     public native int getParameterCount();
 
     public Object invoke(Object obj, Object... args) throws IllegalAccessException, IllegalArgumentException, InvocationTargetException {
-        // TODO implement
-        return null;
+        if (args == null) {
+            args = new Object[0];
+        }
+
+        return this.invokeNative(obj, args);
     }
+
+    private native Object invokeNative(Object obj, Object[] args) throws IllegalAccessException, IllegalArgumentException, InvocationTargetException;
 }

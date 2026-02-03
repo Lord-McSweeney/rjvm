@@ -91,14 +91,20 @@ pub(crate) fn descriptor_for_class(context: &Context, class: Class) -> Descripto
 pub(crate) fn args_for_instance_call(
     _context: &Context,
     method: Method,
-    receiver: Object,
+    receiver: Option<Object>,
     args: &[Value],
 ) -> Result<Vec<Value>, Error> {
     let mut unboxed_args = Vec::with_capacity(args.len() + 1);
-    unboxed_args.push(Value::Object(Some(receiver)));
+
+    if let Some(receiver) = receiver {
+        unboxed_args.push(Value::Object(Some(receiver)));
+    }
+
     for (i, arg) in args.iter().enumerate() {
         // All args are passed as objects
         let arg = arg.object();
+
+        // TODO implement more argument type verification
 
         // TODO implement more unboxing
         // NOTE remember to account for the physical vs virtual difference in

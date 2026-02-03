@@ -3,7 +3,7 @@ use alloc::string::ToString;
 use alloc::vec::Vec;
 use core::cell::Cell;
 use rjvm_core::{
-    Array, ClassLoader, Context, Error, JvmString, NativeMethod, Object, PrimitiveType,
+    Array, ClassLoader, Context, Descriptor, Error, JvmString, NativeMethod, Object, PrimitiveType,
     ResolvedDescriptor, Value,
 };
 
@@ -42,6 +42,7 @@ pub fn register_native_mappings(context: &Context) {
         ("java/lang/reflect/Method.getName.()Ljava/lang/String;", method_get_name),
         ("java/lang/Class.isInstance.(Ljava/lang/Object;)Z", class_is_instance),
         ("java/lang/Class.getModifiers.()I", class_get_modifiers),
+        ("java/lang/reflect/Method.invokeNative.(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;", invoke_native),
 
         ("jvm/internal/ClassLoaderUtils.makePlatformLoader.(Ljava/lang/ClassLoader;)V", make_platform_loader),
         ("jvm/internal/ClassLoaderUtils.makeSystemLoader.(Ljava/lang/ClassLoader;Ljava/lang/ClassLoader;)V", make_sys_loader),
@@ -423,7 +424,7 @@ fn new_instance_native(context: &Context, args: &[Value]) -> Result<Option<Value
     let instance = Object::from_class(context.gc_ctx, ctor_method.class());
 
     let real_args =
-        crate::reflect::args_for_instance_call(context, ctor_method, instance, &args_array)?;
+        crate::reflect::args_for_instance_call(context, ctor_method, Some(instance), &args_array)?;
 
     if let Err(e) = context.exec_method(ctor_method, &real_args) {
         // FIXME this should throw `InvocationTargetException`
@@ -641,6 +642,66 @@ fn class_get_modifiers(context: &Context, args: &[Value]) -> Result<Option<Value
     let class = context.class_object_by_id(class_id);
 
     Ok(Some(Value::Integer(class.modifiers() as i32)))
+}
+
+fn invoke_native(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
+    // Receiver should never be null
+    let method_obj = args[0].object().unwrap();
+    let method_id = method_obj.get_field(0).int();
+    let method = context.executable_object_by_id(method_id);
+
+    let receiver_arg = args[1].object();
+
+    let raw_args = args[2].object().unwrap();
+    let raw_args = raw_args.array_data().as_object_array();
+
+    let length = raw_args.len();
+    let mut args_array = Vec::with_capacity(length + 1);
+    for i in 0..length {
+        args_array.push(Value::Object(raw_args[i].get()));
+    }
+
+    let receiver_arg = if !method.is_static() {
+        if let Some(receiver_arg) = receiver_arg {
+            // TODO verify that receiver matches class
+            Some(receiver_arg)
+        } else {
+            // Receiver cannot be null
+            return Err(context.null_pointer_exception());
+        }
+    } else {
+        None
+    };
+
+    let real_args =
+        crate::reflect::args_for_instance_call(context, method, receiver_arg, &args_array)?;
+
+    match context.exec_method(method, &real_args) {
+        Ok(Some(value)) => {
+            let return_type = method.descriptor().return_type();
+            match return_type {
+                Descriptor::Class(_) | Descriptor::Array(_) => {
+                    // This method returns pointer type, just return the value
+                    Ok(Some(value))
+                }
+                Descriptor::Void => {
+                    unreachable!("Condition handled below")
+                }
+                _ => {
+                    // TODO implement boxing
+                    unimplemented!("Boxing method return value");
+                }
+            }
+        }
+        Ok(None) => {
+            // Return `null` if this is a void method
+            Ok(Some(Value::Object(None)))
+        }
+        Err(e) => {
+            // FIXME this should throw `InvocationTargetException`
+            Err(e)
+        }
+    }
 }
 
 fn make_platform_loader(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
