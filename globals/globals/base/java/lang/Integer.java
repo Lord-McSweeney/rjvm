@@ -15,6 +15,13 @@ public final class Integer extends Number implements Comparable<Integer> {
         'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'
     };
 
+    private static final char[] ALL_DIGITS_UPPER = new char[]{
+        '0', '1', '2', '3', '4', '5', '6', '7', '8',
+        '9', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',
+        'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q',
+        'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'
+    };
+
     private int value;
 
     public Integer(int value) {
@@ -160,6 +167,18 @@ public final class Integer extends Number implements Comparable<Integer> {
     }
 
     public static int parseInt(String string) throws NumberFormatException {
+        return Integer.parseInt(string, 10);
+    }
+
+    public static int parseInt(String string, int radix) throws NumberFormatException {
+        if (string == null) {
+            throw new NumberFormatException();
+        }
+
+        if (radix < Character.MIN_RADIX || radix > Character.MAX_RADIX) {
+            throw new NumberFormatException();
+        }
+
         if (string.length() == 0) {
             throw new NumberFormatException();
         }
@@ -189,30 +208,55 @@ public final class Integer extends Number implements Comparable<Integer> {
 
         for (; position < string.length(); position ++) {
             char thisCharChar = string.charAt(position);
-            if (thisCharChar < '0' || thisCharChar > '9') {
-                throw new NumberFormatException();
-            }
 
-            int thisChar = thisCharChar - '0';
-
-            // Current result is `214748365` or greater
-            if (result > Integer.MAX_VALUE / 10) {
+            int thisChar;
+            if (thisCharChar >= '0' && thisCharChar <= '9') {
+                if (thisCharChar > ALL_DIGITS[radix - 1]) {
+                    throw new NumberFormatException();
+                } else {
+                    thisChar = thisCharChar - '0';
+                }
+            } else if (thisCharChar >= 'a' && thisCharChar <= 'z') {
+                if (thisCharChar > ALL_DIGITS[radix - 1]) {
+                    throw new NumberFormatException();
+                } else {
+                    thisChar = (thisCharChar - 'a') + 10;
+                }
+            } else if (thisCharChar >= 'A' && thisCharChar <= 'Z') {
+                if (thisCharChar > ALL_DIGITS_UPPER[radix - 1]) {
+                    throw new NumberFormatException();
+                } else {
+                    thisChar = (thisCharChar - 'A') + 10;
+                }
+            } else {
                 throw new NumberFormatException();
             }
 
             if (isNeg) {
-                // Current result is `-214748364`, and the current char is > "8"
-                if (result == Integer.MAX_VALUE / 10 && thisChar > -(Integer.MIN_VALUE % 10)) {
+                // (example in base-16) Current result is `0x8000001` or greater
+                if (-result < Integer.MIN_VALUE / radix) {
                     throw new NumberFormatException();
                 }
             } else {
-                // Current result is `214748364`, and the current char is > "7"
-                if (result == Integer.MAX_VALUE / 10 && thisChar > (Integer.MAX_VALUE % 10)) {
+                // (example in base-10) Current result is `214748365` or greater
+                if (result > Integer.MAX_VALUE / radix) {
                     throw new NumberFormatException();
                 }
             }
 
-            result *= 10;
+            if (isNeg) {
+                // (example in base-10) Current result is `-214748364`, and the current char is > "8"
+                if (-result == Integer.MIN_VALUE / radix && thisChar > -(Integer.MIN_VALUE % radix)) {
+                    throw new NumberFormatException();
+                }
+            } else {
+                // (example in base-10) Current result is `214748364`, and the current char is > "7"
+                if (result == Integer.MAX_VALUE / radix && thisChar > (Integer.MAX_VALUE % radix)) {
+                    throw new NumberFormatException();
+                }
+            }
+
+            result *= radix;
             result += thisChar;
         }
 
