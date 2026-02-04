@@ -98,7 +98,7 @@ public final class String implements CharSequence, Comparable<String> {
     public boolean equalsIgnoreCase(String other) {
         Todo.warnNotImpl("java.lang.String.equalsIgnoreCase");
 
-        return false;
+        return this.equals(other);
     }
 
     public byte[] getBytes() {
@@ -349,6 +349,14 @@ public final class String implements CharSequence, Comparable<String> {
         results = realResults;
 
         return results;
+    }
+
+    public boolean contains(CharSequence seq) {
+        if (seq == null) {
+            throw new NullPointerException();
+        }
+
+        return this.indexOf(seq.toString()) != -1;
     }
 
     public int length() {
