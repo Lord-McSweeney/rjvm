@@ -176,8 +176,9 @@ impl ClassLoader {
         }
     }
 
-    // Register an array class for the given descriptor in the correct
-    // `ClassLoader`'s registry.
+    /// Create and register an array class for the given descriptor in the correct
+    /// `ClassLoader`'s registry, or return an existing one. The `descriptor` is
+    /// the inner class of the desired array.
     pub fn array_class_for(context: &Context, descriptor: ResolvedDescriptor) -> Class {
         let correct_loader = descriptor
             .class()

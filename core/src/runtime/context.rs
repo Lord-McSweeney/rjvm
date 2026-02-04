@@ -1,7 +1,7 @@
 use super::builtins::{BuiltinClasses, PrimitiveArrayClasses};
 use super::call_stack::CallStack;
 use super::class::{Class, PrimitiveType};
-use super::descriptor::MethodDescriptor;
+use super::descriptor::{MethodDescriptor, ResolvedDescriptor};
 use super::error::Error;
 use super::intern::InternedStrings;
 use super::loader::{ClassLoader, LoaderBackend, ResourceLoadSource};
@@ -312,7 +312,10 @@ impl Context {
 
         let stack_elements = entries.iter().map(|o| Some(*o)).collect::<Box<_>>();
 
-        let elements_class = self.builtins().array_stack_trace_element;
+        let elements_class = ClassLoader::array_class_for(
+            self,
+            ResolvedDescriptor::Class(self.builtins().java_lang_stack_trace_element),
+        );
 
         Object::obj_array(self, elements_class, stack_elements)
     }

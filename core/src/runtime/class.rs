@@ -290,7 +290,8 @@ impl Class {
 
     /// DO NOT USE THIS TO GET ARRAY CLASSES! It WILL create duplicate classes
     /// for the same `array_type`! Use `ClassLoader::array_class_for` instead.
-    pub fn for_array(context: &Context, array_type: ResolvedDescriptor) -> Self {
+    /// The passed `array_type` is the inner type of the array.
+    pub(crate) fn for_array(context: &Context, array_type: ResolvedDescriptor) -> Self {
         let object_class = context.object_class();
 
         // If the inner class is `public`, the array class is also marked
