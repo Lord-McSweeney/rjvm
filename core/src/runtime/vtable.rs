@@ -138,11 +138,11 @@ impl Clone for InstanceMethodVTable {
 impl Copy for InstanceMethodVTable {}
 
 impl InstanceMethodVTable {
-    pub fn empty(gc_ctx: GcCtx) -> Self {
+    pub fn empty(gc_ctx: GcCtx, class: Class) -> Self {
         Self(Gc::new(
             gc_ctx,
             InstanceMethodVTableData {
-                class: None,
+                class,
                 mapping: HashMap::new(),
                 elements: Box::new([]),
             },
@@ -151,7 +151,7 @@ impl InstanceMethodVTable {
 
     pub fn from_parent_and_keys(
         gc_ctx: GcCtx,
-        class: Option<Class>,
+        class: Class,
         parent: Option<InstanceMethodVTable>,
         data: Vec<((JvmString, MethodDescriptor), Method)>,
     ) -> Self {
@@ -179,6 +179,10 @@ impl InstanceMethodVTable {
                 elements: new_elements.into_boxed_slice(),
             },
         ))
+    }
+
+    pub fn class(self) -> Class {
+        self.0.class
     }
 
     pub fn lookup(self, key: (JvmString, MethodDescriptor)) -> Option<usize> {
@@ -211,9 +215,8 @@ impl Trace for InstanceMethodVTable {
 }
 
 struct InstanceMethodVTableData {
-    /// The class that created this vtable. This is entirely optional and
-    /// only used for debugging.
-    class: Option<Class>,
+    /// The class that created this vtable.
+    class: Class,
 
     /// A mapping of (name, descriptor) to method index.
     mapping: HashMap<(JvmString, MethodDescriptor), usize>,

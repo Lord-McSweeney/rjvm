@@ -258,7 +258,7 @@ impl Class {
 
         let instance_method_vtable = InstanceMethodVTable::from_parent_and_keys(
             context.gc_ctx,
-            Some(self),
+            self,
             super_class.map(|c| *c.instance_method_vtable()),
             instance_methods,
         );
@@ -358,7 +358,7 @@ impl Class {
         // Create vtable now
         let instance_method_vtable = InstanceMethodVTable::from_parent_and_keys(
             context.gc_ctx,
-            Some(class),
+            class,
             Some(*object_class.instance_method_vtable()),
             vec![(clone_key, clone_method)],
         );
@@ -376,16 +376,7 @@ impl Class {
 
     // Creates a builtin class for one of the primitive types.
     pub fn for_primitive(gc_ctx: GcCtx, primitive_type: PrimitiveType) -> Self {
-        let method_data = MethodData {
-            static_field_vtable: VTable::empty(gc_ctx),
-            static_fields: Box::new([]),
-            static_method_vtable: VTable::empty(gc_ctx),
-            static_methods: Box::new([]),
-            // FIXME do we need to add any methods to this vtable?
-            instance_method_vtable: InstanceMethodVTable::empty(gc_ctx),
-        };
-
-        Self(Gc::new(
+        let class = Self(Gc::new(
             gc_ctx,
             ClassData {
                 class_file: None,
@@ -407,13 +398,23 @@ impl Class {
                 instance_field_vtable: VTable::empty(gc_ctx),
                 instance_fields: Box::new([]),
 
-                method_data: RefCell::new(Some(method_data)),
+                method_data: RefCell::new(None),
 
                 clinit_method: Cell::new(None),
                 clinit_run: Cell::new(true),
                 clinit_failed: Cell::new(false),
             },
-        ))
+        ));
+
+        *class.0.method_data.borrow_mut() = Some(MethodData {
+            static_field_vtable: VTable::empty(gc_ctx),
+            static_fields: Box::new([]),
+            static_method_vtable: VTable::empty(gc_ctx),
+            static_methods: Box::new([]),
+            instance_method_vtable: InstanceMethodVTable::empty(gc_ctx, class),
+        });
+
+        class
     }
 
     pub fn class_file(&self) -> &Option<ClassFile> {
