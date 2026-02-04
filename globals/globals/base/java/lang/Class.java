@@ -117,12 +117,6 @@ public final class Class<T> implements AnnotatedElement, GenericDeclaration, Typ
 
     static native Class<?> getPrimitiveClass(int id);
 
-    public static Class<?> forName(String className) throws ClassNotFoundException {
-        // FIXME implement `Reflection.getCallerClass` so we can use the loader
-        // of the class of the caller method
-        return ClassLoader.getSystemClassLoader().loadClass(className);
-    }
-
     public String getSimpleName() {
         if (this.isArray()) {
             return getComponentType().getSimpleName() + "[]";
@@ -165,7 +159,17 @@ public final class Class<T> implements AnnotatedElement, GenericDeclaration, Typ
         }
     }
 
+    // Reflection methods
+
+    public static Class<?> forName(String className) throws ClassNotFoundException {
+        // FIXME implement `Reflection.getCallerClass` so we can use the loader
+        // of the class of the caller method
+        return ClassLoader.getSystemClassLoader().loadClass(className);
+    }
+
     public native Constructor<?>[] getConstructors();
+
+    public native Method[] getDeclaredMethods();
 
     public Method getMethod(String name, Class<?>... parameterTypes) throws NoSuchMethodException {
         if (name == null) {

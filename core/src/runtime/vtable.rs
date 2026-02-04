@@ -185,6 +185,10 @@ impl InstanceMethodVTable {
         self.0.class
     }
 
+    pub fn elements(&self) -> &[Method] {
+        &self.0.elements
+    }
+
     pub fn lookup(self, key: (JvmString, MethodDescriptor)) -> Option<usize> {
         self.0.mapping.get(&key).copied()
     }

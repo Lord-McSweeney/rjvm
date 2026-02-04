@@ -43,6 +43,7 @@ pub fn register_native_mappings(context: &Context) {
         ("java/lang/Class.isInstance.(Ljava/lang/Object;)Z", class_is_instance),
         ("java/lang/Class.getModifiers.()I", class_get_modifiers),
         ("java/lang/reflect/Method.invokeNative.(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;", invoke_native),
+        ("java/lang/Class.getDeclaredMethods.()[Ljava/lang/reflect/Method;", get_declared_methods),
 
         ("jvm/internal/ClassLoaderUtils.makePlatformLoader.(Ljava/lang/ClassLoader;)V", make_platform_loader),
         ("jvm/internal/ClassLoaderUtils.makeSystemLoader.(Ljava/lang/ClassLoader;Ljava/lang/ClassLoader;)V", make_sys_loader),
@@ -702,6 +703,56 @@ fn invoke_native(context: &Context, args: &[Value]) -> Result<Option<Value>, Err
             Err(e)
         }
     }
+}
+
+fn get_declared_methods(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
+    // Receiver should never be null
+    let class_obj = args[0].object().unwrap();
+    let class_id = class_obj.get_field(0).int();
+    let class = context.class_object_by_id(class_id);
+
+    let methods_class = ClassLoader::array_class_for(
+        context,
+        ResolvedDescriptor::Class(context.builtins().java_lang_reflect_method),
+    );
+
+    if class.array_value_type().is_some() {
+        // Array classes have no declared methods
+        let created_array = Object::obj_array(context, methods_class, Box::new([]));
+        return Ok(Some(Value::Object(Some(created_array))));
+    }
+
+    let static_methods = class.static_methods();
+    let instance_methods = class.instance_method_vtable();
+    let instance_methods = instance_methods.elements();
+
+    let mut result = Vec::with_capacity(static_methods.len() + instance_methods.len());
+
+    for static_method in &*static_methods {
+        // clinit method isn't included
+        if *static_method.name() != "<clinit>" {
+            result.push(*static_method);
+        }
+    }
+
+    for instance_method in instance_methods {
+        // We only use instance methods declared by this class
+        if instance_method.class() == class {
+            // init methods aren't included
+            if *instance_method.name() != "<init>" {
+                result.push(*instance_method);
+            }
+        }
+    }
+
+    let result = result
+        .iter()
+        .map(|m| Some(m.get_or_init_object(context)))
+        .collect::<Box<_>>();
+
+    let created_array = Object::obj_array(context, methods_class, result);
+
+    Ok(Some(Value::Object(Some(created_array))))
 }
 
 fn make_platform_loader(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
