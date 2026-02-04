@@ -761,7 +761,7 @@ impl<'a> Interpreter<'a> {
             } else {
                 let array_value_class = array.class().array_value_type().unwrap().class().unwrap();
 
-                if value.is_none_or(|v| v.class().matches_class(array_value_class)) {
+                if value.is_none_or(|v| v.class().check_cast(array_value_class)) {
                     array_data[index as usize].set(value);
 
                     Ok(ControlFlow::Continue)
