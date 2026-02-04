@@ -27,6 +27,13 @@ public class Throwable {
         this.cause = this;
     }
 
+    public Throwable(String message, Throwable cause) {
+        this.fillInStackTrace();
+        this.message = message;
+
+        this.cause = cause;
+    }
+
     public Throwable(Throwable cause) {
         this.fillInStackTrace();
 
