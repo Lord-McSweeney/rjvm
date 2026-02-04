@@ -24,6 +24,16 @@ public abstract class Reader implements Closeable, Readable {
         return -1;
     }
 
+    public int read() throws IOException {
+        char buffer[] = new char[1];
+
+        if (this.read(buffer, 0, 1) == -1) {
+            return -1;
+        } else {
+            return buffer[0];
+        }
+    }
+
     public int read(char[] buffer) throws IOException {
         return this.read(buffer, 0, buffer.length);
     }

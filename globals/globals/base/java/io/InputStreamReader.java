@@ -8,6 +8,19 @@ public class InputStreamReader extends Reader {
     public InputStreamReader(InputStream stream) {
         super(stream);
         this.stream = stream;
+
+        // TODO use default charset
+    }
+
+    public InputStreamReader(InputStream stream, String charsetName) throws UnsupportedEncodingException {
+        super(stream);
+        this.stream = stream;
+
+        if (charsetName == null) {
+            throw new NullPointerException();
+        }
+
+        // TODO use charset
     }
 
     public String getEncoding() {

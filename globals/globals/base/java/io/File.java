@@ -11,6 +11,8 @@ public class File {
     public static final String pathSeparator = System.getProperty("path.separator");
     public static final char pathSeparatorChar = File.pathSeparator.charAt(0);
 
+    private static int tempFileCounter;
+
     private String normalizedPath;
     private boolean exists;
     private boolean isDirectory;
@@ -39,6 +41,8 @@ public class File {
 
         this.internalInitFileData(Charset.stringToUtf8(path));
     }
+
+    private native void internalInitFileData(byte[] name);
 
     public File(String parent, String child) {
         if (child == null) {
@@ -113,5 +117,35 @@ public class File {
         return this.normalizedPath;
     }
 
-    private native void internalInitFileData(byte[] name);
+    public void deleteOnExit() {
+        // TODO implement
+        Todo.warnNotImpl("java.io.File.deleteOnExit: " + this.getPath());
+    }
+
+    public static File createTempFile(String prefix, String suffix, File directory) throws IOException {
+        if (suffix == null) {
+            suffix = ".tmp";
+        }
+
+        if (directory == null) {
+            // TODO Windows implementation
+            directory = new File("/tmp/");
+        }
+
+        if (prefix.length() < 3) {
+            throw new IllegalArgumentException();
+        }
+
+        File.tempFileCounter += 1;
+
+        File tempFile = new File(directory, prefix + File.tempFileCounter + suffix);
+
+        // TODO `tempFile.createNewFile();`
+
+        return tempFile;
+    }
+
+    public static File createTempFile(String prefix, String suffix) throws IOException {
+        return createTempFile(prefix, suffix, null);
+    }
 }
