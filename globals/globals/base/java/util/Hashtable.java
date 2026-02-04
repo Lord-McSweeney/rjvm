@@ -81,6 +81,11 @@ public class Hashtable<K, V> extends Dictionary<K, V> implements Map<K, V> {
     public void putAll(Map<? extends K, ? extends V> map) {
         Todo.warnNotImpl("java.util.Hashtable.putAll");
     }
+    public Set<Entry<K, V>> entrySet() {
+        Todo.warnNotImpl("java.util.Hashtable.entrySet");
+
+        return null;
+    }
 
     public int size() {
         return this.keys.length;

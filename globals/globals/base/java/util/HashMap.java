@@ -20,10 +20,8 @@ public class HashMap<K, V> extends AbstractMap<K, V> {
         this.values = new Object[0];
     }
 
-    public Set<Entry<K, V>> entrySet() {
-        Todo.warnNotImpl("java.util.HashMap.entrySet");
-
-        return null;
+    public Set<Map.Entry<K, V>> entrySet() {
+        return new HashMapEntrySet<K, V>(this);
     }
 
     public Set<K> keySet() {
@@ -52,7 +50,7 @@ public class HashMap<K, V> extends AbstractMap<K, V> {
         return false;
     }
 
-    public V get(K key) {
+    public V get(Object key) {
         for (int i = 0; i < this.keys.length; i ++) {
             if (this.keys[i] == null) {
                 if (key == null) {
@@ -172,5 +170,70 @@ public class HashMap<K, V> extends AbstractMap<K, V> {
     public void clear() {
         this.keys = new Object[0];
         this.values = new Object[0];
+    }
+
+    static class Entry<K, V> implements Map.Entry<K, V> {
+        K key;
+        V value;
+
+        Entry<K, V> left;
+        Entry<K, V> right;
+
+        Entry<K,V> parent;
+
+        Entry(K key, V value) {
+            this.key = key;
+            this.value = value;
+        }
+
+        public K getKey() {
+            return this.key;
+        }
+
+        public V getValue() {
+            return this.value;
+        }
+    }
+}
+
+class HashMapEntrySet<K, V> extends AbstractSet<Map.Entry<K, V>> {
+    HashMap<K, V> backingMap;
+
+    HashMapEntrySet(HashMap<K, V> backingMap) {
+        this.backingMap = backingMap;
+    }
+
+    public Iterator<Map.Entry<K, V>> iterator() {
+        return new HashMapEntrySetIterator<K, V>(this.backingMap);
+    }
+
+    public int size() {
+        return this.backingMap.size();
+    }
+
+    class HashMapEntrySetIterator<K, V> implements Iterator<Map.Entry<K, V>> {
+        private int nextEntry;
+        private HashMap<K, V> backingMap;
+
+        public HashMapEntrySetIterator(HashMap<K, V> backingMap) {
+            this.nextEntry = 0;
+            this.backingMap = backingMap;
+        }
+
+        public boolean hasNext() {
+            return this.nextEntry != this.backingMap.size();
+        }
+
+        public Map.Entry<K, V> next() {
+            if (!this.hasNext()) {
+                throw new NoSuchElementException();
+            }
+
+            Map.Entry<K, V> result = new HashMap.Entry<K, V>((K) this.backingMap.keys[nextEntry], (V) this.backingMap.values[nextEntry]);
+
+            this.nextEntry += 1;
+
+            return (Map.Entry<K, V>) result;
+        }
     }
 }

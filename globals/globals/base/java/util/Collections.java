@@ -23,6 +23,11 @@ public class Collections {
     public static <T> Iterator<T> emptyIterator() {
         return EMPTY_ITERATOR;
     }
+
+    public static <K, V> Map<K, V> unmodifiableMap(Map<? extends K, ? extends V> map) {
+        // FIXME get the generics working right
+        return new ImmutableMap<K, V>((Map<K, V>) map);
+    }
 }
 
 class EmptyList<E> implements List<E> {
@@ -95,5 +100,29 @@ class EmptyIterator<E> implements Iterator<E> {
 
     public E next() {
         throw new NoSuchElementException();
+    }
+}
+
+class ImmutableMap<K, V> implements Map<K, V> {
+    private Map<K, V> backingMap;
+
+    ImmutableMap(Map<K, V> backingMap) {
+        this.backingMap = backingMap;
+    }
+
+    public V get(Object key) {
+        return this.backingMap.get(key);
+    }
+
+    public V put(K key, V value) {
+        throw new UnsupportedOperationException();
+    }
+
+    public void clear() {
+        throw new UnsupportedOperationException();
+    }
+
+    public Set<Map.Entry<K, V>> entrySet() {
+        return this.backingMap.entrySet();
     }
 }

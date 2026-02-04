@@ -25,7 +25,7 @@ public abstract class AbstractMap<K, V> implements Map<K, V> {
         return false;
     }
 
-    public V get(K key) {
+    public V get(Object key) {
         Todo.warnNotImpl("java.util.AbstractMap.get");
 
         return null;
