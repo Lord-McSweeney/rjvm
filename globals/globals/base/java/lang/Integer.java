@@ -188,10 +188,12 @@ public final class Integer extends Number implements Comparable<Integer> {
         }
 
         for (; position < string.length(); position ++) {
-            char thisChar = string.charAt(position);
-            if (thisChar < '0' || thisChar > '9') {
+            char thisCharChar = string.charAt(position);
+            if (thisCharChar < '0' || thisCharChar > '9') {
                 throw new NumberFormatException();
             }
+
+            int thisChar = thisCharChar - '0';
 
             // Current result is `214748365` or greater
             if (result > Integer.MAX_VALUE / 10) {
@@ -200,18 +202,18 @@ public final class Integer extends Number implements Comparable<Integer> {
 
             if (isNeg) {
                 // Current result is `-214748364`, and the current char is > "8"
-                if (result == Integer.MAX_VALUE / 10 && thisChar > '8') {
+                if (result == Integer.MAX_VALUE / 10 && thisChar > -(Integer.MIN_VALUE % 10)) {
                     throw new NumberFormatException();
                 }
             } else {
                 // Current result is `214748364`, and the current char is > "7"
-                if (result == Integer.MAX_VALUE / 10 && thisChar > '7') {
+                if (result == Integer.MAX_VALUE / 10 && thisChar > (Integer.MAX_VALUE % 10)) {
                     throw new NumberFormatException();
                 }
             }
 
             result *= 10;
-            result += thisChar - '0';
+            result += thisChar;
         }
 
         if (isNeg) {
