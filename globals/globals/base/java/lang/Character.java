@@ -57,4 +57,9 @@ public final class Character extends Number implements Comparable<Character> {
 
         return false;
     }
+
+    public static boolean isWhitespace(int c) {
+        // TODO more characters
+        return c == ' ' || c == '\t' || c == '\r' || c == '\n';
+    }
 }
