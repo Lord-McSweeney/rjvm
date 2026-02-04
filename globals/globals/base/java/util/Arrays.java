@@ -21,6 +21,35 @@ public class Arrays {
         return (T[]) newArray;
     }
 
+    public static boolean equals(Object[] array1, Object[] array2) {
+        if (array1 == array2) {
+            return true;
+        }
+
+        if (array1 == null || array2 == null) {
+            return false;
+        }
+
+        if (array1.length != array2.length) {
+            return false;
+        }
+
+        for (int i = 0; i < array1.length; i ++) {
+            Object elem1 = array1[i];
+            Object elem2 = array2[i];
+
+            if (elem1 == null) {
+                if (elem2 != null) {
+                    return false;
+                }
+            } else if (!elem1.equals(elem2)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     public static String toString(Object[] arr) {
         if (arr == null) {
             return "null";
