@@ -1,5 +1,5 @@
 use super::context::Context;
-use super::context::{OBJECT_TO_STRING_METHOD, THROWABLE_STACK_TRACE_FIELD};
+use super::context::{OBJECT_TO_STRING_METHOD, THROWABLE_CAUSE_FIELD, THROWABLE_STACK_TRACE_FIELD};
 use super::object::Object;
 use super::value::Value;
 
@@ -53,6 +53,9 @@ impl Error {
 
         let error_object = self.0;
 
+        // TODO we should just be calling `Throwable.printStackTrace(PrintStream)`
+        // instead of duplicating all the logic
+
         // Call `toString` on the error object
         let to_string_method = error_object
             .class()
@@ -77,6 +80,23 @@ impl Error {
         }
 
         result_string.push('\n');
+
+        // Get cause now- the stack trace code can cause a GC, which would
+        // result in the error object being collected, which we don't want to
+        // happen before we retrieve the cause
+        let cause = error_object.get_field(THROWABLE_CAUSE_FIELD).object();
+        // If cause is equal to the error, there is no cause
+        let cause_info = cause
+            .filter(|cause| !cause.ptr_eq(error_object))
+            .map(|cause| {
+                let mut result = String::new();
+                result.push_str("Caused by: ");
+
+                let cause_error = Error(cause);
+                result.push_str(&cause_error.display(context));
+
+                result
+            });
 
         // Now write the stack trace, if it exists. (TODO: Shouldn't it
         // always exist?)
@@ -119,6 +139,10 @@ impl Error {
                 result.push(b'\n' as u16);
             }
             result_string.push_str(&String::from_utf16_lossy(&result));
+        }
+
+        if let Some(cause_info) = cause_info {
+            result_string.push_str(&cause_info);
         }
 
         result_string

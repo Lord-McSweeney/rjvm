@@ -97,5 +97,11 @@ public class Throwable {
 
             s.println(builder);
         }
+
+        // TODO guard against recursion
+        if (this.cause != this) {
+            s.print("Caused by: ");
+            this.cause.printStackTrace(s);
+        }
     }
 }
