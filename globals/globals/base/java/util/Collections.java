@@ -3,8 +3,97 @@ package java.util;
 import rjvm.internal.Todo;
 
 public class Collections {
+    public static final List EMPTY_LIST;
+    private static final Iterator EMPTY_ITERATOR;
+
+    static {
+        EMPTY_LIST = new EmptyList();
+        EMPTY_ITERATOR = new EmptyIterator();
+    }
+
     public static <K, V> Map<K, V> synchronizedMap(Map<K, V> map) {
         Todo.warnNotImpl("java.util.Collections.synchronizedMap");
         return map;
+    }
+
+    public static final <T> List<T> emptyList() {
+        return EMPTY_LIST;
+    }
+
+    public static <T> Iterator<T> emptyIterator() {
+        return EMPTY_ITERATOR;
+    }
+}
+
+class EmptyList<E> implements List<E> {
+    public boolean add(E e) {
+        return false;
+    }
+
+    public void add(int index, E element) { }
+
+    public boolean addAll(Collection<? extends E> collection) {
+        return false;
+    }
+
+    public boolean addAll(int index, Collection<? extends E> collection) {
+        return false;
+    }
+
+    public void clear() { }
+
+    public Iterator<E> iterator() {
+        return Collections.emptyIterator();
+    }
+
+    public boolean isEmpty() {
+        return true;
+    }
+
+    public E get(int index) {
+        throw new IndexOutOfBoundsException();
+    }
+
+    public E set(int index, E element) {
+        throw new IndexOutOfBoundsException();
+    }
+
+    public E remove(int index) {
+        throw new IndexOutOfBoundsException();
+    }
+
+    public int size() {
+        return 0;
+    }
+
+    public List<E> subList(int fromIndex, int toIndex) {
+        if (fromIndex == 0 && (toIndex == 0 || toIndex == 1)) {
+            return this;
+        } else {
+            throw new IndexOutOfBoundsException();
+        }
+    }
+
+    public Object[] toArray() {
+        return new Object[0];
+    }
+
+    public <T> T[] toArray(T[] a) {
+        // Element after the last is set to null
+        if (a.length > 0) {
+            a[0] = null;
+        }
+
+        return a;
+    }
+}
+
+class EmptyIterator<E> implements Iterator<E> {
+    public boolean hasNext() {
+        return false;
+    }
+
+    public E next() {
+        throw new NoSuchElementException();
     }
 }
