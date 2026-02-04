@@ -12,7 +12,7 @@ abstract class AbstractStringBuilder implements Appendable, CharSequence {
     }
 
     public int length() {
-        return count;
+        return this.count;
     }
 
     public abstract String toString();

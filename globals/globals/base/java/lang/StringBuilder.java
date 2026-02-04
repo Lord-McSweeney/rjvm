@@ -87,6 +87,19 @@ public final class StringBuilder extends AbstractStringBuilder implements CharSe
         }
     }
 
+    public void setLength(int newLength) {
+        if (newLength < 0) {
+            throw new IndexOutOfBoundsException();
+        }
+
+        char[] newStorage = new char[newLength];
+
+        int smallerLength = Math.min(this.count, newLength);
+        System.arraycopy(this.value, 0, newStorage, 0, smallerLength);
+
+        this.value = newStorage;
+    }
+
     public int length() {
         return this.count;
     }
