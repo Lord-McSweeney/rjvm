@@ -1025,15 +1025,7 @@ fn verify_block<'a>(
 
                 expect_pop_stack!(Reference);
             }
-            Op::InvokeVirtual(class, method_index) => {
-                // We need to know the number and type of args, so let's lookup the
-                // method defined by the base class to get the descriptor- this is
-                // the wrong method, but we can still use its descriptor
-                let descriptor = class
-                    .instance_method_vtable()
-                    .get_element(*method_index)
-                    .descriptor();
-
+            Op::InvokeVirtual(_, descriptor, _) => {
                 for arg in descriptor.args().iter().rev() {
                     match arg {
                         Descriptor::Class(_) | Descriptor::Array(_) => {

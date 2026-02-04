@@ -281,8 +281,8 @@ impl<'a> Interpreter<'a> {
                 }
                 Op::GetFieldWide(class, field_idx) => self.op_get_field_wide(*class, *field_idx),
                 Op::PutFieldWide(class, field_idx) => self.op_put_field_wide(*class, *field_idx),
-                Op::InvokeVirtual(class, method_index) => {
-                    self.op_invoke_virtual(*class, *method_index)
+                Op::InvokeVirtual(class, descriptor, method_index) => {
+                    self.op_invoke_virtual(*class, *descriptor, *method_index)
                 }
                 Op::InvokeSpecial(class, method) => self.op_invoke_special(*class, *method),
                 Op::InvokeStatic(method) => self.op_invoke_static(*method),
@@ -1881,19 +1881,10 @@ impl<'a> Interpreter<'a> {
     fn op_invoke_virtual(
         &mut self,
         class: Class,
+        descriptor: MethodDescriptor,
         method_index: usize,
     ) -> Result<ControlFlow, Error> {
-        // We need to know the number of args, so let's lookup the method defined by
-        // the base class to get the descriptor- this is the wrong method, but we
-        // can still use its descriptor
-        let method_descriptor = class
-            .instance_method_vtable()
-            .get_element(method_index)
-            .descriptor();
-
-        let receiver = self
-            .stack_peek(method_descriptor.physical_arg_count())
-            .object();
+        let receiver = self.stack_peek(descriptor.physical_arg_count()).object();
 
         if let Some(receiver) = receiver {
             if !receiver.class().check_cast(class) {
@@ -1911,7 +1902,7 @@ impl<'a> Interpreter<'a> {
             let result = method.exec(self.context)?;
 
             if let Some(result) = result {
-                if method_descriptor.return_type().is_wide() {
+                if descriptor.return_type().is_wide() {
                     self.stack_push_wide(result);
                 } else {
                     self.stack_push(result);
