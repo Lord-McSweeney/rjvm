@@ -6,6 +6,7 @@ import java.lang.reflect.GenericDeclaration;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Type;
+import java.lang.reflect.TypeVariable;
 
 import java.io.InputStream;
 
@@ -87,6 +88,11 @@ public final class Class<T> implements AnnotatedElement, GenericDeclaration, Typ
         } catch (IllegalAccessException ex) {
             return null;
         }
+    }
+
+    public TypeVariable<Class<T>>[] getTypeParameters() {
+        // TODO implement
+        return null;
     }
 
     public InputStream getResourceAsStream(String resourceName) {
