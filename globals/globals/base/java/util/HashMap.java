@@ -6,18 +6,15 @@ public class HashMap<K, V> extends AbstractMap<K, V> {
     // FIXME we should really not be reimplementing all the AbstractMap functions...
     // TODO actually implement a hashmap
 
-    Object[] keys;
-    Object[] values;
+    HashMap.Entry[] data;
 
     public HashMap() {
-        this.keys = new Object[0];
-        this.values = new Object[0];
+        this.data = new HashMap.Entry[0];
     }
 
     public HashMap(int capacity) {
         // TODO implement capacity
-        this.keys = new Object[0];
-        this.values = new Object[0];
+        this.data = new HashMap.Entry[0];
     }
 
     public Set<Map.Entry<K, V>> entrySet() {
@@ -25,16 +22,22 @@ public class HashMap<K, V> extends AbstractMap<K, V> {
     }
 
     public Set<K> keySet() {
-        return new HashMapKeySet<K>(this, false);
+        return new HashMapKeySet<K, V>(this);
     }
 
     public Collection<V> values() {
-        return Arrays.asList((V[]) this.values);
+        ArrayList<V> values = new ArrayList<V>();
+        for (int i = 0; i < this.data.length; i ++) {
+            values.add((V) this.data[i].value);
+        }
+
+        // TODO this should be an interactive `Collection`
+        return values;
     }
 
     public boolean containsKey(K key) {
-        for (int i = 0; i < this.keys.length; i ++) {
-            if (this.keys[i] == null) {
+        for (int i = 0; i < this.data.length; i ++) {
+            if (this.data[i].key == null) {
                 if (key == null) {
                     return true;
                 } else {
@@ -42,7 +45,7 @@ public class HashMap<K, V> extends AbstractMap<K, V> {
                 }
             }
 
-            if (this.keys[i].equals(key)) {
+            if (this.data[i].key.equals(key)) {
                 return true;
             }
         }
@@ -51,17 +54,17 @@ public class HashMap<K, V> extends AbstractMap<K, V> {
     }
 
     public V get(Object key) {
-        for (int i = 0; i < this.keys.length; i ++) {
-            if (this.keys[i] == null) {
+        for (int i = 0; i < this.data.length; i ++) {
+            if (this.data[i].key == null) {
                 if (key == null) {
-                    return (V) this.values[i];
+                    return (V) this.data[i].value;
                 } else {
                     continue;
                 }
             }
 
-            if (this.keys[i].equals(key)) {
-                return (V) this.values[i];
+            if (this.data[i].key.equals(key)) {
+                return (V) this.data[i].value;
             }
         }
 
@@ -69,40 +72,36 @@ public class HashMap<K, V> extends AbstractMap<K, V> {
     }
 
     public V put(K key, V value) {
-        for (int i = 0; i < this.keys.length; i ++) {
-            if (this.keys[i] == null) {
+        for (int i = 0; i < this.data.length; i ++) {
+            if (this.data[i].key == null) {
                 if (key == null) {
                     // The key was present, so replace the old value and return it
-                    Object oldValue = this.values[i];
-                    this.values[i] = value;
+                    Object oldValue = this.data[i].value;
+                    this.data[i].value = value;
                     return (V) oldValue;
                 } else {
                     continue;
                 }
             }
 
-            if (this.keys[i].equals(key)) {
+            if (this.data[i].key.equals(key)) {
                 // The key was present, so replace the old value and return it
-                Object oldValue = this.values[i];
-                this.values[i] = value;
+                Object oldValue = this.data[i].value;
+                this.data[i].value = value;
                 return (V) oldValue;
             }
         }
 
-        // The key wasn't present, so resize the arrays, insert the
+        // The key wasn't present, so resize the array, insert the
         // key and value at the end, and return null.
         int newSize = this.size() + 1;
-        Object[] newKeys = new Object[newSize];
-        Object[] newValues = new Object[newSize];
+        Entry[] newData = new Entry[newSize];
 
-        System.arraycopy(this.keys, 0, newKeys, 0, this.keys.length);
-        System.arraycopy(this.values, 0, newValues, 0, this.values.length);
+        System.arraycopy(this.data, 0, newData, 0, this.data.length);
 
-        newKeys[newSize - 1] = key;
-        newValues[newSize - 1] = value;
+        newData[newSize - 1] = new Entry<K, V>(key, value);
 
-        this.keys = newKeys;
-        this.values = newValues;
+        this.data = newData;
 
         return null;
     }
@@ -111,21 +110,21 @@ public class HashMap<K, V> extends AbstractMap<K, V> {
         int pos = -1;
         Object previousValue = null;
 
-        for (int i = 0; i < this.keys.length; i ++) {
-            if (this.keys[i] == null) {
+        for (int i = 0; i < this.data.length; i ++) {
+            if (this.data[i].key == null) {
                 if (key == null) {
                     // The key was present, so record the index
                     pos = i;
-                    previousValue = this.values[i];
+                    previousValue = this.data[i].value;
                     break;
                 } else {
                     continue;
                 }
             }
 
-            if (this.keys[i].equals(key)) {
+            if (this.data[i].key.equals(key)) {
                 pos = i;
-                previousValue = this.values[i];
+                previousValue = this.data[i].value;
                 break;
             }
         }
@@ -133,30 +132,19 @@ public class HashMap<K, V> extends AbstractMap<K, V> {
         if (pos == -1) {
             return null;
         }
-        // The key wasn't present, so resize the arrays, insert the
-        // key and value at the end, and return null.
+        // The key was present, so resize the array, remove the
+        // key and value at the end, and return the previous value.
         int newSize = this.size() - 1;
-        Object[] newKeys = new Object[newSize];
-        Object[] newValues = new Object[newSize];
+        Entry[] newData = new Entry[newSize];
 
-        System.arraycopy(this.keys, 0, newKeys, 0, pos);
+        System.arraycopy(this.data, 0, newData, 0, pos);
         if (pos != newSize) {
-            System.arraycopy(this.keys, pos + 1, newKeys, pos + 1, newSize - pos);
+            System.arraycopy(this.data, pos + 1, newData, pos + 1, newSize - pos);
         }
 
-        System.arraycopy(this.values, 0, newValues, 0, pos);
-        if (pos != newSize) {
-            System.arraycopy(this.values, pos + 1, newValues, pos + 1, newSize - pos);
-        }
-
-        this.keys = newKeys;
-        this.values = newValues;
+        this.data = newData;
 
         return (V) previousValue;
-    }
-
-    K keyByIndex(int index) {
-        return (K) this.keys[index];
     }
 
     public void putAll(Map<? extends K, ? extends V> map) {
@@ -164,12 +152,11 @@ public class HashMap<K, V> extends AbstractMap<K, V> {
     }
 
     public int size() {
-        return this.keys.length;
+        return this.data.length;
     }
 
     public void clear() {
-        this.keys = new Object[0];
-        this.values = new Object[0];
+        this.data = new Entry[0];
     }
 
     static class Entry<K, V> implements Map.Entry<K, V> {
@@ -193,47 +180,105 @@ public class HashMap<K, V> extends AbstractMap<K, V> {
         public V getValue() {
             return this.value;
         }
+
+        public V setValue(V value) {
+            V oldValue = this.value;
+            this.value = value;
+            return oldValue;
+        }
+    }
+}
+
+abstract class HashMapGenericIterator<K, V, E> implements Iterator<E> {
+    private int nextEntry;
+    private HashMap<K, V> backingMap;
+
+    public HashMapGenericIterator(HashMap<K, V> backingMap) {
+        this.nextEntry = 0;
+        this.backingMap = backingMap;
+    }
+
+    public boolean hasNext() {
+        return this.nextEntry != this.backingMap.size();
+    }
+
+    public abstract E next();
+
+    // The class that overrides this class should use this function to get
+    // the next entry.
+    protected final HashMap.Entry<K, V> nextEntry() {
+        if (!this.hasNext()) {
+            throw new NoSuchElementException();
+        }
+
+        HashMap.Entry<K, V> result = (HashMap.Entry<K, V>) this.backingMap.data[nextEntry];
+
+        this.nextEntry += 1;
+
+        return result;
     }
 }
 
 class HashMapEntrySet<K, V> extends AbstractSet<Map.Entry<K, V>> {
-    HashMap<K, V> backingMap;
+    private HashMap<K, V> backingMap;
 
     HashMapEntrySet(HashMap<K, V> backingMap) {
         this.backingMap = backingMap;
+    }
+
+    class HashMapEntrySetIterator<K, V> extends HashMapGenericIterator<K, V, Map.Entry<K, V>> {
+        public HashMapEntrySetIterator(HashMap<K, V> backingMap) {
+            super(backingMap);
+        }
+
+        public Map.Entry<K, V> next() {
+            return super.nextEntry();
+        }
     }
 
     public Iterator<Map.Entry<K, V>> iterator() {
         return new HashMapEntrySetIterator<K, V>(this.backingMap);
     }
 
+    public void clear() {
+        this.backingMap.clear();
+    }
+
     public int size() {
         return this.backingMap.size();
     }
+}
 
-    class HashMapEntrySetIterator<K, V> implements Iterator<Map.Entry<K, V>> {
-        private int nextEntry;
-        private HashMap<K, V> backingMap;
+class HashMapKeySet<K, V> extends AbstractSet<K> {
+    private HashMap<K, V> backingMap;
 
-        public HashMapEntrySetIterator(HashMap<K, V> backingMap) {
-            this.nextEntry = 0;
-            this.backingMap = backingMap;
+    HashMapKeySet(HashMap<K, V> backingMap) {
+        this.backingMap = backingMap;
+    }
+
+    class HashMapKeyIterator<K, V> extends HashMapGenericIterator<K, V, K> {
+        public HashMapKeyIterator(HashMap<K, V> backingMap) {
+            super(backingMap);
         }
 
-        public boolean hasNext() {
-            return this.nextEntry != this.backingMap.size();
+        public K next() {
+            return super.nextEntry().key;
         }
+    }
 
-        public Map.Entry<K, V> next() {
-            if (!this.hasNext()) {
-                throw new NoSuchElementException();
-            }
+    public boolean contains(Object element) {
+        return this.backingMap.containsKey((K) element);
+    }
 
-            Map.Entry<K, V> result = new HashMap.Entry<K, V>((K) this.backingMap.keys[nextEntry], (V) this.backingMap.values[nextEntry]);
+    public Iterator<K> iterator() {
+        return new HashMapKeyIterator<K, V>(this.backingMap);
+    }
 
-            this.nextEntry += 1;
+    public void clear() {
+        this.backingMap.clear();
+    }
 
-            return (Map.Entry<K, V>) result;
-        }
+    public int size() {
+        return this.backingMap.size();
     }
 }

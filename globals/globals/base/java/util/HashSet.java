@@ -2,14 +2,16 @@ package java.util;
 
 // FIXME implement capacity
 public class HashSet<E> extends AbstractSet<E> implements Set<E> {
-    HashMapKeySet<E> backingSet;
+    private static Object markerObject = new Object();
+
+    HashMap<E, Object> backingMap;
 
     public HashSet() {
-        this.backingSet = new HashMapKeySet<E>(new HashMap<E, Object>(), true);
+        this.backingMap = new HashMap<E, Object>();
     }
 
     public HashSet(int capacity) {
-        this.backingSet = new HashMapKeySet<E>(new HashMap<E, Object>(capacity), true);
+        this.backingMap = new HashMap<E, Object>(capacity);
     }
 
     public HashSet(Collection<? extends E> collection) {
@@ -18,23 +20,23 @@ public class HashSet<E> extends AbstractSet<E> implements Set<E> {
     }
 
     public boolean add(E element) {
-        return this.backingSet.add(element);
+        return this.backingMap.put(element, markerObject) == null;
     }
 
     public void clear() {
-        this.backingSet.clear();
+        this.backingMap.clear();
     }
 
     public boolean contains(Object element) {
-        return this.backingSet.contains(element);
+        return this.backingMap.containsKey((E) element);
     }
 
     public Iterator<E> iterator() {
-        return this.backingSet.iterator();
+        return this.backingMap.keySet().iterator();
     }
 
     public int size() {
-        return this.backingSet.size();
+        return this.backingMap.size();
     }
 
     public boolean isEmpty() {

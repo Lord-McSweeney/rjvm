@@ -3,7 +3,7 @@ package java.util;
 import rjvm.internal.Todo;
 
 public class TreeMap<K, V> extends AbstractMap<K, V> implements Cloneable {
-    Entry<K, V> root;
+    TreeMap.Entry<K, V> root;
     int size;
 
     // The comparator we're using
@@ -281,6 +281,12 @@ public class TreeMap<K, V> extends AbstractMap<K, V> implements Cloneable {
 
         public V getValue() {
             return this.value;
+        }
+
+        public V setValue(V value) {
+            V oldValue = this.value;
+            this.value = value;
+            return oldValue;
         }
     }
 }
