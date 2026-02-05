@@ -359,6 +359,14 @@ public final class String implements CharSequence, Comparable<String> {
         return this.indexOf(seq.toString()) != -1;
     }
 
+    public String concat(String other) {
+        if (other.length() == 0) {
+            return this;
+        } else {
+            return this + other;
+        }
+    }
+
     public int length() {
         return this.data.length;
     }
