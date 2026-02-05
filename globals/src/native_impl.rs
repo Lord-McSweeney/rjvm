@@ -44,6 +44,7 @@ pub fn register_native_mappings(context: &Context) {
         ("java/lang/Class.getModifiers.()I", class_get_modifiers),
         ("java/lang/reflect/Method.invokeNative.(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;", invoke_native),
         ("java/lang/Class.getDeclaredMethods.()[Ljava/lang/reflect/Method;", get_declared_methods),
+        ("java/lang/Class.getInterfaces.()[Ljava/lang/Class;", class_get_interfaces),
 
         ("jvm/internal/ClassLoaderUtils.makePlatformLoader.(Ljava/lang/ClassLoader;)V", make_platform_loader),
         ("jvm/internal/ClassLoaderUtils.makeSystemLoader.(Ljava/lang/ClassLoader;Ljava/lang/ClassLoader;)V", make_sys_loader),
@@ -767,6 +768,28 @@ fn get_declared_methods(context: &Context, args: &[Value]) -> Result<Option<Valu
         .collect::<Box<_>>();
 
     let created_array = Object::obj_array(context, methods_class, result);
+
+    Ok(Some(Value::Object(Some(created_array))))
+}
+
+fn class_get_interfaces(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
+    // Receiver should never be null
+    let class_obj = args[0].object().unwrap();
+    let class_id = class_obj.get_field(0).int();
+    let class = context.class_object_by_id(class_id);
+
+    let classes_class = ClassLoader::array_class_for(
+        context,
+        ResolvedDescriptor::Class(context.builtins().java_lang_class),
+    );
+
+    let interfaces = class
+        .own_interfaces()
+        .iter()
+        .map(|m| Some(m.get_or_init_object(context)))
+        .collect::<Box<_>>();
+
+    let created_array = Object::obj_array(context, classes_class, interfaces);
 
     Ok(Some(Value::Object(Some(created_array))))
 }
