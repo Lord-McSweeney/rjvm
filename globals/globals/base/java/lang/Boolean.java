@@ -1,6 +1,6 @@
 package java.lang;
 
-public class Boolean implements Comparable<Boolean> {
+public final class Boolean implements Comparable<Boolean> {
     public static Class<Boolean> TYPE = (Class<Boolean>) Class.getPrimitiveClass(Class.PRIM_BOOLEAN);
 
     public static Boolean TRUE = new Boolean(true);
@@ -41,16 +41,20 @@ public class Boolean implements Comparable<Boolean> {
         }
     }
 
+    public static String toString(boolean b) {
+        if (b) {
+            return "true";
+        } else {
+            return "false";
+        }
+    }
+
     public boolean booleanValue() {
         return this.value;
     }
 
     public String toString() {
-        if (this.value) {
-            return "true";
-        } else {
-            return "false";
-        }
+        return Boolean.toString(this.value);
     }
 
     public int compareTo(Boolean other) {

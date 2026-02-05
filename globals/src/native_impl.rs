@@ -32,6 +32,7 @@ pub fn register_native_mappings(context: &Context) {
         ("java/lang/String.intern.()Ljava/lang/String;", string_intern),
         ("java/lang/Double.doubleToRawLongBits.(D)J", double_to_raw_long_bits),
         ("java/lang/Double.toString.(D)Ljava/lang/String;", double_to_string),
+        ("java/lang/Float.toString.(F)Ljava/lang/String;", float_to_string),
         ("java/lang/Class.getClassLoader.()Ljava/lang/ClassLoader;", class_get_class_loader),
         ("java/lang/Class.getComponentType.()Ljava/lang/Class;", class_get_component_type),
         ("java/lang/Class.getSuperclass.()Ljava/lang/Class;", class_get_superclass),
@@ -488,6 +489,31 @@ fn double_to_string(context: &Context, args: &[Value]) -> Result<Option<Value>, 
         }
     } else {
         let string = format!("{:.6}", double);
+
+        let mut string = string.trim_end_matches('0').to_string();
+        if string.ends_with('.') {
+            string.push('0');
+        }
+
+        string
+    };
+
+    let chars = string.chars().map(|c| c as u16).collect::<Box<_>>();
+
+    Ok(Some(Value::Object(Some(context.create_string(&chars)))))
+}
+
+fn float_to_string(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
+    let float = args[0].float();
+
+    let string = if float.is_infinite() {
+        if float < 0.0 {
+            "-Infinity".to_string()
+        } else {
+            "Infinity".to_string()
+        }
+    } else {
+        let string = format!("{:.3}", float);
 
         let mut string = string.trim_end_matches('0').to_string();
         if string.ends_with('.') {

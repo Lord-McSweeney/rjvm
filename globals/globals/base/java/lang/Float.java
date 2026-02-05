@@ -18,4 +18,7 @@ public final class Float extends Number {
     public static Float valueOf(float f) {
         return new Float(f);
     }
+
+    // FIXME: Implement this correctly
+    public static native String toString(float f);
 }

@@ -74,6 +74,11 @@ public final class StringBuffer extends AbstractStringBuilder implements CharSeq
         return this.append(stringified);
     }
 
+    public StringBuffer append(float f) {
+        String stringified = Float.toString(f);
+        return this.append(stringified);
+    }
+
     public StringBuffer append(double d) {
         String stringified = Double.toString(d);
         return this.append(stringified);

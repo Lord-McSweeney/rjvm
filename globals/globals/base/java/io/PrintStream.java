@@ -82,6 +82,11 @@ public class PrintStream extends FilterOutputStream {
         this.println();
     }
 
+    public void println(float f) {
+        this.print(f);
+        this.println();
+    }
+
     public void println(double d) {
         this.print(d);
         this.println();

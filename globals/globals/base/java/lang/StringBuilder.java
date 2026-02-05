@@ -74,6 +74,11 @@ public final class StringBuilder extends AbstractStringBuilder implements CharSe
         return this.append(stringified);
     }
 
+    public StringBuilder append(float f) {
+        String stringified = Float.toString(f);
+        return this.append(stringified);
+    }
+
     public StringBuilder append(double d) {
         String stringified = Double.toString(d);
         return this.append(stringified);

@@ -393,12 +393,29 @@ public final class String implements CharSequence, Comparable<String> {
         return self;
     }
 
-    public static String valueOf(int integer) {
-        return Integer.toString(integer);
+    public static String valueOf(int i) {
+        return Integer.toString(i);
     }
 
-    public static String valueOf(long lng) {
-        return Long.toString(lng);
+    public static String valueOf(long l) {
+        return Long.toString(l);
+    }
+
+    public static String valueOf(float f) {
+        return Float.toString(f);
+    }
+
+    public static String valueOf(double d) {
+        return Double.toString(d);
+    }
+
+    public static String valueOf(boolean b) {
+        return Boolean.toString(b);
+    }
+
+    public static String valueOf(char c) {
+        // TODO optimize: this uses three allocations, we only need two
+        return new String(new char[]{c});
     }
 
     public static String valueOf(Object object) {
