@@ -1,6 +1,6 @@
 // TODO this assumes descriptors are ASCII, but that doesn't seem to be guaranteed
 
-use super::class::Class;
+use super::class::{Class, PrimitiveType};
 use super::context::Context;
 use super::error::Error;
 use super::loader::ClassLoader;
@@ -227,6 +227,29 @@ impl ResolvedDescriptor {
         }
     }
 
+    /// Get the `Class` corresponding to this `ResolvedDescriptor`. If this is
+    /// a `ResolvedDescriptor::Array` or `ResolvedDescriptor::Class`, return the
+    /// class directly. Otherwise, return the primitive class corresponding to
+    /// this `ResolvedDescriptor`.
+    pub fn reflection_class(self, gc_ctx: GcCtx) -> Class {
+        let primitive_type = match self {
+            ResolvedDescriptor::Class(class) | ResolvedDescriptor::Array(class) => {
+                return class;
+            }
+            ResolvedDescriptor::Byte => PrimitiveType::Byte,
+            ResolvedDescriptor::Character => PrimitiveType::Char,
+            ResolvedDescriptor::Double => PrimitiveType::Double,
+            ResolvedDescriptor::Float => PrimitiveType::Float,
+            ResolvedDescriptor::Integer => PrimitiveType::Int,
+            ResolvedDescriptor::Long => PrimitiveType::Long,
+            ResolvedDescriptor::Short => PrimitiveType::Short,
+            ResolvedDescriptor::Boolean => PrimitiveType::Boolean,
+            ResolvedDescriptor::Void => PrimitiveType::Void,
+        };
+
+        Class::for_primitive(gc_ctx, primitive_type)
+    }
+
     pub fn is_primitive(self) -> bool {
         match self {
             ResolvedDescriptor::Class(_) => false,
@@ -269,6 +292,8 @@ impl ResolvedDescriptor {
         result
     }
 
+    /// Get the `Class` corresponding to this `ResolvedDescriptor`, if this is a
+    /// a `ResolvedDescriptor::Array` or `ResolvedDescriptor::Class`.
     pub fn class(self) -> Option<Class> {
         match self {
             ResolvedDescriptor::Class(class) | ResolvedDescriptor::Array(class) => Some(class),
@@ -423,5 +448,52 @@ impl fmt::Debug for MethodDescriptor {
         result.push_str(&self.0.return_type.to_string());
 
         write!(f, "{}", result)
+    }
+}
+
+#[derive(Clone, Copy)]
+pub struct ResolvedMethodDescriptor(Gc<ResolvedMethodDescriptorData>);
+
+struct ResolvedMethodDescriptorData {
+    args: Box<[ResolvedDescriptor]>,
+    physical_arg_count: usize,
+    return_type: ResolvedDescriptor,
+}
+
+impl ResolvedMethodDescriptor {
+    pub fn from_method_descriptor(
+        context: &Context,
+        loader: ClassLoader,
+        descriptor: MethodDescriptor,
+    ) -> Result<Self, Error> {
+        let args = descriptor
+            .args()
+            .iter()
+            .map(|arg| ResolvedDescriptor::from_descriptor(context, loader, *arg))
+            .collect::<Result<Box<[_]>, Error>>()?;
+
+        let return_type =
+            ResolvedDescriptor::from_descriptor(context, loader, descriptor.return_type())?;
+
+        Ok(Self(Gc::new(
+            context.gc_ctx,
+            ResolvedMethodDescriptorData {
+                args,
+                physical_arg_count: descriptor.physical_arg_count(),
+                return_type,
+            },
+        )))
+    }
+
+    pub fn args(&self) -> &[ResolvedDescriptor] {
+        &self.0.args
+    }
+
+    pub fn physical_arg_count(&self) -> usize {
+        self.0.physical_arg_count
+    }
+
+    pub fn return_type(self) -> ResolvedDescriptor {
+        self.0.return_type
     }
 }

@@ -1,6 +1,6 @@
 use super::class::Class;
 use super::context::Context;
-use super::descriptor::MethodDescriptor;
+use super::descriptor::{MethodDescriptor, ResolvedMethodDescriptor};
 use super::error::Error;
 use super::interpreter::Interpreter;
 use super::loader::ClassLoader;
@@ -57,6 +57,9 @@ struct MethodData {
     // initialized
     object: OnceCell<Object>,
 
+    // The resolved version of the descriptor for this method, lazily initialized
+    resolved_descriptor: OnceCell<ResolvedMethodDescriptor>,
+
     method_info: RefCell<MethodInfo>,
 }
 
@@ -108,6 +111,7 @@ impl Method {
                 name: method.name(),
                 class,
                 object: OnceCell::new(),
+                resolved_descriptor: OnceCell::new(),
                 method_info: RefCell::new(method_info),
             },
         )))
@@ -137,6 +141,7 @@ impl Method {
                 name,
                 class,
                 object: OnceCell::new(),
+                resolved_descriptor: OnceCell::new(),
                 method_info: RefCell::new(MethodInfo::Native(method)),
             },
         ))
@@ -244,6 +249,34 @@ impl Method {
 
             object
         })
+    }
+
+    pub fn get_or_init_resolved_descriptor(
+        self,
+        context: &Context,
+    ) -> Result<ResolvedMethodDescriptor, Error> {
+        if let Some(desc) = self.0.resolved_descriptor.get() {
+            Ok(*desc)
+        } else {
+            let loader = self
+                .class()
+                .loader()
+                .expect("Class of method should have loader");
+
+            let result = ResolvedMethodDescriptor::from_method_descriptor(
+                context,
+                loader,
+                self.descriptor(),
+            )?;
+
+            self.0
+                .resolved_descriptor
+                .set(result)
+                .map_err(|_| ())
+                .expect("Not yet set");
+
+            Ok(result)
+        }
     }
 
     pub fn descriptor(self) -> MethodDescriptor {

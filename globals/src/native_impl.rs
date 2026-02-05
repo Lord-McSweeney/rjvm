@@ -27,8 +27,8 @@ pub fn register_native_mappings(context: &Context) {
         ("java/lang/ClassLoader.loadClassNative.(Ljava/lang/String;)Ljava/lang/Class;", load_class_native),
         ("java/lang/Class.getConstructors.()[Ljava/lang/reflect/Constructor;", get_constructors),
         ("java/lang/reflect/Constructor.newInstanceNative.([Ljava/lang/Object;)Ljava/lang/Object;", new_instance_native),
-        ("java/lang/reflect/Constructor.getParameterCount.()I", exec_get_parameter_count),
-        ("java/lang/reflect/Method.getParameterCount.()I", exec_get_parameter_count),
+        ("java/lang/reflect/Constructor.getParameterTypes.()[Ljava/lang/Class;", exec_get_parameter_types),
+        ("java/lang/reflect/Method.getParameterTypes.()[Ljava/lang/Class;", exec_get_parameter_types),
         ("java/lang/String.intern.()Ljava/lang/String;", string_intern),
         ("java/lang/Double.doubleToRawLongBits.(D)J", double_to_raw_long_bits),
         ("java/lang/Double.toString.(D)Ljava/lang/String;", double_to_string),
@@ -435,13 +435,29 @@ fn new_instance_native(context: &Context, args: &[Value]) -> Result<Option<Value
     }
 }
 
-fn exec_get_parameter_count(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
+fn exec_get_parameter_types(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
     // Receiver should never be null
     let exec_obj = args[0].object().unwrap();
     let exec_id = exec_obj.get_field(0).int();
     let method = context.executable_object_by_id(exec_id);
 
-    Ok(Some(Value::Integer(method.arg_count() as i32)))
+    let descriptor = method.get_or_init_resolved_descriptor(context)?;
+    let params = descriptor.args();
+
+    let classes_class = ClassLoader::array_class_for(
+        context,
+        ResolvedDescriptor::Class(context.builtins().java_lang_class),
+    );
+
+    let resulting_classes = params
+        .iter()
+        .map(|p| p.reflection_class(context.gc_ctx))
+        .map(|c| Some(c.get_or_init_object(context)))
+        .collect::<Box<[_]>>();
+
+    let created_array = Object::obj_array(context, classes_class, resulting_classes);
+
+    Ok(Some(Value::Object(Some(created_array))))
 }
 
 fn string_intern(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {

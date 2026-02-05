@@ -8,8 +8,7 @@ public abstract class Executable extends AccessibleObject implements GenericDecl
 
     public abstract String getName();
 
-    public int getParameterCount() {
-        // :/
-        throw new AbstractMethodError();
-    }
+    public abstract int getParameterCount();
+
+    public abstract Class<?>[] getParameterTypes();
 }

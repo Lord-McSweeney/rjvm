@@ -7,7 +7,11 @@ public final class Method extends Executable {
 
     public native String getName();
 
-    public native int getParameterCount();
+    public int getParameterCount() {
+        return this.getParameterTypes().length;
+    }
+
+    public native Class<?>[] getParameterTypes();
 
     public Object invoke(Object obj, Object... args) throws IllegalAccessException, IllegalArgumentException, InvocationTargetException {
         if (args == null) {
