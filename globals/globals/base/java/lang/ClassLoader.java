@@ -60,6 +60,10 @@ public abstract class ClassLoader {
         return this.loadClass(name);
     }
 
+    protected Class<?> findClass(String name) throws ClassNotFoundException {
+        throw new ClassNotFoundException();
+    }
+
     protected final void resolveClass(Class<?> cls) {
         // Despite what the documentation says, this method is actually a no-op
         // (besides the null check)
