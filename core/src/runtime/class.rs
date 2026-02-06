@@ -601,6 +601,12 @@ impl Class {
                     let _inner_class_name_index = read_u16_be!(context, data);
                     let _inner_class_access_flags = read_u16_be!(context, data);
 
+                    if outer_class_cls_index == 0 {
+                        // This is a local ("anonymous"?) class defined in a
+                        // method, not a `static class`
+                        continue;
+                    }
+
                     let inner_class_name = constant_pool
                         .get_class(inner_class_cls_index)
                         .map_err(|e| Error::from_class_file_error(context, e))?;
