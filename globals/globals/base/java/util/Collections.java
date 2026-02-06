@@ -4,10 +4,15 @@ import rjvm.internal.Todo;
 
 public class Collections {
     public static final List EMPTY_LIST;
+    public static final Map EMPTY_MAP;
+    public static final Set EMPTY_SET;
+
     private static final Iterator EMPTY_ITERATOR;
 
     static {
         EMPTY_LIST = new EmptyList();
+        EMPTY_MAP = new EmptyMap();
+        EMPTY_SET = new EmptySet();
         EMPTY_ITERATOR = new EmptyIterator();
     }
 
@@ -18,6 +23,14 @@ public class Collections {
 
     public static final <T> List<T> emptyList() {
         return EMPTY_LIST;
+    }
+
+    public static final <K, V> Map<K, V> emptyMap() {
+        return EMPTY_MAP;
+    }
+
+    public static final <E> Set<E> emptySet() {
+        return EMPTY_SET;
     }
 
     public static <T> Iterator<T> emptyIterator() {
@@ -77,6 +90,65 @@ class EmptyList<E> implements List<E> {
         } else {
             throw new IndexOutOfBoundsException();
         }
+    }
+
+    public Object[] toArray() {
+        return new Object[0];
+    }
+
+    public <T> T[] toArray(T[] a) {
+        // Element after the last is set to null
+        if (a.length > 0) {
+            a[0] = null;
+        }
+
+        return a;
+    }
+}
+
+class EmptyMap<K, V> implements Map<K, V> {
+    EmptyMap() { }
+
+    public V get(Object key) {
+        return null;
+    }
+
+    public V put(K key, V value) {
+        throw new UnsupportedOperationException();
+    }
+
+    public void clear() {
+        throw new UnsupportedOperationException();
+    }
+
+    public Set<Map.Entry<K, V>> entrySet() {
+        return Collections.emptySet();
+    }
+}
+
+class EmptySet<E> implements Set<E> {
+    public boolean add(E e) {
+        throw new UnsupportedOperationException();
+    }
+
+    public boolean addAll(Collection<? extends E> collection) {
+        throw new UnsupportedOperationException();
+    }
+
+    public void clear() {
+        throw new UnsupportedOperationException();
+    }
+
+    public Iterator<E> iterator() {
+        return Collections.emptyIterator();
+    }
+
+    public int size() {
+        return 0;
+    }
+
+    public boolean isEmpty() {
+        return true;
     }
 
     public Object[] toArray() {
