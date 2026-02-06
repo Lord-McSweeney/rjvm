@@ -81,6 +81,10 @@ impl<T: Copy + Debug + Eq + Hash> VTable<T> {
         }
     }
 
+    pub fn lookup_own(self, key: (JvmString, T)) -> Option<usize> {
+        self.0.mapping.get(&key).copied()
+    }
+
     pub fn slots_for_name(self, name: JvmString) -> Box<[usize]> {
         let mut result_indices = Vec::new();
         for ((key_name, _), index) in &self.0.mapping {

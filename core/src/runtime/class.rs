@@ -271,16 +271,15 @@ impl Class {
 
         let clinit_string = context.common.clinit_name;
         let void_descriptor = context.common.noargs_void_desc;
-        let clinit_method_idx = static_method_vtable.lookup((clinit_string, void_descriptor));
+        // NOTE: This is `lookup_own` instead of `lookup` because class
+        // initializers aren't inherited.
+        let clinit_method_idx = static_method_vtable.lookup_own((clinit_string, void_descriptor));
 
         let clinit_method = clinit_method_idx.map(|i| self.static_methods()[i]);
         if clinit_method.is_some_and(|m| m.physical_arg_count() != 0) {
             panic!("Clinit methods should not have declared arguments");
         }
 
-        // If this class actually has a clinit method, queue it
-        // (don't run it now as it could potentially trigger a GC, and we
-        // may have Gc pointers stored only on the stack at the moment)
         self.0.clinit_method.set(clinit_method);
 
         Ok(())
