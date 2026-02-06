@@ -171,6 +171,8 @@ public final class Class<T> implements AnnotatedElement, GenericDeclaration, Typ
 
     public native Constructor<?>[] getConstructors();
 
+    public native Constructor<?>[] getDeclaredConstructors();
+
     public native Method[] getDeclaredMethods();
 
     public Method getMethod(String name, Class<?>... parameterTypes) throws NoSuchMethodException {

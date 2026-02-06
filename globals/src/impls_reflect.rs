@@ -1,8 +1,8 @@
 use alloc::boxed::Box;
 use alloc::vec::Vec;
 use rjvm_core::{
-    ClassLoader, Context, Descriptor, Error, JvmString, NativeMethod, Object, PrimitiveType,
-    ResolvedDescriptor, Value,
+    ClassLoader, Context, Descriptor, Error, JvmString, MethodFlags, NativeMethod, Object,
+    PrimitiveType, ResolvedDescriptor, Value,
 };
 
 pub fn register_native_mappings(context: &Context) {
@@ -12,6 +12,7 @@ pub fn register_native_mappings(context: &Context) {
         ("java/lang/Class.getNameNative.()Ljava/lang/String;", get_name_native),
         ("java/lang/Class.getPrimitiveClass.(I)Ljava/lang/Class;", get_primitive_class),
         ("java/lang/Class.getConstructors.()[Ljava/lang/reflect/Constructor;", get_constructors),
+        ("java/lang/Class.getDeclaredConstructors.()[Ljava/lang/reflect/Constructor;", get_declared_constructors),
         ("java/lang/reflect/Constructor.newInstanceNative.([Ljava/lang/Object;)Ljava/lang/Object;", new_instance_native),
         ("java/lang/reflect/Constructor.getParameterTypes.()[Ljava/lang/Class;", exec_get_parameter_types),
         ("java/lang/reflect/Method.getParameterTypes.()[Ljava/lang/Class;", exec_get_parameter_types),
@@ -87,9 +88,33 @@ fn get_constructors(context: &Context, args: &[Value]) -> Result<Option<Value>, 
     let class_id = class_obj.get_field(0).int();
     let class = context.class_object_by_id(class_id);
 
-    let constructors = crate::reflect::constructors_for_class(context, class);
-    let constructors_arr = constructors
+    let constructors_arr = class
+        .instance_method_vtable()
+        .elements_for_name(context.common.init_name)
         .iter()
+        // Make sure we're only picking up public initializers defined in this class
+        .filter(|m| m.class() == class && m.flags().contains(MethodFlags::PUBLIC))
+        .map(|m| Some(m.get_or_init_object(context)))
+        .collect::<Box<_>>();
+
+    let constructor_class = context.builtins().java_lang_reflect_constructor;
+    let constructors_arr = Object::obj_array(context, constructor_class, constructors_arr);
+
+    Ok(Some(Value::Object(Some(constructors_arr))))
+}
+
+fn get_declared_constructors(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
+    // Receiver should never be null
+    let class_obj = args[0].object().unwrap();
+    let class_id = class_obj.get_field(0).int();
+    let class = context.class_object_by_id(class_id);
+
+    let constructors_arr = class
+        .instance_method_vtable()
+        .elements_for_name(context.common.init_name)
+        .iter()
+        // Make sure we're only picking up initializers defined in this class
+        .filter(|m| m.class() == class)
         .map(|m| Some(m.get_or_init_object(context)))
         .collect::<Box<_>>();
 
