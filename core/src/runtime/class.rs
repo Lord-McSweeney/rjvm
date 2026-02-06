@@ -59,8 +59,7 @@ struct ClassData {
     method_data: RefCell<Option<MethodData>>,
 
     clinit_method: Cell<Option<Method>>,
-    clinit_run: Cell<bool>,
-    clinit_failed: Cell<bool>,
+    clinit_stage: Cell<ClinitStage>,
 }
 
 struct MethodData {
@@ -183,8 +182,7 @@ impl Class {
 
                 method_data: RefCell::new(None),
                 clinit_method: Cell::new(None),
-                clinit_run: Cell::new(false),
-                clinit_failed: Cell::new(false),
+                clinit_stage: Cell::new(ClinitStage::NotStarted),
             },
         ));
 
@@ -331,8 +329,7 @@ impl Class {
                 method_data: RefCell::new(None),
 
                 clinit_method: Cell::new(None),
-                clinit_run: Cell::new(true),
-                clinit_failed: Cell::new(false),
+                clinit_stage: Cell::new(ClinitStage::Completed),
             },
         ));
 
@@ -402,8 +399,7 @@ impl Class {
                 method_data: RefCell::new(None),
 
                 clinit_method: Cell::new(None),
-                clinit_run: Cell::new(true),
-                clinit_failed: Cell::new(false),
+                clinit_stage: Cell::new(ClinitStage::Completed),
             },
         ));
 
@@ -581,36 +577,56 @@ impl Class {
     }
 
     pub fn run_clinit(self, context: &Context) -> Result<(), Error> {
-        if !self.0.clinit_run.get() {
-            if let Some(super_class) = self.super_class() {
-                super_class.run_clinit(context)?;
-            }
+        match self.0.clinit_stage.get() {
+            ClinitStage::NotStarted => {
+                self.0.clinit_stage.set(ClinitStage::StartedSuperClass);
 
-            self.0.clinit_run.set(true);
-
-            if let Some(clinit) = self.0.clinit_method.get() {
-                if let Err(throwable) = clinit.exec(context) {
-                    self.0.clinit_failed.set(true);
-
-                    // A `java.lang.Exception` thrown in a class initializer
-                    // will be wrapped into a `java.lang.ExceptionInInitializerError`.
-                    let exception_class = context.builtins().java_lang_exception;
-
-                    let error = if throwable.0.is_of_class(exception_class) {
-                        context.exception_in_initializer_error(throwable.0)
-                    } else {
-                        throwable
-                    };
-
-                    return Err(error);
+                if let Some(super_class) = self.super_class() {
+                    super_class.run_clinit(context)?;
                 }
-            }
-        } else if self.0.clinit_failed.get() {
-            return Err(context
-                .no_class_def_found_error(&format!("Could not initialize class {}", self.name())));
-        }
 
-        Ok(())
+                self.0.clinit_stage.set(ClinitStage::StartedSelf);
+
+                if let Some(clinit) = self.0.clinit_method.get() {
+                    if let Err(throwable) = clinit.exec(context) {
+                        self.0.clinit_stage.set(ClinitStage::Failed);
+
+                        // A `java.lang.Exception` thrown in a class initializer
+                        // will be wrapped into a `java.lang.ExceptionInInitializerError`.
+                        let exception_class = context.builtins().java_lang_exception;
+
+                        let error = if throwable.0.is_of_class(exception_class) {
+                            context.exception_in_initializer_error(throwable.0)
+                        } else {
+                            throwable
+                        };
+
+                        return Err(error);
+                    }
+                }
+
+                self.0.clinit_stage.set(ClinitStage::Completed);
+
+                Ok(())
+            }
+            ClinitStage::Failed => {
+                // Attempting to call the class initializer for a class that had
+                // its initializer fail results in a `NoClassDefFoundError`.
+                Err(context.no_class_def_found_error(&format!(
+                    "Could not initialize class {}",
+                    self.name()
+                )))
+            }
+            ClinitStage::StartedSuperClass | ClinitStage::StartedSelf => {
+                // The class initializer is currently in progress, so don't run
+                // it possibly recursively
+                Ok(())
+            }
+            ClinitStage::Completed => {
+                // The class initializer has already been run
+                Ok(())
+            }
+        }
     }
 
     pub fn as_ptr(self) -> *const () {
@@ -713,4 +729,23 @@ impl PrimitiveType {
 
 impl Trace for PrimitiveType {
     fn trace(&self) {}
+}
+
+#[derive(Clone, Copy)]
+enum ClinitStage {
+    /// The class initializer has not yet been started.
+    NotStarted,
+
+    /// The class initializer for this class's superclass has been called from
+    /// the class initializer (recursively).
+    StartedSuperClass,
+
+    /// The class initializer for this class is currently running.
+    StartedSelf,
+
+    /// The class initializer for this class is complete.
+    Completed,
+
+    /// The class initializer for this class threw an error.
+    Failed,
 }
