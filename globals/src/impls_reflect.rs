@@ -28,6 +28,7 @@ pub fn register_native_mappings(context: &Context) {
         ("java/lang/reflect/Method.invokeNative.(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;", invoke_native),
         ("java/lang/Class.getDeclaredMethods.()[Ljava/lang/reflect/Method;", get_declared_methods),
         ("java/lang/Class.getInterfaces.()[Ljava/lang/Class;", class_get_interfaces),
+        ("java/lang/Class.getDeclaringClass.()Ljava/lang/Class;", class_get_declaring_class),
     ];
 
     context.register_native_mappings(mappings);
@@ -462,4 +463,21 @@ fn class_get_interfaces(context: &Context, args: &[Value]) -> Result<Option<Valu
     let created_array = Object::obj_array(context, classes_class, interfaces);
 
     Ok(Some(Value::Object(Some(created_array))))
+}
+
+fn class_get_declaring_class(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
+    // Receiver should never be null
+    let class_obj = args[0].object().unwrap();
+    let class_id = class_obj.get_field(0).int();
+    let class = context.class_object_by_id(class_id);
+
+    let declaring_class = class.find_declaring_class(context)?;
+
+    if let Some(declaring_class) = declaring_class {
+        let object = declaring_class.get_or_init_object(context);
+
+        Ok(Some(Value::Object(Some(object))))
+    } else {
+        Ok(Some(Value::Object(None)))
+    }
 }

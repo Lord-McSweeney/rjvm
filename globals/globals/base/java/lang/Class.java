@@ -63,6 +63,8 @@ public final class Class<T> implements AnnotatedElement, GenericDeclaration, Typ
 
     public native Class<?>[] getInterfaces();
 
+    public native Class<?> getDeclaringClass();
+
     public native ClassLoader getClassLoader();
 
     public native boolean isInstance(Object obj);

@@ -128,6 +128,10 @@ impl ClassFile {
     pub fn methods(&self) -> &[Method] {
         &self.0.methods
     }
+
+    pub fn attributes(&self) -> &[Attribute] {
+        &self.0.attributes
+    }
 }
 
 impl Trace for ClassFile {

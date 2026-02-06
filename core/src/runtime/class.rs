@@ -11,6 +11,8 @@ use super::vtable::{InstanceMethodVTable, VTable};
 use crate::classfile::class::ClassFile;
 use crate::classfile::flags::{ClassFlags, FieldFlags, MethodFlags};
 use crate::gc::{Gc, GcCtx, Trace};
+use crate::read_u16_be;
+use crate::reader::{FileData, Reader};
 use crate::string::JvmString;
 
 use alloc::boxed::Box;
@@ -573,6 +575,51 @@ impl Class {
         assert!(self.0.array_value_type.is_none());
 
         Object::from_class(gc_ctx, self)
+    }
+
+    pub fn find_declaring_class(self, context: &Context) -> Result<Option<Class>, Error> {
+        let Some(class_file) = self.class_file() else {
+            // Primitive or array class, not an inner class
+            return Ok(None);
+        };
+
+        let attributes = class_file.attributes();
+        let constant_pool = class_file.constant_pool();
+
+        let loader = self
+            .loader()
+            .expect("Class with class file must have loader");
+
+        for attribute in attributes {
+            if *attribute.name() == "InnerClasses" {
+                let mut data = FileData::new(attribute.data());
+
+                let num_inner_classes = read_u16_be!(context, data);
+                for _ in 0..num_inner_classes {
+                    let inner_class_cls_index = read_u16_be!(context, data);
+                    let outer_class_cls_index = read_u16_be!(context, data);
+                    let _inner_class_name_index = read_u16_be!(context, data);
+                    let _inner_class_access_flags = read_u16_be!(context, data);
+
+                    let inner_class_name = constant_pool
+                        .get_class(inner_class_cls_index)
+                        .map_err(|e| Error::from_class_file_error(context, e))?;
+
+                    // TODO is this if-check necessary?
+                    if inner_class_name == self.name() {
+                        let outer_class_name = constant_pool
+                            .get_class(outer_class_cls_index)
+                            .map_err(|e| Error::from_class_file_error(context, e))?;
+
+                        let class = loader.lookup_class(context, outer_class_name)?;
+
+                        return Ok(Some(class));
+                    }
+                }
+            }
+        }
+
+        Ok(None)
     }
 
     pub fn run_clinit(self, context: &Context) -> Result<(), Error> {
