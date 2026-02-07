@@ -460,6 +460,7 @@ impl Context {
         }
     }
 
+    #[inline(never)]
     pub fn arithmetic_exception(&self) -> Error {
         let exception_class = self.builtins().java_lang_arithmetic_exception;
 
@@ -469,6 +470,7 @@ impl Context {
         Error(exception_instance)
     }
 
+    #[inline(never)]
     pub fn array_index_oob_exception(&self) -> Error {
         let exception_class = self.builtins().java_lang_array_index_oob_exception;
 
@@ -478,6 +480,7 @@ impl Context {
         Error(exception_instance)
     }
 
+    #[inline(never)]
     pub fn array_store_exception(&self) -> Error {
         let exception_class = self.builtins().java_lang_array_store_exception;
 
@@ -487,6 +490,7 @@ impl Context {
         Error(exception_instance)
     }
 
+    #[inline(never)]
     pub fn class_cast_exception(&self) -> Error {
         let exception_class = self.builtins().java_lang_class_cast_exception;
 
@@ -496,6 +500,8 @@ impl Context {
         Error(exception_instance)
     }
 
+    #[inline(never)]
+    #[cold]
     pub fn class_format_error(&self, message: &str) -> Error {
         let error_class = self.builtins().java_lang_class_format_error;
 
@@ -511,6 +517,8 @@ impl Context {
         Error(error_instance)
     }
 
+    #[inline(never)]
+    #[cold]
     pub fn clone_not_supported_exception(&self) -> Error {
         let exception_class = self.builtins().java_lang_clone_not_supported_exception;
 
@@ -520,6 +528,8 @@ impl Context {
         Error(exception_instance)
     }
 
+    #[inline(never)]
+    #[cold]
     pub fn exception_in_initializer_error(&self, exception: Object) -> Error {
         let error_class = self.builtins().java_lang_exception_in_initializer_error;
 
@@ -532,6 +542,8 @@ impl Context {
         Error(error_instance)
     }
 
+    #[inline(never)]
+    #[cold]
     pub fn illegal_access_error(&self) -> Error {
         let exception_class = self.builtins().java_lang_illegal_access_error;
 
@@ -541,6 +553,8 @@ impl Context {
         Error(exception_instance)
     }
 
+    #[inline(never)]
+    #[cold]
     pub fn incompatible_class_change_error(&self, message: &str) -> Error {
         let error_class = self.builtins().java_lang_incompatible_class_change_error;
 
@@ -556,6 +570,8 @@ impl Context {
         Error(error_instance)
     }
 
+    #[inline(never)]
+    #[cold]
     pub fn instantiation_error(&self, class_name: JvmString) -> Error {
         let error_class = self.builtins().java_lang_instantiation_error;
 
@@ -571,6 +587,8 @@ impl Context {
         Error(error_instance)
     }
 
+    #[inline(never)]
+    #[cold]
     pub fn instantiation_exception(&self) -> Error {
         let exception_class = self.builtins().java_lang_instantiation_exception;
 
@@ -580,6 +598,8 @@ impl Context {
         Error(exception_instance)
     }
 
+    #[inline(never)]
+    #[cold]
     pub fn negative_array_size_exception(&self) -> Error {
         let exception_class = self.builtins().java_lang_negative_array_size_exception;
 
@@ -589,6 +609,8 @@ impl Context {
         Error(exception_instance)
     }
 
+    #[inline(never)]
+    #[cold]
     pub fn no_class_def_found_error(&self, message: &str) -> Error {
         let error_class = self.builtins().java_lang_no_class_def_found_error;
 
@@ -604,6 +626,8 @@ impl Context {
         Error(error_instance)
     }
 
+    #[inline(never)]
+    #[cold]
     pub fn no_such_field_error(&self) -> Error {
         let error_class = self.builtins().java_lang_no_such_field_error;
 
@@ -613,6 +637,8 @@ impl Context {
         Error(error_instance)
     }
 
+    #[inline(never)]
+    #[cold]
     pub fn no_such_method_error(&self, message: &str) -> Error {
         let error_class = self.builtins().java_lang_no_such_method_error;
 
@@ -628,6 +654,7 @@ impl Context {
         Error(error_instance)
     }
 
+    #[inline(never)]
     pub fn null_pointer_exception(&self) -> Error {
         let exception_class = self.builtins().java_lang_null_pointer_exception;
 
@@ -637,6 +664,8 @@ impl Context {
         Error(exception_instance)
     }
 
+    #[inline(never)]
+    #[cold]
     pub fn verify_error(&self, message: &str) -> Error {
         let error_class = self.builtins().java_lang_verify_error;
 
