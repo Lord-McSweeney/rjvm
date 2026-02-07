@@ -93,7 +93,7 @@ public class HashMap<K, V> extends AbstractMap<K, V> {
         throw new Error("unreachable");
     }
 
-    public boolean containsKey(K key) {
+    public boolean containsKey(Object key) {
         int code = HashMap.hashCode(key) & (BUCKET_COUNT - 1);
         int bucketStartIndex = code << this.bucketSizeLog2;
         int bucketEndIndex = bucketStartIndex + (1 << this.bucketSizeLog2);
