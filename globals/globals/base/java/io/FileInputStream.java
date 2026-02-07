@@ -30,9 +30,8 @@ public class FileInputStream extends InputStream {
             throw new IOException();
         }
 
-        return this.availableInternal();
+        return this.availableNative();
     }
-    private native int availableInternal();
 
     // `read()` implementation
     public int read() throws IOException {
@@ -40,9 +39,8 @@ public class FileInputStream extends InputStream {
             throw new IOException();
         }
 
-        return this.readInternal();
+        return this.readNative();
     }
-    private native int readInternal();
 
     // `read(byte[], int, int)` implementation
     public int read(byte[] b, int offset, int length) throws IOException {
@@ -56,11 +54,18 @@ public class FileInputStream extends InputStream {
 
         // We know `b` is non-null, we just checked `b.length`
 
-        return this.readMultiInternal(b, offset, length);
+        return this.readMultipleNative(b, offset, length);
     }
-    private native int readMultiInternal(byte[] b, int offset, int length);
 
     public final FileDescriptor getFD() throws IOException {
         return this.fd;
     }
+
+    // Native methods
+
+    private native int readNative();
+
+    private native int readMultipleNative(byte[] b, int offset, int length);
+
+    private native int availableNative();
 }

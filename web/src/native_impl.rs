@@ -12,11 +12,12 @@ pub fn register_native_mappings(context: &Context) {
         ("java/io/File.internalInitFileData.([B)V", internal_init_file_data),
         ("java/io/File.getCanonicalPath.()Ljava/lang/String;", file_get_canonical_path),
         ("java/io/File.getAbsolutePath.()Ljava/lang/String;", file_get_absolute_path),
-        ("java/io/FileOutputStream.writeInternal.(I)V", file_stream_write_internal),
-        ("java/io/FileOutputStream.flushInternal.()V", file_stream_flush_internal),
-        ("java/io/FileInputStream.readInternal.()I", file_stream_read_internal),
-        ("java/io/FileInputStream.readMultiInternal.([BII)I", file_stream_read_multi_internal),
-        ("java/io/FileInputStream.availableInternal.()I", file_stream_available_internal),
+        ("java/io/FileOutputStream.writeNative.(I)V", file_stream_write),
+        ("java/io/FileOutputStream.writeMultipleNative.([BII)V", file_stream_write_multiple),
+        ("java/io/FileOutputStream.flushNative.()V", file_stream_flush),
+        ("java/io/FileInputStream.readNative.()I", file_stream_read),
+        ("java/io/FileInputStream.readMultipleNative.([BII)I", file_stream_read_multiple),
+        ("java/io/FileInputStream.availableNative.()I", file_stream_available),
         ("java/io/FileDescriptor.internalWriteableDescriptorFromPath.(Ljava/lang/String;)I", writeable_descriptor_from_path),
         ("java/io/FileDescriptor.internalReadableDescriptorFromPath.(Ljava/lang/String;)I", readable_descriptor_from_path),
     ];
@@ -90,7 +91,7 @@ fn file_get_absolute_path(_context: &Context, _args: &[Value]) -> Result<Option<
     unimplemented!("File.getAbsolutePath is unimplemented on web")
 }
 
-fn file_stream_write_internal(_context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
+fn file_stream_write(_context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
     let stream = args[0].object().unwrap();
     let stream_fd = stream.get_field(0).object().unwrap();
     let stream_descriptor = stream_fd.get_field(0).int() as u32;
@@ -115,7 +116,39 @@ fn file_stream_write_internal(_context: &Context, args: &[Value]) -> Result<Opti
     Ok(None)
 }
 
-fn file_stream_flush_internal(_context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
+fn file_stream_write_multiple(_context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
+    let stream = args[0].object().unwrap();
+    let stream_fd = stream.get_field(0).object().unwrap();
+    let stream_descriptor = stream_fd.get_field(0).int() as u32;
+
+    // Java code has already checked these values for us
+    let write_arr = args[1].object().unwrap();
+    let arr_start = args[2].int() as usize;
+    let arr_len = args[3].int() as usize;
+
+    let array_data = write_arr.array_data().as_byte_array();
+    let write_data = array_data.iter().map(|b| b.get() as u8).collect::<Vec<_>>();
+    let write_data = &write_data[arr_start..arr_start + arr_len];
+
+    match stream_descriptor {
+        0 => {
+            // Writing to stdin is a noop
+        }
+        1 => {
+            // stdout
+            output(&*String::from_utf8_lossy(write_data));
+        }
+        2 => {
+            // stderr
+            output_to_err(&*String::from_utf8_lossy(write_data));
+        }
+        _ => unreachable!("cannot have descriptors >2 on web"),
+    }
+
+    Ok(None)
+}
+
+fn file_stream_flush(_context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
     let stream = args[0].object().unwrap();
     let stream_fd = stream.get_field(0).object().unwrap();
     let stream_descriptor = stream_fd.get_field(0).int() as u32;
@@ -136,7 +169,7 @@ fn file_stream_flush_internal(_context: &Context, args: &[Value]) -> Result<Opti
     Ok(None)
 }
 
-fn file_stream_read_internal(_context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
+fn file_stream_read(_context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
     let stream = args[0].object().unwrap();
     let stream_fd = stream.get_field(0).object().unwrap();
     let stream_descriptor = stream_fd.get_field(0).int() as u32;
@@ -154,10 +187,7 @@ fn file_stream_read_internal(_context: &Context, args: &[Value]) -> Result<Optio
     }
 }
 
-fn file_stream_read_multi_internal(
-    _context: &Context,
-    args: &[Value],
-) -> Result<Option<Value>, Error> {
+fn file_stream_read_multiple(_context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
     let stream = args[0].object().unwrap();
     let stream_fd = stream.get_field(0).object().unwrap();
     let stream_descriptor = stream_fd.get_field(0).int() as u32;
@@ -177,10 +207,7 @@ fn file_stream_read_multi_internal(
     Ok(Some(Value::Integer(0)))
 }
 
-fn file_stream_available_internal(
-    _context: &Context,
-    _args: &[Value],
-) -> Result<Option<Value>, Error> {
+fn file_stream_available(_context: &Context, _args: &[Value]) -> Result<Option<Value>, Error> {
     // No files on web
     Ok(Some(Value::Integer(0)))
 }

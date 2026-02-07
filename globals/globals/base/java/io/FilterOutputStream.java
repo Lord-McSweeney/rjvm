@@ -11,7 +11,7 @@ public class FilterOutputStream extends OutputStream {
         this.out.write(b);
     }
 
-    public void write(byte buffer[], int ofs, int len) throws IOException {
+    public void write(byte[] buffer, int ofs, int len) throws IOException {
         if (buffer == null) {
             throw new NullPointerException();
         }
@@ -25,7 +25,7 @@ public class FilterOutputStream extends OutputStream {
         }
     }
 
-    public void write(byte buffer[]) throws IOException {
+    public void write(byte[] buffer) throws IOException {
         this.out.write(buffer);
     }
 
