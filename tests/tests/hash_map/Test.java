@@ -11,9 +11,14 @@ public class Test {
         System.out.println(theMap.put(3L, "hi"));
         System.out.println(theMap.put(4L, "9"));
 
+        System.out.println(theMap.size());
+
         System.out.println(theMap.get(1L));
         System.out.println(theMap.get(2L));
         System.out.println(theMap.get(3L));
+        System.out.println(theMap.get(null));
+        System.out.println(theMap.get(99L));
+        System.out.println(theMap.get(999999999999L));
 
         boolean foundFirst = false;
         boolean foundSecond = false;
@@ -67,11 +72,40 @@ public class Test {
         System.out.println(foundUnexpected);
 
         System.out.println(theMap.size());
+        System.out.println(theMap.containsKey(null));
         System.out.println(theMap.containsKey(0L));
         System.out.println(theMap.containsKey(1L));
         System.out.println(theMap.containsKey(2L));
         System.out.println(theMap.containsKey(3L));
         System.out.println(theMap.containsKey(4L));
         System.out.println(theMap.containsKey(5L));
+
+        System.out.println(theMap.put(null, "f"));
+        System.out.println(theMap.get(null));
+        System.out.println(theMap.put(null, "g"));
+
+        theMap.put(5L, "5a");
+        theMap.put(6L, "6b");
+        theMap.put(7L, "7c");
+        theMap.put(8L, "8d");
+        theMap.put(9L, "9e");
+        theMap.put(10L, "10f");
+        theMap.put(11L, "11g");
+
+        theMap.clear();
+
+        System.out.println(theMap.get(0L));
+        System.out.println(theMap.get(1L));
+        System.out.println(theMap.get(2L));
+        System.out.println(theMap.get(3L));
+        System.out.println(theMap.get(4L));
+        System.out.println(theMap.get(5L));
+        System.out.println(theMap.get(6L));
+        System.out.println(theMap.get(7L));
+        System.out.println(theMap.get(8L));
+        System.out.println(theMap.get(9L));
+        System.out.println(theMap.get(10L));
+        System.out.println(theMap.get(11L));
+        System.out.println(theMap.get(12L));
     }
 }

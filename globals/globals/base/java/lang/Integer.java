@@ -41,6 +41,10 @@ public final class Integer extends Number implements Comparable<Integer> {
         }
     }
 
+    public int hashCode() {
+        return this.value;
+    }
+
     public String toString() {
         return Integer.toString(this.value);
     }

@@ -18,6 +18,11 @@ public final class Long extends Number implements Comparable<Long> {
         }
     }
 
+    public int hashCode() {
+        // TODO
+        return ((int) this.value);
+    }
+
     public String toString() {
         return Long.toString(this.value);
     }
