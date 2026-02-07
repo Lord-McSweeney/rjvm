@@ -43,7 +43,7 @@ public class Collections {
     }
 }
 
-class EmptyList<E> implements List<E> {
+class EmptyList<E> extends AbstractList<E> {
     public boolean add(E e) {
         return false;
     }
@@ -126,7 +126,7 @@ class EmptyMap<K, V> implements Map<K, V> {
     }
 }
 
-class EmptySet<E> implements Set<E> {
+class EmptySet<E> extends AbstractSet<E> {
     public boolean add(E e) {
         throw new UnsupportedOperationException();
     }

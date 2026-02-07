@@ -5,6 +5,8 @@ public interface Collection<E> extends Iterable<E> {
 
     boolean addAll(Collection<? extends E> collection);
 
+    boolean contains(Object o);
+
     void clear();
 
     int size();

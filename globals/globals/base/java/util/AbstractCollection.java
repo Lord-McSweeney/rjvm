@@ -20,6 +20,22 @@ public abstract class AbstractCollection<E> implements Collection<E> {
         return added;
     }
 
+    public boolean contains(Object o) {
+        Iterator<E> iterator = this.iterator();
+        while (iterator.hasNext()) {
+            E current = iterator.next();
+            if (o == null) {
+                if (current == null) {
+                    return true;
+                }
+            } else if (o.equals(current)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public void clear() {
         // TODO implement
     }

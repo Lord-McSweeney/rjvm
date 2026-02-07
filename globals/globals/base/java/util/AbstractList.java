@@ -1,7 +1,5 @@
 package java.util;
 
-import rjvm.internal.Todo;
-
 public abstract class AbstractList<E> extends AbstractCollection<E> implements List<E> {
     protected AbstractList() { }
 
@@ -41,7 +39,7 @@ public abstract class AbstractList<E> extends AbstractCollection<E> implements L
     }
 
     public void clear() {
-        Todo.warnNotImpl("java.util.AbstractList.clear");
+        // TODO implement
     }
 
     public List<E> subList(int fromIndex, int toIndex) {
