@@ -1,20 +1,24 @@
 package java.util.concurrent;
 
-import rjvm.internal.Todo;
-
 import java.util.AbstractMap;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 
 public class ConcurrentHashMap<K, V> extends AbstractMap<K, V> implements ConcurrentMap<K, V> {
-    public ConcurrentHashMap(int capacity) {
-        super();
+    // TODO make this concurrent-safe
 
-        // TODO implement
+    private HashMap<K, V> backingMap;
+
+    public ConcurrentHashMap(int capacity) {
+        this.backingMap = new HashMap<K, V>(capacity);
     }
 
-    public Set<Entry<K, V>> entrySet() {
-        Todo.warnNotImpl("java.util.concurrent.ConcurrentHashMap.entrySet");
+    public V put(K key, V value) {
+        return this.backingMap.put(key, value);
+    }
 
-        return null;
+    public Set<Map.Entry<K, V>> entrySet() {
+        return this.backingMap.entrySet();
     }
 }
