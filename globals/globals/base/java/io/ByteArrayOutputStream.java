@@ -5,7 +5,7 @@ public class ByteArrayOutputStream extends OutputStream {
     protected int count;
 
     public ByteArrayOutputStream() {
-        this(8);
+        this(32);
     }
 
     public ByteArrayOutputStream(int capacity) {
@@ -17,7 +17,7 @@ public class ByteArrayOutputStream extends OutputStream {
         this.count = 0;
     }
 
-    public void write(int b) {
+    public synchronized void write(int b) {
         byte bByte = (byte) b;
         if (this.count == this.buf.length) {
             byte[] newBuf = new byte[this.buf.length * 2];
@@ -27,7 +27,7 @@ public class ByteArrayOutputStream extends OutputStream {
         this.buf[this.count ++] = bByte;
     }
 
-    public void write(byte[] b, int off, int len) {
+    public synchronized void write(byte[] b, int off, int len) {
         if (off < 0 || len < 0 || off + len > b.length) {
             throw new IndexOutOfBoundsException();
         }
@@ -43,14 +43,18 @@ public class ByteArrayOutputStream extends OutputStream {
         }
     }
 
-    public int size() {
+    public synchronized int size() {
         return this.count;
     }
 
-    public byte[] toByteArray() {
+    public synchronized byte[] toByteArray() {
         byte[] newBuf = new byte[this.count];
         System.arraycopy(this.buf, 0, newBuf, 0, this.count);
         return newBuf;
+    }
+
+    public synchronized void reset() {
+        this.count = 0;
     }
 
     public void close() throws IOException {
