@@ -5,6 +5,8 @@ public interface Map<K, V> {
 
     V put(K key, V value);
 
+    boolean containsKey(Object key);
+
     void clear();
 
     Set<Map.Entry<K, V>> entrySet();

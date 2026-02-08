@@ -117,6 +117,10 @@ class EmptyMap<K, V> implements Map<K, V> {
         throw new UnsupportedOperationException();
     }
 
+    public boolean containsKey(Object key) {
+        return false;
+    }
+
     public void clear() {
         throw new UnsupportedOperationException();
     }
@@ -188,6 +192,10 @@ class ImmutableMap<K, V> implements Map<K, V> {
 
     public V put(K key, V value) {
         throw new UnsupportedOperationException();
+    }
+
+    public boolean containsKey(Object key) {
+        return this.backingMap.containsKey(key);
     }
 
     public void clear() {
