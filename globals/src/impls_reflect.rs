@@ -29,6 +29,7 @@ pub fn register_native_mappings(context: &Context) {
         ("java/lang/Class.getDeclaredMethods.()[Ljava/lang/reflect/Method;", get_declared_methods),
         ("java/lang/Class.getInterfaces.()[Ljava/lang/Class;", class_get_interfaces),
         ("java/lang/Class.getDeclaringClass.()Ljava/lang/Class;", class_get_declaring_class),
+        ("java/lang/reflect/Array.newInstanceNative.(Ljava/lang/Class;I)Ljava/lang/Object;", array_new_instance_native),
     ];
 
     context.register_native_mappings(mappings);
@@ -480,4 +481,64 @@ fn class_get_declaring_class(context: &Context, args: &[Value]) -> Result<Option
     } else {
         Ok(Some(Value::Object(None)))
     }
+}
+
+fn array_new_instance_native(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
+    // First arg should never be null
+    let class_obj = args[0].object().unwrap();
+    let class_id = class_obj.get_field(0).int();
+    let class = context.class_object_by_id(class_id);
+
+    let length = args[1].int() as usize;
+
+    let array_object = match class.primitive_type() {
+        Some(PrimitiveType::Boolean) => {
+            let zeroes = vec![0; length as usize];
+
+            Object::bool_array(context, zeroes.into_boxed_slice())
+        }
+        Some(PrimitiveType::Byte) => {
+            let zeroes = vec![0; length as usize];
+
+            Object::byte_array(context, zeroes.into_boxed_slice())
+        }
+        Some(PrimitiveType::Char) => {
+            let zeroes = vec![0; length as usize];
+
+            Object::char_array(context, zeroes.into_boxed_slice())
+        }
+        Some(PrimitiveType::Short) => {
+            let zeroes = vec![0; length as usize];
+
+            Object::short_array(context, zeroes.into_boxed_slice())
+        }
+        Some(PrimitiveType::Int) => {
+            let zeroes = vec![0; length as usize];
+
+            Object::int_array(context, zeroes.into_boxed_slice())
+        }
+        Some(PrimitiveType::Long) => {
+            let zeroes = vec![0; length as usize];
+
+            Object::long_array(context, zeroes.into_boxed_slice())
+        }
+        Some(PrimitiveType::Float) => {
+            let zeroes = vec![0.0; length as usize];
+
+            Object::float_array(context, zeroes.into_boxed_slice())
+        }
+        Some(PrimitiveType::Double) => {
+            let zeroes = vec![0.0; length as usize];
+
+            Object::double_array(context, zeroes.into_boxed_slice())
+        }
+        Some(PrimitiveType::Void) => unreachable!("Checked by Java code"),
+        None => {
+            let nulls = vec![None; length as usize];
+
+            Object::obj_array(context, class, nulls.into_boxed_slice())
+        }
+    };
+
+    Ok(Some(Value::Object(Some(array_object))))
 }
