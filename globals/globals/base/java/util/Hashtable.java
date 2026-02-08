@@ -6,7 +6,15 @@ public class Hashtable<K, V> extends Dictionary<K, V> implements Map<K, V> {
     HashMap<K, V> backingMap;
 
     public Hashtable() {
-        this.backingMap = new HashMap<K, V>();
+        this(11, 0.75f);
+    }
+
+    public Hashtable(int initialCapacity) {
+        this(initialCapacity, 0.75f);
+    }
+
+    public Hashtable(int initialCapacity, float loadFactor) {
+        this.backingMap = new HashMap<K, V>(initialCapacity);
     }
 
     public synchronized Enumeration<K> keys() {
