@@ -19,22 +19,40 @@ public abstract class AbstractMap<K, V> implements Map<K, V> {
         return null;
     }
 
-    public boolean containsKey(K key) {
-        Todo.warnNotImpl("java.util.AbstractMap.containsKey");
+    public boolean containsKey(Object key) {
+        Iterator<Map.Entry<K, V>> iterator = this.entrySet().iterator();
+        while (iterator.hasNext()) {
+            Map.Entry<K, V> entry = iterator.next();
+            if (key == null) {
+                if (entry.getKey() == null) {
+                    return true;
+                }
+            } else if (key.equals(entry.getKey())) {
+                return true;
+            }
+        }
 
         return false;
     }
 
     public V get(Object key) {
-        Todo.warnNotImpl("java.util.AbstractMap.get");
+        Iterator<Map.Entry<K, V>> iterator = this.entrySet().iterator();
+        while (iterator.hasNext()) {
+            Map.Entry<K, V> entry = iterator.next();
+            if (key == null) {
+                if (entry.getKey() == null) {
+                    return entry.getValue();
+                }
+            } else if (key.equals(entry.getKey())) {
+                return entry.getValue();
+            }
+        }
 
         return null;
     }
 
     public V put(K key, V value) {
-        Todo.warnNotImpl("java.util.AbstractMap.put");
-
-        return null;
+        throw new UnsupportedOperationException();
     }
 
     public V remove(Object key) {
@@ -44,7 +62,9 @@ public abstract class AbstractMap<K, V> implements Map<K, V> {
     }
 
     public void putAll(Map<? extends K, ? extends V> map) {
-        Todo.warnNotImpl("java.util.AbstractMap.putAll");
+        for (Map.Entry<? extends K, ? extends V> entry : map.entrySet()) {
+            this.put(entry.getKey(), entry.getValue());
+        }
     }
 
     public int size() {
