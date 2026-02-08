@@ -1,5 +1,7 @@
 package java.util;
 
+import java.lang.reflect.Array;
+
 public abstract class AbstractCollection<E> implements Collection<E> {
     protected AbstractCollection() { }
 
@@ -98,10 +100,11 @@ public abstract class AbstractCollection<E> implements Collection<E> {
             passedArray[array.length] = null;
             return passedArray;
         } else {
-            // FIXME we need to allocate an array of the same type as the passed array
-            Object[] newPassedArray = new Object[array.length];
+            Class componentType = passedArray.getClass().getComponentType();
+            T[] newPassedArray = (T[]) Array.newInstance(componentType, array.length);
+
             System.arraycopy(array, 0, newPassedArray, 0, newPassedArray.length);
-            return (T[]) newPassedArray;
+            return newPassedArray;
         }
     }
 }
