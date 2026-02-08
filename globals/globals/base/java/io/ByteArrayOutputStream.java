@@ -43,6 +43,10 @@ public class ByteArrayOutputStream extends OutputStream {
         }
     }
 
+    public synchronized void writeTo(OutputStream stream) throws IOException {
+        stream.write(this.buf, 0, this.count);
+    }
+
     public synchronized int size() {
         return this.count;
     }
