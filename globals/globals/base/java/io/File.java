@@ -117,6 +117,12 @@ public class File {
         return this.normalizedPath;
     }
 
+    public String[] list() {
+        // TODO implement
+        Todo.warnNotImpl("java.io.File.list");
+        return null;
+    }
+
     public boolean mkdirs() {
         // TODO implement
         Todo.warnNotImpl("java.io.File.mkdirs: " + this.getPath());
