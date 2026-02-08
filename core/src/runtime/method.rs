@@ -186,9 +186,10 @@ impl Method {
                 }
                 MethodInfo::NativeNotFound => {
                     panic!(
-                        "associated native method for {}.{} not found",
+                        "associated native method for \"{}.{}.{:?}\" not found",
                         self.class().name(),
-                        self.name()
+                        self.name(),
+                        self.descriptor(),
                     );
                 }
                 MethodInfo::Empty => panic!("cannot call method without body"),
