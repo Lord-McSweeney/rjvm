@@ -164,7 +164,7 @@ fn init_main_class(context: &Context, options: &PassedOptions) -> Result<Class, 
             let read_file = match fs::read(&options.file_name) {
                 Ok(data) => data,
                 Err(error) => {
-                    return Err(format!("Failed to read main JAR: {}", error.to_string()));
+                    return Err(format!("Failed to read main JAR: {}\n", error.to_string()));
                 }
             };
 
@@ -179,7 +179,7 @@ fn init_main_class(context: &Context, options: &PassedOptions) -> Result<Class, 
             } else {
                 let has_manifest = jar_data.has_file(&manifest_name);
                 if !has_manifest {
-                    return Err("Cannot execute JAR file without MANIFEST.MF file".to_string());
+                    return Err("Cannot execute JAR file without MANIFEST.MF file\n".to_string());
                 }
 
                 let manifest_data = jar_data
@@ -192,7 +192,7 @@ fn init_main_class(context: &Context, options: &PassedOptions) -> Result<Class, 
             if let Some(main_class_name) = main_class_name {
                 main_class_name
             } else {
-                return Err("Cannot execute JAR file without main class specified".to_string());
+                return Err("Cannot execute JAR file without main class specified\n".to_string());
             }
         }
         _ => unreachable!(),
