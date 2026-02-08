@@ -80,6 +80,10 @@ public class Vector<E> extends AbstractList<E> {
 
     // Legacy methods
 
+    public Enumeration<E> elements() {
+        return new VectorEnumeration<E>(this);
+    }
+
     public synchronized E elementAt(int index) {
         if (index < 0 || index >= this.data.length) {
             throw new ArrayIndexOutOfBoundsException();
@@ -95,5 +99,31 @@ public class Vector<E> extends AbstractList<E> {
         newData[this.data.length] = element;
 
         this.data = newData;
+    }
+}
+
+class VectorEnumeration<E> implements Enumeration<E> {
+    private Vector<E> backingVector;
+    private int currentIndex;
+
+    VectorEnumeration(Vector<E> backingVector) {
+        this.backingVector = backingVector;
+        this.currentIndex = 0;
+    }
+
+    public boolean hasMoreElements() {
+        return this.currentIndex != this.backingVector.size();
+    }
+
+    public E nextElement() {
+        if (!this.hasMoreElements()) {
+            throw new NoSuchElementException();
+        }
+
+        E next = this.backingVector.elementAt(this.currentIndex);
+
+        this.currentIndex += 1;
+
+        return next;
     }
 }
