@@ -1,8 +1,8 @@
 use alloc::boxed::Box;
 use alloc::vec::Vec;
 use rjvm_core::{
-    ClassLoader, Context, Descriptor, Error, JvmString, MethodFlags, NativeMethod, Object,
-    PrimitiveType, ResolvedDescriptor, Value,
+    Context, Descriptor, Error, JvmString, MethodFlags, NativeMethod, Object, PrimitiveType,
+    ResolvedDescriptor, Value,
 };
 
 pub fn register_native_mappings(context: &Context) {
@@ -98,8 +98,11 @@ fn get_constructors(context: &Context, args: &[Value]) -> Result<Option<Value>, 
         .map(|m| Some(m.get_or_init_object(context)))
         .collect::<Box<_>>();
 
-    let constructor_class = context.builtins().java_lang_reflect_constructor;
-    let constructors_arr = Object::obj_array(context, constructor_class, constructors_arr);
+    let constructors_arr = Object::obj_array(
+        context,
+        context.builtins().java_lang_reflect_constructor,
+        constructors_arr,
+    );
 
     Ok(Some(Value::Object(Some(constructors_arr))))
 }
@@ -119,8 +122,11 @@ fn get_declared_constructors(context: &Context, args: &[Value]) -> Result<Option
         .map(|m| Some(m.get_or_init_object(context)))
         .collect::<Box<_>>();
 
-    let constructor_class = context.builtins().java_lang_reflect_constructor;
-    let constructors_arr = Object::obj_array(context, constructor_class, constructors_arr);
+    let constructors_arr = Object::obj_array(
+        context,
+        context.builtins().java_lang_reflect_constructor,
+        constructors_arr,
+    );
 
     Ok(Some(Value::Object(Some(constructors_arr))))
 }
@@ -166,18 +172,17 @@ fn exec_get_parameter_types(context: &Context, args: &[Value]) -> Result<Option<
     let descriptor = method.get_or_init_resolved_descriptor(context)?;
     let params = descriptor.args();
 
-    let classes_class = ClassLoader::array_class_for(
-        context,
-        ResolvedDescriptor::Class(context.builtins().java_lang_class),
-    );
-
     let resulting_classes = params
         .iter()
         .map(|p| p.reflection_class(context.gc_ctx))
         .map(|c| Some(c.get_or_init_object(context)))
         .collect::<Box<[_]>>();
 
-    let created_array = Object::obj_array(context, classes_class, resulting_classes);
+    let created_array = Object::obj_array(
+        context,
+        context.builtins().java_lang_class,
+        resulting_classes,
+    );
 
     Ok(Some(Value::Object(Some(created_array))))
 }
@@ -399,14 +404,13 @@ fn get_declared_methods(context: &Context, args: &[Value]) -> Result<Option<Valu
     let class_id = class_obj.get_field(0).int();
     let class = context.class_object_by_id(class_id);
 
-    let methods_class = ClassLoader::array_class_for(
-        context,
-        ResolvedDescriptor::Class(context.builtins().java_lang_reflect_method),
-    );
-
     if class.array_value_type().is_some() {
         // Array classes have no declared methods
-        let created_array = Object::obj_array(context, methods_class, Box::new([]));
+        let created_array = Object::obj_array(
+            context,
+            context.builtins().java_lang_reflect_method,
+            Box::new([]),
+        );
         return Ok(Some(Value::Object(Some(created_array))));
     }
 
@@ -438,7 +442,8 @@ fn get_declared_methods(context: &Context, args: &[Value]) -> Result<Option<Valu
         .map(|m| Some(m.get_or_init_object(context)))
         .collect::<Box<_>>();
 
-    let created_array = Object::obj_array(context, methods_class, result);
+    let created_array =
+        Object::obj_array(context, context.builtins().java_lang_reflect_method, result);
 
     Ok(Some(Value::Object(Some(created_array))))
 }
@@ -449,18 +454,13 @@ fn class_get_interfaces(context: &Context, args: &[Value]) -> Result<Option<Valu
     let class_id = class_obj.get_field(0).int();
     let class = context.class_object_by_id(class_id);
 
-    let classes_class = ClassLoader::array_class_for(
-        context,
-        ResolvedDescriptor::Class(context.builtins().java_lang_class),
-    );
-
     let interfaces = class
         .own_interfaces()
         .iter()
         .map(|m| Some(m.get_or_init_object(context)))
         .collect::<Box<_>>();
 
-    let created_array = Object::obj_array(context, classes_class, interfaces);
+    let created_array = Object::obj_array(context, context.builtins().java_lang_class, interfaces);
 
     Ok(Some(Value::Object(Some(created_array))))
 }

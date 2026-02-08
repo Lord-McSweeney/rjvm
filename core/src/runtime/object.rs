@@ -208,12 +208,13 @@ impl Object {
         ))
     }
 
-    pub fn obj_array(context: &Context, class: Class, data: Box<[Option<Object>]>) -> Self {
+    /// NOTE: `elem_class` is the class of each element, not of the whole array
+    pub fn obj_array(context: &Context, elem_class: Class, data: Box<[Option<Object>]>) -> Self {
         // If this is an array of arrays, use an array type for its type instead of a class type
-        let descriptor = if class.array_value_type().is_some() {
-            ResolvedDescriptor::Array(class)
+        let descriptor = if elem_class.array_value_type().is_some() {
+            ResolvedDescriptor::Array(elem_class)
         } else {
-            ResolvedDescriptor::Class(class)
+            ResolvedDescriptor::Class(elem_class)
         };
 
         let data = data.into_iter().map(Cell::new).collect::<Box<_>>();
