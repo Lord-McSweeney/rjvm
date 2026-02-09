@@ -152,7 +152,7 @@ pub enum Op {
     IfACmpEq(usize),
     IfACmpNe(usize),
     Goto(usize),
-    TableSwitch(i32, i32, Box<[usize]>, usize),
+    TableSwitch(i32, Box<[usize]>, usize),
     LookupSwitch(Box<[(i32, usize)]>, usize),
 
     // Return
@@ -330,7 +330,7 @@ impl Trace for Op {
             Op::IfACmpEq(_) => {}
             Op::IfACmpNe(_) => {}
             Op::Goto(_) => {}
-            Op::TableSwitch(_, _, _, _) => {}
+            Op::TableSwitch(_, _, _) => {}
             Op::LookupSwitch(_, _) => {}
             Op::IReturn => {}
             Op::LReturn => {}
@@ -660,7 +660,7 @@ impl Op {
                         .get(position)
                         .ok_or_else(|| context.verify_error("Invalid branch target"))?;
                 }
-                Op::TableSwitch(_, _, matches, default_offset) => {
+                Op::TableSwitch(_, matches, default_offset) => {
                     *default_offset = *offset_to_idx_map.get(default_offset).ok_or_else(|| {
                         context.verify_error("Invalid tableswitch default target")
                     })?;
@@ -1032,7 +1032,6 @@ impl Op {
 
                 Ok(Op::TableSwitch(
                     low_int,
-                    high_int,
                     offsets.into_boxed_slice(),
                     default_offset,
                 ))
