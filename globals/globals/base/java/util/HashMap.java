@@ -1,7 +1,5 @@
 package java.util;
 
-import rjvm.internal.Todo;
-
 public class HashMap<K, V> extends AbstractMap<K, V> {
     // FIXME we should really not be reimplementing all the AbstractMap functions...
 

@@ -1,7 +1,5 @@
 package java.nio;
 
-import rjvm.internal.Todo;
-
 public abstract class ByteBuffer extends Buffer {
     ByteOrder order;
 

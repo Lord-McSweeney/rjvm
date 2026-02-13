@@ -1,7 +1,5 @@
 package java.lang;
 
-import rjvm.internal.Todo;
-
 public final class Integer extends Number implements Comparable<Integer> {
     public static Class<Integer> TYPE = (Class<Integer>) Class.getPrimitiveClass(Class.PRIM_INT);
 

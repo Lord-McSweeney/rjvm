@@ -1,7 +1,5 @@
 package java.io;
 
-import rjvm.internal.Todo;
-
 public class PrintWriter extends Writer {
     // This needs to be called `out` because subclasses can access it
     protected Writer out;
