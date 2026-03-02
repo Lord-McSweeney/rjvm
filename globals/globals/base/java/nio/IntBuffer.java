@@ -1,9 +1,6 @@
 package java.nio;
 
 public abstract class IntBuffer extends Buffer {
-    int[] data;
-    int arrayOffset;
-
     public static IntBuffer wrap(int[] array, int ofs, int len) {
         return new ArrayIntBuffer(array, ofs, len);
     }
@@ -17,6 +14,7 @@ public abstract class IntBuffer extends Buffer {
 
 class ArrayIntBuffer extends IntBuffer {
     int[] data;
+    int arrayOffset;
 
     ArrayIntBuffer(int[] array, int ofs, int len) {
         if (ofs < 0 || len < 0 || ofs + len > array.length) {

@@ -98,6 +98,10 @@ class ByteBufferAsFloatBuffer extends FloatBuffer {
         this.order = order;
     }
 
+    public FloatBuffer put(float f) {
+        throw new Error("TODO");
+    }
+
     public ByteOrder order() {
         return this.order;
     }

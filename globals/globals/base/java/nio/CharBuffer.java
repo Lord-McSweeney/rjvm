@@ -1,9 +1,6 @@
 package java.nio;
 
 public abstract class CharBuffer extends Buffer {
-    char[] data;
-    int arrayOffset;
-
     public static CharBuffer wrap(char[] array, int ofs, int len) {
         return new ArrayCharBuffer(array, ofs, len);
     }
@@ -20,6 +17,9 @@ public abstract class CharBuffer extends Buffer {
 }
 
 class ArrayCharBuffer extends CharBuffer {
+    char[] data;
+    int arrayOffset;
+
     ArrayCharBuffer(char[] array, int ofs, int len) {
         if (ofs < 0 || len < 0 || ofs + len > array.length) {
             throw new IndexOutOfBoundsException();
