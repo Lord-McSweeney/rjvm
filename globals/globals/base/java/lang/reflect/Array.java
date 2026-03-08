@@ -1,7 +1,7 @@
 package java.lang.reflect;
 
 public final class Array {
-    public static Object newInstance​(Class<?> componentType, int length) throws NegativeArraySizeException {
+    public static Object newInstance(Class<?> componentType, int length) throws NegativeArraySizeException {
         if (componentType == null) {
             throw new NullPointerException();
         } else if (length < 0) {
@@ -14,5 +14,5 @@ public final class Array {
         return Array.newInstanceNative(componentType, length);
     }
 
-    private static native Object newInstanceNative​(Class<?> componentType, int length);
+    private static native Object newInstanceNative(Class<?> componentType, int length);
 }

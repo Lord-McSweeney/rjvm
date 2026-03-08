@@ -3,11 +3,11 @@ package java.util;
 public class Arrays {
     private Arrays() {}
 
-    public static <E> List<E> asList​(E... arr) {
+    public static <E> List<E> asList(E... arr) {
         return new ArrayBackedList<E>(arr);
     }
 
-    public static <T> T[] copyOf​(T[] original, int newLength) {
+    public static <T> T[] copyOf(T[] original, int newLength) {
         Object[] newArray = new Object[newLength];
 
         int usedLength;
