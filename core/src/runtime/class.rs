@@ -23,6 +23,8 @@ use core::fmt;
 use core::hash::{Hash, Hasher};
 use hashbrown::HashSet;
 
+/// The representation of Java classes. This stores the class file, loader,
+/// name, super class, interfaces, and all other details of a class.
 #[derive(Clone, Copy)]
 pub struct Class(Gc<ClassData>);
 
@@ -81,7 +83,10 @@ impl fmt::Debug for Class {
 }
 
 impl Class {
-    pub fn from_class_file(
+    /// Load a class from a class file, given the [`ClassLoader`] to use. This
+    /// does not fully load the class; `load_methods` must be called after
+    /// calling this method to also initialize the methods of this class.
+    pub(crate) fn from_class_file(
         context: &Context,
         loader: ClassLoader,
         class_file: ClassFile,
@@ -191,8 +196,9 @@ impl Class {
         Ok(created_class)
     }
 
-    // This must be called after the Class is registered.
-    pub fn load_methods(self, context: &Context) -> Result<(), Error> {
+    /// Load the methods of this class. This must be called after the Class is
+    /// registered.
+    pub(crate) fn load_methods(self, context: &Context) -> Result<(), Error> {
         let class_file = self.class_file().unwrap();
         let super_class = self.super_class();
 
@@ -374,7 +380,7 @@ impl Class {
     }
 
     // Creates a builtin class for one of the primitive types.
-    pub fn for_primitive(gc_ctx: GcCtx, primitive_type: PrimitiveType) -> Self {
+    pub(crate) fn for_primitive(gc_ctx: GcCtx, primitive_type: PrimitiveType) -> Self {
         let class = Self(Gc::new(
             gc_ctx,
             ClassData {
@@ -415,58 +421,80 @@ impl Class {
         class
     }
 
+    /// The class file that this class was loaded from.
     pub fn class_file(&self) -> &Option<ClassFile> {
         &self.0.class_file
     }
 
+    /// The raw modifiers  (e.g. `abstract`, `final`, etc) of this class.
     pub fn modifiers(self) -> u16 {
         self.0.flags.bits()
     }
 
+    /// Whether this class is an `abstract` class (has the `abstract` modifier
+    /// bit set).
     pub fn is_abstract(self) -> bool {
         self.0.flags.contains(ClassFlags::ABSTRACT)
     }
 
+    /// Whether this class is an `final` class (has the `final` modifier bit
+    /// set).
     pub fn is_final(self) -> bool {
         self.0.flags.contains(ClassFlags::FINAL)
     }
 
+    /// Whether this class is an interface (has the `interface` modifier bit
+    /// set).
     pub fn is_interface(self) -> bool {
         self.0.flags.contains(ClassFlags::INTERFACE)
     }
 
+    /// Whether it is forbidden to instantiate this class. This is equivalent to
+    /// `class.is_interface() || class.is_abstract()`.
     pub fn cant_instantiate(self) -> bool {
         self.is_interface() || self.is_abstract()
     }
 
+    /// Whether this class represents a primitive type (e.g. `int.class`,
+    /// `float.class`, `void.class`).
     pub fn is_primitive(self) -> bool {
         self.primitive_type().is_some()
     }
 
+    /// If this class represents a primitive type, the type that it represents.
     pub fn primitive_type(self) -> Option<PrimitiveType> {
         self.0.primitive_type
     }
 
+    /// The binary name of this class.
     pub fn name(self) -> JvmString {
         self.0.name
     }
 
+    /// The [`ClassLoader`] that loaded this class.
     pub fn loader(self) -> Option<ClassLoader> {
         self.0.loader
     }
 
+    /// The name of this class. This is the binary name with '/' characters
+    /// replaced by '.' characters.
     pub fn dot_name(self) -> String {
         self.0.name.replace('/', ".")
     }
 
+    /// The superclass of this class, if it has one.
     pub fn super_class(self) -> Option<Class> {
         self.0.super_class
     }
 
+    /// The interfaces that this class declared. This does not include super-
+    /// interfaces, or interfaces from superclasses.
     pub fn own_interfaces(&self) -> &[Class] {
         &self.0.own_interfaces
     }
 
+    /// If this class represents an array class (e.g. `int[]`, `String[]`), the
+    /// type of values in that array.
     pub fn array_value_type(self) -> Option<ResolvedDescriptor> {
         self.0.array_value_type
     }
@@ -509,7 +537,8 @@ impl Class {
         &self.0.instance_fields
     }
 
-    // Return an instance of `java.lang.Class` for this `Class`.
+    /// Returns an instance of `java.lang.Class` for this `Class`. If such an
+    /// instance has not yet been created, this will create and cache it.
     pub fn get_or_init_object(self, context: &Context) -> Object {
         *self.0.object.get_or_init(|| {
             let id = context.add_class_object(self);
@@ -521,7 +550,11 @@ impl Class {
         })
     }
 
-    // This does not check if the checked class is an interface implemented by this class.
+    /// Whether this the given class is one of the superclasses of this class.
+    /// This will return `false` if the given class is the same class as the
+    /// class this method is called on.
+    ///
+    /// This does not check if the checked class is an interface implemented by this class.
     pub fn has_super_class(self, checked_class: Class) -> bool {
         let mut current_class = self.super_class();
         while let Some(some_class) = current_class {
@@ -535,6 +568,8 @@ impl Class {
         return false;
     }
 
+    /// Whether this class is the same class as the given class, or the given
+    /// class is one of the superclasses of this class.
     pub fn matches_class(self, checked_class: Class) -> bool {
         if Gc::ptr_eq(self.0, checked_class.0) {
             true
@@ -543,6 +578,8 @@ impl Class {
         }
     }
 
+    /// Whether the given interface is one of any of the inherited or declared
+    /// interfaces of this class.
     pub fn implements_interface(self, checked_interface: Class) -> bool {
         self.0
             .all_interfaces
@@ -569,7 +606,10 @@ impl Class {
         self.matches_class(checked_class) || self.implements_interface(checked_class)
     }
 
-    // This does not call the constructor.
+    /// Create a new instance of this class, as the JVM `new` instruction would.
+    /// This method does not call any `<init>` method.
+    ///
+    /// This method will not check to ensure that the class is instantiable.
     pub fn new_instance(self, gc_ctx: GcCtx) -> Object {
         // TODO can you somehow instantiate an array class?
         assert!(self.0.array_value_type.is_none());
@@ -577,6 +617,9 @@ impl Class {
         Object::from_class(gc_ctx, self)
     }
 
+    /// Finds and returns the class that declared this class (the class for
+    /// which this class is an inner class of), or `None` if this class is not
+    /// an inner class of any other class.
     pub fn find_declaring_class(self, context: &Context) -> Result<Option<Class>, Error> {
         let Some(class_file) = self.class_file() else {
             // Primitive or array class, not an inner class
@@ -628,6 +671,7 @@ impl Class {
         Ok(None)
     }
 
+    /// Run the class initializer for this class.
     pub fn run_clinit(self, context: &Context) -> Result<(), Error> {
         match self.0.clinit_stage.get() {
             ClinitStage::NotStarted => {
@@ -681,6 +725,7 @@ impl Class {
         }
     }
 
+    /// Returns a unique pointer to this class's information.
     pub fn as_ptr(self) -> *const () {
         Gc::as_ptr(self.0) as *const ()
     }
