@@ -3,13 +3,13 @@ use super::context::Context;
 use super::descriptor::{Descriptor, MethodDescriptor, ResolvedDescriptor};
 use super::error::Error;
 use super::method::Method;
+use super::read_macros::{read_u8, read_u16_be, read_u32_be};
 
 use crate::classfile::constant_pool::{ConstantPool, ConstantPoolEntry};
 use crate::classfile::flags::FieldFlags;
 use crate::gc::{Gc, Trace};
 use crate::reader::{FileData, Reader};
 use crate::string::JvmString;
-use crate::{read_u8, read_u16_be, read_u32_be};
 
 use alloc::boxed::Box;
 use alloc::vec::Vec;

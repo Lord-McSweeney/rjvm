@@ -5,13 +5,13 @@ use super::field::{Field, FieldRef};
 use super::loader::ClassLoader;
 use super::method::Method;
 use super::object::{Object, array_clone_method};
+use super::read_macros::read_u16_be;
 use super::value::Value;
 use super::vtable::{InstanceMethodVTable, VTable};
 
 use crate::classfile::class::ClassFile;
 use crate::classfile::flags::{ClassFlags, FieldFlags, MethodFlags};
 use crate::gc::{Gc, GcCtx, Trace};
-use crate::read_u16_be;
 use crate::reader::{FileData, Reader};
 use crate::string::JvmString;
 

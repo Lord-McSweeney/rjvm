@@ -6,6 +6,7 @@ use super::interpreter::Interpreter;
 use super::loader::ClassLoader;
 use super::object::Object;
 use super::op::Op;
+use super::read_macros::read_u16_be;
 use super::value::Value;
 use super::verify::verify_ops;
 
@@ -13,7 +14,6 @@ use crate::classfile::constant_pool::ConstantPool;
 use crate::classfile::flags::MethodFlags;
 use crate::classfile::method::Method as ClassFileMethod;
 use crate::gc::{Gc, GcCtx, Trace};
-use crate::read_u16_be;
 use crate::reader::{FileData, Reader};
 use crate::string::JvmString;
 

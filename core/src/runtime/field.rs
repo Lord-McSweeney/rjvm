@@ -2,6 +2,7 @@ use super::class::Class;
 use super::context::Context;
 use super::descriptor::Descriptor;
 use super::error::Error;
+use super::read_macros::read_u16_be;
 use super::value::Value;
 
 use crate::classfile::class::ClassFile;
@@ -9,7 +10,6 @@ use crate::classfile::constant_pool::ConstantPoolEntry;
 use crate::classfile::field::Field as ClassFileField;
 use crate::classfile::flags::FieldFlags;
 use crate::gc::{Gc, Trace};
-use crate::read_u16_be;
 use crate::reader::{FileData, Reader};
 use crate::string::JvmString;
 
