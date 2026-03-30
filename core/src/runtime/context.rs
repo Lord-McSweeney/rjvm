@@ -210,7 +210,7 @@ impl Context {
         self.gc_threshold.set(gc_threshold);
     }
 
-    pub fn get_native_method(
+    pub(crate) fn get_native_method(
         &self,
         class_name: JvmString,
         method_name: JvmString,
@@ -294,11 +294,11 @@ impl Context {
         self.call_stack.borrow().len()
     }
 
-    pub fn push_call(&self, method: Method) {
+    pub(crate) fn push_call(&self, method: Method) {
         self.call_stack.borrow_mut().push_call(method);
     }
 
-    pub fn pop_call(&self) {
+    pub(crate) fn pop_call(&self) {
         self.call_stack.borrow_mut().pop_call();
     }
 
@@ -389,7 +389,7 @@ impl Context {
         })
     }
 
-    pub fn builtins_mut(&self) -> RefMut<'_, BuiltinClasses> {
+    pub(crate) fn builtins_mut(&self) -> RefMut<'_, BuiltinClasses> {
         let builtins = self.builtins.borrow_mut();
         RefMut::map(builtins, |b| {
             b.as_mut().expect("Builtin classes should exist")
@@ -445,13 +445,17 @@ impl Context {
             .expect("System initializer method failed");
     }
 
-    pub fn get_cached_method_descriptor(&self, name: JvmString) -> Option<MethodDescriptor> {
+    pub(crate) fn get_cached_method_descriptor(&self, name: JvmString) -> Option<MethodDescriptor> {
         let cache = self.method_descriptor_cache.borrow();
 
         cache.get(&name).copied()
     }
 
-    pub fn put_cached_method_descriptor(&self, name: JvmString, descriptor: MethodDescriptor) {
+    pub(crate) fn put_cached_method_descriptor(
+        &self,
+        name: JvmString,
+        descriptor: MethodDescriptor,
+    ) {
         let mut cache = self.method_descriptor_cache.borrow_mut();
 
         if cache.insert(name, descriptor).is_some() {
