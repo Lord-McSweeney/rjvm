@@ -236,7 +236,9 @@ impl Method {
         Ok(())
     }
 
-    // Return an instance of `java.lang.reflect.Executable` for this `Method`.
+    /// Returns an instance of `java.lang.reflect.Executable` for this `Method`.
+    /// If such an instance has not yet been created, this will create and cache
+    /// it.
     pub fn get_or_init_object(self, context: &Context) -> Object {
         *self.0.object.get_or_init(|| {
             let id = context.add_executable_object(self);
@@ -253,6 +255,10 @@ impl Method {
         })
     }
 
+    /// Returns a [`ResolvedMethodDescriptor`] for this `Method`'s signature. If
+    /// no such `ResolvedMethodDescriptor` has been created yet (and the
+    /// `Method`'s signature hasn't been resolved), this method will resolve the
+    /// `Method`'s signature and create a new `ResolvedMethodDescriptor` object.
     pub fn get_or_init_resolved_descriptor(
         self,
         context: &Context,
@@ -281,11 +287,14 @@ impl Method {
         }
     }
 
+    /// Returns the [`MethodDescriptor`] object representing this method's
+    /// signature.
     pub fn descriptor(self) -> MethodDescriptor {
         self.0.descriptor
     }
 
-    /// The number of arguments the method was declared to have in Java.
+    /// The number of arguments that a Java class file declared this method to
+    /// have.
     pub fn arg_count(self) -> usize {
         self.descriptor().args().len()
     }
@@ -297,26 +306,34 @@ impl Method {
         self.0.physical_arg_count
     }
 
+    /// The modifiers (e.g. `abstract`, `final`, etc) of this method.
     pub fn flags(self) -> MethodFlags {
         self.0.flags
     }
 
+    /// Whether this method is a `static` method (has the `static` modifier bit
+    /// set).
     pub fn is_static(self) -> bool {
         self.0.flags.contains(MethodFlags::STATIC)
     }
 
+    /// The name of this method.
     pub fn name(self) -> JvmString {
         self.0.name
     }
 
+    /// The [`Class`] that declared this method.
     pub fn class(self) -> Class {
         self.0.class
     }
 
+    /// The [`ClassLoader`] of the [`Class`] that this method was loaded from.
     pub fn class_loader(self) -> ClassLoader {
         self.0.class.loader().expect("Should have a loader")
     }
 
+    /// The number of stack slots that this `Method` was declared to use. This
+    /// method will panic if called on a native `Method`.
     pub fn max_stack(self) -> usize {
         match &*self.0.method_info.borrow() {
             MethodInfo::Bytecode(bytecode_info) => bytecode_info.max_stack as usize,
@@ -324,6 +341,8 @@ impl Method {
         }
     }
 
+    /// The number of local slots that this `Method` was declared to use. This
+    /// method will panic if called on a native `Method`.
     pub fn max_locals(self) -> usize {
         match &*self.0.method_info.borrow() {
             MethodInfo::Bytecode(bytecode_info) => bytecode_info.max_locals as usize,
