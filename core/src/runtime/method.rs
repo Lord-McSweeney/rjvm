@@ -24,6 +24,7 @@ use core::fmt;
 use core::hash::{Hash, Hasher};
 use hashbrown::HashMap;
 
+/// The representation of a Java method.
 #[derive(Clone, Copy)]
 pub struct Method(Gc<MethodData>);
 
