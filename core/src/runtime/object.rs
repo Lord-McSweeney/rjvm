@@ -13,10 +13,15 @@ use core::cell::Cell;
 use core::fmt;
 use core::hash::{Hash, Hasher};
 
+/// Represents a Java object.
 #[derive(Clone, Copy)]
 pub struct Object(Gc<ObjectData>);
 
 impl Object {
+    /// Allocates an `Object` that is an instance of the passed [`Class`]. This
+    /// method does not call any `<init>` method.
+    ///
+    /// This method will not check to ensure that the class is instantiable.
     pub fn from_class(gc_ctx: GcCtx, class: Class) -> Self {
         let fields = class
             .instance_fields()
@@ -33,10 +38,10 @@ impl Object {
         ))
     }
 
-    // Creates a new instance of `java.lang.Class`. The caller is
-    // responsible for making it a valid `Class` object (see how
-    // `Class::get_or_init_object` does it).
-    pub fn class_object(context: &Context) -> Self {
+    /// Creates a new instance of `java.lang.Class`. The caller is
+    /// responsible for making it a valid `Class` object (see how
+    /// `Class::get_or_init_object` does it).
+    pub(crate) fn class_object(context: &Context) -> Self {
         let class_class = context.builtins().java_lang_class;
 
         let fields = class_class
@@ -54,10 +59,10 @@ impl Object {
         ))
     }
 
-    // Creates a new instance of java.lang.reflect.Constructor. The caller is
-    // responsible for making it a valid `Constructor` object (see how
-    // `Method::get_or_init_object` does it).
-    pub fn constructor_object(context: &Context) -> Self {
+    /// Creates a new instance of java.lang.reflect.Constructor. The caller is
+    /// responsible for making it a valid `Constructor` object (see how
+    /// `Method::get_or_init_object` does it).
+    pub(crate) fn constructor_object(context: &Context) -> Self {
         let constructor_class = context.builtins().java_lang_reflect_constructor;
 
         let fields = constructor_class
@@ -75,10 +80,10 @@ impl Object {
         ))
     }
 
-    // Creates a new instance of java.lang.reflect.Method. The caller is
-    // responsible for making it a valid `Method` object (see how
-    // `Method::get_or_init_object` does it).
-    pub fn method_object(context: &Context) -> Self {
+    /// Creates a new instance of java.lang.reflect.Method. The caller is
+    /// responsible for making it a valid `Method` object (see how
+    /// `Method::get_or_init_object` does it).
+    pub(crate) fn method_object(context: &Context) -> Self {
         let method_class = context.builtins().java_lang_reflect_method;
 
         let fields = method_class
@@ -96,6 +101,7 @@ impl Object {
         ))
     }
 
+    /// Creates a new array of bools (`bool[]`) from the provided data.
     pub fn bool_array(context: &Context, data: Box<[i8]>) -> Self {
         let class = context.primitive_arrays().array_bool;
 
@@ -110,6 +116,7 @@ impl Object {
         ))
     }
 
+    /// Creates a new array of bytes (`byte[]`) from the provided data.
     pub fn byte_array(context: &Context, data: Box<[i8]>) -> Self {
         let class = context.primitive_arrays().array_byte;
 
@@ -124,6 +131,7 @@ impl Object {
         ))
     }
 
+    /// Creates a new array of chars (`char[]`) from the provided data.
     pub fn char_array(context: &Context, data: Box<[u16]>) -> Self {
         let class = context.primitive_arrays().array_char;
 
@@ -138,6 +146,7 @@ impl Object {
         ))
     }
 
+    /// Creates a new array of doubles (`double[]`) from the provided data.
     pub fn double_array(context: &Context, data: Box<[f64]>) -> Self {
         let class = context.primitive_arrays().array_double;
 
@@ -152,6 +161,7 @@ impl Object {
         ))
     }
 
+    /// Creates a new array of floats (`float[]`) from the provided data.
     pub fn float_array(context: &Context, data: Box<[f32]>) -> Self {
         let class = context.primitive_arrays().array_float;
 
@@ -166,6 +176,7 @@ impl Object {
         ))
     }
 
+    /// Creates a new array of ints (`int[]`) from the provided data.
     pub fn int_array(context: &Context, data: Box<[i32]>) -> Self {
         let class = context.primitive_arrays().array_int;
 
@@ -180,6 +191,7 @@ impl Object {
         ))
     }
 
+    /// Creates a new array of longs (`long[]`) from the provided data.
     pub fn long_array(context: &Context, data: Box<[i64]>) -> Self {
         let class = context.primitive_arrays().array_long;
 
@@ -194,6 +206,7 @@ impl Object {
         ))
     }
 
+    /// Creates a new array of shorts (`short[]`) from the provided data.
     pub fn short_array(context: &Context, data: Box<[i16]>) -> Self {
         let class = context.primitive_arrays().array_short;
 
@@ -208,6 +221,11 @@ impl Object {
         ))
     }
 
+    /// Creates a new array of objects from the provided data and array type.
+    ///
+    /// This method will make no attempt to ensure that each element of `data`
+    /// is compatible with `elem_class`.
+    ///
     /// NOTE: `elem_class` is the class of each element, not of the whole array
     pub fn obj_array(context: &Context, elem_class: Class, data: Box<[Option<Object>]>) -> Self {
         // If this is an array of arrays, use an array type for its type instead of a class type
@@ -228,18 +246,28 @@ impl Object {
         ))
     }
 
+    /// Checks that this `Object` is stored at the same [`Gc`] pointer as
+    /// another.
     pub fn ptr_eq(self, other: Self) -> bool {
         Gc::ptr_eq(self.0, other.0)
     }
 
+    /// Checks that this `Object` is compatible with the provided class. This
+    /// is equivalent to
+    /// ```
+    /// self.class().matches_class(class)
+    /// ```
     pub fn is_of_class(self, class: Class) -> bool {
         self.class().matches_class(class)
     }
 
+    /// The [`Class`] that this object is an instance of.
     pub fn class(self) -> Class {
         self.0.class
     }
 
+    /// Gets the value stored in a field of this `Object`. This method will
+    /// panic if called on an `Object` that represents an array.
     pub fn get_field(self, field_idx: usize) -> Value {
         match &self.0.data {
             FieldOrArrayData::Fields(fields) => {
@@ -250,6 +278,8 @@ impl Object {
         }
     }
 
+    /// Sets the value stored in a field of this `Object`. This method will
+    /// panic if called on an `Object` that represents an array.
     pub fn set_field(self, field_idx: usize, value: Value) {
         match &self.0.data {
             FieldOrArrayData::Fields(fields) => {
@@ -260,6 +290,8 @@ impl Object {
         }
     }
 
+    /// Gets the [`Array`] data in this object. This method will panic if
+    /// called on an `Object` that represents a class instance.
     pub fn array_data(&self) -> &Array {
         match &self.0.data {
             FieldOrArrayData::Fields(_) => panic!("Expected an array"),
@@ -267,6 +299,8 @@ impl Object {
         }
     }
 
+    /// Gets the length of the [`Array`] stored in this object. This method will
+    /// panic if called on an `Object` that represents a class instance.
     pub fn array_length(self) -> usize {
         match &self.0.data {
             FieldOrArrayData::Fields(_) => panic!("Cannot get length of object"),
@@ -274,7 +308,11 @@ impl Object {
         }
     }
 
-    /// Create a clone of this object
+    /// Allocates a new object, as a clone of this object.
+    ///
+    /// For class instances, this method will create a shallow copy of each of
+    /// its fields. For arrays, this method will create a shallow copy of each
+    /// element in the array.
     pub fn create_clone(self, gc_ctx: GcCtx) -> Object {
         let cloned_data = self.0.data.clone();
 
@@ -287,6 +325,7 @@ impl Object {
         ))
     }
 
+    /// Returns a unique pointer to this object.
     pub fn as_ptr(self) -> *const () {
         Gc::as_ptr(self.0) as *const ()
     }
