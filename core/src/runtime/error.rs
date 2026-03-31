@@ -9,6 +9,8 @@ use alloc::string::String;
 use alloc::vec::Vec;
 use core::fmt;
 
+/// Represents a Java error. This is just a wrapper around the [`Object`] that
+/// was thrown.
 pub struct Error(pub Object);
 
 impl fmt::Debug for Error {
@@ -18,7 +20,7 @@ impl fmt::Debug for Error {
 }
 
 impl Error {
-    pub fn from_class_file_error(context: &Context, error: ClassFileError) -> Error {
+    pub(crate) fn from_class_file_error(context: &Context, error: ClassFileError) -> Error {
         let message = match error {
             ClassFileError::ConstantPoolIndexOutOfBounds => "Out-of-bounds constant pool index",
             ClassFileError::ConstantPoolInvalidEntry => "Invalid constant pool entry",
@@ -44,10 +46,15 @@ impl Error {
         chosen_function(context, message)
     }
 
+    /// Returns the name of the class of this thrown error. This is intended
+    /// to be used to display `Error`s in code that has no access to a
+    /// `Context`.
     pub fn display_infallible(&self) -> String {
         format!("{}", self.0.class().dot_name())
     }
 
+    /// Formats this `Error` as a string. This will include the `Error`'s
+    /// message, cause, and stack trace information.
     pub fn display(&self, context: &Context) -> String {
         let mut result_string = String::new();
 
