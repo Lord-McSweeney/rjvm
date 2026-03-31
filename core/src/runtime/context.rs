@@ -73,7 +73,7 @@ pub struct Context {
     native_mapping: Gc<RefCell<HashMap<(JvmString, JvmString, MethodDescriptor), NativeMethod>>>,
 
     // Values currently in locals or stacks of interpreter frames
-    pub frame_data: Gc<Box<[Cell<Value>]>>,
+    frame_data: Gc<Box<[Cell<Value>]>>,
 
     // The first index into the frame data that is unoccupied (stack pointer).
     pub frame_index: Gc<Cell<usize>>,
@@ -292,6 +292,10 @@ impl Context {
 
     pub fn call_stack_size(&self) -> usize {
         self.call_stack.borrow().len()
+    }
+
+    pub(crate) fn frame_data<'a>(&'a self) -> &'a [Cell<Value>] {
+        &self.frame_data
     }
 
     pub(crate) fn push_call(&self, method: Method) {

@@ -38,7 +38,7 @@ impl<'a> Interpreter<'a> {
     /// Create a new `Interpreter`, ready for executing ops. This method expects
     /// arguments to be passed on the stack.
     pub fn new(context: &'a Context, method: Method) -> Result<Self, Error> {
-        let frame_reference = &context.frame_data;
+        let frame_reference = context.frame_data();
 
         // Locals are passed on stack
         let local_base = context.frame_index.get() - method.physical_arg_count();

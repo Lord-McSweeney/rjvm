@@ -177,10 +177,11 @@ impl Method {
                 MethodInfo::Native(native_method) => {
                     let physical_arg_count = self.physical_arg_count();
                     let current_position = context.frame_index.get();
-                    let slice = &context.frame_data
-                        [(current_position - physical_arg_count)..current_position];
+                    let frame_data = context.frame_data();
 
-                    let args = slice.iter().map(|a| a.get()).collect::<Vec<_>>();
+                    let args_slice =
+                        &frame_data[(current_position - physical_arg_count)..current_position];
+                    let args = args_slice.iter().map(|a| a.get()).collect::<Vec<_>>();
 
                     native_method(context, &args)
                 }
