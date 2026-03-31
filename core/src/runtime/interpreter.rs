@@ -41,19 +41,19 @@ impl<'a> Interpreter<'a> {
         let frame_reference = context.frame_data();
 
         // Locals are passed on stack
-        let local_base = context.frame_index.get() - method.physical_arg_count();
+        let local_base = context.frame_index().get() - method.physical_arg_count();
 
         // Initialize the empty locals ("scratch locals"?)
         let empty_locals_count = method.max_locals() - method.physical_arg_count();
         for _ in 0..empty_locals_count {
-            let current_index = context.frame_index.get();
+            let current_index = context.frame_index().get();
             frame_reference[current_index].set(Value::Integer(0));
-            context.frame_index.set(current_index + 1);
+            context.frame_index().set(current_index + 1);
         }
 
         Ok(Self {
             method,
-            frame_index: &*context.frame_index,
+            frame_index: &*context.frame_index(),
             frame_reference,
             local_count: method.max_locals(),
             local_base,

@@ -76,7 +76,7 @@ pub struct Context {
     frame_data: Gc<Box<[Cell<Value>]>>,
 
     // The first index into the frame data that is unoccupied (stack pointer).
-    pub frame_index: Gc<Cell<usize>>,
+    frame_index: Gc<Cell<usize>>,
 
     // The current call stack.
     call_stack: Gc<RefCell<CallStack>>,
@@ -296,6 +296,10 @@ impl Context {
 
     pub(crate) fn frame_data<'a>(&'a self) -> &'a [Cell<Value>] {
         &self.frame_data
+    }
+
+    pub(crate) fn frame_index<'a>(&'a self) -> &'a Cell<usize> {
+        &self.frame_index
     }
 
     pub(crate) fn push_call(&self, method: Method) {

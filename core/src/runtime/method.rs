@@ -176,7 +176,7 @@ impl Method {
                 MethodInfo::BytecodeUnparsed(_) => unreachable!(),
                 MethodInfo::Native(native_method) => {
                     let physical_arg_count = self.physical_arg_count();
-                    let current_position = context.frame_index.get();
+                    let current_position = context.frame_index().get();
                     let frame_data = context.frame_data();
 
                     let args_slice =
@@ -197,18 +197,18 @@ impl Method {
             }
         };
 
-        let initial_frame_index = context.frame_index.get();
+        let initial_frame_index = context.frame_index().get();
 
         context.push_call(self);
         let result = closure();
         context.pop_call();
 
-        assert!(initial_frame_index == context.frame_index.get());
+        assert!(initial_frame_index == context.frame_index().get());
 
         // Pop args
         context
-            .frame_index
-            .set(context.frame_index.get() - self.physical_arg_count());
+            .frame_index()
+            .set(context.frame_index().get() - self.physical_arg_count());
 
         result
     }
