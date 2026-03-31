@@ -5,6 +5,9 @@ use crate::gc::Trace;
 use alloc::boxed::Box;
 use core::cell::Cell;
 
+/// Represents the data stored in a Java array.
+///
+/// The length of these arrays is immutable, but the elements in them are not.
 #[derive(Clone, Debug)]
 pub enum Array {
     ByteArray(Box<[Cell<i8>]>),
@@ -18,6 +21,8 @@ pub enum Array {
 }
 
 impl Array {
+    /// Returns the data of this array, if it's an `Array::ByteArray`
+    /// (`byte[]`). If it's not, this method will panic.
     pub fn as_byte_array(&self) -> &[Cell<i8>] {
         match self {
             Array::ByteArray(arr) => &arr,
@@ -25,6 +30,8 @@ impl Array {
         }
     }
 
+    /// Returns the data of this array, if it's an `Array::CharArray`
+    /// (`char[]`). If it's not, this method will panic.
     pub fn as_char_array(&self) -> &[Cell<u16>] {
         match self {
             Array::CharArray(arr) => &arr,
@@ -32,6 +39,8 @@ impl Array {
         }
     }
 
+    /// Returns the data of this array, if it's an `Array::DoubleArray`
+    /// (`double[]`). If it's not, this method will panic.
     pub fn as_double_array(&self) -> &[Cell<f64>] {
         match self {
             Array::DoubleArray(arr) => &arr,
@@ -39,6 +48,8 @@ impl Array {
         }
     }
 
+    /// Returns the data of this array, if it's an `Array::FloatArray`
+    /// (`float[]`). If it's not, this method will panic.
     pub fn as_float_array(&self) -> &[Cell<f32>] {
         match self {
             Array::FloatArray(arr) => &arr,
@@ -46,6 +57,8 @@ impl Array {
         }
     }
 
+    /// Returns the data of this array, if it's an `Array::IntArray`
+    /// (`int[]`). If it's not, this method will panic.
     pub fn as_int_array(&self) -> &[Cell<i32>] {
         match self {
             Array::IntArray(arr) => &arr,
@@ -53,6 +66,8 @@ impl Array {
         }
     }
 
+    /// Returns the data of this array, if it's an `Array::LongArray`
+    /// (`long[]`). If it's not, this method will panic.
     pub fn as_long_array(&self) -> &[Cell<i64>] {
         match self {
             Array::LongArray(arr) => &arr,
@@ -60,6 +75,8 @@ impl Array {
         }
     }
 
+    /// Returns the data of this array, if it's an `Array::ShortArray`
+    /// (`short[]`). If it's not, this method will panic.
     pub fn as_short_array(&self) -> &[Cell<i16>] {
         match self {
             Array::ShortArray(arr) => &arr,
@@ -67,6 +84,8 @@ impl Array {
         }
     }
 
+    /// Returns the data of this array, if it's an `Array::ObjectArray`.
+    /// If it's not, this method will panic.
     pub fn as_object_array(&self) -> &[Cell<Option<Object>>] {
         match self {
             Array::ObjectArray(arr) => &arr,
@@ -74,6 +93,7 @@ impl Array {
         }
     }
 
+    /// Returns the length of this array.
     pub fn len(&self) -> usize {
         match self {
             Array::ByteArray(arr) => arr.len(),
