@@ -277,8 +277,8 @@ impl Class {
             instance_method_vtable,
         });
 
-        let clinit_string = context.common.clinit_name;
-        let void_descriptor = context.common.noargs_void_desc;
+        let clinit_string = context.common().clinit_name;
+        let void_descriptor = context.common().noargs_void_desc;
         // NOTE: This is `lookup_own` instead of `lookup` because class
         // initializers aren't inherited.
         let clinit_method_idx = static_method_vtable.lookup_own((clinit_string, void_descriptor));

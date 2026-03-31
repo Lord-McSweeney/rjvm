@@ -100,7 +100,7 @@ pub struct Context {
     primitive_arrays: Gc<RefCell<Option<PrimitiveArrayClasses>>>,
 
     // Common strings and descriptors.
-    pub common: CommonData,
+    common: CommonData,
 
     // The GC context.
     pub gc_ctx: GcCtx,
@@ -381,6 +381,10 @@ impl Context {
         let chars = chars.iter().map(|c| c.get()).collect::<Box<_>>();
 
         chars
+    }
+
+    pub fn common(&self) -> &CommonData {
+        &self.common
     }
 
     pub fn object_class(&self) -> Class {

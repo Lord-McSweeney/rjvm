@@ -92,7 +92,7 @@ fn get_constructors(context: &Context, args: &[Value]) -> Result<Option<Value>, 
 
     let constructors_arr = class
         .instance_method_vtable()
-        .elements_for_name(context.common.init_name)
+        .elements_for_name(context.common().init_name)
         .iter()
         // Make sure we're only picking up public initializers defined in this class
         .filter(|m| m.class() == class && m.flags().contains(MethodFlags::PUBLIC))
@@ -116,7 +116,7 @@ fn get_declared_constructors(context: &Context, args: &[Value]) -> Result<Option
 
     let constructors_arr = class
         .instance_method_vtable()
-        .elements_for_name(context.common.init_name)
+        .elements_for_name(context.common().init_name)
         .iter()
         // Make sure we're only picking up initializers defined in this class
         .filter(|m| m.class() == class)
