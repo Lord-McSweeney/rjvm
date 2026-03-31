@@ -1,7 +1,3 @@
-// A UTF-8 string used for the JVM. All strings from, for example, cpools are
-// stored as UTF-8 strings. Note that the java/lang/String class stores strings
-// as UTF-16.
-
 use crate::gc::{Gc, GcCtx, Trace};
 
 use alloc::string::String;
@@ -9,6 +5,12 @@ use core::fmt;
 use core::hash::{Hash, Hasher};
 use core::ops::Deref;
 
+/// A UTF-8 string, used for representing strings in the JVM.
+///
+/// All strings from, for example, constant pools, are stored as UTF-8 strings.
+/// Note that the `java.lang.String` class stores strings as UTF-16.
+///
+/// This type is `Copy`. It simply stores a [`String`] behind a [`Gc`] pointer.
 #[derive(Clone, Copy, Debug)]
 pub struct JvmString(Gc<JvmStringData>);
 
@@ -43,6 +45,7 @@ impl fmt::Display for JvmString {
 }
 
 impl JvmString {
+    /// Allocate a new `JvmString` object.
     pub fn new(gc_ctx: GcCtx, string: String) -> Self {
         let hash = hash_chars(string.len(), string.as_bytes().iter().map(|b| *b as u32));
 
