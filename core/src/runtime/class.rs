@@ -422,7 +422,7 @@ impl Class {
     }
 
     /// The class file that this class was loaded from.
-    pub fn class_file(&self) -> &Option<ClassFile> {
+    pub(crate) fn class_file(&self) -> &Option<ClassFile> {
         &self.0.class_file
     }
 
