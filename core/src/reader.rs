@@ -102,9 +102,15 @@ impl Reader for FileData<'_> {
     }
 }
 
+/// A generic "read failed" error.
 #[derive(Debug)]
 pub enum ReadError {
+    /// Reached the end of a buffer while reading
     EndOfFile,
+
+    /// An expected magic number was incorrect
     InvalidMagic,
+
+    /// An invalid UTF-8 string was encountered
     InvalidString,
 }

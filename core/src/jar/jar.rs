@@ -70,6 +70,6 @@ impl Trace for Jar {
 
 impl Trace for JarData {
     fn trace(&self) {
-        self.cached_files.trace();
+        // This doesn't store any Gc pointers
     }
 }

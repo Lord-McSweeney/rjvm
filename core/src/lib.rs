@@ -14,6 +14,7 @@ pub use crate::classfile::class::ClassFile;
 pub use crate::classfile::flags::MethodFlags;
 pub use crate::gc::{Gc, GcCtx, Trace};
 pub use crate::jar::Jar;
+pub use crate::reader::ReadError;
 pub use crate::runtime::array::Array;
 pub use crate::runtime::class::{Class, PrimitiveType};
 pub use crate::runtime::context::Context;
