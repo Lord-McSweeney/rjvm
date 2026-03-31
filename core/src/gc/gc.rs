@@ -195,23 +195,34 @@ impl<T> Deref for Gc<T> {
     }
 }
 
+/// A garbage-collection context. Each allocated [`Gc`] is bound to its
+/// [`GcCtx`]. It is expected that instances of this struct are copied around;
+/// it directly holds only a single `Gc` pointer.
 #[derive(Clone, Copy)]
 pub struct GcCtx {
     first_gc: Gc<()>,
 }
 
 impl GcCtx {
-    pub fn new() -> Self {
+    // SAFETY NOTE: Allowing user code to create new instances of `GcCtx` allows
+    // it to set `context.gc_ctx` to a new field, which is (obviously) unsound.
+    // Until we figure out a way to prevent user code from setting
+    // `context.gc_ctx`, `GcCtx::new` needs to be crate-private.
+    pub(crate) fn new() -> Self {
         Self {
             first_gc: Gc::new_empty(),
         }
     }
 
-    // This method is safe to call as long as the following invariants are upheld:
-    //   - When `trace` is called on `root`, every `Gc` registered under this `GcCtx`
-    //     also has `trace` called on it
-    //   - There are no `Gc`s registered under this `GcCtx` that are reachable in any
-    //     way other than accessing them through `root`
+    /// Collect all `Gc` pointers registered by this `GcCtx` that are
+    /// unreachable from `root`.
+    ///
+    /// SAFETY:
+    /// This method is safe to call as long as the following invariants are upheld:
+    ///   - When `trace` is called on `root`, every `Gc` registered under this `GcCtx`
+    ///     also has `trace` called on it
+    ///   - There are no `Gc`s registered under this `GcCtx` that are reachable in any
+    ///     way other than accessing them through `root`
     pub unsafe fn collect<T>(self, root: &T)
     where
         T: Trace,
@@ -257,9 +268,13 @@ impl GcCtx {
         }
     }
 
+    /// Drop the `GcCtx`. This will free the one single [`Gc`] that it uses for
+    /// its internal linked list. Note that this will not free any of the other
+    /// `Gc` pointers allocated using this `GcCtx`.
+    ///
+    /// SAFETY: The `GcCtx` must not be used in any way after this method is
+    /// called on it.
     pub unsafe fn drop(self) {
-        // The inner allocation, the empty tuple, is a ZST and doesn't
-        // actually allocate; we don't need to dealloc it.
         let created_box = unsafe { Box::from_raw(self.first_gc.ptr.as_ptr()) };
 
         drop(created_box);
