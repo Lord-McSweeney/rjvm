@@ -781,6 +781,10 @@ impl Trace for ClassData {
     }
 }
 
+/// One of the nine primitive types supported by the JVM.
+///
+/// These are `bool`, `byte`, `char`, `short`, `int`, `long`, `float`, `double`,
+/// and `void`.
 #[derive(Clone, Copy, Eq, Hash, PartialEq)]
 pub enum PrimitiveType {
     Boolean,
@@ -809,8 +813,9 @@ impl PrimitiveType {
         }
     }
 
-    pub fn get_all() -> Vec<PrimitiveType> {
-        vec![
+    /// Returns an array containing all nine `PrimitiveType`s.
+    pub fn get_all() -> [PrimitiveType; 9] {
+        [
             PrimitiveType::Boolean,
             PrimitiveType::Byte,
             PrimitiveType::Char,
