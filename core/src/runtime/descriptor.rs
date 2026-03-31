@@ -461,7 +461,7 @@ struct ResolvedMethodDescriptorData {
 }
 
 impl ResolvedMethodDescriptor {
-    pub fn from_method_descriptor(
+    pub(crate) fn from_method_descriptor(
         context: &Context,
         loader: ClassLoader,
         descriptor: MethodDescriptor,
