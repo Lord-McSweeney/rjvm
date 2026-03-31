@@ -64,7 +64,7 @@ struct MethodData {
 }
 
 impl Method {
-    pub fn from_method(
+    pub(crate) fn from_method(
         context: &Context,
         method: &ClassFileMethod,
         class: Class,
@@ -117,7 +117,7 @@ impl Method {
         )))
     }
 
-    pub fn for_native(
+    pub(crate) fn for_native(
         gc_ctx: GcCtx,
         method: NativeMethod,
         descriptor: MethodDescriptor,
