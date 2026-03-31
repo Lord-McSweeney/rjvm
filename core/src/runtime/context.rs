@@ -294,11 +294,11 @@ impl Context {
         self.call_stack.borrow().len()
     }
 
-    pub(crate) fn frame_data<'a>(&'a self) -> &'a [Cell<Value>] {
+    pub(crate) fn frame_data(&self) -> &[Cell<Value>] {
         &self.frame_data
     }
 
-    pub(crate) fn frame_index<'a>(&'a self) -> &'a Cell<usize> {
+    pub(crate) fn frame_index(&self) -> &Cell<usize> {
         &self.frame_index
     }
 
