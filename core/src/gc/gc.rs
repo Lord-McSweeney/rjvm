@@ -41,6 +41,7 @@ struct GcBox<T> {
     value: T,
 }
 
+/// A garbage-collected pointer. This struct is pointer-sized and `Copy`.
 pub struct Gc<T> {
     ptr: NonNull<GcBox<T>>,
 }
@@ -92,6 +93,7 @@ fn leaked_non_null<T>(value: T) -> NonNull<T> {
 }
 
 impl<T> Gc<T> {
+    /// Allocate a `Gc` storing a value that is bound to the provided [`GcCtx`].
     pub fn new(gc_ctx: GcCtx, value: T) -> Self {
         // This is the previous "first" Gc (that is not the real first one)
         let previous_next = unsafe { gc_ctx.first_gc.ptr.as_ref().next.get() };
@@ -102,8 +104,10 @@ impl<T> Gc<T> {
             // It's now the next Gc of this Gc.
             next: Cell::new(previous_next),
             drop: |gc| {
-                let unerased = gc.unerased::<T>();
+                // SAFETY: We know that `T` is the type of the `Gc`
+                let unerased = unsafe { gc.unerased::<T>() };
 
+                // SAFETY: `Gc` pointers are obtained through `Box::into_raw`
                 let created_box = unsafe { Box::from_raw(unerased.ptr.as_ptr()) };
                 drop(created_box);
             },
@@ -133,18 +137,19 @@ impl<T> Gc<T> {
         created_gc
     }
 
+    /// Checks for pointer equality between two `Gc`s.
     pub fn ptr_eq(this: Self, other: Self) -> bool {
         this.ptr.as_ptr() == other.ptr.as_ptr()
     }
 
+    /// Returns the address where the data held in this `Gc` is stored.
     pub fn as_ptr(this: Self) -> *const T {
         let box_ptr = this.ptr.as_ptr();
         // TODO is there a way to do this without the `unsafe`?
         unsafe { &raw const (*box_ptr).value }
     }
 
-    // Mark this GC without calling Trace on its inner value.
-    pub fn trace_self(&self) {
+    pub(crate) fn trace_self(&self) {
         unsafe {
             let gc_box = self.ptr.as_ref();
 
@@ -162,7 +167,7 @@ impl<T> Gc<T> {
 }
 
 impl Gc<()> {
-    pub fn new_empty() -> Self {
+    fn new_empty() -> Self {
         let structure = GcBox {
             status: Cell::new(CollectionStatus::NotMarked),
             prev: Cell::new(None),
@@ -178,7 +183,9 @@ impl Gc<()> {
         }
     }
 
-    fn unerased<T>(&self) -> Gc<T> {
+    // SAFETY: Callers of this method must ensure that this `Gc` is obtained
+    // through `Gc::erased` on a `Gc<T>`
+    unsafe fn unerased<T>(&self) -> Gc<T> {
         let ptr = self.ptr.as_ptr() as *mut GcBox<T>;
 
         Gc {
