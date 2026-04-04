@@ -23,8 +23,11 @@ use core::fmt;
 use core::hash::{Hash, Hasher};
 use hashbrown::HashSet;
 
-/// The representation of a Java class. This stores the class file, loader,
-/// name, super class, interfaces, and all other details of a class.
+/// The representation of a Java class.
+///
+/// This stores the class file, loader, name, super class, interfaces, and all
+/// other details of a class. Class instances ([`Object`]s) can be created
+/// using [`Class::new_instance`].
 #[derive(Clone, Copy)]
 pub struct Class(Gc<ClassData>);
 

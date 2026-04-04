@@ -202,9 +202,11 @@ impl<T> Deref for Gc<T> {
     }
 }
 
-/// A garbage-collection context. Each allocated [`Gc`] is bound to its
-/// [`GcCtx`]. It is expected that instances of this struct are copied around;
-/// it directly holds only a single `Gc` pointer.
+/// A garbage-collection context.
+///
+/// Each allocated [`Gc`] is bound to its [`GcCtx`]. It is expected that
+/// instances of this struct are copied around; it directly holds only a single
+/// `Gc` pointer.
 #[derive(Clone, Copy)]
 pub struct GcCtx {
     first_gc: Gc<()>,
