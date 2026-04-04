@@ -311,6 +311,10 @@ impl Trace for ResolvedDescriptor {
     }
 }
 
+/// The signature for a method. This is parsed, but not validated.
+///
+/// This struct stores a list of [`Descriptor`]s for the arguments and one
+/// `Descriptor` for the return type.
 #[derive(Clone, Copy)]
 pub struct MethodDescriptor(Gc<MethodDescriptorData>);
 
@@ -336,6 +340,9 @@ struct MethodDescriptorData {
 }
 
 impl MethodDescriptor {
+    /// Parse a `MethodDescriptor` from a [`JvmString`]. This method uses a
+    /// cache behind-the-scenes to avoid unnecessary allocations. It will return
+    /// an `Error` if the method descriptor is invalid.
     pub fn from_string(context: &Context, descriptor: JvmString) -> Result<Self, Error> {
         if let Some(method_desc) = context.get_cached_method_descriptor(descriptor) {
             Ok(method_desc)
@@ -411,14 +418,18 @@ impl MethodDescriptor {
         )))
     }
 
+    /// The arguments of this `MethodDescriptor`.
     pub fn args(&self) -> &[Descriptor] {
         &self.0.args
     }
 
+    /// The "physical" argument count of this descriptor. This counts two
+    /// arguments for doubles and longs.
     pub fn physical_arg_count(&self) -> usize {
         self.0.physical_arg_count
     }
 
+    /// The return type of this `MethodDescriptor`.
     pub fn return_type(self) -> Descriptor {
         self.0.return_type
     }
