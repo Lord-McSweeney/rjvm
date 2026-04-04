@@ -14,6 +14,14 @@ use core::fmt;
 use core::hash::{Hash, Hasher};
 
 /// Represents a Java object.
+///
+/// Java objects store their [`Class`] along with either array or field data. Array
+/// objects store array data, while all other objects (sometimes called
+/// "class instances") store field data.
+///
+/// To create an array object, use one of the `_array` methods (e.g.
+/// [`Object::bool_array`]). To create a new class instance object, use
+/// [`Object::from_class`].
 #[derive(Clone, Copy)]
 pub struct Object(Gc<ObjectData>);
 
