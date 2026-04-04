@@ -17,6 +17,8 @@ use core::cell::RefCell;
 use core::fmt;
 use hashbrown::HashMap;
 
+/// A representation of a Java class loader. This implementation is not 100%
+/// correct, but it works for most use cases.
 #[derive(Clone, Copy)]
 pub struct ClassLoader(Gc<ClassLoaderData>);
 
@@ -42,7 +44,7 @@ impl fmt::Debug for ClassLoader {
 }
 
 impl ClassLoader {
-    pub fn bootstrap(gc_ctx: GcCtx, backend: Gc<Box<dyn LoaderBackend>>) -> Self {
+    pub(crate) fn bootstrap(gc_ctx: GcCtx, backend: Gc<Box<dyn LoaderBackend>>) -> Self {
         Self(Gc::new(
             gc_ctx,
             ClassLoaderData {
@@ -56,6 +58,7 @@ impl ClassLoader {
         ))
     }
 
+    /// Create a new `ClassLoader` instance.
     pub fn with_parent(
         gc_ctx: GcCtx,
         parent: ClassLoader,
@@ -75,10 +78,14 @@ impl ClassLoader {
         ))
     }
 
+    /// Get the parent loader of this `ClassLoader`, or `None` if it's the
+    /// bootstrap loader.
     pub fn parent(self) -> Option<ClassLoader> {
         self.0.parent
     }
 
+    /// Adds a [`ResourceLoadSource`] as one of this `ClassLoader`'s sources for
+    /// loading data.
     pub fn add_source(self, source: ResourceLoadSource) {
         self.0.load_sources.borrow_mut().push(source);
     }
@@ -94,9 +101,12 @@ impl ClassLoader {
         }
     }
 
-    // Lookup a class using this `ClassLoader`. This will register the class
-    // in the correct `ClassLoader`'s registry. This will handle array classes
-    // correctly.
+    /// Lookup a class using this `ClassLoader`. This will register the class
+    /// in the correct `ClassLoader`'s registry. This will handle array classes
+    /// correctly.
+    ///
+    /// This method will try to find the class on ancestor loaders if it's not
+    /// found on this one.
     pub fn lookup_class(self, context: &Context, class_name: JvmString) -> Result<Class, Error> {
         match self.find_class(context, class_name) {
             Ok(Some(class)) => Ok(class),
@@ -105,7 +115,10 @@ impl ClassLoader {
         }
     }
 
-    // Like `lookup_class`, but returns `Ok(None)` when the class is not found
+    /// Like `lookup_class`, but returns `Ok(None)` when the class is not found.
+    ///
+    /// This method will try to find the class on ancestor loaders if it's not
+    /// found on this one.
     pub fn find_class(
         self,
         context: &Context,
@@ -141,11 +154,11 @@ impl ClassLoader {
         }
     }
 
-    // Attempts to lookup a class on this class loader. This will not check the
-    // parent class loaders. If the class was not found on this loader, this
-    // will return `Ok(None)`. If the class was found on this loader, but
-    // attempting to parse the class resulted in an error, this will return
-    // `Err`.
+    /// Attempts to lookup a class on this class loader. This will not check the
+    /// parent class loaders. If the class was not found on this loader, this
+    /// will return `Ok(None)`. If the class was found on this loader, but
+    /// attempting to parse the class resulted in an error, this will return
+    /// `Err`.
     fn lookup_own_class(
         self,
         context: &Context,
@@ -207,6 +220,10 @@ impl ClassLoader {
         }
     }
 
+    /// Load a resource from this `ClassLoader`.
+    ///
+    /// This method will try to find the resource on ancestor loaders if it's
+    /// not found on this one.
     pub fn load_resource(self, resource_name: &str) -> Option<Vec<u8>> {
         // Recursively lookup on self and ancestors
         let mut current = Some(self);
@@ -235,8 +252,8 @@ impl ClassLoader {
         None
     }
 
-    // Return an instance of `java.lang.ClassLoader` for this `ClassLoader`.
-    // This will return `None` if this `ClassLoader` is the bootstrap loader.
+    /// Return the instance of `java.lang.ClassLoader` for this `ClassLoader`.
+    /// This will return `None` if this `ClassLoader` is the bootstrap loader.
     pub fn object(self) -> Option<Object> {
         self.0.object
     }
