@@ -14,6 +14,7 @@ bitflags! {
 }
 
 bitflags! {
+    /// Flags modifying a static or instance field.
     #[derive(Clone, Copy, Debug)]
     pub struct FieldFlags: u16 {
         const PUBLIC    = 0x0001;
@@ -29,6 +30,7 @@ bitflags! {
 }
 
 bitflags! {
+    /// Flags modifying a method.
     #[derive(Clone, Copy, Debug)]
     pub struct MethodFlags: u16 {
         const PUBLIC       = 0x0001;

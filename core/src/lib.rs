@@ -10,7 +10,7 @@ mod reader;
 mod runtime;
 mod string;
 
-pub use crate::classfile::flags::MethodFlags;
+pub use crate::classfile::flags::{FieldFlags, MethodFlags};
 pub use crate::gc::{Gc, GcCtx, Trace};
 pub use crate::jar::Jar;
 pub use crate::reader::ReadError;
