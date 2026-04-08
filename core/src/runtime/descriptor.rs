@@ -140,8 +140,8 @@ impl Descriptor {
     /// Forms a `String` from this `Descriptor`.
     ///
     /// There is only one possible way to represent any `Descriptor`, so if this
-    /// `Descriptor` was created using [`Descriptor::try_from_string`], this is
-    /// the exact `Descriptor` that was passed to that method.
+    /// `Descriptor` was created using [`Descriptor::try_from_string`], this
+    /// method will return the exact string that was passed to that method.
     pub fn to_string(self) -> String {
         let mut result = String::with_capacity(8);
 
@@ -357,7 +357,7 @@ impl Trace for ResolvedDescriptor {
     }
 }
 
-/// The signature for a method. This is parsed, but not validated.
+/// A parsed but not-yet-resolved descriptor representing a method's signature.
 ///
 /// This struct stores a list of [`Descriptor`]s for the arguments and one
 /// `Descriptor` for the return type.
@@ -508,6 +508,13 @@ impl fmt::Debug for MethodDescriptor {
     }
 }
 
+/// A descriptor representing a method's signature that has been both parsed and
+/// resolved.
+///
+/// This struct stores a list of [`ResolvedDescriptor`]s for the arguments and
+/// one `ResolvedDescriptor` for the return type.
+///
+/// See [`MethodDescriptor`] for the not-yet-resolved version of this struct.
 #[derive(Clone, Copy)]
 pub struct ResolvedMethodDescriptor(Gc<ResolvedMethodDescriptorData>);
 
@@ -542,14 +549,18 @@ impl ResolvedMethodDescriptor {
         )))
     }
 
+    /// The arguments of this `ResolvedMethodDescriptor`.
     pub fn args(&self) -> &[ResolvedDescriptor] {
         &self.0.args
     }
 
+    /// The "physical" argument count of this descriptor. This counts two
+    /// arguments for doubles and longs.
     pub fn physical_arg_count(&self) -> usize {
         self.0.physical_arg_count
     }
 
+    /// The return type of this `ResolvedMethodDescriptor`.
     pub fn return_type(self) -> ResolvedDescriptor {
         self.0.return_type
     }
