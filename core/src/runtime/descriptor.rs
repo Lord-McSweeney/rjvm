@@ -15,6 +15,10 @@ use alloc::vec::Vec;
 use core::fmt;
 use core::hash::{Hash, Hasher};
 
+/// A parsed but not-yet-resolved descriptor.
+///
+/// This can be any kind of descriptor, including a field, method argument, and
+/// method return type descriptor.
 #[derive(Clone, Copy, Eq, Hash, PartialEq)]
 pub enum Descriptor {
     Class(JvmString),
@@ -85,6 +89,10 @@ impl Descriptor {
         Some((result, consumed_bytes))
     }
 
+    /// Attempt to create a `Descriptor` from a [`JvmString`]. If the passed
+    /// `JvmString` is not a valid descriptor, this method will return `None`.
+    ///
+    /// This method will return `None` for a void (`V`) descriptor.
     pub fn try_from_string(gc_ctx: GcCtx, descriptor: JvmString) -> Option<Self> {
         let result = Self::from_data_counting(gc_ctx, descriptor.as_bytes(), false);
 
@@ -93,14 +101,27 @@ impl Descriptor {
             .map(|r| r.0)
     }
 
-    pub fn from_string(context: &Context, descriptor: JvmString) -> Result<Self, Error> {
+    /// Like [`Descriptor::try_from_string`], but returns a `ClassFormatError`
+    /// if the descriptor is invalid. The `ClassFormatError`'s message will
+    /// state that a field signature is invalid.
+    pub(crate) fn from_string(context: &Context, descriptor: JvmString) -> Result<Self, Error> {
         if let Some(result) = Self::try_from_string(context.gc_ctx, descriptor) {
             Ok(result)
         } else {
+            // `MethodDescriptor::from_string` uses `try_from_string` instead of
+            // this method, so this is fine
             Err(context.class_format_error(&format!("Illegal field signature \"{}\"", descriptor)))
         }
     }
 
+    /// The default [`Value`] for a descriptor. This is the value initially
+    /// stored in a field typed with this descriptor (before any Java code
+    /// initializes the field).
+    ///
+    /// For example, when called on a `Descriptor::Class`, this method will
+    /// return the [`Value`] representing `null`, and when called on a
+    /// `Descriptor::Float`, this method will return the [`Value`] representing
+    /// the float value `0.0`.
     pub fn default_value(self) -> Value {
         match self {
             Descriptor::Class(_) | Descriptor::Array(_) => Value::Object(None),
@@ -116,6 +137,10 @@ impl Descriptor {
         }
     }
 
+    /// Forms a `String` from this `Descriptor`.
+    /// There is only one possible way to represent any `Descriptor`, so if this
+    /// `Descriptor` was created using [`Descriptor::try_from_string`], this is
+    /// the exact `Descriptor` that was passed to that method.
     pub fn to_string(self) -> String {
         let mut result = String::with_capacity(8);
 
@@ -143,6 +168,7 @@ impl Descriptor {
         result
     }
 
+    /// Returns true when called on `Descriptor::Double` or `Descriptor::Long`.
     pub fn is_wide(self) -> bool {
         matches!(self, Descriptor::Double | Descriptor::Long)
     }
