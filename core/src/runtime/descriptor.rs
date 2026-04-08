@@ -138,6 +138,7 @@ impl Descriptor {
     }
 
     /// Forms a `String` from this `Descriptor`.
+    ///
     /// There is only one possible way to represent any `Descriptor`, so if this
     /// `Descriptor` was created using [`Descriptor::try_from_string`], this is
     /// the exact `Descriptor` that was passed to that method.
@@ -184,6 +185,9 @@ impl Trace for Descriptor {
     }
 }
 
+/// A descriptor that has been both parsed and resolved.
+///
+/// See [`Descriptor`] for the not-yet-resolved version of this.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum ResolvedDescriptor {
     Class(Class),
@@ -200,6 +204,10 @@ pub enum ResolvedDescriptor {
 }
 
 impl ResolvedDescriptor {
+    /// Resolve a [`Descriptor`] to a `ResolvedDescriptor`.
+    ///
+    /// This method will return an error if the [`Descriptor`] cannot be
+    /// resolved, such as if it references a [`Class`] that does not exist.
     pub fn from_descriptor(
         context: &Context,
         loader: ClassLoader,
@@ -230,6 +238,7 @@ impl ResolvedDescriptor {
         })
     }
 
+    /// Create a [`Descriptor`] from this [`ResolvedDescriptor`].
     pub fn descriptor(self, gc_ctx: GcCtx) -> Descriptor {
         match self {
             ResolvedDescriptor::Class(class) => Descriptor::Class(class.name()),
@@ -253,10 +262,11 @@ impl ResolvedDescriptor {
         }
     }
 
-    /// Get the `Class` corresponding to this `ResolvedDescriptor`. If this is
-    /// a `ResolvedDescriptor::Array` or `ResolvedDescriptor::Class`, return the
-    /// class directly. Otherwise, return the primitive class corresponding to
-    /// this `ResolvedDescriptor`.
+    /// Get the `Class` corresponding to this `ResolvedDescriptor`.
+    ///
+    /// If this is a `ResolvedDescriptor::Array` or `ResolvedDescriptor::Class`,
+    /// return the class directly. Otherwise, return the primitive class
+    /// corresponding to this `ResolvedDescriptor`.
     pub fn reflection_class(self, gc_ctx: GcCtx) -> Class {
         let primitive_type = match self {
             ResolvedDescriptor::Class(class) | ResolvedDescriptor::Array(class) => {
@@ -276,6 +286,10 @@ impl ResolvedDescriptor {
         Class::for_primitive(gc_ctx, primitive_type)
     }
 
+    /// Whether this `ResolvedDescriptor` represents a primitive.
+    ///
+    /// This method will return false when called on `ResolvedDescriptor::Class`
+    /// or `ResolvedDescriptor::Array`.
     pub fn is_primitive(self) -> bool {
         match self {
             ResolvedDescriptor::Class(_) => false,
@@ -292,6 +306,10 @@ impl ResolvedDescriptor {
         }
     }
 
+    /// Forms a `String` from this `Descriptor`.
+    ///
+    /// This should be equivalent to calling [`ResolvedDescriptor::descriptor`],
+    /// and then calling `Descriptor::to_string`, but is more efficient.
     pub fn to_string(self) -> String {
         let mut result = String::with_capacity(8);
 
@@ -318,8 +336,10 @@ impl ResolvedDescriptor {
         result
     }
 
-    /// Get the `Class` corresponding to this `ResolvedDescriptor`, if this is a
-    /// a `ResolvedDescriptor::Array` or `ResolvedDescriptor::Class`.
+    /// Get the [`Class`] corresponding to this `ResolvedDescriptor`.
+    ///
+    /// If this is not a `ResolvedDescriptor::Array` or
+    /// `ResolvedDescriptor::Class`, this method will return `None`.
     pub fn class(self) -> Option<Class> {
         match self {
             ResolvedDescriptor::Class(class) | ResolvedDescriptor::Array(class) => Some(class),
