@@ -19,7 +19,7 @@ public class ClassLoaderUtils {
     public static native void makeSystemLoader(ClassLoader platformLoader, ClassLoader loader);
 }
 
-class PlatformClassLoader extends ClassLoader {
+final class PlatformClassLoader extends ClassLoader {
     PlatformClassLoader() {
         super(null);
     }
@@ -27,7 +27,7 @@ class PlatformClassLoader extends ClassLoader {
     // Is this supposed to do anything?
 }
 
-class SystemClassLoader extends ClassLoader {
+final class SystemClassLoader extends ClassLoader {
     SystemClassLoader(ClassLoader platformLoader) {
         super(platformLoader);
     }
@@ -46,4 +46,19 @@ class SystemClassLoader extends ClassLoader {
         }
     }
     private native byte[] getResourceData(String resourceName);
+
+    protected Class<?> findClass(String name) throws ClassNotFoundException {
+        if (name == null) {
+            throw new NullPointerException();
+        }
+
+        Class<?> result = SystemClassLoader.loadSystemClassNative(name);
+        if (result == null) {
+            throw new ClassNotFoundException(name);
+        } else {
+            return result;
+        }
+    }
+
+    private static native Class<?> loadSystemClassNative(String name);
 }

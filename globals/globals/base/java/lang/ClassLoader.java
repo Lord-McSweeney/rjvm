@@ -41,18 +41,35 @@ public abstract class ClassLoader {
 
     // Functions to load classes
     public Class<?> loadClass(String className) throws ClassNotFoundException {
-        if (className == null) {
-            throw new NullPointerException();
+        // TODO implement `findLoadedClass`
+        Class<?> cls = findLoadedClass(className);
+        if (cls == null) {
+            try {
+                if (parent == null) {
+                    if (className != null) {
+                        // Bootstrap loader
+                        cls = ClassLoader.loadBootstrapClassNative(className);
+                    }
+                } else {
+                    // Resolve parameter is ignored
+                    cls = this.parent.loadClass(className, false);
+                }
+                // TODO try to load a bootstrap class...?
+            } catch (ClassNotFoundException e) {
+                // CNFE silently ignored
+            }
+
+            if (cls == null) {
+                cls = this.findClass(className);
+            }
         }
 
-        Class<?> result = this.loadClassNative(className);
-        if (result == null) {
-            throw new ClassNotFoundException();
-        } else {
-            return result;
-        }
+        // `resolveClass` is a noop so no need to call it
+
+        return cls;
     }
-    private native Class<?> loadClassNative(String className);
+
+    private static native Class<?> loadBootstrapClassNative(String name);
 
     protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
         // The `resolve` parameter is ignored- `ClassLoader.loadClass` always links the class,
@@ -61,7 +78,12 @@ public abstract class ClassLoader {
     }
 
     protected Class<?> findClass(String name) throws ClassNotFoundException {
-        throw new ClassNotFoundException();
+        throw new ClassNotFoundException(name);
+    }
+
+    protected final Class<?> findLoadedClass(String name) {
+        // TODO - I think this is just for caching?
+        return null;
     }
 
     protected final void resolveClass(Class<?> cls) {

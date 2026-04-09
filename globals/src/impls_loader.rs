@@ -4,24 +4,23 @@ use rjvm_core::{ClassLoader, Context, Error, JvmString, NativeMethod, Object, Va
 pub fn register_native_mappings(context: &Context) {
     #[rustfmt::skip]
     let mappings: &[(&str, NativeMethod)] = &[
-        ("java/lang/ClassLoader.loadClassNative.(Ljava/lang/String;)Ljava/lang/Class;", load_class_native),
+        ("java/lang/ClassLoader.loadBootstrapClassNative.(Ljava/lang/String;)Ljava/lang/Class;", load_bootstrap_class_native),
 
         ("jvm/internal/ClassLoaderUtils.makePlatformLoader.(Ljava/lang/ClassLoader;)V", make_platform_loader),
         ("jvm/internal/ClassLoaderUtils.makeSystemLoader.(Ljava/lang/ClassLoader;Ljava/lang/ClassLoader;)V", make_sys_loader),
+
+        ("jvm/internal/SystemClassLoader.loadSystemClassNative.(Ljava/lang/String;)Ljava/lang/Class;", load_sys_class_native),
         ("jvm/internal/SystemClassLoader.getResourceData.(Ljava/lang/String;)[B", get_resource_data),
     ];
 
     context.register_native_mappings(mappings);
 }
 
-fn load_class_native(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
-    // Receiver should never be null
-    let class_loader_obj = args[0].object().unwrap();
-    let class_loader_id = class_loader_obj.get_field(0).int();
-    let class_loader = context.class_loader_object_by_id(class_loader_id);
+fn load_bootstrap_class_native(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
+    let class_loader = context.bootstrap_loader();
 
-    // Second argument should never be null
-    let class_name = args[1].object().unwrap();
+    // String should never be null
+    let class_name = args[0].object().unwrap();
     let class_name = Context::string_object_to_string(class_name);
 
     // FIXME fix this- we need to make sure `/` doesn't work as a delimiter somehow
@@ -30,6 +29,35 @@ fn load_class_native(context: &Context, args: &[Value]) -> Result<Option<Value>,
     let class_name = class_name.replace('.', "/");
     let class_name = JvmString::new(context.gc_ctx, class_name);
 
+    // FIXME we need to properly *only* lookup the class on the bootstrap loader
+    let class = class_loader.lookup_class(context, class_name);
+
+    if let Ok(class) = class {
+        class.run_clinit(context)?;
+
+        let class = class.get_or_init_object(context);
+        Ok(Some(Value::Object(Some(class))))
+    } else {
+        // If the class doesn't exist, we return `null`. Java code will throw
+        // a `ClassNotFoundException`.
+        Ok(Some(Value::Object(None)))
+    }
+}
+
+fn load_sys_class_native(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
+    let class_loader = context.system_loader();
+
+    // String should never be null
+    let class_name = args[0].object().unwrap();
+    let class_name = Context::string_object_to_string(class_name);
+
+    // FIXME fix this- we need to make sure `/` doesn't work as a delimiter somehow
+    let class_name = class_name.replace('/', "*");
+    // Make `.`s `/`s
+    let class_name = class_name.replace('.', "/");
+    let class_name = JvmString::new(context.gc_ctx, class_name);
+
+    // FIXME we need to properly *only* lookup the class on the system loader
     let class = class_loader.lookup_class(context, class_name);
 
     if let Ok(class) = class {
