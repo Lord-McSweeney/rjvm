@@ -423,7 +423,7 @@ impl Context {
 
         let object_class = self
             .bootstrap_loader()
-            .find_class(self, object_class_name)
+            .load_class(self, object_class_name)
             .expect("Object class did not parse")
             .expect("Object class did not exist");
 

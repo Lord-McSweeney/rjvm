@@ -13,7 +13,7 @@ macro_rules! set_builtin_classes {
 
             let class = $context
                 .bootstrap_loader()
-                .find_class($context, string)
+                .load_class($context, string)
                 .expect("Builtin class parsing failed")
                 .unwrap_or_else(|| panic!("Builtin class {} was not found", $class_name));
 
@@ -141,7 +141,7 @@ macro_rules! primitive_arrays {
 
                     $context
                         .bootstrap_loader()
-                        .find_class($context, string)
+                        .load_class($context, string)
                         .expect("Builtin class parsing failed")
                         .unwrap_or_else(|| panic!("Builtin class {} was not found", $class_name))
                 },

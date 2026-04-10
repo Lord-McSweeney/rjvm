@@ -19,9 +19,12 @@ public abstract class ClassLoader {
     }
 
     protected ClassLoader(ClassLoader parent) {
-        this.internalId = -1;
         this.parent = parent;
+
+        this.registerAsLoader(parent);
     }
+
+    private native void registerAsLoader(ClassLoader parent);
 
     // Misc functions
     public ClassLoader getParent() {
@@ -41,6 +44,12 @@ public abstract class ClassLoader {
         return ClassLoader.systemClassLoader;
     }
 
+    protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
+        // The `resolve` parameter is ignored- `ClassLoader.loadClass` always links the class,
+        // even if the parameter is set to `false`
+        return this.loadClass(name);
+    }
+
     // Functions to load classes
     public Class<?> loadClass(String className) throws ClassNotFoundException {
         // TODO implement `findLoadedClass`
@@ -48,9 +57,11 @@ public abstract class ClassLoader {
         if (cls == null) {
             try {
                 if (parent == null) {
-                    if (className != null) {
-                        // Bootstrap loader
-                        cls = ClassLoader.loadBootstrapClassNative(className);
+                    if (ClassLoader.isValidClassName(className)) {
+                        if (className != null) {
+                            // Bootstrap loader
+                            cls = ClassLoader.loadBootstrapClassNative(className);
+                        }
                     }
                 } else {
                     // Resolve parameter is ignored
@@ -73,20 +84,18 @@ public abstract class ClassLoader {
 
     private static native Class<?> loadBootstrapClassNative(String name);
 
-    protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
-        // The `resolve` parameter is ignored- `ClassLoader.loadClass` always links the class,
-        // even if the parameter is set to `false`
-        return this.loadClass(name);
-    }
-
     protected Class<?> findClass(String name) throws ClassNotFoundException {
         throw new ClassNotFoundException(name);
     }
 
     protected final Class<?> findLoadedClass(String name) {
-        // TODO this needs to be a native method
-        return null;
+        if (!ClassLoader.isValidClassName(name)) {
+            return null;
+        }
+
+        return this.findLoadedClassNative(name);
     }
+    private native Class<?> findLoadedClassNative(String name);
 
     protected final void resolveClass(Class<?> cls) {
         // Despite what the documentation says, this method is actually a no-op
@@ -94,6 +103,23 @@ public abstract class ClassLoader {
         if (cls == null) {
             throw new NullPointerException();
         }
+    }
+
+    private static boolean isValidClassName(String name) {
+        if (name == null || name.length() == 0) {
+            return true;
+        }
+
+        if (name.indexOf('/') != -1) {
+            return false;
+        }
+
+        // Array classes are never found by class loaders
+        if (name.charAt(0) == '[') {
+            return false;
+        }
+
+        return true;
     }
 
     // Functions to define classes

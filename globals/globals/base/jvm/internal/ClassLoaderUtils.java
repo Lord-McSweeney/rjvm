@@ -52,6 +52,15 @@ final class SystemClassLoader extends ClassLoader {
             throw new NullPointerException();
         }
 
+        // Class names passed to `findClass` must have dots, not slashes
+        if (name.indexOf('/') != -1) {
+            throw new ClassNotFoundException(name);
+        }
+        // Array classes are never resolved
+        if (name.length() != 0 && name.charAt(0) == '[') {
+            throw new ClassNotFoundException(name);
+        }
+
         Class<?> result = SystemClassLoader.loadSystemClassNative(name);
         if (result == null) {
             throw new ClassNotFoundException(name);

@@ -75,6 +75,11 @@ public class Test {
                 System.out.println("    " + e);
             }
             try {
+                System.out.println("    " + loader.loadClass(""));
+            } catch(Exception e) {
+                System.out.println("    " + e);
+            }
+            try {
                 System.out.println("    " + loader.loadClass("Hello"));
             } catch(Exception e) {
                 System.out.println("    " + e);
@@ -136,6 +141,11 @@ public class Test {
             }
             try {
                 System.out.println("    " + loader.loadClass("[Ljava/lang/Integer;"));
+            } catch(Exception e) {
+                System.out.println("    " + e);
+            }
+            try {
+                System.out.println("    " + loader.loadClass("[Ljava.lang.Integer;"));
             } catch(Exception e) {
                 System.out.println("    " + e);
             }

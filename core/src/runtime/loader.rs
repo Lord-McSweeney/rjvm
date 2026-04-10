@@ -61,14 +61,14 @@ impl ClassLoader {
     /// Create a new `ClassLoader` instance.
     pub fn with_parent(
         gc_ctx: GcCtx,
-        parent: ClassLoader,
+        parent: Option<ClassLoader>,
         object: Object,
         backend: Gc<Box<dyn LoaderBackend>>,
     ) -> Self {
         Self(Gc::new(
             gc_ctx,
             ClassLoaderData {
-                parent: Some(parent),
+                parent,
                 backend,
                 load_sources: RefCell::new(Vec::new()),
                 class_registry: RefCell::new(HashMap::new()),
@@ -108,17 +108,46 @@ impl ClassLoader {
     /// This method will try to find the class on ancestor loaders if it's not
     /// found on this one.
     pub fn lookup_class(self, context: &Context, class_name: JvmString) -> Result<Class, Error> {
-        match self.find_class(context, class_name) {
+        match self.load_class(context, class_name) {
             Ok(Some(class)) => Ok(class),
             Ok(None) => Err(context.no_class_def_found_error(&*class_name)),
             Err(err) => Err(err),
         }
     }
 
+    /// Find an already-loaded class on this `ClassLoader`.
+    pub fn find_loaded_class(self, class_name: JvmString) -> Option<Class> {
+        let class_registry = self.0.class_registry.borrow();
+        class_registry.get(&class_name).copied()
+    }
+
     /// Like `lookup_class`, but returns `Ok(None)` when the class is not found.
     ///
     /// This method will try to find the class on ancestor loaders if it's not
     /// found on this one.
+    pub fn load_class(
+        self,
+        context: &Context,
+        class_name: JvmString,
+    ) -> Result<Option<Class>, Error> {
+        if let Some(class) = self.find_loaded_class(class_name) {
+            return Ok(Some(class));
+        }
+
+        if let Some(parent) = self.parent() {
+            if let Some(class) = parent.load_class(context, class_name)? {
+                return Ok(Some(class));
+            }
+        }
+
+        self.find_class(context, class_name)
+    }
+
+    /// Attempts to load a class on this class loader. This will not use this
+    /// loader's class cache. This will not check the parent class loaders. If
+    /// the class was not found on this loader, this will return `Ok(None)`. If
+    /// the class was found on this loader, but attempting to parse the class
+    /// resulted in an error, this will return `Err`.
     pub fn find_class(
         self,
         context: &Context,
@@ -127,9 +156,15 @@ impl ClassLoader {
         if let Some(element_name) = class_name.strip_prefix('[') {
             // Special handling for array classes
             let element_name = JvmString::new(context.gc_ctx, element_name.to_string());
-            let element_descriptor = Descriptor::try_from_string(context.gc_ctx, element_name)
-                .ok_or_else(|| context.no_class_def_found_error(&*class_name))?;
+            let Some(element_descriptor) =
+                Descriptor::try_from_string(context.gc_ctx, element_name)
+            else {
+                // Invalid descriptor
+                return Ok(None);
+            };
 
+            // TODO if the descriptor fails to resolve due to a VM NCDFE, we
+            // should `return Ok(None)` (I think?)
             let resolved_descriptor =
                 ResolvedDescriptor::from_descriptor(context, self, element_descriptor)?;
 
@@ -139,53 +174,23 @@ impl ClassLoader {
 
             Ok(Some(created_class))
         } else {
-            // Not an array class, just recursively lookup on self and ancestors
-            let mut current = Some(self);
-            while let Some(current_loader) = current {
-                let result = current_loader.lookup_own_class(context, class_name)?;
-                if let Some(result) = result {
-                    return Ok(Some(result));
-                }
+            // Not an array class, just try to load it as usual
+            let full_name = class_name.to_string().clone() + ".class";
+            let data = self.load_own_resource(&full_name);
+            if let Some(data) = data {
+                let class_file = ClassFile::from_data(context.gc_ctx, data)
+                    .map_err(|e| Error::from_class_file_error(context, e))?;
 
-                current = current_loader.parent();
+                let class = Class::from_class_file(&context, self, class_file)?;
+
+                self.register_class(class);
+
+                class.load_methods(context)?;
+
+                Ok(Some(class))
+            } else {
+                Ok(None)
             }
-
-            Ok(None)
-        }
-    }
-
-    /// Attempts to lookup a class on this class loader. This will not check the
-    /// parent class loaders. If the class was not found on this loader, this
-    /// will return `Ok(None)`. If the class was found on this loader, but
-    /// attempting to parse the class resulted in an error, this will return
-    /// `Err`.
-    fn lookup_own_class(
-        self,
-        context: &Context,
-        class_name: JvmString,
-    ) -> Result<Option<Class>, Error> {
-        let class_registry = self.0.class_registry.borrow();
-        if let Some(class) = class_registry.get(&class_name) {
-            return Ok(Some(*class));
-        }
-        drop(class_registry);
-
-        // Couldn't find it in our registry, now try to load it
-        let full_name = class_name.to_string().clone() + ".class";
-        let data = self.load_own_resource(&full_name);
-        if let Some(data) = data {
-            let class_file = ClassFile::from_data(context.gc_ctx, data)
-                .map_err(|e| Error::from_class_file_error(context, e))?;
-
-            let class = Class::from_class_file(&context, self, class_file)?;
-
-            self.register_class(class);
-
-            class.load_methods(context)?;
-
-            Ok(Some(class))
-        } else {
-            Ok(None)
         }
     }
 
