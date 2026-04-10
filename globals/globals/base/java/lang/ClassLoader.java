@@ -1,7 +1,9 @@
 package java.lang;
 
 import java.io.InputStream;
+import java.security.ProtectionDomain;
 
+// For the system class loader
 import jvm.internal.ClassLoaderUtils;
 
 public abstract class ClassLoader {
@@ -82,7 +84,7 @@ public abstract class ClassLoader {
     }
 
     protected final Class<?> findLoadedClass(String name) {
-        // TODO - I think this is just for caching?
+        // TODO this needs to be a native method
         return null;
     }
 
@@ -92,6 +94,12 @@ public abstract class ClassLoader {
         if (cls == null) {
             throw new NullPointerException();
         }
+    }
+
+    // Functions to define classes
+    protected final Class<?> defineClass(String name, byte[] b, int off, int len, ProtectionDomain protectionDomain) throws ClassFormatError {
+        // TODO
+        return null;
     }
 
     // Functions to get resources
