@@ -10,6 +10,8 @@ import java.lang.reflect.TypeVariable;
 
 import java.io.InputStream;
 
+import java.security.ProtectionDomain;
+
 // NOTE: The native `Class` corresponding to this `Class<T>` is stored in the
 // native `Context` and can be retrieved with `Context::class_for_java_class`
 public final class Class<T> implements AnnotatedElement, GenericDeclaration, Type {
@@ -205,6 +207,11 @@ public final class Class<T> implements AnnotatedElement, GenericDeclaration, Typ
         }
     }
     private native Method getMethodNative(String name, Class[] parameterTypes);
+
+    public ProtectionDomain getProtectionDomain() {
+        // TODO implement
+        return null;
+    }
 
     public String toString() {
         if (this.isPrimitive()) {
