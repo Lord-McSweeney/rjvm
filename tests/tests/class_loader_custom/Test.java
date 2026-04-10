@@ -10,6 +10,7 @@ class ClassLoader2 extends ClassLoader {
     }
     
     protected Class<?> findClass(String name) throws ClassNotFoundException {
+        System.out.println("        CL2: findClass on " + name);
         return null;
     }
 }
@@ -20,6 +21,7 @@ class ClassLoader3 extends ClassLoader {
     }
     
     protected Class<?> findClass(String name) throws ClassNotFoundException {
+        System.out.println("        CL3: findClass on " + name);
         if (name == null) {
             return ClassLoader3.class;
         } else {
@@ -34,6 +36,7 @@ class ClassLoader4 extends ClassLoader {
     }
     
     protected Class<?> findClass(String name) throws ClassNotFoundException {
+        System.out.println("        CL4: findClass on " + name);
         throw new ClassNotFoundException();
     }
 }
@@ -44,6 +47,7 @@ class ClassLoader5 extends ClassLoader {
     }
     
     protected Class<?> findClass(String name) throws ClassNotFoundException {
+        System.out.println("        CL5: findClass on " + name);
         return ClassLoader5.class;
     }
 }
@@ -54,6 +58,7 @@ class ClassLoader6 extends ClassLoader {
     }
     
     protected Class<?> findClass(String name) throws ClassNotFoundException {
+        System.out.println("        CL6: findClass on " + name);
         return ClassLoader6.class;
     }
 }
@@ -106,6 +111,36 @@ public class Test {
             }
             try {
                 System.out.println("    " + loader.loadClass("ClassLoader1"));
+            } catch(Exception e) {
+                System.out.println("    " + e);
+            }
+            try {
+                System.out.println("    " + loader.loadClass("[LClassLoader1;"));
+            } catch(Exception e) {
+                System.out.println("    " + e);
+            }
+            try {
+                System.out.println("    " + loader.loadClass("[I"));
+            } catch(Exception e) {
+                System.out.println("    " + e);
+            }
+            try {
+                System.out.println("    " + loader.loadClass("[V"));
+            } catch(Exception e) {
+                System.out.println("    " + e);
+            }
+            try {
+                System.out.println("    " + loader.loadClass("[[I"));
+            } catch(Exception e) {
+                System.out.println("    " + e);
+            }
+            try {
+                System.out.println("    " + loader.loadClass("[Ljava/lang/Integer;"));
+            } catch(Exception e) {
+                System.out.println("    " + e);
+            }
+            try {
+                System.out.println("    " + loader.loadClass("[invalidarraydesc"));
             } catch(Exception e) {
                 System.out.println("    " + e);
             }
