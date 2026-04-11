@@ -2,6 +2,8 @@ package java.util;
 
 import java.lang.reflect.Array;
 
+import rjvm.internal.Todo;
+
 public abstract class AbstractCollection<E> implements Collection<E> {
     protected AbstractCollection() { }
 
@@ -39,7 +41,17 @@ public abstract class AbstractCollection<E> implements Collection<E> {
     }
 
     public void clear() {
-        // TODO implement
+        Todo.warnNotImpl("java.util.AbstractCollection.clear");
+    }
+
+    public boolean retainAll(Collection<?> collection) {
+        Todo.warnNotImpl("java.util.AbstractCollection.retainAll");
+        return false;
+    }
+
+    public boolean remove(Object o) {
+        Todo.warnNotImpl("java.util.AbstractCollection.remove");
+        return false;
     }
 
     public abstract Iterator<E> iterator();

@@ -27,6 +27,10 @@ public class HashSet<E> extends AbstractSet<E> implements Set<E> {
         this.backingMap.clear();
     }
 
+    public boolean remove(Object element) {
+        return this.backingMap.remove((E) element) != null;
+    }
+
     public boolean contains(Object element) {
         return this.backingMap.containsKey((E) element);
     }

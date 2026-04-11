@@ -9,6 +9,10 @@ public interface Collection<E> extends Iterable<E> {
 
     void clear();
 
+    boolean retainAll(Collection<?> c);
+
+    boolean remove(Object o);
+
     int size();
 
     boolean isEmpty();
