@@ -86,10 +86,21 @@ impl fmt::Debug for Class {
 }
 
 impl Class {
-    /// Load a class from a class file, given the [`ClassLoader`] to use. This
-    /// does not fully load the class; `load_methods` must be called after
-    /// calling this method to also initialize the methods of this class.
+    /// Load a class from a class file, given the [`ClassLoader`] to use.
     pub(crate) fn from_class_file(
+        context: &Context,
+        loader: ClassLoader,
+        class_file: ClassFile,
+    ) -> Result<Self, Error> {
+        let class = Self::from_class_file_partial(context, loader, class_file)?;
+        class.load_methods(context, class_file)?;
+
+        Ok(class)
+    }
+
+    /// Partially load this class. `load_methods` must be called after calling
+    /// this method to fully initialize it.
+    fn from_class_file_partial(
         context: &Context,
         loader: ClassLoader,
         class_file: ClassFile,
@@ -199,10 +210,8 @@ impl Class {
         Ok(created_class)
     }
 
-    /// Load the methods of this class. This must be called after the Class is
-    /// registered.
-    pub(crate) fn load_methods(self, context: &Context) -> Result<(), Error> {
-        let class_file = self.class_file().unwrap();
+    /// Load the methods of this class.
+    fn load_methods(self, context: &Context, class_file: ClassFile) -> Result<(), Error> {
         let super_class = self.super_class();
 
         let fields = class_file.fields();

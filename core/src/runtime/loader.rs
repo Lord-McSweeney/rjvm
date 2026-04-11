@@ -188,8 +188,6 @@ impl ClassLoader {
 
                 self.register_class(class);
 
-                class.load_methods(context)?;
-
                 Ok(Some(class))
             } else {
                 Ok(None)
