@@ -39,6 +39,10 @@ public class InputStreamReader extends Reader {
         for (int i = 0; i < length; i ++) {
             int next = this.stream.read();
             if (next == -1) {
+                if (count == 0) {
+                    // End of stream returns -1
+                    return -1;
+                }
                 break;
             }
 
