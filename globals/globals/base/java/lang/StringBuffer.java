@@ -102,6 +102,7 @@ public final class StringBuffer extends AbstractStringBuilder implements CharSeq
         int smallerLength = Math.min(this.count, newLength);
         System.arraycopy(this.value, 0, newStorage, 0, smallerLength);
 
+        this.count = newLength;
         this.value = newStorage;
     }
 
