@@ -167,11 +167,34 @@ public final class Class<T> implements AnnotatedElement, GenericDeclaration, Typ
 
     // Reflection methods
 
+    // NOTE: forName is different from `ClassLoader.loadClass()`! The latter
+    // does not find array classes!
     public static Class<?> forName(String className) throws ClassNotFoundException {
         // FIXME implement `Reflection.getCallerClass` so we can use the loader
         // of the class of the caller method
-        return ClassLoader.getSystemClassLoader().loadClass(className);
+        return Class.forName(className, true, ClassLoader.getSystemClassLoader());
     }
+
+    public static Class<?> forName(String name, boolean initialize, ClassLoader loader) throws ClassNotFoundException {
+        // ignore `initialize` parameter
+
+        // TODO what do we do when `loader` is null?
+        if (loader == null) {
+            loader = ClassLoader.getSystemClassLoader();
+        }
+
+        if (name.indexOf('/') != -1) {
+            throw new ClassNotFoundException(name);
+        }
+
+        Class<?> result = Class.forNameNative(name, loader);
+        if (result != null) {
+            return result;
+        } else {
+            throw new ClassNotFoundException(name);
+        }
+    }
+    private static native Class<?> forNameNative(String name, ClassLoader loader);
 
     public native Constructor<?>[] getConstructors();
 

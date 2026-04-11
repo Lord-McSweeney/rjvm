@@ -123,9 +123,20 @@ public abstract class ClassLoader {
     }
 
     // Functions to define classes
-    protected final Class<?> defineClass(String name, byte[] b, int off, int len, ProtectionDomain protectionDomain) throws ClassFormatError {
-        // TODO
+    protected final Class<?> defineClass(byte[] b, int off, int len) throws ClassFormatError {
         return null;
+    }
+
+    protected final Class<?> defineClass(String name, byte[] b, int off, int len) throws ClassFormatError {
+        // TODO
+        // This is like `defineClass(byte[], int, int)`, but throws NCDFE if the
+        // name of the class doesn't match the given name
+        return null;
+    }
+
+    protected final Class<?> defineClass(String name, byte[] b, int off, int len, ProtectionDomain protectionDomain) throws ClassFormatError {
+        // Protection domain not yet implemented
+        return this.defineClass(name, b, off, len);
     }
 
     // Functions to get resources

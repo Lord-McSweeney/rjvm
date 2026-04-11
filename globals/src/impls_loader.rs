@@ -7,6 +7,7 @@ pub fn register_native_mappings(context: &Context) {
         ("java/lang/ClassLoader.registerAsLoader.(Ljava/lang/ClassLoader;)V", register_as_loader),
         ("java/lang/ClassLoader.findLoadedClassNative.(Ljava/lang/String;)Ljava/lang/Class;", find_loaded_class),
         ("java/lang/ClassLoader.loadBootstrapClassNative.(Ljava/lang/String;)Ljava/lang/Class;", load_bootstrap_class_native),
+        ("java/lang/Class.forNameNative.(Ljava/lang/String;Ljava/lang/ClassLoader;)Ljava/lang/Class;", for_name_native),
 
         ("jvm/internal/ClassLoaderUtils.makePlatformLoader.(Ljava/lang/ClassLoader;)V", make_platform_loader),
         ("jvm/internal/ClassLoaderUtils.makeSystemLoader.(Ljava/lang/ClassLoader;Ljava/lang/ClassLoader;)V", make_sys_loader),
@@ -100,18 +101,21 @@ fn load_bootstrap_class_native(context: &Context, args: &[Value]) -> Result<Opti
     }
 }
 
-fn load_sys_class_native(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
-    let class_loader = context.system_loader();
-
+fn for_name_native(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
     // String should never be null
     let class_name = args[0].object().unwrap();
     let class_name = Context::string_object_to_string(class_name);
+
+    // Loader should never be null
+    let class_loader_obj = args[1].object().unwrap();
+    let class_loader_id = class_loader_obj.get_field(0).int();
+    let class_loader = context.class_loader_object_by_id(class_loader_id);
 
     // Make `.`s `/`s
     let class_name = class_name.replace('.', "/");
     let class_name = JvmString::new(context.gc_ctx, class_name);
 
-    let class = class_loader.find_class(context, class_name)?;
+    let class = class_loader.load_class(context, class_name)?;
 
     if let Some(class) = class {
         class.run_clinit(context)?;
@@ -166,6 +170,31 @@ fn make_sys_loader(context: &Context, args: &[Value]) -> Result<Option<Value>, E
     context.init_system_loader(loader);
 
     Ok(None)
+}
+
+fn load_sys_class_native(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
+    let class_loader = context.system_loader();
+
+    // String should never be null
+    let class_name = args[0].object().unwrap();
+    let class_name = Context::string_object_to_string(class_name);
+
+    // Make `.`s `/`s
+    let class_name = class_name.replace('.', "/");
+    let class_name = JvmString::new(context.gc_ctx, class_name);
+
+    let class = class_loader.find_class(context, class_name)?;
+
+    if let Some(class) = class {
+        class.run_clinit(context)?;
+
+        let class = class.get_or_init_object(context);
+        Ok(Some(Value::Object(Some(class))))
+    } else {
+        // If the class doesn't exist, we return `null`. Java code will throw
+        // a `ClassNotFoundException`.
+        Ok(Some(Value::Object(None)))
+    }
 }
 
 // jvm/internal/SysClassLoader : byte[] getResourceData(String)
