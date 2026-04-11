@@ -33,7 +33,19 @@ public class InputStreamReader extends Reader {
     }
 
     public int read(char[] buffer, int offset, int length) throws IOException {
-        Todo.warnNotImpl("java.io.InputStreamReader.read");
-        return -1;
+        // TODO decoding
+        int count = 0;
+
+        for (int i = 0; i < length; i ++) {
+            int next = this.stream.read();
+            if (next == -1) {
+                break;
+            }
+
+            buffer[offset + i] = (char) next;
+            count += 1;
+        }
+
+        return count;
     }
 }
