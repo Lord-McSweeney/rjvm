@@ -39,6 +39,7 @@ impl fmt::Debug for ClassLoader {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
         f.debug_struct("ClassLoader")
             .field("parent", &self.parent())
+            .field("object", &self.0.object)
             .finish()
     }
 }
@@ -163,10 +164,12 @@ impl ClassLoader {
                 return Ok(None);
             };
 
-            // TODO if the descriptor fails to resolve due to a VM NCDFE, we
-            // should `return Ok(None)` (I think?)
-            let resolved_descriptor =
-                ResolvedDescriptor::from_descriptor(context, self, element_descriptor)?;
+            let Some(resolved_descriptor) =
+                ResolvedDescriptor::try_from_descriptor(context, self, element_descriptor)?
+            else {
+                // Failed to lookup a class in the descriptor
+                return Ok(None);
+            };
 
             let created_class = ClassLoader::array_class_for(context, resolved_descriptor);
             // `array_class_for` will register the class in the correct

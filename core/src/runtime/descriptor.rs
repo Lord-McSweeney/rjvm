@@ -238,6 +238,43 @@ impl ResolvedDescriptor {
         })
     }
 
+    /// Like `from_descriptor`, but returns `Ok(None)` if the class fails to
+    /// be looked up
+    pub(crate) fn try_from_descriptor(
+        context: &Context,
+        loader: ClassLoader,
+        descriptor: Descriptor,
+    ) -> Result<Option<Self>, Error> {
+        Ok(match descriptor {
+            Descriptor::Class(class_name) => {
+                let class = loader.load_class(context, class_name)?;
+
+                class.map(ResolvedDescriptor::Class)
+            }
+            Descriptor::Array(inner_descriptor) => {
+                let inner_resolved =
+                    ResolvedDescriptor::try_from_descriptor(context, loader, *inner_descriptor)?;
+
+                if let Some(inner_resolved) = inner_resolved {
+                    let class = ClassLoader::array_class_for(context, inner_resolved);
+
+                    Some(ResolvedDescriptor::Array(class))
+                } else {
+                    None
+                }
+            }
+            Descriptor::Boolean => Some(ResolvedDescriptor::Boolean),
+            Descriptor::Byte => Some(ResolvedDescriptor::Byte),
+            Descriptor::Character => Some(ResolvedDescriptor::Character),
+            Descriptor::Double => Some(ResolvedDescriptor::Double),
+            Descriptor::Float => Some(ResolvedDescriptor::Float),
+            Descriptor::Integer => Some(ResolvedDescriptor::Integer),
+            Descriptor::Long => Some(ResolvedDescriptor::Long),
+            Descriptor::Short => Some(ResolvedDescriptor::Short),
+            Descriptor::Void => Some(ResolvedDescriptor::Void),
+        })
+    }
+
     /// Create a [`Descriptor`] from this [`ResolvedDescriptor`].
     pub fn descriptor(self, gc_ctx: GcCtx) -> Descriptor {
         match self {
