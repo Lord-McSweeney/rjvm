@@ -50,6 +50,34 @@ public class Arrays {
         return true;
     }
 
+    public static void sort(Object[] arr) {
+        Arrays.sort(arr, 0, arr.length);
+    }
+
+    public static void sort(Object[] arr, int from, int to) {
+        if (to - from < 2) {
+            return;
+        }
+
+        // TODO faster sort
+        boolean needsSort = true;
+        while (needsSort) {
+            needsSort = false;
+
+            for (int i = from; i < to - 1; i ++) {
+                Comparable firstElem = (Comparable) arr[i];
+                Comparable secondElem = (Comparable) arr[i + 1];
+                if (firstElem.compareTo(secondElem) > 0) {
+                    needsSort = true;
+
+                    Comparable temp = firstElem;
+                    arr[i] = secondElem;
+                    arr[i + 1] = temp;
+                }
+            }
+        }
+    }
+
     public static String toString(Object[] arr) {
         if (arr == null) {
             return "null";
