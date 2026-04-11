@@ -40,22 +40,41 @@ public final class Character extends Number implements Comparable<Character> {
         return 0;
     }
 
-    public static int getType(char ch) {
+    public static int getType(char c) {
         Todo.warnNotImpl("java.lang.Character.getType");
 
         return 0;
     }
 
-    public static boolean isDefined(char ch) {
+    public static boolean isDefined(char c) {
         Todo.warnNotImpl("java.lang.Character.isDefined");
 
         return false;
     }
 
-    public static boolean isJavaIdentifierPart(char ch) {
-        Todo.warnNotImpl("java.lang.Character.isJavaIdentifierPart");
+    public static boolean isJavaIdentifierStart(char c) {
+        // TODO more...
+        return Character.isLetter(c) || (c == '_') || (c == '$');
+    }
 
-        return false;
+    public static boolean isJavaIdentifierPart(char c) {
+        // TODO more...
+        return Character.isJavaIdentifierStart(c) || (c >= '0' && c <= '9');
+    }
+
+    public static boolean isLetter(char c) {
+        // TODO more...
+        return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
+    }
+
+    public static boolean isDigit(char c) {
+        // TODO more...
+        return c >= '0' && c <= '9';
+    }
+
+    public static boolean isDigit(int c) {
+        // TODO more...
+        return c >= '0' && c <= '9';
     }
 
     public static boolean isWhitespace(int c) {
