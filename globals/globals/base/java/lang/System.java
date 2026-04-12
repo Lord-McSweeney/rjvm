@@ -29,6 +29,9 @@ public final class System {
         properties.setProperty("path.separator", ":");
         properties.setProperty("line.separator", "\n");
 
+        // Pretend we're Java 8
+        properties.setProperty("java.class.version", "52.0");
+
         in = new FileInputStream(FileDescriptor.in);
         // Enable `autoFlush` on these streams. If we don't, reading from stdin
         // after writing to stdout without writing a newline to flush the
