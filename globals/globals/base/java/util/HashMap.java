@@ -114,8 +114,7 @@ public class HashMap<K, V> extends AbstractMap<K, V> {
         for (int i = bucketStartIndex; i < bucketEndIndex; i ++) {
             HashMap.Entry<K, V> thisEntry = (Entry<K, V>) this.data[i];
             if (thisEntry != null && HashMap.equals(thisEntry.key, key)) {
-                this.data[i] = null;
-                this.size -= 1;
+                this.removeAtIndex(i);
                 return thisEntry.value;
             }
         }
@@ -155,6 +154,12 @@ public class HashMap<K, V> extends AbstractMap<K, V> {
         } else {
             return o1.equals(o2);
         }
+    }
+
+    // This is called from HashMapGenericIterator
+    void removeAtIndex(int index) {
+        this.data[index] = null;
+        this.size -= 1;
     }
 
     public Set<Map.Entry<K, V>> entrySet() {
@@ -206,13 +211,17 @@ public class HashMap<K, V> extends AbstractMap<K, V> {
 }
 
 abstract class HashMapGenericIterator<K, V, E> implements Iterator<E> {
+    private int prevEntry;
     private int nextEntry;
     private HashMap<K, V> backingMap;
+    private boolean alreadyRemoved;
 
     public HashMapGenericIterator(HashMap<K, V> backingMap) {
         this.backingMap = backingMap;
 
+        this.prevEntry = 0;
         this.nextEntry = 0;
+        this.alreadyRemoved = false;
         this.findNextEntry();
     }
 
@@ -245,6 +254,16 @@ abstract class HashMapGenericIterator<K, V, E> implements Iterator<E> {
 
     public abstract E next();
 
+    public void remove() {
+        if (this.alreadyRemoved || this.backingMap.data[this.prevEntry] == null) {
+            throw new IllegalStateException();
+        }
+
+        this.alreadyRemoved = true;
+
+        this.backingMap.removeAtIndex(this.prevEntry);
+    }
+
     // The class that overrides this class should use this function to get
     // the next entry.
     protected final HashMap.Entry<K, V> nextEntry() {
@@ -252,9 +271,11 @@ abstract class HashMapGenericIterator<K, V, E> implements Iterator<E> {
             throw new NoSuchElementException();
         }
 
-        HashMap.Entry<K, V> result = (HashMap.Entry<K, V>) this.backingMap.data[nextEntry];
+        HashMap.Entry<K, V> result = (HashMap.Entry<K, V>) this.backingMap.data[this.nextEntry];
 
+        this.prevEntry = this.nextEntry;
         this.nextEntry += 1;
+        this.alreadyRemoved = false;
         this.findNextEntry();
 
         return result;

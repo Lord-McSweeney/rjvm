@@ -44,9 +44,19 @@ public abstract class AbstractCollection<E> implements Collection<E> {
         Todo.warnNotImpl("java.util.AbstractCollection.clear");
     }
 
-    public boolean retainAll(Collection<?> collection) {
-        Todo.warnNotImpl("java.util.AbstractCollection.retainAll");
-        return false;
+    public boolean retainAll(Collection<?> checkedCollection) {
+        boolean wasModified = false;
+
+        Iterator<E> iter = this.iterator();
+        while (iter.hasNext()) {
+            E next = iter.next();
+            if (!checkedCollection.contains(next)) {
+                iter.remove();
+                wasModified = true;
+            }
+        }
+
+        return wasModified;
     }
 
     public boolean remove(Object o) {
