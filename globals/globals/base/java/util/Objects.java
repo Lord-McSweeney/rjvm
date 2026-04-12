@@ -23,6 +23,14 @@ public final class Objects {
         }
     }
 
+    public static <T> T requireNonNull(T obj) {
+        if (obj == null) {
+            throw new NullPointerException();
+        } else {
+            return obj;
+        }
+    }
+
     public static String toString(Object obj) {
         return String.valueOf(obj);
     }
