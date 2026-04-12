@@ -92,6 +92,10 @@ public final class StringBuffer extends AbstractStringBuilder implements CharSeq
         }
     }
 
+    public StringBuffer append(CharSequence chars, int start, int end) {
+        return this.append(chars.subSequence(start, end));
+    }
+
     public StringBuffer appendCodePoint(int codePoint) {
         char[] chars = Character.toChars(codePoint);
         return this.append(chars);

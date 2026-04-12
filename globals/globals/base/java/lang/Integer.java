@@ -52,11 +52,16 @@ public final class Integer extends Number implements Comparable<Integer> {
     }
 
     public static Integer valueOf(int integer) {
+        // TODO
         return new Integer(integer);
     }
 
     public static Integer valueOf(String string) {
-        return new Integer(string);
+        return Integer.valueOf(string, 10);
+    }
+
+    public static Integer valueOf(String string, int radix) {
+        return Integer.parseInt(string, radix);
     }
 
     public static String toString(int integer) {

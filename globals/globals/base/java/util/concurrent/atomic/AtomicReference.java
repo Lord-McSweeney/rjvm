@@ -15,6 +15,10 @@ public class AtomicReference<V> {
         return this.value;
     }
 
+    public final void set(V value) {
+        this.value = value;
+    }
+
     public final boolean compareAndSet(V expect, V update) {
         if (this.value == expect) {
             this.value = update;

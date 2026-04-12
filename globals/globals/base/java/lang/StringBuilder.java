@@ -92,6 +92,10 @@ public final class StringBuilder extends AbstractStringBuilder implements CharSe
         }
     }
 
+    public StringBuilder append(CharSequence chars, int start, int end) {
+        return this.append(chars.subSequence(start, end));
+    }
+
     public StringBuilder appendCodePoint(int codePoint) {
         char[] chars = Character.toChars(codePoint);
         return this.append(chars);

@@ -1,12 +1,17 @@
 package java.nio.charset;
 
+import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
 
 public abstract class Charset {
     public static Charset forName(String name) {
         // TODO implement properly
-        return new Utf8Charset();
+        Charset lookedup = new Utf8Charset();
+
+        // TODO UnsupportedCharsetException, IllegalCharsetNameException
+
+        return lookedup;
     }
 
     public static Charset defaultCharset() {

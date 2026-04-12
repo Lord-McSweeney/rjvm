@@ -1,6 +1,8 @@
 package java.lang;
 
 import rjvm.internal.Todo;
+
+import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
 
 public final class String implements CharSequence, Comparable<String> {
@@ -42,7 +44,15 @@ public final class String implements CharSequence, Comparable<String> {
         this.data = copyData;
     }
 
-    public String(byte[] data, int start, int length, String encoding) {
+    public String(byte[] data, Charset charset) {
+        this(data, 0, data.length, charset);
+    }
+
+    public String(byte[] data, int start, int length, String encoding) throws UnsupportedEncodingException {
+        this(data, start, length, String.lookupCharset(encoding));
+    }
+
+    public String(byte[] data, int start, int length, Charset charset) {
         // TODO properly decode
 
         if (start < 0 || length < 0 || start + length > data.length) {
@@ -55,6 +65,14 @@ public final class String implements CharSequence, Comparable<String> {
         }
 
         this.data = copyData;
+    }
+
+    private static Charset lookupCharset(String name) throws UnsupportedEncodingException {
+        try {
+            return Charset.forName(name);
+        } catch(Exception e) {
+            throw new UnsupportedEncodingException();
+        }
     }
 
     // Overriden from Object
@@ -132,7 +150,11 @@ public final class String implements CharSequence, Comparable<String> {
         return Charset.stringToUtf8(this);
     }
 
-    public byte[] getBytes(String charsetName) {
+    public byte[] getBytes(String charsetName) throws UnsupportedEncodingException {
+        return this.getBytes(String.lookupCharset(charsetName));
+    }
+
+    public byte[] getBytes(Charset charset) {
         // TODO implement proper decoding
         return Charset.stringToUtf8(this);
     }
@@ -270,7 +292,7 @@ public final class String implements CharSequence, Comparable<String> {
             fromIndex = 0;
         }
 
-        for (int i = fromIndex; i < this.data.length; i ++) {
+        for (int i = fromIndex; i <= this.data.length - search.length(); i ++) {
             boolean failedToMatch = false;
             for (int j = 0; j < search.length(); j ++) {
                 if (this.data[i + j] != search.data[j]) {
@@ -394,6 +416,15 @@ public final class String implements CharSequence, Comparable<String> {
         } else {
             return this + other;
         }
+    }
+
+    public int codePointCount(int beginIndex, int endIndex) {
+        if (beginIndex < 0 || endIndex > this.data.length || beginIndex > endIndex) {
+            throw new IndexOutOfBoundsException();
+        }
+
+        // TODO
+        return endIndex - beginIndex;
     }
 
     public int length() {

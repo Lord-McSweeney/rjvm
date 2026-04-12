@@ -5,6 +5,10 @@ public class ArrayIndexOutOfBoundsException extends IndexOutOfBoundsException {
         super();
     }
 
+    public ArrayIndexOutOfBoundsException(String message) {
+        super(message);
+    }
+
     public ArrayIndexOutOfBoundsException(int index) {
         // TODO implement
         super();

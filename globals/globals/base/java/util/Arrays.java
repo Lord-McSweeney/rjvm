@@ -39,6 +39,11 @@ public class Arrays {
         return newArray;
     }
 
+    public static int deepHashCode(Object[] arr) {
+        // TODO make better
+        return arr.length;
+    }
+
     public static boolean equals(Object[] array1, Object[] array2) {
         if (array1 == array2) {
             return true;
@@ -68,6 +73,28 @@ public class Arrays {
         return true;
     }
 
+    public static boolean equals(int[] array1, int[] array2) {
+        if (array1 == array2) {
+            return true;
+        }
+
+        if (array1 == null || array2 == null) {
+            return false;
+        }
+
+        if (array1.length != array2.length) {
+            return false;
+        }
+
+        for (int i = 0; i < array1.length; i ++) {
+            if (array1[i] != array2[i]) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     public static void fill(int[] arr, int fromIndex, int toIndex, int val) {
         if (fromIndex > toIndex) {
             throw new IllegalArgumentException();
@@ -76,6 +103,15 @@ public class Arrays {
         for (int i = fromIndex; i < toIndex; i ++) {
             arr[i] = val;
         }
+    }
+
+    public static int hashCode(int[] arr) {
+        // TODO make better
+        int result = 0;
+        for (int i = 0; i < arr.length; i ++) {
+            result += i;
+        }
+        return result;
     }
 
     public static void sort(Object[] arr) {
