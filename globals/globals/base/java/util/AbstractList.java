@@ -38,8 +38,18 @@ public abstract class AbstractList<E> extends AbstractCollection<E> implements L
         throw new UnsupportedOperationException();
     }
 
+    protected void removeRange(int fromIndex, int toIndex) {
+        // TODO we should be using the `ListIterator`
+        for (int i = 0; i < toIndex - fromIndex; i ++) {
+
+            // This shifts the list down, so we can remove `fromIndex` again
+            // next
+            this.remove(fromIndex);
+        }
+    }
+
     public void clear() {
-        // TODO implement
+        this.removeRange(0, this.size());
     }
 
     public List<E> subList(int fromIndex, int toIndex) {
