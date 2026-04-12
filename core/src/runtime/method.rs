@@ -312,6 +312,11 @@ impl Method {
         self.0.flags
     }
 
+    /// The raw modifiers (e.g. `abstract`, `final`, etc) of this class.
+    pub fn modifiers(self) -> u16 {
+        self.0.flags.bits()
+    }
+
     /// Whether this method is a `static` method (has the `static` modifier bit
     /// set).
     pub fn is_static(self) -> bool {

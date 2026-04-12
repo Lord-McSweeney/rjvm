@@ -480,6 +480,11 @@ impl Class {
         &self.0.class_file
     }
 
+    /// The modifiers (e.g. `abstract`, `final`, etc) of this class.
+    pub fn flags(self) -> ClassFlags {
+        self.0.flags
+    }
+
     /// The raw modifiers (e.g. `abstract`, `final`, etc) of this class.
     pub fn modifiers(self) -> u16 {
         self.0.flags.bits()
