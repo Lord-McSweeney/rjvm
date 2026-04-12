@@ -197,6 +197,10 @@ impl InstanceMethodVTable {
         self.0.mapping.get(&key).copied()
     }
 
+    pub fn mapping(&self) -> &HashMap<(JvmString, MethodDescriptor), usize> {
+        &self.0.mapping
+    }
+
     pub fn get_element(self, index: usize) -> Method {
         self.0.elements[index]
     }

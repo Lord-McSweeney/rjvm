@@ -267,6 +267,48 @@ impl Class {
             }
         }
 
+        // We need to add interface methods to the vtable as instance methods.
+        // The logic for this is a bit complex:
+        //
+        // First, consider all interfaces on this class, excluding interfaces
+        // that are superinterfaces of other ones. TODO it's probably possible
+        // to avoid having this step be O(n^2)?
+        //
+        // Second, add all the methods from said interfaces to the instance
+        // method vtable, ensuring that such methods don't override existing
+        // methods.
+        for new_interface in &self.0.all_interfaces {
+            if !self
+                .0
+                .all_interfaces
+                .iter()
+                .any(|i| i.0.all_interfaces.contains(new_interface))
+            {
+                // If there isn't already a subinterface for this interface...
+                // (note: interface inheritance is implemented through
+                // `implements`, not `extends`)
+
+                let interface_vtable = new_interface.instance_method_vtable();
+                let mapping = interface_vtable.mapping();
+
+                for (new_name, new_index) in mapping.iter() {
+                    if !instance_methods.iter().any(|(name, _)| name == new_name) {
+                        // If this method didn't already exist in the method list...
+
+                        if !super_class
+                            .and_then(|c| c.instance_method_vtable().lookup(*new_name))
+                            .is_some()
+                        {
+                            // If this method didn't also already exist in the
+                            // method list of the superclass...
+                            let new_method = interface_vtable.get_element(*new_index);
+                            instance_methods.push((*new_name, new_method));
+                        }
+                    }
+                }
+            }
+        }
+
         let static_method_vtable = VTable::from_parent_and_keys(
             context.gc_ctx,
             Some(self),
