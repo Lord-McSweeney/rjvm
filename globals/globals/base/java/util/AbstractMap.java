@@ -14,9 +14,7 @@ public abstract class AbstractMap<K, V> implements Map<K, V> {
     }
 
     public Collection<V> values() {
-        Todo.warnNotImpl("java.util.AbstractMap.values");
-
-        return null;
+        return new AbstractValuesCollection<K, V>(this);
     }
 
     public boolean containsKey(Object key) {
@@ -77,5 +75,51 @@ public abstract class AbstractMap<K, V> implements Map<K, V> {
 
     public void clear() {
         Todo.warnNotImpl("java.util.AbstractMap.clear");
+    }
+}
+
+// A collection of values backed by an AbstractMap
+class AbstractValuesCollection<K, V> extends AbstractCollection<V> {
+    private AbstractMap<K, V> map;
+
+    public AbstractValuesCollection(AbstractMap<K, V> map) {
+        this.map = map;
+    }
+
+    public Iterator<V> iterator() {
+        AbstractMap<K, V> map = this.map;
+
+        return new Iterator<V>() {
+            private Iterator<Map.Entry<K, V>> iter = map.entrySet().iterator();
+
+            public boolean hasNext() {
+                return this.iter.hasNext();
+            }
+
+            public V next() {
+                return this.iter.next().getValue();
+            }
+
+            public void remove() {
+                this.iter.remove();
+            }
+        };
+    }
+
+    public boolean contains(Object value) {
+        // TODO
+        throw new UnsupportedOperationException();
+    }
+
+    public int size() {
+        return this.map.size();
+    }
+
+    public boolean isEmpty() {
+        return this.map.isEmpty();
+    }
+
+    public void clear() {
+        this.map.clear();
     }
 }
