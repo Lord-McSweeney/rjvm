@@ -16,6 +16,8 @@ public final class Constructor<T> extends Executable {
 
     public native Class<?>[] getParameterTypes();
 
+    public native int getModifiers();
+
     public T newInstance(Object... args) throws InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
         if (args == null) {
             args = new Object[0];

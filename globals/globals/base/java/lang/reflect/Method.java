@@ -13,6 +13,8 @@ public final class Method extends Executable {
 
     public native Class<?>[] getParameterTypes();
 
+    public native int getModifiers();
+
     public native Class<?> getReturnType();
 
     public Object invoke(Object obj, Object... args) throws IllegalAccessException, IllegalArgumentException, InvocationTargetException {

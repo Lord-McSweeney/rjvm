@@ -26,6 +26,8 @@ pub fn register_native_mappings(context: &Context) {
         ("java/lang/reflect/Method.getName.()Ljava/lang/String;", method_get_name),
         ("java/lang/Class.isInstance.(Ljava/lang/Object;)Z", class_is_instance),
         ("java/lang/Class.getModifiers.()I", class_get_modifiers),
+        ("java/lang/reflect/Method.getModifiers.()I", exec_get_modifiers),
+        ("java/lang/reflect/Constructor.getModifiers.()I", exec_get_modifiers),
         ("java/lang/reflect/Method.invokeNative.(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;", invoke_native),
         ("java/lang/Class.getDeclaredMethods.()[Ljava/lang/reflect/Method;", get_declared_methods),
         ("java/lang/Class.getInterfaces.()[Ljava/lang/Class;", class_get_interfaces),
@@ -353,6 +355,15 @@ fn class_get_modifiers(context: &Context, args: &[Value]) -> Result<Option<Value
     let class = context.class_object_by_id(class_id);
 
     Ok(Some(Value::Integer(class.modifiers() as i32)))
+}
+
+fn exec_get_modifiers(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
+    // Receiver should never be null
+    let exec_obj = args[0].object().unwrap();
+    let exec_id = exec_obj.get_field(0).int();
+    let method = context.executable_object_by_id(exec_id);
+
+    Ok(Some(Value::Integer(method.modifiers() as i32)))
 }
 
 fn invoke_native(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {

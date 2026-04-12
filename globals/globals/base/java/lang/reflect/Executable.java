@@ -11,4 +11,6 @@ public abstract class Executable extends AccessibleObject implements GenericDecl
     public abstract int getParameterCount();
 
     public abstract Class<?>[] getParameterTypes();
+
+    public abstract int getModifiers();
 }
