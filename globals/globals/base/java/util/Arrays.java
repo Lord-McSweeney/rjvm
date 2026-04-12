@@ -1,5 +1,7 @@
 package java.util;
 
+import java.lang.reflect.Array;
+
 public class Arrays {
     private Arrays() {}
 
@@ -8,17 +10,19 @@ public class Arrays {
     }
 
     public static <T> T[] copyOf(T[] original, int newLength) {
-        Object[] newArray = new Object[newLength];
+        // Create a new array of the correct type
+        Class componentType = original.getClass().getComponentType();
+        T[] newArray = (T[]) Array.newInstance(componentType, newLength);
 
         int usedLength;
-        if (newLength < original.length) {
-            usedLength = newLength;
-        } else {
+        if (newLength > original.length) {
             usedLength = original.length;
+        } else {
+            usedLength = newLength;
         }
 
         System.arraycopy(original, 0, newArray, 0, usedLength);
-        return (T[]) newArray;
+        return newArray;
     }
 
     public static boolean equals(Object[] array1, Object[] array2) {
