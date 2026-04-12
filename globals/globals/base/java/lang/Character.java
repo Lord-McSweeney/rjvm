@@ -47,6 +47,26 @@ public final class Character extends Number implements Comparable<Character> {
         return new char[]{(char) codePoint};
     }
 
+    public static int codePointAt(char[] chars, int index) {
+        // TODO implement
+        return chars[index];
+    }
+
+    public static int codePointAt(CharSequence chars, int index) {
+        // TODO implement
+        return chars.charAt(index);
+    }
+
+    public static int codePointBefore(char[] chars, int index) {
+        // TODO implement
+        return chars[index - 1];
+    }
+
+    public static int codePointBefore(CharSequence chars, int index) {
+        // TODO implement
+        return chars.charAt(index - 1);
+    }
+
     public static int digit(char c, int radix) {
         Todo.warnNotImpl("java.lang.Character.digit");
 

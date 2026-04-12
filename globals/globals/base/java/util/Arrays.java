@@ -25,6 +25,20 @@ public class Arrays {
         return newArray;
     }
 
+    public static int[] copyOf(int[] original, int newLength) {
+        int[] newArray = new int[newLength];
+
+        int usedLength;
+        if (newLength > original.length) {
+            usedLength = original.length;
+        } else {
+            usedLength = newLength;
+        }
+
+        System.arraycopy(original, 0, newArray, 0, usedLength);
+        return newArray;
+    }
+
     public static boolean equals(Object[] array1, Object[] array2) {
         if (array1 == array2) {
             return true;
@@ -52,6 +66,16 @@ public class Arrays {
         }
 
         return true;
+    }
+
+    public static void fill(int[] arr, int fromIndex, int toIndex, int val) {
+        if (fromIndex > toIndex) {
+            throw new IllegalArgumentException();
+        }
+
+        for (int i = fromIndex; i < toIndex; i ++) {
+            arr[i] = val;
+        }
     }
 
     public static void sort(Object[] arr) {

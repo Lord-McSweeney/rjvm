@@ -42,6 +42,21 @@ public final class String implements CharSequence, Comparable<String> {
         this.data = copyData;
     }
 
+    public String(byte[] data, int start, int length, String encoding) {
+        // TODO properly decode
+
+        if (start < 0 || length < 0 || start + length > data.length) {
+            throw new StringIndexOutOfBoundsException();
+        }
+
+        char[] copyData = new char[length];
+        for (int i = 0; i < length; i ++) {
+            copyData[i] = (char) data[i + start];
+        }
+
+        this.data = copyData;
+    }
+
     // Overriden from Object
 
     public boolean equals(Object other) {
@@ -292,6 +307,9 @@ public final class String implements CharSequence, Comparable<String> {
         return new String(this.data, start, end - start);
     }
 
+    public CharSequence subSequence(int start, int end) {
+        return this.substring(start, end);
+    }
 
     public String[] split(String regex) {
         return this.split(regex, 0);

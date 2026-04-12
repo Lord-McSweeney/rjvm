@@ -10,4 +10,17 @@ public class AtomicReference<V> {
     public AtomicReference(V value) {
         this.value = value;
     }
+
+    public final V get() {
+        return this.value;
+    }
+
+    public final boolean compareAndSet(V expect, V update) {
+        if (this.value == expect) {
+            this.value = update;
+            return true;
+        } else {
+            return false;
+        }
+    }
 }
