@@ -76,11 +76,19 @@ public final class Character extends Number implements Comparable<Character> {
     }
 
     public static boolean isLowerCase(char c) {
+        return Character.isLowerCase((int) c);
+    }
+
+    public static boolean isLowerCase(int c) {
         // TODO more...
         return c >= 'a' && c <= 'z';
     }
 
     public static boolean isUpperCase(char c) {
+        return Character.isUpperCase((int) c);
+    }
+
+    public static boolean isUpperCase(int c) {
         // TODO more...
         return c >= 'A' && c <= 'Z';
     }
@@ -98,5 +106,31 @@ public final class Character extends Number implements Comparable<Character> {
     public static boolean isWhitespace(int c) {
         // TODO more characters
         return c == ' ' || c == '\t' || c == '\r' || c == '\n';
+    }
+
+    public static char toLowerCase(char c) {
+        return (char) Character.toLowerCase((int) c);
+    }
+
+    public static int toLowerCase(int codePoint) {
+        if (Character.isUpperCase(codePoint)) {
+            // TODO more
+            return codePoint + ('a' - 'A');
+        } else {
+            return codePoint;
+        }
+    }
+
+    public static char toUpperCase(char c) {
+        return (char) Character.toUpperCase((int) c);
+    }
+
+    public static int toUpperCase(int codePoint) {
+        if (Character.isLowerCase(codePoint)) {
+            // TODO more
+            return codePoint - ('a' - 'A');
+        } else {
+            return codePoint;
+        }
     }
 }
