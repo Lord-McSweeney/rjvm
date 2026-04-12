@@ -5,6 +5,10 @@ public class AssertionError extends Error {
         super();
     }
 
+    public AssertionError(int message) {
+        super(String.valueOf(message));
+    }
+
     public AssertionError(Object message) {
         super(String.valueOf(message));
     }

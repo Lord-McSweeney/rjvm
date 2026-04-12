@@ -10,9 +10,11 @@ public class Arrays {
     }
 
     public static <T> T[] copyOf(T[] original, int newLength) {
-        // Create a new array of the correct type
-        Class componentType = original.getClass().getComponentType();
-        T[] newArray = (T[]) Array.newInstance(componentType, newLength);
+        return Arrays.copyOfRange(original, 0, newLength);
+    }
+
+    public static byte[] copyOf(byte[] original, int newLength) {
+        byte[] newArray = new byte[newLength];
 
         int usedLength;
         if (newLength > original.length) {
@@ -36,6 +38,29 @@ public class Arrays {
         }
 
         System.arraycopy(original, 0, newArray, 0, usedLength);
+        return newArray;
+    }
+
+    public static <T> T[] copyOfRange(T[] original, int from, int to) {
+        if (from < 0 || from > original.length) {
+            throw new ArrayIndexOutOfBoundsException();
+        }
+        if (from > to) {
+            throw new IllegalArgumentException();
+        }
+
+        // Create a new array of the correct type
+        Class componentType = original.getClass().getComponentType();
+        T[] newArray = (T[]) Array.newInstance(componentType, to - from);
+
+        int usedLength;
+        if (to - from > original.length) {
+            usedLength = original.length;
+        } else {
+            usedLength = to - from;
+        }
+
+        System.arraycopy(original, from, newArray, 0, usedLength);
         return newArray;
     }
 
@@ -93,6 +118,16 @@ public class Arrays {
         }
 
         return true;
+    }
+
+    public static void fill(byte[] arr, int fromIndex, int toIndex, byte val) {
+        if (fromIndex > toIndex) {
+            throw new IllegalArgumentException();
+        }
+
+        for (int i = fromIndex; i < toIndex; i ++) {
+            arr[i] = val;
+        }
     }
 
     public static void fill(int[] arr, int fromIndex, int toIndex, int val) {

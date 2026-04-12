@@ -36,6 +36,15 @@ public class Logger {
         // TODO implement
     }
 
+    public boolean isLoggable(Level level) {
+        // TODO implement
+        return false;
+    }
+
+    public void fine(String msg) {
+        // TODO implement
+    }
+
     public static Logger getLogger(String name) {
         // TODO implement properly
         return new Logger(name, null);

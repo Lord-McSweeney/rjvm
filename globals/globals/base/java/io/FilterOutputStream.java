@@ -21,7 +21,7 @@ public class FilterOutputStream extends OutputStream {
         }
 
         for (int i = ofs; i < ofs + len; i ++) {
-            write(buffer[i]);
+            this.write(buffer[i]);
         }
     }
 

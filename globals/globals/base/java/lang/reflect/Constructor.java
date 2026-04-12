@@ -10,6 +10,11 @@ public final class Constructor<T> extends Executable {
         return this.getDeclaringClass().getName();
     }
 
+    public Class<?>[] getExceptionTypes() {
+        // TODO implement
+        return new Class<?>[0];
+    }
+
     public int getParameterCount() {
         return this.getParameterTypes().length;
     }

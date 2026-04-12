@@ -7,6 +7,11 @@ public final class Method extends Executable {
 
     public native String getName();
 
+    public Class<?>[] getExceptionTypes() {
+        // TODO implement
+        return new Class<?>[0];
+    }
+
     public int getParameterCount() {
         return this.getParameterTypes().length;
     }
