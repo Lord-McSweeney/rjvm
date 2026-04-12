@@ -67,6 +67,11 @@ public final class Character extends Number implements Comparable<Character> {
         return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
     }
 
+    public static boolean isLowerCase(char c) {
+        // TODO more...
+        return c >= 'a' && c <= 'z';
+    }
+
     public static boolean isUpperCase(char c) {
         // TODO more...
         return c >= 'A' && c <= 'Z';
