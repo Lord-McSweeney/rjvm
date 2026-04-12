@@ -16,6 +16,7 @@ pub fn register_native_mappings(context: &Context) {
         ("java/lang/reflect/Constructor.newInstanceNative.([Ljava/lang/Object;)Ljava/lang/Object;", new_instance_native),
         ("java/lang/reflect/Constructor.getParameterTypes.()[Ljava/lang/Class;", exec_get_parameter_types),
         ("java/lang/reflect/Method.getParameterTypes.()[Ljava/lang/Class;", exec_get_parameter_types),
+        ("java/lang/reflect/Method.getReturnType.()Ljava/lang/Class;", method_get_return_type),
         ("java/lang/Class.getClassLoader.()Ljava/lang/ClassLoader;", class_get_class_loader),
         ("java/lang/Class.getComponentType.()Ljava/lang/Class;", class_get_component_type),
         ("java/lang/Class.getSuperclass.()Ljava/lang/Class;", class_get_superclass),
@@ -186,6 +187,21 @@ fn exec_get_parameter_types(context: &Context, args: &[Value]) -> Result<Option<
     );
 
     Ok(Some(Value::Object(Some(created_array))))
+}
+
+fn method_get_return_type(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
+    // Receiver should never be null
+    let exec_obj = args[0].object().unwrap();
+    let exec_id = exec_obj.get_field(0).int();
+    let method = context.executable_object_by_id(exec_id);
+
+    let descriptor = method.get_or_init_resolved_descriptor(context)?;
+    let return_type = descriptor
+        .return_type()
+        .reflection_class(context.gc_ctx)
+        .get_or_init_object(context);
+
+    Ok(Some(Value::Object(Some(return_type))))
 }
 
 fn class_get_class_loader(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
