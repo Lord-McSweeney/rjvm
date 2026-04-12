@@ -124,15 +124,30 @@ public abstract class ClassLoader {
 
     // Functions to define classes
     protected final Class<?> defineClass(byte[] b, int off, int len) throws ClassFormatError {
-        return null;
-    }
+        if (b == null) {
+            throw new NullPointerException();
+        }
+        if (off < 0 || len < 0 || off + len > b.length) {
+            throw new IndexOutOfBoundsException();
+        }
 
-    protected final Class<?> defineClass(String name, byte[] b, int off, int len) throws ClassFormatError {
-        // TODO
-        // This is like `defineClass(byte[], int, int)`, but throws NCDFE if the
-        // name of the class doesn't match the given name
-        return null;
+        return this.defineClassNative(b, off, len);
     }
+    protected final native Class<?> defineClassNative(byte[] b, int off, int len) throws ClassFormatError;
+
+    // This is like `defineClass(byte[], int, int)`, but throws NCDFE if the
+    // name of the class doesn't match the given name
+    protected final Class<?> defineClass(String name, byte[] b, int off, int len) throws ClassFormatError {
+        if (name == null || b == null) {
+            throw new NullPointerException();
+        }
+        if (off < 0 || len < 0 || off + len > b.length) {
+            throw new IndexOutOfBoundsException();
+        }
+
+        return this.defineClassNative(name, b, off, len);
+    }
+    protected final native Class<?> defineClassNative(String name, byte[] b, int off, int len) throws ClassFormatError;
 
     protected final Class<?> defineClass(String name, byte[] b, int off, int len, ProtectionDomain protectionDomain) throws ClassFormatError {
         // Protection domain not yet implemented

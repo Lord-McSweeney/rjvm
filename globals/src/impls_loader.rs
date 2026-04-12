@@ -1,5 +1,8 @@
 use alloc::boxed::Box;
-use rjvm_core::{ClassLoader, Context, Error, JvmString, NativeMethod, Object, Value};
+use alloc::vec::Vec;
+use rjvm_core::{
+    Class, ClassFile, ClassLoader, Context, Error, JvmString, NativeMethod, Object, Value,
+};
 
 pub fn register_native_mappings(context: &Context) {
     #[rustfmt::skip]
@@ -8,6 +11,9 @@ pub fn register_native_mappings(context: &Context) {
         ("java/lang/ClassLoader.findLoadedClassNative.(Ljava/lang/String;)Ljava/lang/Class;", find_loaded_class),
         ("java/lang/ClassLoader.loadBootstrapClassNative.(Ljava/lang/String;)Ljava/lang/Class;", load_bootstrap_class_native),
         ("java/lang/Class.forNameNative.(Ljava/lang/String;Ljava/lang/ClassLoader;)Ljava/lang/Class;", for_name_native),
+
+        ("java/lang/ClassLoader.defineClassNative.([BII)Ljava/lang/Class;", define_class_nameless),
+        ("java/lang/ClassLoader.defineClassNative.(Ljava/lang/String;[BII)Ljava/lang/Class;", define_class_named),
 
         ("jvm/internal/ClassLoaderUtils.makePlatformLoader.(Ljava/lang/ClassLoader;)V", make_platform_loader),
         ("jvm/internal/ClassLoaderUtils.makeSystemLoader.(Ljava/lang/ClassLoader;Ljava/lang/ClassLoader;)V", make_sys_loader),
@@ -127,6 +133,72 @@ fn for_name_native(context: &Context, args: &[Value]) -> Result<Option<Value>, E
         // a `ClassNotFoundException`.
         Ok(Some(Value::Object(None)))
     }
+}
+
+fn define_class_nameless(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
+    // Reciver should never be null
+    let loader_obj = args[0].object().unwrap();
+    let loader_id = loader_obj.get_field(0).int();
+    let class_loader = context.class_loader_object_by_id(loader_id);
+
+    let data = args[1].object().unwrap();
+    let data = data.array_data().as_byte_array();
+
+    let start = args[2].int() as usize;
+    let length = args[3].int() as usize;
+
+    let data = data
+        .iter()
+        .skip(start)
+        .take(length)
+        .map(|b| b.get() as u8)
+        .collect::<Vec<_>>();
+
+    let class_file = ClassFile::from_data(context.gc_ctx, data)
+        .map_err(|e| Error::from_class_file_error(context, e))?;
+
+    let class = Class::from_class_file(&context, class_loader, class_file)?;
+
+    class_loader.define_class(class);
+
+    class.run_clinit(context)?;
+
+    let class = class.get_or_init_object(context);
+    Ok(Some(Value::Object(Some(class))))
+}
+
+fn define_class_named(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
+    // Reciver should never be null
+    let loader_obj = args[0].object().unwrap();
+    let loader_id = loader_obj.get_field(0).int();
+    let class_loader = context.class_loader_object_by_id(loader_id);
+
+    // TODO verify that the name matches
+
+    let data = args[2].object().unwrap();
+    let data = data.array_data().as_byte_array();
+
+    let start = args[3].int() as usize;
+    let length = args[4].int() as usize;
+
+    let data = data
+        .iter()
+        .skip(start)
+        .take(length)
+        .map(|b| b.get() as u8)
+        .collect::<Vec<_>>();
+
+    let class_file = ClassFile::from_data(context.gc_ctx, data)
+        .map_err(|e| Error::from_class_file_error(context, e))?;
+
+    let class = Class::from_class_file(&context, class_loader, class_file)?;
+
+    class_loader.define_class(class);
+
+    class.run_clinit(context)?;
+
+    let class = class.get_or_init_object(context);
+    Ok(Some(Value::Object(Some(class))))
 }
 
 fn make_platform_loader(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {

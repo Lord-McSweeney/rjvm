@@ -91,6 +91,19 @@ impl ClassLoader {
         self.0.load_sources.borrow_mut().push(source);
     }
 
+    /// Register a [`Class`] in this class loader's registry.
+    ///
+    /// This method will silently fail if a class with the given class's name
+    /// already exists in the registry.
+    pub fn define_class(&self, class: Class) {
+        let class_name = class.name();
+        let mut registry = self.0.class_registry.borrow_mut();
+
+        if !registry.contains_key(&class_name) {
+            registry.insert(class_name, class);
+        }
+    }
+
     fn register_class(&self, class: Class) {
         let class_name = class.name();
         let mut registry = self.0.class_registry.borrow_mut();

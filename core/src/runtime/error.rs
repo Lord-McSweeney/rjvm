@@ -20,7 +20,7 @@ impl fmt::Debug for Error {
 }
 
 impl Error {
-    pub(crate) fn from_class_file_error(context: &Context, error: ClassFileError) -> Error {
+    pub fn from_class_file_error(context: &Context, error: ClassFileError) -> Error {
         let message = match error {
             ClassFileError::ConstantPoolIndexOutOfBounds => "Out-of-bounds constant pool index",
             ClassFileError::ConstantPoolInvalidEntry => "Invalid constant pool entry",

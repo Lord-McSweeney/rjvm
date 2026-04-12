@@ -12,6 +12,9 @@ use crate::string::JvmString;
 use alloc::boxed::Box;
 use alloc::vec::Vec;
 
+/// A parsed but not-yet-resolved class file.
+///
+/// This struct can be resolved using the [`Class::from_class_file`] method.
 #[derive(Clone, Copy)]
 pub struct ClassFile(Gc<ClassFileData>);
 
@@ -101,7 +104,7 @@ impl ClassFile {
         )))
     }
 
-    pub fn constant_pool(&self) -> &ConstantPool {
+    pub(crate) fn constant_pool(&self) -> &ConstantPool {
         &self.0.constant_pool
     }
 
@@ -121,15 +124,15 @@ impl ClassFile {
         &self.0.interfaces
     }
 
-    pub fn fields(&self) -> &[Field] {
+    pub(crate) fn fields(&self) -> &[Field] {
         &self.0.fields
     }
 
-    pub fn methods(&self) -> &[Method] {
+    pub(crate) fn methods(&self) -> &[Method] {
         &self.0.methods
     }
 
-    pub fn attributes(&self) -> &[Attribute] {
+    pub(crate) fn attributes(&self) -> &[Attribute] {
         &self.0.attributes
     }
 }

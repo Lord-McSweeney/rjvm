@@ -1,5 +1,6 @@
 use crate::reader::ReadError;
 
+/// An error encountered while parsing a class file.
 #[derive(Debug)]
 pub enum Error {
     ConstantPoolIndexOutOfBounds,
