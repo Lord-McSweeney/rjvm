@@ -7,6 +7,11 @@ public class Modifier {
     public static final int STATIC       = 0x0008;
     public static final int FINAL        = 0x0010;
     public static final int SYNCHRONIZED = 0x0020;
+    public static final int VOLATILE     = 0x0040;
+    public static final int TRANSIENT    = 0x0080;
+    public static final int NATIVE       = 0x0100;
+    public static final int INTERFACE    = 0x0200;
+    public static final int ABSTRACT     = 0x0400;
 
     public static boolean isPublic(int mod) {
         return (mod & Modifier.PUBLIC) != 0;
@@ -30,5 +35,25 @@ public class Modifier {
 
     public static boolean isSynchronized(int mod) {
         return (mod & Modifier.SYNCHRONIZED) != 0;
+    }
+
+    public static boolean isVolatile(int mod) {
+        return (mod & Modifier.VOLATILE) != 0;
+    }
+
+    public static boolean isTransient(int mod) {
+        return (mod & Modifier.TRANSIENT) != 0;
+    }
+
+    public static boolean isNative(int mod) {
+        return (mod & Modifier.NATIVE) != 0;
+    }
+
+    public static boolean isInterface(int mod) {
+        return (mod & Modifier.INTERFACE) != 0;
+    }
+
+    public static boolean isAbstract(int mod) {
+        return (mod & Modifier.ABSTRACT) != 0;
     }
 }
