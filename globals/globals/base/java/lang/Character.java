@@ -34,6 +34,14 @@ public final class Character extends Number implements Comparable<Character> {
         }
     }
 
+    public static int charCount(int codePoint) {
+        if (codePoint >= 0x10000) {
+            return 2;
+        } else {
+            return 1;
+        }
+    }
+
     public static int digit(char c, int radix) {
         Todo.warnNotImpl("java.lang.Character.digit");
 

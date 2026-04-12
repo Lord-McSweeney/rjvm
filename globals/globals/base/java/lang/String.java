@@ -371,6 +371,10 @@ public final class String implements CharSequence, Comparable<String> {
         return this.data.length;
     }
 
+    public boolean isEmpty() {
+        return this.data.length == 0;
+    }
+
     public native String intern();
 
     public int compareTo(String other) {
