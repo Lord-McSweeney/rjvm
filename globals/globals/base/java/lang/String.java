@@ -111,9 +111,20 @@ public final class String implements CharSequence, Comparable<String> {
     }
 
     public boolean equalsIgnoreCase(String other) {
-        Todo.warnNotImpl("java.lang.String.equalsIgnoreCase");
+        if (this.length() == other.length()) {
+            for (int i = 0; i < this.data.length; i ++) {
+                char thisLowerCase = Character.toLowerCase(this.data[i]);
+                char otherLowerCase = Character.toLowerCase(this.data[i]);
 
-        return this.equals(other);
+                if (thisLowerCase != otherLowerCase) {
+                    return false;
+                }
+            }
+
+            return true;
+        } else {
+            return false;
+        }
     }
 
     public byte[] getBytes() {
