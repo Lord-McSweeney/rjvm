@@ -42,6 +42,11 @@ public final class Character extends Number implements Comparable<Character> {
         }
     }
 
+    public static char[] toChars(int codePoint) {
+        // TODO implement
+        return new char[]{(char) codePoint};
+    }
+
     public static int digit(char c, int radix) {
         Todo.warnNotImpl("java.lang.Character.digit");
 

@@ -92,6 +92,11 @@ public final class StringBuilder extends AbstractStringBuilder implements CharSe
         }
     }
 
+    public StringBuilder appendCodePoint(int codePoint) {
+        char[] chars = Character.toChars(codePoint);
+        return this.append(chars);
+    }
+
     public void setLength(int newLength) {
         if (newLength < 0) {
             throw new IndexOutOfBoundsException();
