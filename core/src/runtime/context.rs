@@ -615,6 +615,23 @@ impl Context {
 
     #[inline(never)]
     #[cold]
+    pub fn linkage_error(&self, class_name: &str) -> Error {
+        let error_class = self.builtins().java_lang_linkage_error;
+
+        let error_instance = error_class.new_instance(self.gc_ctx);
+        self.fill_stack_trace(error_instance);
+
+        // Set the `message` field
+        error_instance.set_field(
+            THROWABLE_MESSAGE_FIELD,
+            Value::Object(Some(self.str_to_string(&class_name))),
+        );
+
+        Error(error_instance)
+    }
+
+    #[inline(never)]
+    #[cold]
     pub fn negative_array_size_exception(&self) -> Error {
         let exception_class = self.builtins().java_lang_negative_array_size_exception;
 

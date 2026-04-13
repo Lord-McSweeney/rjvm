@@ -44,6 +44,7 @@ pub struct BuiltinClasses {
     pub java_lang_incompatible_class_change_error: Class,
     pub java_lang_instantiation_error: Class,
     pub java_lang_instantiation_exception: Class,
+    pub java_lang_linkage_error: Class,
     pub java_lang_negative_array_size_exception: Class,
     pub java_lang_no_class_def_found_error: Class,
     pub java_lang_no_such_field_error: Class,
@@ -80,6 +81,7 @@ impl BuiltinClasses {
             java_lang_incompatible_class_change_error: object_class,
             java_lang_instantiation_error: object_class,
             java_lang_instantiation_exception: object_class,
+            java_lang_linkage_error: object_class,
             java_lang_negative_array_size_exception: object_class,
             java_lang_no_class_def_found_error: object_class,
             java_lang_no_such_field_error: object_class,
@@ -117,6 +119,7 @@ impl BuiltinClasses {
                 ("java/lang/IncompatibleClassChangeError", java_lang_incompatible_class_change_error),
                 ("java/lang/InstantiationError", java_lang_instantiation_error),
                 ("java/lang/InstantiationException", java_lang_instantiation_exception),
+                ("java/lang/LinkageError", java_lang_linkage_error),
                 ("java/lang/NegativeArraySizeException", java_lang_negative_array_size_exception),
                 ("java/lang/NoClassDefFoundError", java_lang_no_class_def_found_error),
                 ("java/lang/NoSuchFieldError", java_lang_no_such_field_error),
@@ -202,6 +205,7 @@ impl Trace for BuiltinClasses {
         self.java_lang_incompatible_class_change_error.trace();
         self.java_lang_instantiation_error.trace();
         self.java_lang_instantiation_exception.trace();
+        self.java_lang_linkage_error.trace();
         self.java_lang_negative_array_size_exception.trace();
         self.java_lang_no_class_def_found_error.trace();
         self.java_lang_no_such_field_error.trace();

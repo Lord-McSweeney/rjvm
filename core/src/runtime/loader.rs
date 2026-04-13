@@ -93,25 +93,21 @@ impl ClassLoader {
 
     /// Register a [`Class`] in this class loader's registry.
     ///
-    /// This method will silently fail if a class with the given class's name
+    /// This method will return an error if a class with the given class's name
     /// already exists in the registry.
-    pub fn define_class(&self, class: Class) {
+    pub fn define_class(&self, context: &Context, class: Class) -> Result<(), Error> {
         let class_name = class.name();
         let mut registry = self.0.class_registry.borrow_mut();
 
         if !registry.contains_key(&class_name) {
             registry.insert(class_name, class);
-        }
-    }
 
-    fn register_class(&self, class: Class) {
-        let class_name = class.name();
-        let mut registry = self.0.class_registry.borrow_mut();
-
-        if registry.contains_key(&class_name) {
-            panic!("Attempted to register class {} twice", class_name);
+            Ok(())
         } else {
-            registry.insert(class_name, class);
+            Err(context.linkage_error(&format!(
+                "attempted duplicate class definition for {}",
+                class_name
+            )))
         }
     }
 
@@ -197,9 +193,9 @@ impl ClassLoader {
                 let class_file = ClassFile::from_data(context.gc_ctx, data)
                     .map_err(|e| Error::from_class_file_error(context, e))?;
 
-                let class = Class::from_class_file(&context, self, class_file)?;
+                let class = Class::from_class_file(context, self, class_file)?;
 
-                self.register_class(class);
+                self.define_class(context, class)?;
 
                 Ok(Some(class))
             } else {
@@ -234,7 +230,9 @@ impl ClassLoader {
                 .array_classes
                 .borrow_mut()
                 .insert(descriptor, created_class);
-            self.register_class(created_class);
+            self.define_class(context, created_class)
+                .expect("Array class didn't already exist");
+
             created_class
         }
     }

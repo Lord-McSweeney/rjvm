@@ -35,6 +35,7 @@ If you want to replace or edit the classes defined here, be sure to keep the fol
 - `java/lang/IncompatibleClassChangeError`
 - `java/lang/InstantiationError`
 - `java/lang/InstantiationException`
+- `java/lang/LinkageError`
 - `java/lang/NegativeArraySizeException`
 - `java/lang/NoClassDefFoundError`
 - `java/lang/NoSuchFieldError`

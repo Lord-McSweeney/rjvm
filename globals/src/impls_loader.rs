@@ -29,18 +29,22 @@ fn register_as_loader(context: &Context, args: &[Value]) -> Result<Option<Value>
     // Reciever should never be null
     let class_loader_obj = args[0].object().unwrap();
 
+    // Determine the parent loader- this will be the bootstrap loader for
+    // `new ClassLoader(null)`
     let parent_obj = args[1].object();
-    let parent_loader = parent_obj.map(|o| {
-        let parent_id = o.get_field(0).int();
+    let parent_loader = parent_obj
+        .map(|o| {
+            let parent_id = o.get_field(0).int();
 
-        context.class_loader_object_by_id(parent_id)
-    });
+            context.class_loader_object_by_id(parent_id)
+        })
+        .unwrap_or(context.bootstrap_loader());
 
     // We are passed an invalid loader object and are supposed to make it
     // into a valid loader
     let loader = ClassLoader::with_parent(
         context.gc_ctx,
-        parent_loader,
+        Some(parent_loader),
         class_loader_obj,
         context.loader_backend,
     );
@@ -159,7 +163,7 @@ fn define_class_nameless(context: &Context, args: &[Value]) -> Result<Option<Val
 
     let class = Class::from_class_file(&context, class_loader, class_file)?;
 
-    class_loader.define_class(class);
+    class_loader.define_class(context, class)?;
 
     class.run_clinit(context)?;
 
@@ -173,7 +177,9 @@ fn define_class_named(context: &Context, args: &[Value]) -> Result<Option<Value>
     let loader_id = loader_obj.get_field(0).int();
     let class_loader = context.class_loader_object_by_id(loader_id);
 
-    // TODO verify that the name matches
+    // String should never be null
+    let class_name = args[1].object().unwrap();
+    let class_name = Context::string_object_to_string(class_name);
 
     let data = args[2].object().unwrap();
     let data = data.array_data().as_byte_array();
@@ -193,12 +199,20 @@ fn define_class_named(context: &Context, args: &[Value]) -> Result<Option<Value>
 
     let class = Class::from_class_file(&context, class_loader, class_file)?;
 
-    class_loader.define_class(class);
+    if *class.name() == class_name {
+        class_loader.define_class(context, class)?;
 
-    class.run_clinit(context)?;
+        class.run_clinit(context)?;
 
-    let class = class.get_or_init_object(context);
-    Ok(Some(Value::Object(Some(class))))
+        let class = class.get_or_init_object(context);
+        Ok(Some(Value::Object(Some(class))))
+    } else {
+        Err(context.no_class_def_found_error(&format!(
+            "{} (wrong name: {})",
+            class_name,
+            class.name()
+        )))
+    }
 }
 
 fn make_platform_loader(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
