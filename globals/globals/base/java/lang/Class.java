@@ -2,6 +2,7 @@ package java.lang;
 
 import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
 import java.lang.reflect.GenericDeclaration;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -66,6 +67,11 @@ public final class Class<T> implements AnnotatedElement, GenericDeclaration, Typ
     public native Class<?>[] getInterfaces();
 
     public native Class<?> getDeclaringClass();
+
+    public Class<?>[] getDeclaredClasses() {
+        // TODO implement
+        return new Class<?>[0];
+    }
 
     public native ClassLoader getClassLoader();
 
@@ -232,6 +238,11 @@ public final class Class<T> implements AnnotatedElement, GenericDeclaration, Typ
         }
     }
     private native Method getMethodNative(String name, Class[] parameterTypes);
+
+    public Field[] getDeclaredFields() {
+        // TODO
+        return new Field[0];
+    }
 
     public ProtectionDomain getProtectionDomain() {
         // TODO implement
