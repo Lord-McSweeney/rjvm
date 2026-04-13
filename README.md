@@ -5,14 +5,15 @@
 - not-painfully-slow interpreter
 - All language features before Java 7 except for threads
 - I/O operations, including file I/O (only for native platforms)
-- support for some classes in the `java.io`, `java.lang`, and `java.util` packages
+- support for many classes in the `java.io`, `java.lang`, and `java.util` packages
+- implementations for most `ClassLoader` and reflection methods
 - ability to run Java on the browser through WASM
 - `no_std` support
     - `alloc` is still required
 
 ## Upcoming features
+- Proper encoding/decoding
 - Implementations for the remaining stack operations
-- More `ClassLoader` features
 - Windows support
 - Array type verification in verifier
 - Object class verification in verifier
