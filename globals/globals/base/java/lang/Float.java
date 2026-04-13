@@ -11,6 +11,10 @@ public final class Float extends Number {
 
     // TODO: Implement equals and compareTo with NaN comparison rules
 
+    public int intValue() {
+        return (int) this.value;
+    }
+
     public float floatValue() {
         return this.value;
     }

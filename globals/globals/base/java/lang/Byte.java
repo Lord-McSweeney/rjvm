@@ -22,6 +22,10 @@ public final class Byte extends Number implements Comparable<Byte> {
         return this.value;
     }
 
+    public int intValue() {
+        return (int) this.value;
+    }
+
     public static Byte valueOf(byte b) {
         return new Byte(b);
     }

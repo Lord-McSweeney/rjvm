@@ -24,6 +24,14 @@ public final class Character extends Number implements Comparable<Character> {
         }
     }
 
+    public char charValue() {
+        return this.value;
+    }
+
+    public int intValue() {
+        return (int) this.value;
+    }
+
     public int compareTo(Character other) {
         if (this.value < other.value) {
             return -1;

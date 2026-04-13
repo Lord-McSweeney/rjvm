@@ -309,6 +309,19 @@ public final class String implements CharSequence, Comparable<String> {
         return -1;
     }
 
+    public String toLowerCase() {
+        // FIXME optimize
+
+        char[] copy = new char[this.data.length];
+        System.arraycopy(this.data, 0, copy, 0, this.data.length);
+
+        for (int i = 0; i < copy.length; i ++) {
+            copy[i] = Character.toLowerCase(copy[i]);
+        }
+
+        return new String(copy);
+    }
+
     public String replace(char search, char replace) {
         char[] copy = new char[this.data.length];
         System.arraycopy(this.data, 0, copy, 0, this.data.length);

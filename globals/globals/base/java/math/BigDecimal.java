@@ -9,6 +9,10 @@ public class BigDecimal extends Number implements Comparable<BigDecimal> {
         // TODO implement
     }
 
+    public int intValue() {
+        return 0;
+    }
+
     public int compareTo(BigDecimal other) {
         Todo.warnNotImpl("java.math.BigDecimal.compareTo");
 

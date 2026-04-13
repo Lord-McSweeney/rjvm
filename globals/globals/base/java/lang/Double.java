@@ -28,6 +28,10 @@ public final class Double extends Number {
 
     // TODO: Implement equals and compareTo with NaN comparison rules
 
+    public int intValue() {
+        return (int) this.value;
+    }
+
     public double doubleValue() {
         return this.value;
     }
