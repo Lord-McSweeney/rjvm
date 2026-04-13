@@ -71,6 +71,8 @@ public final class Class<T> implements AnnotatedElement, GenericDeclaration, Typ
 
     public native boolean isInstance(Object obj);
 
+    public native boolean isAssignableFrom(Class<?> cls);
+
     public native int getModifiers();
 
     public T[] getEnumConstants() {

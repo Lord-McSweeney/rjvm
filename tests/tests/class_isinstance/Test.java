@@ -12,5 +12,11 @@ public class Test {
         System.out.println(Class.class.isInstance(Test.class));
         System.out.println(String.class.isInstance(""));
         System.out.println(String.class.isInstance(new Object()));
+        System.out.println(Object[].class.isInstance(new Object()));
+        System.out.println(Object[].class.isInstance(new Object[0]));
+        System.out.println(Object[].class.isInstance(new Integer[0]));
+        System.out.println(Integer[].class.isInstance(new Integer[0]));
+        System.out.println(Integer[].class.isInstance(null));
+        System.out.println(Integer[].class.isInstance(new Object()));
     }
 }

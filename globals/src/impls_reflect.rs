@@ -25,6 +25,7 @@ pub fn register_native_mappings(context: &Context) {
         ("java/lang/reflect/Method.getDeclaringClass.()Ljava/lang/Class;", exec_get_declaring_class),
         ("java/lang/reflect/Method.getName.()Ljava/lang/String;", method_get_name),
         ("java/lang/Class.isInstance.(Ljava/lang/Object;)Z", class_is_instance),
+        ("java/lang/Class.isAssignableFrom.(Ljava/lang/Class;)Z", class_is_assignable_from),
         ("java/lang/Class.getModifiers.()I", class_get_modifiers),
         ("java/lang/reflect/Method.getModifiers.()I", exec_get_modifiers),
         ("java/lang/reflect/Constructor.getModifiers.()I", exec_get_modifiers),
@@ -342,6 +343,25 @@ fn class_is_instance(context: &Context, args: &[Value]) -> Result<Option<Value>,
 
     let object = args[1].object();
     if object.is_some_and(|o| o.class().check_cast(class)) {
+        Ok(Some(Value::Integer(1)))
+    } else {
+        Ok(Some(Value::Integer(0)))
+    }
+}
+
+fn class_is_assignable_from(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
+    // Receiver should never be null
+    let class_obj = args[0].object().unwrap();
+    let class_id = class_obj.get_field(0).int();
+    let class = context.class_object_by_id(class_id);
+
+    let Some(checked_class_obj) = args[1].object() else {
+        return Err(context.null_pointer_exception());
+    };
+    let checked_class_id = checked_class_obj.get_field(0).int();
+    let checked_class = context.class_object_by_id(checked_class_id);
+
+    if checked_class.check_cast(class) {
         Ok(Some(Value::Integer(1)))
     } else {
         Ok(Some(Value::Integer(0)))
