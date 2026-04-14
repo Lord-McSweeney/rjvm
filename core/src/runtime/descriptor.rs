@@ -304,7 +304,7 @@ impl ResolvedDescriptor {
     /// If this is a `ResolvedDescriptor::Array` or `ResolvedDescriptor::Class`,
     /// return the class directly. Otherwise, return the primitive class
     /// corresponding to this `ResolvedDescriptor`.
-    pub fn reflection_class(self, gc_ctx: GcCtx) -> Class {
+    pub fn reflection_class(self, context: &Context) -> Class {
         let primitive_type = match self {
             ResolvedDescriptor::Class(class) | ResolvedDescriptor::Array(class) => {
                 return class;
@@ -320,7 +320,7 @@ impl ResolvedDescriptor {
             ResolvedDescriptor::Void => PrimitiveType::Void,
         };
 
-        Class::for_primitive(gc_ctx, primitive_type)
+        context.primitive_class_for(primitive_type)
     }
 
     /// Whether this `ResolvedDescriptor` represents a primitive.

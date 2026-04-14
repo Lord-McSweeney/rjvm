@@ -1,8 +1,8 @@
 use alloc::boxed::Box;
 use alloc::vec::Vec;
 use rjvm_core::{
-    Context, Descriptor, Error, JvmString, MethodFlags, NativeMethod, Object, PrimitiveType,
-    ResolvedDescriptor, Value,
+    Context, Descriptor, Error, FieldTemplate, JvmString, MethodFlags, NativeMethod, Object,
+    PrimitiveType, ResolvedDescriptor, Value,
 };
 
 pub fn register_native_mappings(context: &Context) {
@@ -30,10 +30,14 @@ pub fn register_native_mappings(context: &Context) {
         ("java/lang/reflect/Method.getModifiers.()I", exec_get_modifiers),
         ("java/lang/reflect/Constructor.getModifiers.()I", exec_get_modifiers),
         ("java/lang/reflect/Method.invokeNative.(Ljava/lang/Object;[Ljava/lang/Object;)Ljava/lang/Object;", invoke_native),
-        ("java/lang/Class.getDeclaredMethods.()[Ljava/lang/reflect/Method;", get_declared_methods),
+        ("java/lang/Class.getDeclaredMethodsNative.()[Ljava/lang/reflect/Method;", get_declared_methods),
+        ("java/lang/Class.getDeclaredFieldsNative.()[Ljava/lang/reflect/Field;", get_declared_fields),
         ("java/lang/Class.getInterfaces.()[Ljava/lang/Class;", class_get_interfaces),
         ("java/lang/Class.getDeclaringClass.()Ljava/lang/Class;", class_get_declaring_class),
         ("java/lang/reflect/Array.newInstanceNative.(Ljava/lang/Class;I)Ljava/lang/Object;", array_new_instance_native),
+        ("java/lang/reflect/Field.getDeclaringClass.()Ljava/lang/Class;", field_get_declaring_class),
+        ("java/lang/reflect/Field.getName.()Ljava/lang/String;", field_get_name),
+        ("java/lang/reflect/Field.getType.()Ljava/lang/Class;", field_get_type),
     ];
 
     context.register_native_mappings(mappings);
@@ -179,7 +183,7 @@ fn exec_get_parameter_types(context: &Context, args: &[Value]) -> Result<Option<
 
     let resulting_classes = params
         .iter()
-        .map(|p| p.reflection_class(context.gc_ctx))
+        .map(|p| p.reflection_class(context))
         .map(|c| Some(c.get_or_init_object(context)))
         .collect::<Box<[_]>>();
 
@@ -201,7 +205,7 @@ fn method_get_return_type(context: &Context, args: &[Value]) -> Result<Option<Va
     let descriptor = method.get_or_init_resolved_descriptor(context)?;
     let return_type = descriptor
         .return_type()
-        .reflection_class(context.gc_ctx)
+        .reflection_class(context)
         .get_or_init_object(context);
 
     Ok(Some(Value::Object(Some(return_type))))
@@ -496,6 +500,42 @@ fn get_declared_methods(context: &Context, args: &[Value]) -> Result<Option<Valu
     Ok(Some(Value::Object(Some(created_array))))
 }
 
+fn get_declared_fields(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
+    // Receiver should never be null
+    let class_obj = args[0].object().unwrap();
+    let class_id = class_obj.get_field(0).int();
+    let class = context.class_object_by_id(class_id);
+
+    let static_fields = class.static_fields();
+
+    let instance_fields = class.instance_fields();
+    let num_superclass_fields = class.super_class().map_or(0, |c| c.instance_fields().len());
+
+    let mut result =
+        Vec::with_capacity(static_fields.len() + (instance_fields.len() - num_superclass_fields));
+
+    for (i, field) in static_fields.iter().enumerate() {
+        if field.defining_class() == class {
+            result.push(FieldTemplate::for_static_field(context, class, i));
+        }
+    }
+
+    for i in 0..instance_fields.len() {
+        // Only use fields that aren't also present in the superclass
+        // (since those fields are inherited)
+        if i >= num_superclass_fields {
+            result.push(FieldTemplate::for_instance_field(context, class, i));
+        }
+    }
+
+    let result = result.iter().map(|m| Some(m.object())).collect::<Box<_>>();
+
+    let created_array =
+        Object::obj_array(context, context.builtins().java_lang_reflect_field, result);
+
+    Ok(Some(Value::Object(Some(created_array))))
+}
+
 fn class_get_interfaces(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
     // Receiver should never be null
     let class_obj = args[0].object().unwrap();
@@ -588,4 +628,41 @@ fn array_new_instance_native(context: &Context, args: &[Value]) -> Result<Option
     };
 
     Ok(Some(Value::Object(Some(array_object))))
+}
+
+fn field_get_declaring_class(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
+    // Receiver should never be null
+    let field_obj = args[0].object().unwrap();
+    let field_id = field_obj.get_field(0).int();
+    let field = context.field_object_by_id(field_id);
+
+    let object = field.defining_class().get_or_init_object(context);
+
+    Ok(Some(Value::Object(Some(object))))
+}
+
+fn field_get_name(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
+    // Receiver should never be null
+    let field_obj = args[0].object().unwrap();
+    let field_id = field_obj.get_field(0).int();
+    let field = context.field_object_by_id(field_id);
+
+    let name_obj = context.str_to_string(&field.name());
+
+    Ok(Some(Value::Object(Some(name_obj))))
+}
+
+fn field_get_type(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
+    // Receiver should never be null
+    let field_obj = args[0].object().unwrap();
+    let field_id = field_obj.get_field(0).int();
+    let field = context.field_object_by_id(field_id);
+
+    let resolved_desc = field.get_or_init_resolved_descriptor(context)?;
+
+    let object = resolved_desc
+        .reflection_class(context)
+        .get_or_init_object(context);
+
+    Ok(Some(Value::Object(Some(object))))
 }

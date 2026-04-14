@@ -3,6 +3,7 @@ use super::call_stack::CallStack;
 use super::class::{Class, PrimitiveType};
 use super::descriptor::MethodDescriptor;
 use super::error::Error;
+use super::field::FieldTemplate;
 use super::intern::InternedStrings;
 use super::loader::{ClassLoader, LoaderBackend, ResourceLoadSource};
 use super::method::{Method, NativeMethod};
@@ -58,6 +59,10 @@ pub struct Context {
     // A list of class loaders that have an associated `java.lang.ClassLoader`.
     // Java code stores an index into this array.
     java_class_loaders: Gc<RefCell<Vec<ClassLoader>>>,
+
+    // A list of fields that have an associated `java.lang.reflect.Field`.
+    // Java code stores an index into this array.
+    java_fields: Gc<RefCell<Vec<FieldTemplate>>>,
 
     // All interned Java String objects.
     interned_strings: Gc<RefCell<InternedStrings>>,
@@ -150,6 +155,7 @@ impl Context {
             java_classes: Gc::new(gc_ctx, RefCell::new(Vec::new())),
             java_executables: Gc::new(gc_ctx, RefCell::new(Vec::new())),
             java_class_loaders: Gc::new(gc_ctx, RefCell::new(Vec::new())),
+            java_fields: Gc::new(gc_ctx, RefCell::new(Vec::new())),
             interned_strings: Gc::new(gc_ctx, RefCell::new(InternedStrings::new())),
             method_descriptor_cache: Gc::new(gc_ctx, RefCell::new(method_descriptor_cache)),
             primitive_classes: Gc::new(gc_ctx, primitive_classes),
@@ -280,6 +286,17 @@ impl Context {
 
     pub fn class_loader_object_by_id(&self, id: i32) -> ClassLoader {
         self.java_class_loaders.borrow()[id as usize]
+    }
+
+    pub fn add_field_object(&self, field: FieldTemplate) -> i32 {
+        let mut borrow = self.java_fields.borrow_mut();
+        borrow.push(field);
+
+        borrow.len() as i32 - 1
+    }
+
+    pub fn field_object_by_id(&self, id: i32) -> FieldTemplate {
+        self.java_fields.borrow()[id as usize]
     }
 
     pub fn intern_string_obj(&self, new_string: Object) -> Object {
@@ -730,6 +747,7 @@ impl Trace for Context {
         self.java_classes.trace();
         self.java_executables.trace();
         self.java_class_loaders.trace();
+        self.java_fields.trace();
         self.interned_strings.trace();
         self.method_descriptor_cache.trace();
         self.primitive_classes.trace();

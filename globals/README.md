@@ -48,6 +48,7 @@ If you want to replace or edit the classes defined here, be sure to keep the fol
 - `java/lang/Throwable`
 - `java/lang/VerifyError`
 - `java/lang/reflect/Constructor`
+- `java/lang/reflect/Field`
 - `java/lang/reflect/Method`
 
 These are critical to the JVM and it will panic on startup if they are missing.

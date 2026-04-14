@@ -1,7 +1,8 @@
 use super::class::Class;
 use super::context::Context;
-use super::descriptor::Descriptor;
+use super::descriptor::{Descriptor, ResolvedDescriptor};
 use super::error::Error;
+use super::object::Object;
 use super::read_macros::read_u16_be;
 use super::value::Value;
 
@@ -14,7 +15,7 @@ use crate::reader::{FileData, Reader};
 use crate::string::JvmString;
 
 use alloc::vec::Vec;
-use core::cell::Cell;
+use core::cell::{Cell, OnceCell};
 
 // IMPORTANT NOTE: DON'T MAKE THIS Copy, WE NEED TO CREATE AN ACTUAL CLONE OF
 // THE FIELD FOR OBJECT CREATION
@@ -58,7 +59,7 @@ impl Field {
         self.flags
     }
 
-    pub fn name(self) -> JvmString {
+    pub fn name(&self) -> JvmString {
         self.name
     }
 
@@ -205,4 +206,148 @@ fn field_constant_value(
     }
 
     Ok(None)
+}
+
+#[derive(Clone, Copy)]
+pub struct FieldTemplate(Gc<FieldTemplateData>);
+
+struct FieldTemplateData {
+    defining_class: Class,
+
+    name: JvmString,
+
+    descriptor: Descriptor,
+
+    resolved_descriptor: OnceCell<ResolvedDescriptor>,
+
+    flags: FieldFlags,
+
+    id: usize,
+
+    is_static: bool,
+
+    object: Object,
+}
+
+impl FieldTemplate {
+    pub fn for_static_field(context: &Context, defining_class: Class, id: usize) -> Self {
+        let static_field = defining_class.static_fields()[id];
+
+        let object = Object::field_object(context);
+
+        let this = Self(Gc::new(
+            context.gc_ctx,
+            FieldTemplateData {
+                defining_class,
+                name: static_field.name(),
+                descriptor: static_field.descriptor(),
+                resolved_descriptor: OnceCell::new(),
+                flags: static_field.flags(),
+                id,
+                is_static: true,
+                object,
+            },
+        ));
+
+        // We can't initialize the field object until constructing an instance
+        // of `FieldTemplate`
+        let id = context.add_field_object(this);
+        object.set_field(0, Value::Integer(id));
+
+        this
+    }
+
+    pub fn for_instance_field(context: &Context, defining_class: Class, id: usize) -> Self {
+        let instance_field = &defining_class.instance_fields()[id];
+
+        let object = Object::field_object(context);
+
+        let this = Self(Gc::new(
+            context.gc_ctx,
+            FieldTemplateData {
+                defining_class,
+                name: instance_field.name(),
+                descriptor: instance_field.descriptor(),
+                resolved_descriptor: OnceCell::new(),
+                flags: instance_field.flags(),
+                id,
+                is_static: false,
+                object,
+            },
+        ));
+
+        // We can't initialize the field object until constructing an instance
+        // of `FieldTemplate`
+        let id = context.add_field_object(this);
+        object.set_field(0, Value::Integer(id));
+
+        this
+    }
+    pub fn get_or_init_resolved_descriptor(
+        self,
+        context: &Context,
+    ) -> Result<ResolvedDescriptor, Error> {
+        if let Some(desc) = self.0.resolved_descriptor.get() {
+            Ok(*desc)
+        } else {
+            let loader = self
+                .defining_class()
+                .loader()
+                .expect("Class of field should have loader");
+
+            let result = ResolvedDescriptor::from_descriptor(context, loader, self.descriptor())?;
+
+            self.0
+                .resolved_descriptor
+                .set(result)
+                .map_err(|_| ())
+                .expect("Not yet set");
+
+            Ok(result)
+        }
+    }
+
+    pub fn defining_class(self) -> Class {
+        self.0.defining_class
+    }
+
+    pub fn name(self) -> JvmString {
+        self.0.name
+    }
+
+    pub fn descriptor(self) -> Descriptor {
+        self.0.descriptor
+    }
+
+    pub fn flags(self) -> FieldFlags {
+        self.0.flags
+    }
+
+    pub fn id(self) -> usize {
+        self.0.id
+    }
+
+    pub fn is_static(self) -> bool {
+        self.0.is_static
+    }
+
+    pub fn object(self) -> Object {
+        self.0.object
+    }
+}
+
+impl Trace for FieldTemplate {
+    fn trace(&self) {
+        self.0.trace();
+    }
+}
+
+impl Trace for FieldTemplateData {
+    fn trace(&self) {
+        self.defining_class.trace();
+        self.name.trace();
+        self.descriptor.trace();
+        self.resolved_descriptor.trace();
+        self.object.trace();
+    }
 }

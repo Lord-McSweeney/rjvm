@@ -109,6 +109,27 @@ impl Object {
         ))
     }
 
+    /// Creates a new instance of java.lang.reflect.Field. The caller is
+    /// responsible for making it a valid `Field` object (see how
+    /// `FieldTemplate::for_static_field` does it).
+    pub(crate) fn field_object(context: &Context) -> Self {
+        let field_class = context.builtins().java_lang_reflect_field;
+
+        let fields = field_class
+            .instance_fields()
+            .iter()
+            .map(|f| Cell::new(f.value()))
+            .collect::<Box<_>>();
+
+        Self(Gc::new(
+            context.gc_ctx,
+            ObjectData {
+                class: field_class,
+                data: FieldOrArrayData::Fields(fields),
+            },
+        ))
+    }
+
     /// Creates a new array of bools (`bool[]`) from the provided data.
     pub fn bool_array(context: &Context, data: Box<[i8]>) -> Self {
         let class = context.primitive_arrays().array_bool;

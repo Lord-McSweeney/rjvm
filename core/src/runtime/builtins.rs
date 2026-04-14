@@ -51,6 +51,7 @@ pub struct BuiltinClasses {
     pub java_lang_no_such_method_error: Class,
     pub java_lang_null_pointer_exception: Class,
     pub java_lang_reflect_constructor: Class,
+    pub java_lang_reflect_field: Class,
     pub java_lang_reflect_method: Class,
     pub java_lang_stack_trace_element: Class,
     pub java_lang_system: Class,
@@ -88,6 +89,7 @@ impl BuiltinClasses {
             java_lang_no_such_method_error: object_class,
             java_lang_null_pointer_exception: object_class,
             java_lang_reflect_constructor: object_class,
+            java_lang_reflect_field: object_class,
             java_lang_reflect_method: object_class,
             java_lang_stack_trace_element: object_class,
             java_lang_system: object_class,
@@ -126,6 +128,7 @@ impl BuiltinClasses {
                 ("java/lang/NoSuchMethodError", java_lang_no_such_method_error),
                 ("java/lang/NullPointerException", java_lang_null_pointer_exception),
                 ("java/lang/reflect/Constructor", java_lang_reflect_constructor),
+                ("java/lang/reflect/Field", java_lang_reflect_field),
                 ("java/lang/reflect/Method", java_lang_reflect_method),
                 ("java/lang/StackTraceElement", java_lang_stack_trace_element),
                 ("java/lang/System", java_lang_system),
@@ -212,6 +215,7 @@ impl Trace for BuiltinClasses {
         self.java_lang_no_such_method_error.trace();
         self.java_lang_null_pointer_exception.trace();
         self.java_lang_reflect_constructor.trace();
+        self.java_lang_reflect_field.trace();
         self.java_lang_reflect_method.trace();
         self.java_lang_stack_trace_element.trace();
         self.java_lang_system.trace();

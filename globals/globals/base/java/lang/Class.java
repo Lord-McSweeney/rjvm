@@ -204,11 +204,22 @@ public final class Class<T> implements AnnotatedElement, GenericDeclaration, Typ
     }
     private static native Class<?> forNameNative(String name, ClassLoader loader);
 
+    // Get constructors
+
     public native Constructor<?>[] getConstructors();
 
     public native Constructor<?>[] getDeclaredConstructors();
 
-    public native Method[] getDeclaredMethods();
+    // Get methods
+
+    private Method[] cachedDeclaredMethods;
+    public Method[] getDeclaredMethods() {
+        if (this.cachedDeclaredMethods == null) {
+            this.cachedDeclaredMethods = this.getDeclaredMethodsNative();
+        }
+        return this.cachedDeclaredMethods.clone();
+    }
+    private native Method[] getDeclaredMethodsNative();
 
     public Method getMethod(String name, Class<?>... parameterTypes) throws NoSuchMethodException {
         if (name == null) {
@@ -239,10 +250,16 @@ public final class Class<T> implements AnnotatedElement, GenericDeclaration, Typ
     }
     private native Method getMethodNative(String name, Class[] parameterTypes);
 
+    // Get fields
+
+    private Field[] cachedDeclaredFields;
     public Field[] getDeclaredFields() {
-        // TODO
-        return new Field[0];
+        if (this.cachedDeclaredFields == null) {
+            this.cachedDeclaredFields = this.getDeclaredFieldsNative();
+        }
+        return this.cachedDeclaredFields.clone();
     }
+    private native Field[] getDeclaredFieldsNative();
 
     public ProtectionDomain getProtectionDomain() {
         // TODO implement

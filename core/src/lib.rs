@@ -23,6 +23,7 @@ pub use crate::runtime::descriptor::{
     Descriptor, MethodDescriptor, ResolvedDescriptor, ResolvedMethodDescriptor,
 };
 pub use crate::runtime::error::Error;
+pub use crate::runtime::field::FieldTemplate;
 pub use crate::runtime::loader::{ClassLoader, LoaderBackend, ResourceLoadSource};
 pub use crate::runtime::method::{Method, NativeMethod};
 pub use crate::runtime::object::Object;
