@@ -323,6 +323,10 @@ impl FieldTemplate {
         self.0.flags
     }
 
+    pub fn modifiers(self) -> u16 {
+        self.0.flags.bits()
+    }
+
     pub fn id(self) -> usize {
         self.0.id
     }

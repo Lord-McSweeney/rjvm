@@ -38,6 +38,7 @@ pub fn register_native_mappings(context: &Context) {
         ("java/lang/reflect/Field.getDeclaringClass.()Ljava/lang/Class;", field_get_declaring_class),
         ("java/lang/reflect/Field.getName.()Ljava/lang/String;", field_get_name),
         ("java/lang/reflect/Field.getType.()Ljava/lang/Class;", field_get_type),
+        ("java/lang/reflect/Field.getModifiers.()I", field_get_modifiers),
     ];
 
     context.register_native_mappings(mappings);
@@ -665,4 +666,13 @@ fn field_get_type(context: &Context, args: &[Value]) -> Result<Option<Value>, Er
         .get_or_init_object(context);
 
     Ok(Some(Value::Object(Some(object))))
+}
+
+fn field_get_modifiers(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
+    // Receiver should never be null
+    let field_obj = args[0].object().unwrap();
+    let field_id = field_obj.get_field(0).int();
+    let field = context.field_object_by_id(field_id);
+
+    Ok(Some(Value::Integer(field.modifiers() as i32)))
 }

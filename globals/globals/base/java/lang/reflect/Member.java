@@ -4,4 +4,6 @@ public interface Member {
     Class<?> getDeclaringClass();
 
     String getName();
+
+    int getModifiers();
 }

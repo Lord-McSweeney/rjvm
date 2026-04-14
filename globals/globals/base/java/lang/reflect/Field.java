@@ -11,4 +11,6 @@ public final class Field extends AccessibleObject implements Member {
     public native String getName();
 
     public native Class<?> getType();
+
+    public native int getModifiers();
 }

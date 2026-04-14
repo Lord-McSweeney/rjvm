@@ -26,6 +26,7 @@ public class Test extends Abc {
             System.out.println(field.getName());
             System.out.println("    " + field.getDeclaringClass());
             System.out.println("    " + field.getType());
+            System.out.println("    " + field.getModifiers());
         }
     }
     
