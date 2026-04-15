@@ -9,8 +9,23 @@ class ArrayListIterator<E> implements ListIterator<E> {
         this.index = index;
     }
 
+    public boolean hasPrevious() {
+        return this.index != 0;
+    }
+
     public boolean hasNext() {
         return this.index < this.data.size();
+    }
+
+    public E previous() {
+        if (this.index == 0) {
+            throw new NoSuchElementException();
+        }
+
+        this.index -= 1;
+        E element = this.data.get(this.index);
+
+        return element;
     }
 
     public E next() {
