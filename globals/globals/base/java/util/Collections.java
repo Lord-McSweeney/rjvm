@@ -25,6 +25,10 @@ public class Collections {
         return EMPTY_LIST;
     }
 
+    public static final <T> List<T> singletonList(T item) {
+        return new SingletonList<T>(item);
+    }
+
     public static final <K, V> Map<K, V> emptyMap() {
         return EMPTY_MAP;
     }
@@ -106,6 +110,30 @@ class EmptyList<E> extends AbstractList<E> {
     }
 }
 
+class SingletonList<E> extends AbstractList<E> {
+    private E value;
+
+    SingletonList(E value) {
+        this.value = value;
+    }
+
+    public Iterator<E> iterator() {
+        return new SingleIterator<E>(this.value);
+    }
+
+    public E get(int index) {
+        if (index == 0) {
+            return this.value;
+        } else {
+            throw new IndexOutOfBoundsException();
+        }
+    }
+
+    public int size() {
+        return 1;
+    }
+}
+
 class EmptyMap<K, V> implements Map<K, V> {
     EmptyMap() { }
 
@@ -176,6 +204,29 @@ class EmptyIterator<E> implements Iterator<E> {
 
     public E next() {
         throw new NoSuchElementException();
+    }
+}
+
+class SingleIterator<E> implements Iterator<E> {
+    private E value;
+    private boolean hasNext;
+
+    SingleIterator(E value) {
+        this.value = value;
+        this.hasNext = true;
+    }
+    public boolean hasNext() {
+        return this.hasNext;
+    }
+
+    public E next() {
+        if (!this.hasNext) {
+            throw new NoSuchElementException();
+        }
+
+        this.hasNext = false;
+
+        return this.value;
     }
 }
 
