@@ -224,14 +224,14 @@ struct FieldTemplateData {
 
     id: usize,
 
-    is_static: bool,
-
     object: Object,
 }
 
 impl FieldTemplate {
     pub fn for_static_field(context: &Context, defining_class: Class, id: usize) -> Self {
         let static_field = defining_class.static_fields()[id];
+
+        assert!(static_field.flags().contains(FieldFlags::STATIC));
 
         let object = Object::field_object(context);
 
@@ -244,13 +244,14 @@ impl FieldTemplate {
                 resolved_descriptor: OnceCell::new(),
                 flags: static_field.flags(),
                 id,
-                is_static: true,
                 object,
             },
         ));
 
-        // We can't initialize the field object until constructing an instance
-        // of `FieldTemplate`
+        // We can't initialize the `Field` object until we actually construct the
+        // instance of `FieldTemplate`. Now that the instance has been
+        // constructed, we can do it.
+
         let id = context.add_field_object(this);
         object.set_field(0, Value::Integer(id));
 
@@ -259,6 +260,8 @@ impl FieldTemplate {
 
     pub fn for_instance_field(context: &Context, defining_class: Class, id: usize) -> Self {
         let instance_field = &defining_class.instance_fields()[id];
+
+        assert!(!instance_field.flags().contains(FieldFlags::STATIC));
 
         let object = Object::field_object(context);
 
@@ -271,13 +274,14 @@ impl FieldTemplate {
                 resolved_descriptor: OnceCell::new(),
                 flags: instance_field.flags(),
                 id,
-                is_static: false,
                 object,
             },
         ));
 
-        // We can't initialize the field object until constructing an instance
-        // of `FieldTemplate`
+        // We can't initialize the `Field` object until we actually construct the
+        // instance of `FieldTemplate`. Now that the instance has been
+        // constructed, we can do it.
+
         let id = context.add_field_object(this);
         object.set_field(0, Value::Integer(id));
 
@@ -332,7 +336,7 @@ impl FieldTemplate {
     }
 
     pub fn is_static(self) -> bool {
-        self.0.is_static
+        self.0.flags.contains(FieldFlags::STATIC)
     }
 
     pub fn object(self) -> Object {
