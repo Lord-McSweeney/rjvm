@@ -29,23 +29,20 @@ public class Test extends Abc {
             System.out.println("    " + field.getType());
             System.out.println("    " + field.getModifiers());
 
-            // TODO remove this `isPrimitive` check once it's implemented
-            if (!field.getType().isPrimitive()) {
-                try {
-                    System.out.println("    Read with get(null): " + field.get(null));
-                } catch(Exception e) {
-                    System.out.println("    Read with get(null): error " + e.getClass());
-                }
-                try {
-                    System.out.println("    Read with get(Test.class): " + field.get(Test.class));
-                } catch(Exception e) {
-                    System.out.println("    Read with get(Test.class): error " + e.getClass());
-                }
-                try {
-                    System.out.println("    Read with get(new Test()): " + field.get(new Test()));
-                } catch(Exception e) {
-                    System.out.println("    Read with get(new Test()): error " + e.getClass());
-                }
+            try {
+                System.out.println("    Read with get(null): " + field.get(null));
+            } catch(Exception e) {
+                System.out.println("    Read with get(null): error " + e.getClass());
+            }
+            try {
+                System.out.println("    Read with get(Test.class): " + field.get(Test.class));
+            } catch(Exception e) {
+                System.out.println("    Read with get(Test.class): error " + e.getClass());
+            }
+            try {
+                System.out.println("    Read with get(new Test()): " + field.get(new Test()));
+            } catch(Exception e) {
+                System.out.println("    Read with get(new Test()): error " + e.getClass());
             }
         }
     }

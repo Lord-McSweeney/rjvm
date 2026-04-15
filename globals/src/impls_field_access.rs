@@ -3,14 +3,23 @@ use rjvm_core::{Context, Error, NativeMethod, Value};
 pub fn register_native_mappings(context: &Context) {
     #[rustfmt::skip]
     let mappings: &[(&str, NativeMethod)] = &[
-        ("java/lang/reflect/FieldAccess.getObjectStaticNative.(Ljava/lang/reflect/Field;)Ljava/lang/Object;", get_object_static),
-        ("java/lang/reflect/FieldAccess.getObjectInstanceNative.(Ljava/lang/reflect/Field;Ljava/lang/Object;)Ljava/lang/Object;", get_object_instance),
+        ("java/lang/reflect/FieldAccess.getFloatStaticNative.(Ljava/lang/reflect/Field;)F", get_static_field),
+        ("java/lang/reflect/FieldAccess.getFloatInstanceNative.(Ljava/lang/reflect/Field;Ljava/lang/Object;)F", get_instance_field),
+
+        ("java/lang/reflect/FieldAccess.getIntStaticNative.(Ljava/lang/reflect/Field;)I", get_static_field),
+        ("java/lang/reflect/FieldAccess.getIntInstanceNative.(Ljava/lang/reflect/Field;Ljava/lang/Object;)I", get_instance_field),
+
+        ("java/lang/reflect/FieldAccess.getLongStaticNative.(Ljava/lang/reflect/Field;)J", get_static_field),
+        ("java/lang/reflect/FieldAccess.getLongInstanceNative.(Ljava/lang/reflect/Field;Ljava/lang/Object;)J", get_instance_field),
+
+        ("java/lang/reflect/FieldAccess.getObjectStaticNative.(Ljava/lang/reflect/Field;)Ljava/lang/Object;", get_static_field),
+        ("java/lang/reflect/FieldAccess.getObjectInstanceNative.(Ljava/lang/reflect/Field;Ljava/lang/Object;)Ljava/lang/Object;", get_instance_field),
     ];
 
     context.register_native_mappings(mappings);
 }
 
-fn get_object_static(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
+fn get_static_field(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
     // Field should never be null
     let field_obj = args[0].object().unwrap();
     let field_id = field_obj.get_field(0).int();
@@ -19,13 +28,13 @@ fn get_object_static(context: &Context, args: &[Value]) -> Result<Option<Value>,
     let cls = field.defining_class();
     let id = field.id();
 
-    // Guaranteed to be a `Value::Object` by Java code
+    // Guaranteed to be a `Value::Integer` by Java code
     let value = cls.static_fields()[id].value();
 
     Ok(Some(value))
 }
 
-fn get_object_instance(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
+fn get_instance_field(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
     // Field should never be null
     let field_obj = args[0].object().unwrap();
     let field_id = field_obj.get_field(0).int();
@@ -36,7 +45,7 @@ fn get_object_instance(context: &Context, args: &[Value]) -> Result<Option<Value
 
     let id = field.id();
 
-    // Guaranteed to be a `Value::Object` by Java code
+    // Guaranteed to be a `Value::Integer` by Java code
     let value = object.get_field(id);
 
     Ok(Some(value))

@@ -30,11 +30,11 @@ public final class Field extends AccessibleObject implements Member {
             } else if (typeCls == double.class) {
                 throw new Error("TODO - static double field get");
             } else if (typeCls == float.class) {
-                throw new Error("TODO - static float field get");
+                return FieldAccess.getFloatStaticNative(this);
             } else if (typeCls == int.class) {
-                throw new Error("TODO - static int field get");
+                return FieldAccess.getIntStaticNative(this);
             } else if (typeCls == long.class) {
-                throw new Error("TODO - static long field get");
+                return FieldAccess.getLongStaticNative(this);
             } else if (typeCls == short.class) {
                 throw new Error("TODO - static short field get");
             } else {
@@ -57,11 +57,11 @@ public final class Field extends AccessibleObject implements Member {
             } else if (typeCls == double.class) {
                 throw new Error("TODO - instance double field get");
             } else if (typeCls == float.class) {
-                throw new Error("TODO - instance float field get");
+                return FieldAccess.getFloatInstanceNative(this, receiver);
             } else if (typeCls == int.class) {
-                throw new Error("TODO - instance int field get");
+                return FieldAccess.getIntInstanceNative(this, receiver);
             } else if (typeCls == long.class) {
-                throw new Error("TODO - instance long field get");
+                return FieldAccess.getLongInstanceNative(this, receiver);
             } else if (typeCls == short.class) {
                 throw new Error("TODO - instance short field get");
             } else {
@@ -73,6 +73,15 @@ public final class Field extends AccessibleObject implements Member {
 
 // A class containing simple native implementations for field access.
 class FieldAccess {
+    static native float getFloatStaticNative(Field field);
+    static native float getFloatInstanceNative(Field field, Object receiver);
+
+    static native int getIntStaticNative(Field field);
+    static native int getIntInstanceNative(Field field, Object receiver);
+
+    static native long getLongStaticNative(Field field);
+    static native long getLongInstanceNative(Field field, Object receiver);
+
     static native Object getObjectStaticNative(Field field);
     static native Object getObjectInstanceNative(Field field, Object receiver);
 }
