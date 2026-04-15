@@ -65,6 +65,14 @@ public class DataOutputStream extends FilterOutputStream {
         this.written += 8;
     }
 
+    public final void writeFloat(float value) throws IOException {
+        this.writeInt(Float.floatToIntBits(value));
+    }
+
+    public final void writeDouble(double value) throws IOException {
+        this.writeLong(Double.doubleToLongBits(value));
+    }
+
     public final void writeUTF(String str) throws IOException {
         // TODO encode properly
 

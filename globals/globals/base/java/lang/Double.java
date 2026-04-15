@@ -54,7 +54,7 @@ public final class Double extends Number {
     }
 
     public boolean isNaN() {
-        return Double.isNaN(value);
+        return Double.isNaN(this.value);
     }
 
     public static boolean isNaN(double value) {

@@ -10,6 +10,7 @@ pub fn register_native_mappings(context: &Context) {
         ("java/lang/Throwable.internalFillInStackTrace.()[Ljava/lang/StackTraceElement;", capture_stack_trace),
         ("java/lang/Object.hashCode.()I", object_hash_code),
         ("java/lang/String.intern.()Ljava/lang/String;", string_intern),
+        ("java/lang/Float.floatToRawIntBits.(F)I", float_to_raw_int_bits),
         ("java/lang/Double.doubleToRawLongBits.(D)J", double_to_raw_long_bits),
 
         ("java/nio/charset/Charset.stringToUtf8.(Ljava/lang/String;)[B", string_to_utf8),
@@ -71,6 +72,13 @@ fn string_intern(context: &Context, args: &[Value]) -> Result<Option<Value>, Err
     let interned = context.intern_string_obj(string_obj);
 
     Ok(Some(Value::Object(Some(interned))))
+}
+
+fn float_to_raw_int_bits(_context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
+    let float = args[0].float();
+    let bits = f32::to_bits(float);
+
+    Ok(Some(Value::Integer(bits as i32)))
 }
 
 fn double_to_raw_long_bits(_context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
