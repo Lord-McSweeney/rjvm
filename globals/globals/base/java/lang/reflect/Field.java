@@ -28,7 +28,7 @@ public final class Field extends AccessibleObject implements Member {
             } else if (typeCls == char.class) {
                 throw new Error("TODO - static char field get");
             } else if (typeCls == double.class) {
-                throw new Error("TODO - static double field get");
+                return FieldAccess.getDoubleStaticNative(this);
             } else if (typeCls == float.class) {
                 return FieldAccess.getFloatStaticNative(this);
             } else if (typeCls == int.class) {
@@ -55,7 +55,7 @@ public final class Field extends AccessibleObject implements Member {
             } else if (typeCls == char.class) {
                 throw new Error("TODO - instance char field get");
             } else if (typeCls == double.class) {
-                throw new Error("TODO - instance double field get");
+                return FieldAccess.getDoubleInstanceNative(this, receiver);
             } else if (typeCls == float.class) {
                 return FieldAccess.getFloatInstanceNative(this, receiver);
             } else if (typeCls == int.class) {
@@ -73,6 +73,9 @@ public final class Field extends AccessibleObject implements Member {
 
 // A class containing simple native implementations for field access.
 class FieldAccess {
+    static native double getDoubleStaticNative(Field field);
+    static native double getDoubleInstanceNative(Field field, Object receiver);
+
     static native float getFloatStaticNative(Field field);
     static native float getFloatInstanceNative(Field field, Object receiver);
 

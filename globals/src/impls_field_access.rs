@@ -3,6 +3,9 @@ use rjvm_core::{Context, Error, NativeMethod, Value};
 pub fn register_native_mappings(context: &Context) {
     #[rustfmt::skip]
     let mappings: &[(&str, NativeMethod)] = &[
+        ("java/lang/reflect/FieldAccess.getDoubleStaticNative.(Ljava/lang/reflect/Field;)D", get_static_field),
+        ("java/lang/reflect/FieldAccess.getDoubleInstanceNative.(Ljava/lang/reflect/Field;Ljava/lang/Object;)D", get_instance_field),
+
         ("java/lang/reflect/FieldAccess.getFloatStaticNative.(Ljava/lang/reflect/Field;)F", get_static_field),
         ("java/lang/reflect/FieldAccess.getFloatInstanceNative.(Ljava/lang/reflect/Field;Ljava/lang/Object;)F", get_instance_field),
 
