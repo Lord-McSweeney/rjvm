@@ -32,6 +32,14 @@ public final class Double extends Number {
         return (int) this.value;
     }
 
+    public float floatValue() {
+        return (float) this.value;
+    }
+
+    public long longValue() {
+        return (long) this.value;
+    }
+
     public double doubleValue() {
         return this.value;
     }

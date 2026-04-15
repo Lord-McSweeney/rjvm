@@ -51,6 +51,18 @@ public final class Integer extends Number implements Comparable<Integer> {
         return this.value;
     }
 
+    public float floatValue() {
+        return (float) this.value;
+    }
+
+    public long longValue() {
+        return (long) this.value;
+    }
+
+    public double doubleValue() {
+        return (double) this.value;
+    }
+
     public static Integer valueOf(int integer) {
         // TODO
         return new Integer(integer);

@@ -48,8 +48,16 @@ public final class Long extends Number implements Comparable<Long> {
         return (int) this.value;
     }
 
+    public float floatValue() {
+        return (float) this.value;
+    }
+
     public long longValue() {
         return this.value;
+    }
+
+    public double doubleValue() {
+        return (double) this.value;
     }
 
     public static Long valueOf(long integer) {

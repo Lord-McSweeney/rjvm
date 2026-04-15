@@ -32,6 +32,18 @@ public final class Character extends Number implements Comparable<Character> {
         return (int) this.value;
     }
 
+    public float floatValue() {
+        return (float) this.value;
+    }
+
+    public long longValue() {
+        return (long) this.value;
+    }
+
+    public double doubleValue() {
+        return (double) this.value;
+    }
+
     public int compareTo(Character other) {
         if (this.value < other.value) {
             return -1;

@@ -13,6 +13,18 @@ public class BigDecimal extends Number implements Comparable<BigDecimal> {
         return 0;
     }
 
+    public float floatValue() {
+        return 0.0f;
+    }
+
+    public long longValue() {
+        return 0L;
+    }
+
+    public double doubleValue() {
+        return 0.0;
+    }
+
     public int compareTo(BigDecimal other) {
         Todo.warnNotImpl("java.math.BigDecimal.compareTo");
 

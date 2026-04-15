@@ -19,6 +19,14 @@ public final class Float extends Number {
         return this.value;
     }
 
+    public long longValue() {
+        return (long) this.value;
+    }
+
+    public double doubleValue() {
+        return (double) this.value;
+    }
+
     public static Float valueOf(float f) {
         return new Float(f);
     }

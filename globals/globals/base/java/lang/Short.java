@@ -29,6 +29,18 @@ public final class Short extends Number implements Comparable<Short> {
         return (int) this.value;
     }
 
+    public float floatValue() {
+        return (float) this.value;
+    }
+
+    public long longValue() {
+        return (long) this.value;
+    }
+
+    public double doubleValue() {
+        return (double) this.value;
+    }
+
     public static Short valueOf(short s) {
         return new Short(s);
     }
