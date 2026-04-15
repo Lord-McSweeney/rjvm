@@ -163,6 +163,10 @@ public final class Double extends Number {
         return result;
     }
 
+    public String toString() {
+        return Double.toString(this.value);
+    }
+
     // FIXME: Implement this correctly
     public static native String toString(double d);
 }

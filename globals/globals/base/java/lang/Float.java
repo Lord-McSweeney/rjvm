@@ -31,6 +31,10 @@ public final class Float extends Number {
         return new Float(f);
     }
 
+    public String toString() {
+        return Float.toString(this.value);
+    }
+
     // FIXME: Implement this correctly
     public static native String toString(float f);
 }
