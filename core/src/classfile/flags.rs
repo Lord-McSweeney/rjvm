@@ -1,6 +1,7 @@
 use bitflags::bitflags;
 
 bitflags! {
+    /// Flags modifying a class.
     #[derive(Clone, Copy, Debug)]
     pub struct ClassFlags: u16 {
         const PUBLIC     = 0x0001;

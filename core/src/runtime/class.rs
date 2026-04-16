@@ -88,8 +88,9 @@ impl fmt::Debug for Class {
 impl Class {
     /// Load a class from a class file, given the [`ClassLoader`] to use.
     ///
-    /// This method will not register the created `Class`; it is the caller's
-    /// responsibility to do so.
+    /// This method will not register the created `Class` in the `ClassLoader`'s
+    /// registry; it is the caller's responsibility to do so, using
+    /// [`ClassLoader::define_class`].
     pub fn from_class_file(
         context: &Context,
         loader: ClassLoader,

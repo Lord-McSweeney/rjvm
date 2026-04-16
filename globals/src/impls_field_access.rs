@@ -31,7 +31,6 @@ fn get_static_field(context: &Context, args: &[Value]) -> Result<Option<Value>, 
     let cls = field.defining_class();
     let id = field.id();
 
-    // Guaranteed to be a `Value::Integer` by Java code
     let value = cls.static_fields()[id].value();
 
     Ok(Some(value))
@@ -48,7 +47,6 @@ fn get_instance_field(context: &Context, args: &[Value]) -> Result<Option<Value>
 
     let id = field.id();
 
-    // Guaranteed to be a `Value::Integer` by Java code
     let value = object.get_field(id);
 
     Ok(Some(value))

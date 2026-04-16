@@ -17,8 +17,11 @@ use core::cell::RefCell;
 use core::fmt;
 use hashbrown::HashMap;
 
-/// A representation of a Java class loader. This implementation is not 100%
-/// correct, but it works for most use cases.
+/// A representation of a Java class loader.
+///
+/// This implementation is not 100% correct, but it works for most use cases.
+/// There are probably at least a few bugs with the way array classes are
+/// registered.
 #[derive(Clone, Copy)]
 pub struct ClassLoader(Gc<ClassLoaderData>);
 
@@ -125,7 +128,8 @@ impl ClassLoader {
         }
     }
 
-    /// Find an already-loaded class on this `ClassLoader`.
+    /// Find an already-loaded class on this `ClassLoader` (i.e. one that is
+    /// in the registry already).
     pub fn find_loaded_class(self, class_name: JvmString) -> Option<Class> {
         let class_registry = self.0.class_registry.borrow();
         class_registry.get(&class_name).copied()

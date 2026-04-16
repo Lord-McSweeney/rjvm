@@ -14,7 +14,9 @@ use alloc::vec::Vec;
 
 /// A parsed but not-yet-resolved class file.
 ///
-/// This struct can be resolved using the [`Class::from_class_file`] method.
+/// This struct can be resolved using the
+/// [`Class::from_class_file`][crate::runtime::class::Class::from_class_file]
+/// method.
 #[derive(Clone, Copy)]
 pub struct ClassFile(Gc<ClassFileData>);
 
@@ -34,6 +36,8 @@ struct ClassFileData {
 }
 
 impl ClassFile {
+    /// Parse a `ClassFile` from data, returning an [`Error`] if the class file
+    /// is malformed.
     pub fn from_data(gc_ctx: GcCtx, data: Vec<u8>) -> Result<Self, Error> {
         let mut reader = FileData::new(&data);
 
@@ -108,18 +112,22 @@ impl ClassFile {
         &self.0.constant_pool
     }
 
+    /// The modifiers (e.g. `abstract`, `final`, etc) of this class.
     pub fn flags(self) -> ClassFlags {
         self.0.flags
     }
 
+    /// The name of this class.
     pub fn this_class(self) -> JvmString {
         self.0.this_class
     }
 
+    /// The name of the superclass of this class, if it has one.
     pub fn super_class(self) -> Option<JvmString> {
         self.0.super_class
     }
 
+    /// The names of the interfaces of this class.
     pub fn interfaces(&self) -> &[JvmString] {
         &self.0.interfaces
     }

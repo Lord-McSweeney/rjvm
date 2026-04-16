@@ -12,7 +12,7 @@ mod string;
 
 pub use crate::classfile::class::ClassFile;
 pub use crate::classfile::error::Error as ClassFileError;
-pub use crate::classfile::flags::{FieldFlags, MethodFlags};
+pub use crate::classfile::flags::{ClassFlags, FieldFlags, MethodFlags};
 pub use crate::gc::{Gc, GcCtx, Trace};
 pub use crate::jar::Jar;
 pub use crate::reader::ReadError;
