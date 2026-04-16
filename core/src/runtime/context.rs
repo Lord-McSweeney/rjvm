@@ -131,22 +131,35 @@ impl Context {
         let bootstrap_loader = ClassLoader::bootstrap(gc_ctx, loader_backend);
 
         // Common data
-        let void_descriptor_name = JvmString::new(gc_ctx, "()V".to_string());
 
-        let noargs_void_desc = MethodDescriptor::new_from_string(gc_ctx, void_descriptor_name)
-            .expect("Valid descriptor");
+        // `()V` descriptor
+        let void_desc_name = JvmString::new(gc_ctx, "()V".to_string());
 
-        // We need the void descriptor to create `CommonData`, but we also need
-        // to insert it into the method descriptor cache, so we create the
-        // method descriptor cache now
+        let void_method_desc =
+            MethodDescriptor::new_from_string(gc_ctx, void_desc_name).expect("Valid descriptor");
+
+        // `()Ljava/lang/Object;` descriptor
+        let array_clone_desc_name = JvmString::new(gc_ctx, "()Ljava/lang/Object;".to_string());
+        let array_clone_method_desc =
+            MethodDescriptor::new_from_string(gc_ctx, array_clone_desc_name)
+                .expect("Valid descriptor");
+
+        // We need the method descriptors to create `CommonData`, but we also
+        // need to insert them into the method descriptor cache, so we create
+        // the method descriptor cache now
         let mut method_descriptor_cache = HashMap::new();
-        method_descriptor_cache.insert(void_descriptor_name, noargs_void_desc);
+        method_descriptor_cache.insert(void_desc_name, void_method_desc);
+        method_descriptor_cache.insert(array_clone_desc_name, array_clone_method_desc);
 
         let common = CommonData {
             init_name: JvmString::new(gc_ctx, "<init>".to_string()),
             clinit_name: JvmString::new(gc_ctx, "<clinit>".to_string()),
-            noargs_void_desc,
+            clone_name: JvmString::new(gc_ctx, "clone".to_string()),
+            void_method_desc,
+            array_clone_method_desc,
         };
+
+        // Finally, initialize the `Context`
 
         Self {
             loader_backend,
@@ -781,13 +794,19 @@ impl Trace for Context {
 pub struct CommonData {
     pub init_name: JvmString,
     pub clinit_name: JvmString,
-    pub noargs_void_desc: MethodDescriptor,
+    pub clone_name: JvmString,
+
+    pub void_method_desc: MethodDescriptor,
+    pub array_clone_method_desc: MethodDescriptor,
 }
 
 impl Trace for CommonData {
     fn trace(&self) {
         self.init_name.trace();
         self.clinit_name.trace();
-        self.noargs_void_desc.trace();
+        self.clone_name.trace();
+
+        self.void_method_desc.trace();
+        self.array_clone_method_desc.trace();
     }
 }

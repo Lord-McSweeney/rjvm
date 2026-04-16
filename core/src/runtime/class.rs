@@ -336,7 +336,7 @@ impl Class {
         });
 
         let clinit_string = context.common().clinit_name;
-        let void_descriptor = context.common().noargs_void_desc;
+        let void_descriptor = context.common().void_method_desc;
         // NOTE: This is `lookup_own` instead of `lookup` because class
         // initializers aren't inherited.
         let clinit_method_idx = static_method_vtable.lookup_own((clinit_string, void_descriptor));
@@ -398,24 +398,21 @@ impl Class {
             },
         ));
 
-        // TODO We should probably cache this
-        let clone_method_name = JvmString::new(context.gc_ctx, "clone".to_string());
+        let clone_name = context.common().clone_name;
+        let clone_method_desc = context.common().array_clone_method_desc;
 
-        let clone_descriptor = JvmString::new(context.gc_ctx, "()Ljava/lang/Object;".to_string());
-        let clone_method_descriptor =
-            MethodDescriptor::from_string(context, clone_descriptor).expect("Valid descriptor");
-
-        let clone_key = (clone_method_name, clone_method_descriptor);
+        // ("clone", ()Ljava/lang/Object;)
+        let clone_key = (clone_name, clone_method_desc);
 
         // Synthesize the `clone` method
         let clone_method = Method::for_native(
             context.gc_ctx,
-            array_clone_method,      // Method
-            clone_method_descriptor, // Descriptor
-            0,                       // Declared physical arg count
-            MethodFlags::PUBLIC,     // Flags
-            clone_method_name,       // Name
-            class,                   // Class
+            array_clone_method,  // Method
+            clone_method_desc,   // Descriptor
+            0,                   // Declared physical arg count
+            MethodFlags::PUBLIC, // Flags
+            clone_name,          // Name
+            class,               // Class
         );
 
         // Create vtable now
