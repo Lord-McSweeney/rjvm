@@ -4,6 +4,6 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-bitflags = "2.11.0"
-hashbrown = "0.16.1"
+bitflags = "2.11.1"
+hashbrown = "0.17.0"
 miniz_oxide = "0.9.1"
