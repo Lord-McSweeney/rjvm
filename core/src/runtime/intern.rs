@@ -64,14 +64,11 @@ impl InternedStrings {
     pub fn intern(&mut self, string_object: Object) -> Object {
         let new_object = StringObject::new(string_object);
 
-        // TODO use `get_or_insert` once it's stabilized
-        let existing_object = self.0.get(&new_object);
-        if let Some(existing_object) = existing_object {
-            existing_object.object
-        } else {
-            self.0.insert(new_object);
-            new_object.object
-        }
+        // If the string already exists in the set, return that. Otherwise,
+        // insert this one in.
+        let object = self.0.get_or_insert(new_object);
+
+        object.object
     }
 }
 
