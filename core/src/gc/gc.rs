@@ -28,9 +28,6 @@ struct GcBox<T> {
     /// The collection status of this Gc.
     status: Cell<CollectionStatus>,
 
-    /// The type-erased version of the previous Gc in the linked list of Gcs.
-    prev: Cell<Option<Gc<()>>>,
-
     /// The type-erased version of the next Gc in the linked list of Gcs.
     next: Cell<Option<Gc<()>>>,
 
@@ -100,7 +97,6 @@ impl<T> Gc<T> {
 
         let structure = GcBox {
             status: Cell::new(CollectionStatus::NotMarked),
-            prev: Cell::new(Some(gc_ctx.first_gc)),
             // It's now the next Gc of this Gc.
             next: Cell::new(previous_next),
             drop: |gc| {
@@ -127,11 +123,6 @@ impl<T> Gc<T> {
                 .as_ref()
                 .next
                 .set(Some(erased_created_gc));
-
-            // The "previous" of the previous "first" Gc is now this Gc.
-            if let Some(previous_next) = previous_next {
-                previous_next.ptr.as_ref().prev.set(Some(erased_created_gc));
-            }
         }
 
         created_gc
@@ -170,7 +161,6 @@ impl Gc<()> {
     fn new_empty() -> Self {
         let structure = GcBox {
             status: Cell::new(CollectionStatus::NotMarked),
-            prev: Cell::new(None),
             next: Cell::new(None),
             drop: |_| {
                 // Should be dropped manually
@@ -244,28 +234,27 @@ impl GcCtx {
 
             root.trace();
 
-            let mut current = Some(self.first_gc);
+            // No need to consider the `first_gc`, it's a dummy that is only
+            // used to make the linked list implementation easier
+            let mut current = self.first_gc.ptr.as_ref().next.get();
+            let mut previous = self.first_gc;
             while let Some(gc) = current {
                 let gc_box = gc.ptr.as_ref();
 
                 let status = gc_box.status.get();
-                let prev = gc_box.prev.get();
                 let next = gc_box.next.get();
 
-                if gc.ptr.as_ptr() as usize != self.first_gc.ptr.as_ptr() as usize {
-                    if matches!(status, CollectionStatus::NotMarked) {
-                        // Remove it from the linked list.
-                        if let Some(prev) = prev {
-                            prev.ptr.as_ref().next.set(next);
-                        }
+                if matches!(status, CollectionStatus::NotMarked) {
+                    // Remove it from the linked list.
+                    previous.ptr.as_ref().next.set(next);
 
-                        if let Some(next) = next {
-                            next.ptr.as_ref().prev.set(prev);
-                        }
-
-                        // Drop it.
-                        (gc_box.drop)(gc);
-                    }
+                    // Drop it.
+                    (gc_box.drop)(gc);
+                } else {
+                    // Set previous to this gc *only* if this gc wasn't
+                    // collected (i.e. in this `else` branch). previous remains
+                    // set to the first non-collected gc.
+                    previous = gc;
                 }
 
                 current = next;
