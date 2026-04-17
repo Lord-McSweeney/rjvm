@@ -576,17 +576,6 @@ impl Context {
 
     #[inline(never)]
     #[cold]
-    pub fn clone_not_supported_exception(&self) -> Error {
-        let exception_class = self.builtins().java_lang_clone_not_supported_exception;
-
-        let exception_instance = exception_class.new_instance(self.gc_ctx);
-        self.fill_stack_trace(exception_instance);
-
-        Error(exception_instance)
-    }
-
-    #[inline(never)]
-    #[cold]
     pub fn exception_in_initializer_error(&self, exception: Object) -> Error {
         let error_class = self.builtins().java_lang_exception_in_initializer_error;
 

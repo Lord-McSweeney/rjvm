@@ -6,7 +6,7 @@ pub fn register_native_mappings(context: &Context) {
     #[rustfmt::skip]
     let mappings: &[(&str, NativeMethod)] = &[
         ("java/lang/Object.getClass.()Ljava/lang/Class;", get_class),
-        ("java/lang/Object.clone.()Ljava/lang/Object;", object_clone),
+        ("java/lang/Object.cloneNative.()Ljava/lang/Object;", object_clone),
         ("java/lang/Throwable.internalFillInStackTrace.()[Ljava/lang/StackTraceElement;", capture_stack_trace),
         ("java/lang/Object.hashCode.()I", object_hash_code),
         ("java/lang/String.intern.()Ljava/lang/String;", string_intern),
@@ -35,18 +35,10 @@ fn get_class(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> 
 
 fn object_clone(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
     let this = args[0].object().unwrap();
-    let this_class = this.class();
 
-    let cloneable_iface = context.builtins().java_lang_cloneable;
-    let implements_cloneable = this_class.implements_interface(cloneable_iface);
+    let cloned_object = this.create_clone(context.gc_ctx());
 
-    if implements_cloneable || this_class.array_value_type().is_some() {
-        let cloned_object = this.create_clone(context.gc_ctx());
-
-        Ok(Some(Value::Object(Some(cloned_object))))
-    } else {
-        Err(context.clone_not_supported_exception())
-    }
+    Ok(Some(Value::Object(Some(cloned_object))))
 }
 
 fn capture_stack_trace(context: &Context, _args: &[Value]) -> Result<Option<Value>, Error> {

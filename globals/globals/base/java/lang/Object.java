@@ -17,5 +17,13 @@ public class Object {
         return this == other;
     }
 
-    protected native Object clone() throws CloneNotSupportedException;
+    protected Object clone() throws CloneNotSupportedException {
+        if (this instanceof Cloneable || this.getClass().isArray()) {
+            return this.cloneNative();
+        } else {
+            throw new CloneNotSupportedException();
+        }
+    }
+
+    private native Object cloneNative();
 }
