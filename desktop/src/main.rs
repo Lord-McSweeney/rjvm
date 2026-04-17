@@ -171,7 +171,7 @@ fn init_main_class(context: &Context, options: &PassedOptions) -> Result<Class, 
             let manifest_name = "META-INF/MANIFEST.MF".to_string();
 
             let jar_data =
-                Jar::from_bytes(context.gc_ctx, read_file).expect("Invalid jar file passed");
+                Jar::from_bytes(context.gc_ctx(), read_file).expect("Invalid jar file passed");
             context.add_system_jar(jar_data);
 
             let main_class_name = if let Some(main_class) = main_class {
@@ -198,7 +198,7 @@ fn init_main_class(context: &Context, options: &PassedOptions) -> Result<Class, 
         _ => unreachable!(),
     };
 
-    let class_name = JvmString::new(context.gc_ctx, class_name);
+    let class_name = JvmString::new(context.gc_ctx(), class_name);
 
     let main_class = context
         .system_loader()
@@ -242,10 +242,10 @@ Link options:
 
     // Load globals
     if options.load_globals {
-        let globals_base_jar = Jar::from_bytes(context.gc_ctx, GLOBALS_BASE_JAR.to_vec())
+        let globals_base_jar = Jar::from_bytes(context.gc_ctx(), GLOBALS_BASE_JAR.to_vec())
             .expect("Builtin globals should be valid");
         context.add_bootstrap_jar(globals_base_jar);
-        let globals_desktop_jar = Jar::from_bytes(context.gc_ctx, GLOBALS_DESKTOP_JAR.to_vec())
+        let globals_desktop_jar = Jar::from_bytes(context.gc_ctx(), GLOBALS_DESKTOP_JAR.to_vec())
             .expect("Builtin globals should be valid");
         context.add_bootstrap_jar(globals_desktop_jar);
 
@@ -263,7 +263,7 @@ Link options:
             }
         };
 
-        let linked_jar = Jar::from_bytes(context.gc_ctx, jar_data);
+        let linked_jar = Jar::from_bytes(context.gc_ctx(), jar_data);
 
         if let Ok(linked_jar) = linked_jar {
             context.add_bootstrap_jar(linked_jar);
@@ -290,7 +290,7 @@ Link options:
             }
         };
 
-        let linked_jar = Jar::from_bytes(context.gc_ctx, jar_data);
+        let linked_jar = Jar::from_bytes(context.gc_ctx(), jar_data);
 
         if let Ok(linked_jar) = linked_jar {
             context.add_system_jar(linked_jar);
@@ -327,8 +327,9 @@ Link options:
     )));
 
     // Call main method
-    let main_name = JvmString::new(context.gc_ctx, "main".to_string());
-    let main_descriptor_name = JvmString::new(context.gc_ctx, "([Ljava/lang/String;)V".to_string());
+    let main_name = JvmString::new(context.gc_ctx(), "main".to_string());
+    let main_descriptor_name =
+        JvmString::new(context.gc_ctx(), "([Ljava/lang/String;)V".to_string());
 
     let main_descriptor =
         MethodDescriptor::from_string(&context, main_descriptor_name).expect("Valid descriptor");
@@ -352,8 +353,8 @@ Link options:
     }
 
     unsafe {
-        context.gc_ctx.collect(&context);
+        context.gc_ctx().collect(&context);
 
-        context.gc_ctx.drop();
+        context.gc_ctx().drop();
     }
 }

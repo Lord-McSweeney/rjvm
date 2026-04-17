@@ -41,7 +41,7 @@ fn object_clone(context: &Context, args: &[Value]) -> Result<Option<Value>, Erro
     let implements_cloneable = this_class.implements_interface(cloneable_iface);
 
     if implements_cloneable || this_class.array_value_type().is_some() {
-        let cloned_object = this.create_clone(context.gc_ctx);
+        let cloned_object = this.create_clone(context.gc_ctx());
 
         Ok(Some(Value::Object(Some(cloned_object))))
     } else {

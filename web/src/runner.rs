@@ -34,7 +34,8 @@ fn init_main_class(
     let main_class_name = if is_jar {
         let manifest_name = "META-INF/MANIFEST.MF".to_string();
 
-        let jar_data = Jar::from_bytes(context.gc_ctx, read_file).expect("Invalid jar file passed");
+        let jar_data =
+            Jar::from_bytes(context.gc_ctx(), read_file).expect("Invalid jar file passed");
         context.add_system_jar(jar_data);
 
         let has_manifest = jar_data.has_file(&manifest_name);
@@ -51,7 +52,7 @@ fn init_main_class(
             return Err("Cannot execute JAR file without main class specified".to_string());
         };
 
-        JvmString::new(context.gc_ctx, main_class_name)
+        JvmString::new(context.gc_ctx(), main_class_name)
     } else {
         context
             .system_loader()
@@ -59,7 +60,7 @@ fn init_main_class(
 
         let class_name = class_name.strip_suffix(".class").unwrap_or(class_name);
 
-        JvmString::new(context.gc_ctx, class_name.to_string())
+        JvmString::new(context.gc_ctx(), class_name.to_string())
     };
 
     context
@@ -76,10 +77,10 @@ pub(crate) fn run_file(class_name: &str, class_data: &[u8], args: Vec<String>) {
     let context = Context::new(Box::new(loader));
 
     // Load globals
-    let globals_base_jar = Jar::from_bytes(context.gc_ctx, GLOBALS_BASE_JAR.to_vec())
+    let globals_base_jar = Jar::from_bytes(context.gc_ctx(), GLOBALS_BASE_JAR.to_vec())
         .expect("Builtin globals should be valid");
     context.add_bootstrap_jar(globals_base_jar);
-    let globals_desktop_jar = Jar::from_bytes(context.gc_ctx, GLOBALS_DESKTOP_JAR.to_vec())
+    let globals_desktop_jar = Jar::from_bytes(context.gc_ctx(), GLOBALS_DESKTOP_JAR.to_vec())
         .expect("Builtin globals should be valid");
     context.add_bootstrap_jar(globals_desktop_jar);
 
@@ -116,8 +117,9 @@ pub(crate) fn run_file(class_name: &str, class_data: &[u8], args: Vec<String>) {
     )));
 
     // Call main method
-    let main_name = JvmString::new(context.gc_ctx, "main".to_string());
-    let main_descriptor_name = JvmString::new(context.gc_ctx, "([Ljava/lang/String;)V".to_string());
+    let main_name = JvmString::new(context.gc_ctx(), "main".to_string());
+    let main_descriptor_name =
+        JvmString::new(context.gc_ctx(), "([Ljava/lang/String;)V".to_string());
 
     let main_descriptor =
         MethodDescriptor::from_string(&context, main_descriptor_name).expect("Valid descriptor");
@@ -144,8 +146,8 @@ pub(crate) fn run_file(class_name: &str, class_data: &[u8], args: Vec<String>) {
     }
 
     unsafe {
-        context.gc_ctx.collect(&context);
+        context.gc_ctx().collect(&context);
 
-        context.gc_ctx.drop();
+        context.gc_ctx().drop();
     }
 }

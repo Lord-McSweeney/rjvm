@@ -64,7 +64,7 @@ fn find_loaded_class(context: &Context, args: &[Value]) -> Result<Option<Value>,
 
     // Make `.`s `/`s
     let class_name = class_name.replace('.', "/");
-    let class_name = JvmString::new(context.gc_ctx, class_name);
+    let class_name = JvmString::new(context.gc_ctx(), class_name);
 
     let class = class_loader.find_loaded_class(class_name);
 
@@ -88,7 +88,7 @@ fn load_bootstrap_class_native(context: &Context, args: &[Value]) -> Result<Opti
 
     // Make `.`s `/`s
     let class_name = class_name.replace('.', "/");
-    let class_name = JvmString::new(context.gc_ctx, class_name);
+    let class_name = JvmString::new(context.gc_ctx(), class_name);
 
     // Unlike `loadSystemClassNative`, we do `load_class` instead of `find_class`
     // here
@@ -118,7 +118,7 @@ fn for_name_native(context: &Context, args: &[Value]) -> Result<Option<Value>, E
 
     // Make `.`s `/`s
     let class_name = class_name.replace('.', "/");
-    let class_name = JvmString::new(context.gc_ctx, class_name);
+    let class_name = JvmString::new(context.gc_ctx(), class_name);
 
     let class = class_loader.load_class(context, class_name)?;
 
@@ -153,7 +153,7 @@ fn define_class_nameless(context: &Context, args: &[Value]) -> Result<Option<Val
         .map(|b| b.get() as u8)
         .collect::<Vec<_>>();
 
-    let class_file = ClassFile::from_data(context.gc_ctx, data)
+    let class_file = ClassFile::from_data(context.gc_ctx(), data)
         .map_err(|e| Error::from_class_file_error(context, e))?;
 
     let class = Class::from_class_file(&context, class_loader, class_file)?;
@@ -189,7 +189,7 @@ fn define_class_named(context: &Context, args: &[Value]) -> Result<Option<Value>
         .map(|b| b.get() as u8)
         .collect::<Vec<_>>();
 
-    let class_file = ClassFile::from_data(context.gc_ctx, data)
+    let class_file = ClassFile::from_data(context.gc_ctx(), data)
         .map_err(|e| Error::from_class_file_error(context, e))?;
 
     let class = Class::from_class_file(&context, class_loader, class_file)?;
@@ -252,7 +252,7 @@ fn load_sys_class_native(context: &Context, args: &[Value]) -> Result<Option<Val
 
     // Make `.`s `/`s
     let class_name = class_name.replace('.', "/");
-    let class_name = JvmString::new(context.gc_ctx, class_name);
+    let class_name = JvmString::new(context.gc_ctx(), class_name);
 
     let class = class_loader.find_class(context, class_name)?;
 

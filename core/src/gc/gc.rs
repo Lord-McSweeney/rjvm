@@ -214,9 +214,9 @@ pub struct GcCtx {
 
 impl GcCtx {
     // SAFETY NOTE: Allowing user code to create new instances of `GcCtx` allows
-    // it to set `context.gc_ctx` to a new field, which is (obviously) unsound.
-    // Until we figure out a way to prevent user code from setting
-    // `context.gc_ctx`, `GcCtx::new` needs to be crate-private.
+    // it to use it to insert `Gc`s allocated in it into the runtime, which is
+    // unsound. Until we figure out a way to prevent user code from doing so,
+    // this is `pub(crate)`.
     pub(crate) fn new() -> Self {
         Self {
             first_gc: Gc::new_empty(),

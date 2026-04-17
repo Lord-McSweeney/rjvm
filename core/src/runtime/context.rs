@@ -108,8 +108,10 @@ pub struct Context {
     // Common strings and descriptors.
     common: CommonData,
 
-    // The GC context.
-    pub gc_ctx: GcCtx,
+    // The GC context. We want this to be easily accessible in the crate, and
+    // we know that we won't modify it (doing so is a soundness violation),
+    // so it's `pub(crate)`.
+    pub(crate) gc_ctx: GcCtx,
 }
 
 impl Context {
@@ -224,6 +226,10 @@ impl Context {
         let result = method.exec(self);
 
         result
+    }
+
+    pub fn gc_ctx(&self) -> GcCtx {
+        self.gc_ctx
     }
 
     pub fn set_gc_threshold(&self, gc_threshold: u32) {

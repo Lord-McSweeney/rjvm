@@ -160,7 +160,7 @@ fn new_instance_native(context: &Context, args: &[Value]) -> Result<Option<Value
         return Err(context.instantiation_exception());
     }
 
-    let instance = Object::from_class(context.gc_ctx, ctor_method.class());
+    let instance = Object::from_class(context.gc_ctx(), ctor_method.class());
 
     let real_args =
         crate::reflect::args_for_instance_call(context, ctor_method, Some(instance), &args_array)?;
@@ -286,7 +286,7 @@ fn class_get_method(context: &Context, args: &[Value]) -> Result<Option<Value>, 
 
     let method_name = args[1].object().unwrap();
     let method_name = Context::string_object_to_string(method_name);
-    let method_name = JvmString::new(context.gc_ctx, method_name);
+    let method_name = JvmString::new(context.gc_ctx(), method_name);
 
     let arg_classes = args[2].object().unwrap();
     let arg_classes = arg_classes.array_data().as_object_array();
@@ -303,7 +303,7 @@ fn class_get_method(context: &Context, args: &[Value]) -> Result<Option<Value>, 
         let arg_class_id = arg_class_obj.get_field(0).int();
         let arg_class = context.class_object_by_id(arg_class_id);
 
-        arg_descriptors.push(Descriptor::for_class(context.gc_ctx, arg_class));
+        arg_descriptors.push(Descriptor::for_class(context.gc_ctx(), arg_class));
     }
 
     let method = crate::reflect::get_class_method(class, method_name, &arg_descriptors);
