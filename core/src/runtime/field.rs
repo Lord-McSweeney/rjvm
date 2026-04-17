@@ -17,77 +17,11 @@ use crate::string::JvmString;
 use alloc::vec::Vec;
 use core::cell::{Cell, OnceCell};
 
-// IMPORTANT NOTE: DON'T MAKE THIS Copy, WE NEED TO CREATE AN ACTUAL CLONE OF
-// THE FIELD FOR OBJECT CREATION
-#[derive(Clone, Debug)]
-pub struct Field {
-    descriptor: Descriptor,
-    flags: FieldFlags,
-    name: JvmString,
-    value: Cell<Value>,
-}
-
-impl Field {
-    pub fn from_field(
-        context: &Context,
-        class_file: ClassFile,
-        field: &ClassFileField,
-    ) -> Result<Self, Error> {
-        let descriptor = Descriptor::from_string(context, field.descriptor())?;
-
-        let constant_value = field_constant_value(context, class_file, field)?;
-
-        let value = if let Some(constant_value) = constant_value {
-            constant_value
-        } else {
-            descriptor.default_value()
-        };
-
-        Ok(Self {
-            descriptor,
-            flags: field.flags(),
-            name: field.name(),
-            value: Cell::new(value),
-        })
-    }
-
-    pub fn descriptor(&self) -> Descriptor {
-        self.descriptor
-    }
-
-    pub fn flags(&self) -> FieldFlags {
-        self.flags
-    }
-
-    pub fn name(&self) -> JvmString {
-        self.name
-    }
-
-    pub fn value(&self) -> Value {
-        self.value.get()
-    }
-
-    pub fn set_value(&self, value: Value) {
-        // Verifier checks that value is of correct type
-        self.value.set(value);
-    }
-}
-
-impl Trace for Field {
-    fn trace(&self) {
-        self.descriptor.trace();
-        self.name.trace();
-        self.value.trace();
-    }
-}
-
-// This is intentionally Copy, so that a subclass can simply hold references
-// to its superclass's static fields.
 #[derive(Clone, Copy, Debug)]
-pub struct FieldRef(Gc<FieldRefData>);
+pub struct Field(Gc<FieldData>);
 
 #[derive(Clone, Debug)]
-struct FieldRefData {
+struct FieldData {
     descriptor: Descriptor,
     flags: FieldFlags,
     name: JvmString,
@@ -95,7 +29,7 @@ struct FieldRefData {
     value: Cell<Value>,
 }
 
-impl FieldRef {
+impl Field {
     pub fn from_field(
         context: &Context,
         defining_class: Class,
@@ -115,7 +49,7 @@ impl FieldRef {
 
         Ok(Self(Gc::new(
             context.gc_ctx,
-            FieldRefData {
+            FieldData {
                 descriptor,
                 flags: field.flags(),
                 name: field.name(),
@@ -151,13 +85,13 @@ impl FieldRef {
     }
 }
 
-impl Trace for FieldRef {
+impl Trace for Field {
     fn trace(&self) {
         self.0.trace();
     }
 }
 
-impl Trace for FieldRefData {
+impl Trace for FieldData {
     fn trace(&self) {
         self.descriptor.trace();
         self.name.trace();

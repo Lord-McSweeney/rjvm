@@ -1,7 +1,7 @@
 use super::context::Context;
 use super::descriptor::{Descriptor, MethodDescriptor, ResolvedDescriptor};
 use super::error::Error;
-use super::field::{Field, FieldRef};
+use super::field::Field;
 use super::loader::ClassLoader;
 use super::method::Method;
 use super::object::{Object, array_clone_method};
@@ -66,7 +66,7 @@ struct ClassData {
 
 struct MethodData {
     static_field_vtable: VTable<Descriptor>,
-    static_fields: Box<[FieldRef]>,
+    static_fields: Box<[Field]>,
 
     instance_field_vtable: VTable<Descriptor>,
     instance_fields: Box<[Field]>,
@@ -217,12 +217,12 @@ impl Class {
 
         for field in fields {
             if field.flags().contains(FieldFlags::STATIC) {
-                let created_field = FieldRef::from_field(context, self, field)?;
+                let created_field = Field::from_field(context, self, field)?;
 
                 static_field_names.push((field.name(), created_field.descriptor()));
                 static_fields.push(created_field);
             } else {
-                let created_field = Field::from_field(context, class_file, field)?;
+                let created_field = Field::from_field(context, self, field)?;
 
                 instance_field_names.push((field.name(), created_field.descriptor()));
                 instance_fields.push(created_field);
@@ -575,7 +575,7 @@ impl Class {
         self.0.method_data.get().unwrap().static_field_vtable
     }
 
-    pub fn static_fields(&self) -> &[FieldRef] {
+    pub fn static_fields(&self) -> &[Field] {
         &self.0.method_data.get().unwrap().static_fields
     }
 
