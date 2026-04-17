@@ -1,10 +1,7 @@
 // Helper functions for reflection methods
 
 use alloc::vec::Vec;
-use rjvm_core::{
-    Class, Context, Descriptor, Error, Gc, JvmString, Method, MethodFlags, Object, PrimitiveType,
-    Value,
-};
+use rjvm_core::{Class, Context, Descriptor, Error, JvmString, Method, MethodFlags, Object, Value};
 
 pub(crate) fn get_class_method(
     class: Class,
@@ -46,28 +43,6 @@ pub(crate) fn get_class_method(
     }
 
     None
-}
-
-pub(crate) fn descriptor_for_class(context: &Context, class: Class) -> Descriptor {
-    match class.primitive_type() {
-        Some(PrimitiveType::Boolean) => Descriptor::Boolean,
-        Some(PrimitiveType::Byte) => Descriptor::Byte,
-        Some(PrimitiveType::Char) => Descriptor::Character,
-        Some(PrimitiveType::Double) => Descriptor::Double,
-        Some(PrimitiveType::Float) => Descriptor::Float,
-        Some(PrimitiveType::Int) => Descriptor::Integer,
-        Some(PrimitiveType::Long) => Descriptor::Long,
-        Some(PrimitiveType::Short) => Descriptor::Short,
-        Some(PrimitiveType::Void) => Descriptor::Void,
-        None => {
-            if let Some(inner_type) = class.array_value_type() {
-                let inner_desc = inner_type.descriptor(context.gc_ctx);
-                Descriptor::Array(Gc::new(context.gc_ctx, inner_desc))
-            } else {
-                Descriptor::Class(class.name())
-            }
-        }
-    }
 }
 
 // Change the provided args into a form suitable for calling the given method.

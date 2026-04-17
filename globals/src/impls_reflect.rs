@@ -303,7 +303,7 @@ fn class_get_method(context: &Context, args: &[Value]) -> Result<Option<Value>, 
         let arg_class_id = arg_class_obj.get_field(0).int();
         let arg_class = context.class_object_by_id(arg_class_id);
 
-        arg_descriptors.push(crate::reflect::descriptor_for_class(context, arg_class));
+        arg_descriptors.push(Descriptor::for_class(context.gc_ctx, arg_class));
     }
 
     let method = crate::reflect::get_class_method(class, method_name, &arg_descriptors);

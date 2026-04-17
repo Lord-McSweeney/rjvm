@@ -114,6 +114,34 @@ impl Descriptor {
         }
     }
 
+    /// Return a `Descriptor` representing the given [`Class`].
+    ///
+    /// For classes representing primitives, this will return the primitive
+    /// descriptor. For array classes, this will return a `Descriptor::Array`.
+    /// For all other classes, this will return a `Descriptor::Class` for the
+    /// class's name.
+    pub fn for_class(gc_ctx: GcCtx, class: Class) -> Self {
+        match class.primitive_type() {
+            Some(PrimitiveType::Boolean) => Descriptor::Boolean,
+            Some(PrimitiveType::Byte) => Descriptor::Byte,
+            Some(PrimitiveType::Char) => Descriptor::Character,
+            Some(PrimitiveType::Double) => Descriptor::Double,
+            Some(PrimitiveType::Float) => Descriptor::Float,
+            Some(PrimitiveType::Int) => Descriptor::Integer,
+            Some(PrimitiveType::Long) => Descriptor::Long,
+            Some(PrimitiveType::Short) => Descriptor::Short,
+            Some(PrimitiveType::Void) => Descriptor::Void,
+            None => {
+                if let Some(inner_type) = class.array_value_type() {
+                    let inner_desc = inner_type.descriptor(gc_ctx);
+                    Descriptor::Array(Gc::new(gc_ctx, inner_desc))
+                } else {
+                    Descriptor::Class(class.name())
+                }
+            }
+        }
+    }
+
     /// The default [`Value`] for a descriptor. This is the value initially
     /// stored in a field typed with this descriptor (before any Java code
     /// initializes the field).
