@@ -37,7 +37,6 @@ pub const STACK_TRACE_ELEMENT_IS_NATIVE_FIELD: usize = 4;
 
 const DEFAULT_GC_THRESHOLD: u32 = 65536;
 
-#[derive(Clone)]
 pub struct Context {
     // The backend to call into to load external resources (e.g. bootstrap and
     // system classes).
@@ -47,63 +46,64 @@ pub struct Context {
     bootstrap_loader: ClassLoader,
 
     // The "system" (aka "application") class loader
-    system_loader: Gc<OnceCell<ClassLoader>>,
+    system_loader: OnceCell<ClassLoader>,
 
     // A list of classes that have an associated `java.lang.Class`. Java code
     // stores an index into this array.
-    java_classes: Gc<RefCell<Vec<Class>>>,
+    java_classes: RefCell<Vec<Class>>,
 
     // A list of methods that have an associated `java.lang.reflect.Method`.
     // Java code stores an index into this array.
-    java_executables: Gc<RefCell<Vec<Method>>>,
+    java_executables: RefCell<Vec<Method>>,
 
     // A list of class loaders that have an associated `java.lang.ClassLoader`.
     // Java code stores an index into this array.
-    java_class_loaders: Gc<RefCell<Vec<ClassLoader>>>,
+    java_class_loaders: RefCell<Vec<ClassLoader>>,
 
     // A list of fields that have an associated `java.lang.reflect.Field`.
     // Java code stores an index into this array.
-    java_fields: Gc<RefCell<Vec<FieldTemplate>>>,
+    java_fields: RefCell<Vec<FieldTemplate>>,
 
     // All interned Java String objects.
-    interned_strings: Gc<RefCell<InternedStrings>>,
+    interned_strings: RefCell<InternedStrings>,
 
     // Cache of JvmString->MethodDescriptor. TODO should this be made into a
     // weak map?
-    method_descriptor_cache: Gc<RefCell<HashMap<JvmString, MethodDescriptor>>>,
+    method_descriptor_cache: RefCell<HashMap<JvmString, MethodDescriptor>>,
 
     // The builtin primitive classes, constructed on JVM startup.
-    primitive_classes: Gc<HashMap<PrimitiveType, Class>>,
+    primitive_classes: HashMap<PrimitiveType, Class>,
 
     // Native method mappings
-    native_mapping: Gc<RefCell<HashMap<(JvmString, JvmString, MethodDescriptor), NativeMethod>>>,
+    native_mapping: RefCell<HashMap<(JvmString, JvmString, MethodDescriptor), NativeMethod>>,
 
     // Values currently in locals or stacks of interpreter frames
-    frame_data: Gc<Box<[Cell<Value>]>>,
+    frame_data: Box<[Cell<Value>]>,
 
     // The first index into the frame data that is unoccupied (stack pointer).
-    frame_index: Gc<Cell<usize>>,
+    frame_index: Cell<usize>,
 
     // The current call stack.
-    call_stack: Gc<RefCell<CallStack>>,
+    call_stack: RefCell<CallStack>,
 
     // The GC counter. This is incremented when any op that could allocate is run,
     // and when it reaches GC_THRESHOLD, a collection is called.
-    gc_counter: Gc<Cell<u32>>,
+    gc_counter: Cell<u32>,
 
-    // The number of allocation operations before the GC runs.
-    gc_threshold: Gc<Cell<u32>>,
+    // The number of allocation operations before the GC runs. This `Cell` so
+    // that is can be modified using `Context::set_gc_threshold`
+    gc_threshold: Cell<u32>,
 
     // The class `java.lang.Object`. This is critical for all class loading,
     // so we store it separately.
-    object_class: Gc<OnceCell<Class>>,
+    object_class: OnceCell<Class>,
 
     // Builtin classes, such as `NoClassDefFoundError`, that the VM needs to
     // access quickly
-    builtins: Gc<RefCell<Option<BuiltinClasses>>>,
+    builtins: RefCell<Option<BuiltinClasses>>,
 
     // Like `builtins`, but for the primitive array classes.
-    primitive_arrays: Gc<RefCell<Option<PrimitiveArrayClasses>>>,
+    primitive_arrays: RefCell<Option<PrimitiveArrayClasses>>,
 
     // Common strings and descriptors.
     common: CommonData,
@@ -167,23 +167,23 @@ impl Context {
         Self {
             loader_backend,
             bootstrap_loader,
-            system_loader: Gc::new(gc_ctx, OnceCell::new()),
-            java_classes: Gc::new(gc_ctx, RefCell::new(Vec::new())),
-            java_executables: Gc::new(gc_ctx, RefCell::new(Vec::new())),
-            java_class_loaders: Gc::new(gc_ctx, RefCell::new(Vec::new())),
-            java_fields: Gc::new(gc_ctx, RefCell::new(Vec::new())),
-            interned_strings: Gc::new(gc_ctx, RefCell::new(InternedStrings::new())),
-            method_descriptor_cache: Gc::new(gc_ctx, RefCell::new(method_descriptor_cache)),
-            primitive_classes: Gc::new(gc_ctx, primitive_classes),
-            native_mapping: Gc::new(gc_ctx, RefCell::new(HashMap::new())),
-            frame_data: Gc::new(gc_ctx, empty_frame_data),
-            frame_index: Gc::new(gc_ctx, Cell::new(0)),
-            call_stack: Gc::new(gc_ctx, RefCell::new(CallStack::empty())),
-            gc_counter: Gc::new(gc_ctx, Cell::new(0)),
-            gc_threshold: Gc::new(gc_ctx, Cell::new(DEFAULT_GC_THRESHOLD)),
-            object_class: Gc::new(gc_ctx, OnceCell::new()),
-            builtins: Gc::new(gc_ctx, RefCell::new(None)),
-            primitive_arrays: Gc::new(gc_ctx, RefCell::new(None)),
+            system_loader: OnceCell::new(),
+            java_classes: RefCell::new(Vec::new()),
+            java_executables: RefCell::new(Vec::new()),
+            java_class_loaders: RefCell::new(Vec::new()),
+            java_fields: RefCell::new(Vec::new()),
+            interned_strings: RefCell::new(InternedStrings::new()),
+            method_descriptor_cache: RefCell::new(method_descriptor_cache),
+            primitive_classes: primitive_classes,
+            native_mapping: RefCell::new(HashMap::new()),
+            frame_data: empty_frame_data,
+            frame_index: Cell::new(0),
+            call_stack: RefCell::new(CallStack::empty()),
+            gc_counter: Cell::new(0),
+            gc_threshold: Cell::new(DEFAULT_GC_THRESHOLD),
+            object_class: OnceCell::new(),
+            builtins: RefCell::new(None),
+            primitive_arrays: RefCell::new(None),
             common,
             gc_ctx,
         }
@@ -769,8 +769,7 @@ impl Trace for Context {
 
         // We want to do a custom tracing over frame data to avoid tracing values
         // above frame_index. This approach isn't too hacky and works well.
-        self.frame_data.trace_self();
-        let data = &**self.frame_data;
+        let data = &*self.frame_data;
         let mut i = 0;
         while i < self.frame_index.get() {
             data[i].trace();
