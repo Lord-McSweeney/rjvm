@@ -4,7 +4,7 @@ use super::class::{Class, PrimitiveType};
 use super::descriptor::MethodDescriptor;
 use super::error::Error;
 use super::field::FieldTemplate;
-use super::intern::InternedStrings;
+use super::intern::VmInternedStrings;
 use super::loader::{ClassLoader, LoaderBackend, ResourceLoadSource};
 use super::method::{Method, NativeMethod};
 use super::object::Object;
@@ -65,7 +65,7 @@ pub struct Context {
     java_fields: RefCell<Vec<FieldTemplate>>,
 
     // All interned Java String objects.
-    interned_strings: RefCell<InternedStrings>,
+    interned_strings: RefCell<VmInternedStrings>,
 
     // Cache of JvmString->MethodDescriptor. TODO should this be made into a
     // weak map?
@@ -172,7 +172,7 @@ impl Context {
             java_executables: RefCell::new(Vec::new()),
             java_class_loaders: RefCell::new(Vec::new()),
             java_fields: RefCell::new(Vec::new()),
-            interned_strings: RefCell::new(InternedStrings::new()),
+            interned_strings: RefCell::new(VmInternedStrings::new()),
             method_descriptor_cache: RefCell::new(method_descriptor_cache),
             primitive_classes: primitive_classes,
             native_mapping: RefCell::new(HashMap::new()),

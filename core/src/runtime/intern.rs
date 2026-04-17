@@ -54,11 +54,13 @@ impl Hash for StringObject {
 }
 
 // TODO: Make this a weak set
-pub struct InternedStrings(HashSet<StringObject>);
+// NOTE: This is the set of interned Java `String` objects, interned using the
+// `String.intern` Java method.
+pub struct VmInternedStrings(HashSet<StringObject>);
 
-impl InternedStrings {
+impl VmInternedStrings {
     pub fn new() -> Self {
-        InternedStrings(HashSet::new())
+        VmInternedStrings(HashSet::new())
     }
 
     pub fn intern(&mut self, string_object: Object) -> Object {
@@ -72,7 +74,7 @@ impl InternedStrings {
     }
 }
 
-impl Trace for InternedStrings {
+impl Trace for VmInternedStrings {
     fn trace(&self) {
         self.0.trace();
     }
