@@ -18,7 +18,7 @@ use crate::string::JvmString;
 use alloc::boxed::Box;
 use alloc::string::{String, ToString};
 use alloc::vec::Vec;
-use core::cell::{Cell, OnceCell, Ref, RefCell};
+use core::cell::{Cell, OnceCell};
 use core::fmt;
 use core::hash::{Hash, Hasher};
 use hashbrown::HashSet;
@@ -58,12 +58,7 @@ struct ClassData {
     // The primitive type that this class represents.
     primitive_type: Option<PrimitiveType>,
 
-    instance_field_vtable: VTable<Descriptor>,
-    // The values present on the class are the default values: when instantiating
-    // an instance, the `instance_fields` should be cloned and added to the instance.
-    instance_fields: Box<[Field]>,
-
-    method_data: RefCell<Option<MethodData>>,
+    method_data: OnceCell<MethodData>,
 
     clinit_method: Cell<Option<Method>>,
     clinit_stage: Cell<ClinitStage>,
@@ -73,10 +68,19 @@ struct MethodData {
     static_field_vtable: VTable<Descriptor>,
     static_fields: Box<[FieldRef]>,
 
+    instance_field_vtable: VTable<Descriptor>,
+    instance_fields: Box<[Field]>,
+
     static_method_vtable: VTable<MethodDescriptor>,
     static_methods: Box<[Method]>,
 
     instance_method_vtable: InstanceMethodVTable,
+}
+
+impl fmt::Debug for MethodData {
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        write!(f, "MethodData")
+    }
 }
 
 impl fmt::Debug for Class {
@@ -162,27 +166,6 @@ impl Class {
             }
         }
 
-        let fields = class_file.fields();
-
-        let mut instance_field_names = Vec::with_capacity(fields.len());
-        let mut instance_fields = super_class.map_or(Vec::new(), |c| c.instance_fields().to_vec());
-
-        for field in fields {
-            if !field.flags().contains(FieldFlags::STATIC) {
-                let created_field = Field::from_field(context, class_file, field)?;
-
-                instance_field_names.push((field.name(), created_field.descriptor()));
-                instance_fields.push(created_field);
-            }
-        }
-
-        let instance_field_vtable = VTable::from_parent_and_keys(
-            context.gc_ctx,
-            None,
-            super_class.map(|c| c.instance_field_vtable()),
-            instance_field_names,
-        );
-
         let created_class = Self(Gc::new(
             context.gc_ctx,
             ClassData {
@@ -202,10 +185,7 @@ impl Class {
                 array_value_type: None,
                 primitive_type: None,
 
-                instance_field_vtable,
-                instance_fields: instance_fields.into_boxed_slice(),
-
-                method_data: RefCell::new(None),
+                method_data: OnceCell::new(),
                 clinit_method: Cell::new(None),
                 clinit_stage: Cell::new(ClinitStage::NotStarted),
             },
@@ -223,6 +203,9 @@ impl Class {
         let mut static_field_names = Vec::with_capacity(fields.len());
         let mut static_fields = super_class.map_or(Vec::new(), |c| c.static_fields().to_vec());
 
+        let mut instance_field_names = Vec::with_capacity(fields.len());
+        let mut instance_fields = super_class.map_or(Vec::new(), |c| c.instance_fields().to_vec());
+
         for interface in &self.0.all_interfaces {
             let interface_statics = interface.static_fields();
 
@@ -238,6 +221,11 @@ impl Class {
 
                 static_field_names.push((field.name(), created_field.descriptor()));
                 static_fields.push(created_field);
+            } else {
+                let created_field = Field::from_field(context, class_file, field)?;
+
+                instance_field_names.push((field.name(), created_field.descriptor()));
+                instance_fields.push(created_field);
             }
         }
 
@@ -246,6 +234,13 @@ impl Class {
             Some(self),
             super_class.map(|c| c.static_field_vtable()),
             static_field_names,
+        );
+
+        let instance_field_vtable = VTable::from_parent_and_keys(
+            context.gc_ctx,
+            None,
+            super_class.map(|c| c.instance_field_vtable()),
+            instance_field_names,
         );
 
         let methods = class_file.methods();
@@ -323,17 +318,24 @@ impl Class {
         let instance_method_vtable = InstanceMethodVTable::from_parent_and_keys(
             context.gc_ctx,
             self,
-            super_class.map(|c| *c.instance_method_vtable()),
+            super_class.map(|c| c.instance_method_vtable()),
             instance_methods,
         );
 
-        *self.0.method_data.borrow_mut() = Some(MethodData {
+        let method_data = MethodData {
             static_field_vtable,
             static_fields: static_fields.into_boxed_slice(),
+            instance_field_vtable,
+            instance_fields: instance_fields.into_boxed_slice(),
             static_method_vtable,
             static_methods: static_methods.into_boxed_slice(),
             instance_method_vtable,
-        });
+        };
+
+        self.0
+            .method_data
+            .set(method_data)
+            .expect("Method data not yet initialized");
 
         let clinit_string = context.common().clinit_name;
         let void_descriptor = context.common().void_method_desc;
@@ -388,10 +390,7 @@ impl Class {
                 array_value_type: Some(array_type),
                 primitive_type: None,
 
-                instance_field_vtable: VTable::empty(context.gc_ctx),
-                instance_fields: Box::new([]),
-
-                method_data: RefCell::new(None),
+                method_data: OnceCell::new(),
 
                 clinit_method: Cell::new(None),
                 clinit_stage: Cell::new(ClinitStage::Completed),
@@ -419,17 +418,25 @@ impl Class {
         let instance_method_vtable = InstanceMethodVTable::from_parent_and_keys(
             context.gc_ctx,
             class,
-            Some(*object_class.instance_method_vtable()),
+            Some(object_class.instance_method_vtable()),
             vec![(clone_key, clone_method)],
         );
 
-        *class.0.method_data.borrow_mut() = Some(MethodData {
+        let method_data = MethodData {
+            instance_field_vtable: VTable::empty(context.gc_ctx),
+            instance_fields: Box::new([]),
             static_field_vtable: VTable::empty(context.gc_ctx),
             static_fields: Box::new([]),
             static_method_vtable: VTable::empty(context.gc_ctx),
             static_methods: Box::new([]),
             instance_method_vtable,
-        });
+        };
+
+        class
+            .0
+            .method_data
+            .set(method_data)
+            .expect("Method data not yet initialized");
 
         class
     }
@@ -455,23 +462,28 @@ impl Class {
                 array_value_type: None,
                 primitive_type: Some(primitive_type),
 
-                instance_field_vtable: VTable::empty(gc_ctx),
-                instance_fields: Box::new([]),
-
-                method_data: RefCell::new(None),
+                method_data: OnceCell::new(),
 
                 clinit_method: Cell::new(None),
                 clinit_stage: Cell::new(ClinitStage::Completed),
             },
         ));
 
-        *class.0.method_data.borrow_mut() = Some(MethodData {
+        let method_data = MethodData {
+            instance_field_vtable: VTable::empty(gc_ctx),
+            instance_fields: Box::new([]),
             static_field_vtable: VTable::empty(gc_ctx),
             static_fields: Box::new([]),
             static_method_vtable: VTable::empty(gc_ctx),
             static_methods: Box::new([]),
             instance_method_vtable: InstanceMethodVTable::empty(gc_ctx, class),
-        });
+        };
+
+        class
+            .0
+            .method_data
+            .set(method_data)
+            .expect("Method data not yet initialized");
 
         class
     }
@@ -559,42 +571,32 @@ impl Class {
         self.0.array_value_type
     }
 
-    pub fn static_method_vtable(&self) -> VTable<MethodDescriptor> {
-        *Ref::map(self.0.method_data.borrow(), |data| {
-            &data.as_ref().unwrap().static_method_vtable
-        })
-    }
-
-    pub fn static_methods(&self) -> Ref<'_, Box<[Method]>> {
-        Ref::map(self.0.method_data.borrow(), |data| {
-            &data.as_ref().unwrap().static_methods
-        })
-    }
-
     pub fn static_field_vtable(self) -> VTable<Descriptor> {
-        *Ref::map(self.0.method_data.borrow(), |data| {
-            &data.as_ref().unwrap().static_field_vtable
-        })
+        self.0.method_data.get().unwrap().static_field_vtable
     }
 
-    pub fn static_fields(&self) -> Ref<'_, Box<[FieldRef]>> {
-        Ref::map(self.0.method_data.borrow(), |data| {
-            &data.as_ref().unwrap().static_fields
-        })
-    }
-
-    pub fn instance_method_vtable(&self) -> Ref<'_, InstanceMethodVTable> {
-        Ref::map(self.0.method_data.borrow(), |data| {
-            &data.as_ref().unwrap().instance_method_vtable
-        })
+    pub fn static_fields(&self) -> &[FieldRef] {
+        &self.0.method_data.get().unwrap().static_fields
     }
 
     pub fn instance_field_vtable(self) -> VTable<Descriptor> {
-        self.0.instance_field_vtable
+        self.0.method_data.get().unwrap().instance_field_vtable
     }
 
     pub fn instance_fields(&self) -> &[Field] {
-        &self.0.instance_fields
+        &self.0.method_data.get().unwrap().instance_fields
+    }
+
+    pub fn static_method_vtable(&self) -> VTable<MethodDescriptor> {
+        self.0.method_data.get().unwrap().static_method_vtable
+    }
+
+    pub fn static_methods(&self) -> &[Method] {
+        &self.0.method_data.get().unwrap().static_methods
+    }
+
+    pub fn instance_method_vtable(&self) -> InstanceMethodVTable {
+        self.0.method_data.get().unwrap().instance_method_vtable
     }
 
     /// Returns an instance of `java.lang.Class` for this `Class`. If such an
@@ -824,18 +826,18 @@ impl Trace for ClassData {
         self.all_interfaces.trace();
         self.array_value_type.trace();
 
-        self.instance_field_vtable.trace();
-        self.instance_fields.trace();
+        let method_data = self.method_data.get().unwrap();
 
-        if let Some(method_data) = &*self.method_data.borrow() {
-            method_data.static_field_vtable.trace();
-            method_data.static_fields.trace();
+        method_data.static_field_vtable.trace();
+        method_data.static_fields.trace();
 
-            method_data.static_method_vtable.trace();
-            method_data.static_methods.trace();
+        method_data.instance_field_vtable.trace();
+        method_data.instance_fields.trace();
 
-            method_data.instance_method_vtable.trace();
-        }
+        method_data.static_method_vtable.trace();
+        method_data.static_methods.trace();
+
+        method_data.instance_method_vtable.trace();
 
         self.clinit_method.trace();
     }

@@ -467,7 +467,8 @@ impl Context {
         // Some builtin classes depend on other ones, so this is initialized
         // class-by-class rather than all-at-once.
         // TODO this will fail dramatically if the provided `rt.jar` doesn't
-        // initialize the classes in the expected order
+        // initialize the classes in the expected order...should we try to
+        // guard against that?
         let builtin_classes = BuiltinClasses::invalid(object_class);
         *self.builtins.borrow_mut() = Some(builtin_classes);
         BuiltinClasses::initialize_on_context(self);
