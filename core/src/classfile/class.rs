@@ -38,8 +38,8 @@ struct ClassFileData {
 impl ClassFile {
     /// Parse a `ClassFile` from data, returning an [`Error`] if the class file
     /// is malformed.
-    pub fn from_data(gc_ctx: GcCtx, data: Vec<u8>) -> Result<Self, Error> {
-        let mut reader = FileData::new(&data);
+    pub fn from_data(gc_ctx: GcCtx, data: &[u8]) -> Result<Self, Error> {
+        let mut reader = FileData::new(data);
 
         let magic = reader.read_u32_be()?;
         if magic != 0xCAFEBABE {

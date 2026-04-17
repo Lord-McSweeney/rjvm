@@ -188,7 +188,7 @@ impl ClassLoader {
             let full_name = class_name.to_string().clone() + ".class";
             let data = self.load_own_resource(&full_name);
             if let Some(data) = data {
-                let class = Class::from_data(context, self, data)?;
+                let class = Class::from_data(context, self, &data)?;
 
                 self.define_class(context, class)?;
 

@@ -151,7 +151,7 @@ fn define_class_nameless(context: &Context, args: &[Value]) -> Result<Option<Val
         .map(|b| b.get() as u8)
         .collect::<Vec<_>>();
 
-    let class = Class::from_data(&context, class_loader, data)?;
+    let class = Class::from_data(&context, class_loader, &data)?;
 
     class_loader.define_class(context, class)?;
 
@@ -184,7 +184,7 @@ fn define_class_named(context: &Context, args: &[Value]) -> Result<Option<Value>
         .map(|b| b.get() as u8)
         .collect::<Vec<_>>();
 
-    let class = Class::from_data(&context, class_loader, data)?;
+    let class = Class::from_data(&context, class_loader, &data)?;
 
     if *class.name() == class_name {
         class_loader.define_class(context, class)?;
