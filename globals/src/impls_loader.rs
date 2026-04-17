@@ -1,8 +1,6 @@
 use alloc::boxed::Box;
 use alloc::vec::Vec;
-use rjvm_core::{
-    Class, ClassFile, ClassLoader, Context, Error, JvmString, NativeMethod, Object, Value,
-};
+use rjvm_core::{Class, ClassLoader, Context, Error, JvmString, NativeMethod, Object, Value};
 
 pub fn register_native_mappings(context: &Context) {
     #[rustfmt::skip]
@@ -153,10 +151,7 @@ fn define_class_nameless(context: &Context, args: &[Value]) -> Result<Option<Val
         .map(|b| b.get() as u8)
         .collect::<Vec<_>>();
 
-    let class_file = ClassFile::from_data(context.gc_ctx(), data)
-        .map_err(|e| Error::from_class_file_error(context, e))?;
-
-    let class = Class::from_class_file(&context, class_loader, class_file)?;
+    let class = Class::from_data(&context, class_loader, data)?;
 
     class_loader.define_class(context, class)?;
 
@@ -189,10 +184,7 @@ fn define_class_named(context: &Context, args: &[Value]) -> Result<Option<Value>
         .map(|b| b.get() as u8)
         .collect::<Vec<_>>();
 
-    let class_file = ClassFile::from_data(context.gc_ctx(), data)
-        .map_err(|e| Error::from_class_file_error(context, e))?;
-
-    let class = Class::from_class_file(&context, class_loader, class_file)?;
+    let class = Class::from_data(&context, class_loader, data)?;
 
     if *class.name() == class_name {
         class_loader.define_class(context, class)?;

@@ -95,11 +95,10 @@ impl Class {
     /// This method will not register the created `Class` in the `ClassLoader`'s
     /// registry; it is the caller's responsibility to do so, using
     /// [`ClassLoader::define_class`].
-    pub fn from_class_file(
-        context: &Context,
-        loader: ClassLoader,
-        class_file: ClassFile,
-    ) -> Result<Self, Error> {
+    pub fn from_data(context: &Context, loader: ClassLoader, data: Vec<u8>) -> Result<Self, Error> {
+        let class_file = ClassFile::from_data(context.gc_ctx(), data)
+            .map_err(|e| Error::from_class_file_error(context, e))?;
+
         let class = Self::from_class_file_partial(context, loader, class_file)?;
         class.load_methods(context, class_file)?;
 

@@ -5,7 +5,6 @@ use super::descriptor::{Descriptor, ResolvedDescriptor};
 use super::error::Error;
 use super::object::Object;
 
-use crate::classfile::class::ClassFile;
 use crate::gc::{Gc, GcCtx, Trace};
 use crate::jar::Jar;
 use crate::string::JvmString;
@@ -189,10 +188,7 @@ impl ClassLoader {
             let full_name = class_name.to_string().clone() + ".class";
             let data = self.load_own_resource(&full_name);
             if let Some(data) = data {
-                let class_file = ClassFile::from_data(context.gc_ctx, data)
-                    .map_err(|e| Error::from_class_file_error(context, e))?;
-
-                let class = Class::from_class_file(context, self, class_file)?;
+                let class = Class::from_data(context, self, data)?;
 
                 self.define_class(context, class)?;
 

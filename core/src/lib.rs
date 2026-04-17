@@ -10,7 +10,6 @@ mod reader;
 mod runtime;
 mod string;
 
-pub use crate::classfile::class::ClassFile;
 pub use crate::classfile::error::Error as ClassFileError;
 pub use crate::classfile::flags::{ClassFlags, FieldFlags, MethodFlags};
 pub use crate::gc::{Gc, GcCtx, Trace};
