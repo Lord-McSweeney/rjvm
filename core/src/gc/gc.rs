@@ -213,10 +213,6 @@ pub struct GcCtx {
 }
 
 impl GcCtx {
-    // SAFETY NOTE: Allowing user code to create new instances of `GcCtx` allows
-    // it to use it to insert `Gc`s allocated in it into the runtime, which is
-    // unsound. Until we figure out a way to prevent user code from doing so,
-    // this is `pub(crate)`.
     pub(crate) fn new() -> Self {
         Self {
             first_gc: Gc::new_empty(),
@@ -232,7 +228,7 @@ impl GcCtx {
     ///     also has `trace` called on it
     ///   - There are no `Gc`s registered under this `GcCtx` that are reachable in any
     ///     way other than accessing them through `root`
-    pub unsafe fn collect<T>(self, root: &T)
+    pub(crate) unsafe fn collect<T>(self, root: &T)
     where
         T: Trace,
     {
@@ -277,13 +273,33 @@ impl GcCtx {
         }
     }
 
+    /// Collect all `Gc` pointers registered by this `GcCtx`.
+    ///
+    /// SAFETY: See safety notes for `GcCtx::collect`
+    pub(crate) unsafe fn collect_all(self) {
+        unsafe {
+            let first = self.first_gc.ptr.as_ref();
+            let mut current = first.next.get();
+            first.next.set(None);
+
+            while let Some(gc) = current {
+                let gc_box = gc.ptr.as_ref();
+                let next = gc_box.next.get();
+
+                (gc_box.drop)(gc);
+
+                current = next;
+            }
+        }
+    }
+
     /// Drop the `GcCtx`. This will free the one single [`Gc`] that it uses for
     /// its internal linked list. Note that this will not free any of the other
     /// `Gc` pointers allocated using this `GcCtx`.
     ///
     /// SAFETY: The `GcCtx` must not be used in any way after this method is
     /// called on it.
-    pub unsafe fn drop(self) {
+    pub(crate) unsafe fn drop(self) {
         let created_box = unsafe { Box::from_raw(self.first_gc.ptr.as_ptr()) };
 
         drop(created_box);

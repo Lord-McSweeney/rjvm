@@ -351,10 +351,4 @@ Link options:
             main_class.dot_name()
         );
     }
-
-    unsafe {
-        context.gc_ctx().collect(&context);
-
-        context.gc_ctx().drop();
-    }
 }

@@ -752,6 +752,16 @@ impl Context {
     }
 }
 
+impl Drop for Context {
+    fn drop(&mut self) {
+        unsafe {
+            self.gc_ctx.collect_all();
+
+            self.gc_ctx.drop();
+        }
+    }
+}
+
 impl Trace for Context {
     fn trace(&self) {
         self.loader_backend.trace_self();

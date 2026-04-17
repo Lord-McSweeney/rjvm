@@ -144,10 +144,4 @@ pub(crate) fn run_file(class_name: &str, class_data: &[u8], args: Vec<String>) {
             main_class.dot_name(),
         ));
     }
-
-    unsafe {
-        context.gc_ctx().collect(&context);
-
-        context.gc_ctx().drop();
-    }
 }
