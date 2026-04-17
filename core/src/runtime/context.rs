@@ -39,8 +39,9 @@ const DEFAULT_GC_THRESHOLD: u32 = 65536;
 
 #[derive(Clone)]
 pub struct Context {
-    // The backend to call into to load resources.
-    pub loader_backend: Gc<Box<dyn LoaderBackend>>,
+    // The backend to call into to load external resources (e.g. bootstrap and
+    // system classes).
+    loader_backend: Gc<Box<dyn LoaderBackend>>,
 
     // The "bootstrap" class loader
     bootstrap_loader: ClassLoader,
@@ -239,6 +240,10 @@ impl Context {
             .borrow()
             .get(&(class_name, method_name, method_descriptor))
             .copied()
+    }
+
+    pub fn loader_backend(&self) -> Gc<Box<dyn LoaderBackend>> {
+        self.loader_backend
     }
 
     pub fn add_bootstrap_jar(&self, jar: Jar) {

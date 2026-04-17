@@ -63,17 +63,12 @@ impl ClassLoader {
     }
 
     /// Create a new `ClassLoader` instance.
-    pub fn with_parent(
-        gc_ctx: GcCtx,
-        parent: Option<ClassLoader>,
-        object: Object,
-        backend: Gc<Box<dyn LoaderBackend>>,
-    ) -> Self {
+    pub fn with_parent(context: &Context, parent: ClassLoader, object: Object) -> Self {
         Self(Gc::new(
-            gc_ctx,
+            context.gc_ctx,
             ClassLoaderData {
-                parent,
-                backend,
+                parent: Some(parent),
+                backend: context.loader_backend(),
                 load_sources: RefCell::new(Vec::new()),
                 class_registry: RefCell::new(HashMap::new()),
                 array_classes: RefCell::new(HashMap::new()),
@@ -305,17 +300,21 @@ impl Trace for ClassLoaderData {
     }
 }
 
+/// A trait that describes a type that can load external (i.e. filesystem)
+/// resources. This "loader backend" is used for loading bootstrap and system
+/// classes.
 pub trait LoaderBackend {
     fn load_filesystem_resource(&self, resource_name: &str) -> Option<Vec<u8>>;
 }
 
+/// A place to search for an external resource.
 pub enum ResourceLoadSource {
-    // This class was loaded directly from the filesystem. When searching
-    // for resources, look at the files in the directory of this class.
+    /// This class was loaded directly from the filesystem. When searching
+    /// for resources, look at the files in the directory of this class.
     FileSystem,
 
-    // This class was loaded from a JAR file. When searching for resources,
-    // look at the files in the directory of this class in the JAR.
+    /// This class was loaded from a JAR file. When searching for resources,
+    /// look at the files in the directory of this class in the JAR.
     Jar(Jar),
 }
 

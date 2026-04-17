@@ -42,12 +42,7 @@ fn register_as_loader(context: &Context, args: &[Value]) -> Result<Option<Value>
 
     // We are passed an invalid loader object and are supposed to make it
     // into a valid loader
-    let loader = ClassLoader::with_parent(
-        context.gc_ctx,
-        Some(parent_loader),
-        class_loader_obj,
-        context.loader_backend,
-    );
+    let loader = ClassLoader::with_parent(context, parent_loader, class_loader_obj);
 
     let id = context.add_class_loader_object(loader);
     class_loader_obj.set_field(0, Value::Integer(id));
@@ -220,12 +215,7 @@ fn make_platform_loader(context: &Context, args: &[Value]) -> Result<Option<Valu
 
     // We are passed an invalid loader object and are supposed to make it
     // into a valid loader, the platform loader
-    let loader = ClassLoader::with_parent(
-        context.gc_ctx,
-        Some(context.bootstrap_loader()),
-        class_loader_obj,
-        context.loader_backend,
-    );
+    let loader = ClassLoader::with_parent(context, context.bootstrap_loader(), class_loader_obj);
 
     let id = context.add_class_loader_object(loader);
     class_loader_obj.set_field(0, Value::Integer(id));
@@ -243,12 +233,7 @@ fn make_sys_loader(context: &Context, args: &[Value]) -> Result<Option<Value>, E
 
     // We are passed an invalid loader object and are supposed to make it
     // into a valid loader, the system loader
-    let loader = ClassLoader::with_parent(
-        context.gc_ctx,
-        Some(platform_loader),
-        class_loader_obj,
-        context.loader_backend,
-    );
+    let loader = ClassLoader::with_parent(context, platform_loader, class_loader_obj);
 
     let id = context.add_class_loader_object(loader);
     class_loader_obj.set_field(0, Value::Integer(id));
