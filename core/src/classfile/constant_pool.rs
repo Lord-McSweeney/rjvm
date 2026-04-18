@@ -2,7 +2,7 @@ use super::error::Error;
 
 use crate::gc::{GcCtx, Trace};
 use crate::reader::{FileData, Reader};
-use crate::string::JvmString;
+use crate::string::{JvmString, JvmStringInterner};
 
 use alloc::vec::Vec;
 
@@ -403,6 +403,7 @@ impl Trace for ConstantPoolEntry {
 
 fn read_constant_pool_entry(
     gc_ctx: GcCtx,
+    interner: &mut JvmStringInterner,
     data: &mut FileData<'_>,
 ) -> Result<ConstantPoolEntry, Error> {
     let tag = data.read_u8()?;
@@ -410,8 +411,7 @@ fn read_constant_pool_entry(
         UTF8 => {
             let length = data.read_u16_be()?;
 
-            let string = data.read_string(length as usize)?;
-            let string = JvmString::new(gc_ctx, string);
+            let string = data.read_jvm_string(gc_ctx, interner, length as usize)?;
 
             Ok(ConstantPoolEntry::Utf8 { string })
         }
@@ -530,7 +530,11 @@ fn read_constant_pool_entry(
     }
 }
 
-pub fn read_constant_pool(gc_ctx: GcCtx, data: &mut FileData<'_>) -> Result<ConstantPool, Error> {
+pub fn read_constant_pool(
+    gc_ctx: GcCtx,
+    interner: &mut JvmStringInterner,
+    data: &mut FileData<'_>,
+) -> Result<ConstantPool, Error> {
     let entry_count = match data.read_u16_be()? {
         0 => return Err(Error::ExpectedNonZero),
         entry_count => entry_count - 1,
@@ -539,7 +543,7 @@ pub fn read_constant_pool(gc_ctx: GcCtx, data: &mut FileData<'_>) -> Result<Cons
     let mut entries = Vec::with_capacity(entry_count as usize);
 
     while entries.len() < entry_count as usize {
-        let entry = read_constant_pool_entry(gc_ctx, data)?;
+        let entry = read_constant_pool_entry(gc_ctx, interner, data)?;
 
         entries.push(entry);
 

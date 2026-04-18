@@ -1,4 +1,6 @@
-use alloc::string::String;
+use crate::gc::GcCtx;
+use crate::string::{JvmString, JvmStringInterner};
+
 use alloc::vec::Vec;
 
 pub struct FileData<'a> {
@@ -25,7 +27,12 @@ pub trait Reader {
     fn read_u32_le(&mut self) -> Result<u32, ReadError>;
 
     fn read_bytes(&mut self, count: usize) -> Result<Vec<u8>, ReadError>;
-    fn read_string(&mut self, length: usize) -> Result<String, ReadError>;
+    fn read_jvm_string(
+        &mut self,
+        gc_ctx: GcCtx,
+        interner: &mut JvmStringInterner,
+        length: usize,
+    ) -> Result<JvmString, ReadError>;
 
     fn position(&self) -> usize;
     fn seek(&mut self, position: usize) -> Result<(), ReadError>;
@@ -82,10 +89,22 @@ impl Reader for FileData<'_> {
         Ok(bytes)
     }
 
-    fn read_string(&mut self, length: usize) -> Result<String, ReadError> {
-        let bytes = self.read_bytes(length)?;
+    fn read_jvm_string(
+        &mut self,
+        gc_ctx: GcCtx,
+        interner: &mut JvmStringInterner,
+        length: usize,
+    ) -> Result<JvmString, ReadError> {
+        if self.position + length > self.len() {
+            return Err(ReadError::EndOfFile);
+        }
 
-        String::from_utf8(bytes).map_err(|_| ReadError::InvalidString)
+        let slice = &self.data[self.position..self.position + length];
+        self.position += length;
+
+        interner
+            .get_or_alloc_bytes(gc_ctx, slice)
+            .map_err(|_| ReadError::InvalidString)
     }
 
     fn position(&self) -> usize {

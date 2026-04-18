@@ -7,7 +7,7 @@ use super::method::Method;
 
 use crate::gc::{Gc, GcCtx, Trace};
 use crate::reader::{FileData, Reader};
-use crate::string::JvmString;
+use crate::string::{JvmString, JvmStringInterner};
 
 use alloc::boxed::Box;
 use alloc::vec::Vec;
@@ -38,7 +38,11 @@ struct ClassFileData {
 impl ClassFile {
     /// Parse a `ClassFile` from data, returning an [`Error`] if the class file
     /// is malformed.
-    pub fn from_data(gc_ctx: GcCtx, data: &[u8]) -> Result<Self, Error> {
+    pub fn from_data(
+        gc_ctx: GcCtx,
+        interner: &mut JvmStringInterner,
+        data: &[u8],
+    ) -> Result<Self, Error> {
         let mut reader = FileData::new(data);
 
         let magic = reader.read_u32_be()?;
@@ -49,7 +53,7 @@ impl ClassFile {
         let _minor_version = reader.read_u16_be()?;
         let _major_version = reader.read_u16_be()?;
 
-        let constant_pool = read_constant_pool(gc_ctx, &mut reader)?;
+        let constant_pool = read_constant_pool(gc_ctx, interner, &mut reader)?;
 
         let flag_bits = reader.read_u16_be()?;
         let flags = ClassFlags::from_bits_truncate(flag_bits);

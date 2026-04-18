@@ -16,7 +16,7 @@ pub struct JvmString(Gc<JvmStringData>);
 
 #[derive(Debug)]
 struct JvmStringData {
-    hash: u32,
+    hash: u64,
     contents: String,
 }
 
@@ -47,7 +47,7 @@ impl fmt::Display for JvmString {
 impl JvmString {
     /// Allocate a new `JvmString` object.
     pub fn new(gc_ctx: GcCtx, string: String) -> Self {
-        let hash = hash_chars(string.len(), string.as_bytes().iter().map(|b| *b as u32));
+        let hash = hash_string(&string);
 
         Self(Gc::new(
             gc_ctx,
@@ -78,12 +78,15 @@ impl Trace for JvmString {
 }
 
 #[inline]
-pub fn hash_chars(length: usize, chars: impl core::iter::Iterator<Item = u32>) -> u32 {
-    let mut hash = length as u32;
+pub fn hash_chars(length: usize, chars: impl core::iter::Iterator<Item = u32>) -> u64 {
+    let mut hash = length as u64;
     for character in chars {
-        hash = hash.rotate_left(7);
-        hash ^= character & 0xB5;
+        hash = hash * 11 + character as u64;
     }
 
     hash
+}
+
+pub fn hash_string(string: &str) -> u64 {
+    hash_chars(string.len(), string.as_bytes().iter().map(|b| *b as u32))
 }

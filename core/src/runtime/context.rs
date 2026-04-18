@@ -4,7 +4,7 @@ use super::class::{Class, PrimitiveType};
 use super::descriptor::MethodDescriptor;
 use super::error::Error;
 use super::field::FieldTemplate;
-use super::intern::VmInternedStrings;
+use super::intern::StringObjectInterner;
 use super::loader::{ClassLoader, LoaderBackend, ResourceLoadSource};
 use super::method::{Method, NativeMethod};
 use super::object::Object;
@@ -12,7 +12,7 @@ use super::value::Value;
 
 use crate::gc::{Gc, GcCtx, Trace};
 use crate::jar::Jar;
-use crate::string::JvmString;
+use crate::string::{JvmString, JvmStringInterner};
 
 use alloc::boxed::Box;
 use alloc::string::{String, ToString};
@@ -64,8 +64,11 @@ pub struct Context {
     // Java code stores an index into this array.
     java_fields: RefCell<Vec<FieldTemplate>>,
 
+    // All interned native strings (JvmStrings).
+    interner: RefCell<JvmStringInterner>,
+
     // All interned Java String objects.
-    interned_strings: RefCell<VmInternedStrings>,
+    interned_strings: RefCell<StringObjectInterner>,
 
     // Cache of JvmString->MethodDescriptor. TODO should this be made into a
     // weak map?
@@ -117,6 +120,7 @@ pub struct Context {
 impl Context {
     pub fn new(loader_backend: Box<dyn LoaderBackend>) -> Self {
         let gc_ctx = GcCtx::new();
+        let mut interner = JvmStringInterner::new();
 
         // Frame data
         let empty_frame_data = vec![Cell::new(Value::Integer(0)); 80000].into_boxed_slice();
@@ -139,12 +143,13 @@ impl Context {
         let void_desc_name = JvmString::new(gc_ctx, "()V".to_string());
 
         let void_method_desc =
-            MethodDescriptor::new_from_string(gc_ctx, void_desc_name).expect("Valid descriptor");
+            MethodDescriptor::new_from_string(gc_ctx, &mut interner, void_desc_name)
+                .expect("Valid descriptor");
 
         // `()Ljava/lang/Object;` descriptor
         let array_clone_desc_name = JvmString::new(gc_ctx, "()Ljava/lang/Object;".to_string());
         let array_clone_method_desc =
-            MethodDescriptor::new_from_string(gc_ctx, array_clone_desc_name)
+            MethodDescriptor::new_from_string(gc_ctx, &mut interner, array_clone_desc_name)
                 .expect("Valid descriptor");
 
         // We need the method descriptors to create `CommonData`, but we also
@@ -172,7 +177,8 @@ impl Context {
             java_executables: RefCell::new(Vec::new()),
             java_class_loaders: RefCell::new(Vec::new()),
             java_fields: RefCell::new(Vec::new()),
-            interned_strings: RefCell::new(VmInternedStrings::new()),
+            interner: RefCell::new(interner),
+            interned_strings: RefCell::new(StringObjectInterner::new()),
             method_descriptor_cache: RefCell::new(method_descriptor_cache),
             primitive_classes: primitive_classes,
             native_mapping: RefCell::new(HashMap::new()),
@@ -321,6 +327,10 @@ impl Context {
 
     pub fn field_object_by_id(&self, id: i32) -> FieldTemplate {
         self.java_fields.borrow()[id as usize]
+    }
+
+    pub fn interner(&self) -> RefMut<'_, JvmStringInterner> {
+        self.interner.borrow_mut()
     }
 
     pub fn intern_string_obj(&self, new_string: Object) -> Object {
@@ -772,6 +782,7 @@ impl Trace for Context {
         self.java_executables.trace();
         self.java_class_loaders.trace();
         self.java_fields.trace();
+        self.interner.trace();
         self.interned_strings.trace();
         self.method_descriptor_cache.trace();
         self.primitive_classes.trace();

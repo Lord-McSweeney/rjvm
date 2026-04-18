@@ -96,8 +96,8 @@ impl Class {
     /// registry; it is the caller's responsibility to do so, using
     /// [`ClassLoader::define_class`].
     pub fn from_data(context: &Context, loader: ClassLoader, data: &[u8]) -> Result<Self, Error> {
-        let class_file = ClassFile::from_data(context.gc_ctx(), data)
-            .map_err(|e| Error::from_class_file_error(context, e))?;
+        let class_file = ClassFile::from_data(context.gc_ctx(), &mut context.interner(), data);
+        let class_file = class_file.map_err(|e| Error::from_class_file_error(context, e))?;
 
         let class = Self::from_class_file_partial(context, loader, class_file)?;
         class.load_methods(context, class_file)?;

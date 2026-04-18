@@ -10,7 +10,7 @@ use hashbrown::HashSet;
 #[derive(Clone, Copy)]
 struct StringObject {
     object: Object,
-    hash: u32,
+    hash: u64,
 }
 
 impl StringObject {
@@ -56,11 +56,11 @@ impl Hash for StringObject {
 // TODO: Make this a weak set
 // NOTE: This is the set of interned Java `String` objects, interned using the
 // `String.intern` Java method.
-pub struct VmInternedStrings(HashSet<StringObject>);
+pub struct StringObjectInterner(HashSet<StringObject>);
 
-impl VmInternedStrings {
+impl StringObjectInterner {
     pub fn new() -> Self {
-        VmInternedStrings(HashSet::new())
+        StringObjectInterner(HashSet::new())
     }
 
     pub fn intern(&mut self, string_object: Object) -> Object {
@@ -74,7 +74,7 @@ impl VmInternedStrings {
     }
 }
 
-impl Trace for VmInternedStrings {
+impl Trace for StringObjectInterner {
     fn trace(&self) {
         self.0.trace();
     }

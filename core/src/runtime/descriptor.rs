@@ -7,7 +7,7 @@ use super::loader::ClassLoader;
 use super::value::Value;
 
 use crate::gc::{Gc, GcCtx, Trace};
-use crate::string::JvmString;
+use crate::string::{JvmString, JvmStringInterner};
 
 use alloc::boxed::Box;
 use alloc::string::String;
@@ -43,6 +43,7 @@ impl fmt::Debug for Descriptor {
 impl Descriptor {
     fn from_data_counting(
         gc_ctx: GcCtx,
+        interner: &mut JvmStringInterner,
         descriptor: &[u8],
         void_allowed: bool,
     ) -> Option<(Descriptor, usize)> {
@@ -66,7 +67,7 @@ impl Descriptor {
                     consumed_bytes += 1;
                 }
 
-                Descriptor::Class(JvmString::new(gc_ctx, class_name))
+                Descriptor::Class(interner.get_or_alloc(gc_ctx, class_name))
             }
             b'B' => Descriptor::Byte,
             b'C' => Descriptor::Character,
@@ -78,7 +79,8 @@ impl Descriptor {
             b'Z' => Descriptor::Boolean,
             b'V' if void_allowed => Descriptor::Void,
             b'[' => {
-                let inner = Descriptor::from_data_counting(gc_ctx, &descriptor[1..], false)?;
+                let inner =
+                    Descriptor::from_data_counting(gc_ctx, interner, &descriptor[1..], false)?;
                 consumed_bytes += inner.1;
 
                 Descriptor::Array(Gc::new(gc_ctx, inner.0))
@@ -93,8 +95,11 @@ impl Descriptor {
     /// `JvmString` is not a valid descriptor, this method will return `None`.
     ///
     /// This method will return `None` for a void (`V`) descriptor.
-    pub fn try_from_string(gc_ctx: GcCtx, descriptor: JvmString) -> Option<Self> {
-        let result = Self::from_data_counting(gc_ctx, descriptor.as_bytes(), false);
+    pub fn try_from_string(context: &Context, descriptor: JvmString) -> Option<Self> {
+        let gc_ctx = context.gc_ctx;
+        let interner = &mut context.interner();
+
+        let result = Self::from_data_counting(gc_ctx, interner, descriptor.as_bytes(), false);
 
         result
             .filter(|r| r.1 == descriptor.len()) // Trailing garbage = invalid descriptor
@@ -105,7 +110,7 @@ impl Descriptor {
     /// if the descriptor is invalid. The `ClassFormatError`'s message will
     /// state that a field signature is invalid.
     pub(crate) fn from_string(context: &Context, descriptor: JvmString) -> Result<Self, Error> {
-        if let Some(result) = Self::try_from_string(context.gc_ctx, descriptor) {
+        if let Some(result) = Self::try_from_string(context, descriptor) {
             Ok(result)
         } else {
             // `MethodDescriptor::from_string` uses `try_from_string` instead of
@@ -455,20 +460,33 @@ impl MethodDescriptor {
     /// cache behind-the-scenes to avoid unnecessary allocations. It will return
     /// an `Error` if the method descriptor is invalid.
     pub fn from_string(context: &Context, descriptor: JvmString) -> Result<Self, Error> {
+        // See if it's in the cache...
         if let Some(method_desc) = context.get_cached_method_descriptor(descriptor) {
-            Ok(method_desc)
-        } else if let Some(method_desc) = Self::new_from_string(context.gc_ctx, descriptor) {
+            return Ok(method_desc);
+        }
+
+        let gc_ctx = context.gc_ctx;
+        let mut interner = context.interner();
+
+        // Try to create a new one...
+        if let Some(method_desc) = Self::new_from_string(gc_ctx, &mut interner, descriptor) {
             context.put_cached_method_descriptor(descriptor, method_desc);
 
-            Ok(method_desc)
-        } else {
-            Err(context.class_format_error(&format!("Illegal method signature \"{}\"", descriptor)))
+            return Ok(method_desc);
         }
+
+        drop(interner);
+
+        Err(context.class_format_error(&format!("Illegal method signature \"{}\"", descriptor)))
     }
 
     // Creates a new `MethodDescriptor` from the given `JvmString`. This is
     // useful when no `Context` is available.
-    pub(crate) fn new_from_string(gc_ctx: GcCtx, descriptor: JvmString) -> Option<Self> {
+    pub(crate) fn new_from_string(
+        gc_ctx: GcCtx,
+        interner: &mut JvmStringInterner,
+        descriptor: JvmString,
+    ) -> Option<Self> {
         let desc_bytes = descriptor.as_bytes();
 
         if desc_bytes.len() == 0 || desc_bytes[0] != b'(' {
@@ -492,7 +510,7 @@ impl MethodDescriptor {
                     i += 1;
 
                     let return_desc =
-                        Descriptor::from_data_counting(gc_ctx, &desc_bytes[i..], true)?;
+                        Descriptor::from_data_counting(gc_ctx, interner, &desc_bytes[i..], true)?;
 
                     // Trailing garbage = invalid descriptor
                     if i + return_desc.1 != descriptor.len() {
@@ -503,7 +521,8 @@ impl MethodDescriptor {
                     break;
                 }
                 _ => {
-                    let arg_desc = Descriptor::from_data_counting(gc_ctx, &desc_bytes[i..], false)?;
+                    let arg_desc =
+                        Descriptor::from_data_counting(gc_ctx, interner, &desc_bytes[i..], false)?;
                     i += arg_desc.1 - 1;
 
                     args.push(arg_desc.0);
