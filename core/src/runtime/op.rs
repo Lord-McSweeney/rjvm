@@ -613,7 +613,7 @@ impl Op {
     ) -> Result<(Box<[Op]>, HashMap<usize, usize>), Error> {
         let code_length = read_u32_be!(context, data) as usize;
         let code_start = data.position();
-        let mut code = Vec::with_capacity(code_length / 2);
+        let mut code = Vec::with_capacity(code_length);
 
         let mut op_index = 0;
         let mut offset_to_idx_map = HashMap::new();
