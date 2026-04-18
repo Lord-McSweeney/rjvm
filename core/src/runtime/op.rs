@@ -616,7 +616,7 @@ impl Op {
         let mut code = Vec::with_capacity(code_length);
 
         let mut op_index = 0;
-        let mut offset_to_idx_map = HashMap::new();
+        let mut offset_to_idx_map = HashMap::with_capacity(code_length);
 
         while data.position() < code_start + code_length {
             offset_to_idx_map.insert(data.position() - code_start, op_index);
