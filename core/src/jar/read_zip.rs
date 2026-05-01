@@ -45,9 +45,46 @@ impl ZipFile {
                 return Err(ZipReadError::ReadError(ReadError::InvalidMagic));
             }
 
-            let seek_pos = record.header_position + record.local_file_header_size;
-            reader.seek(seek_pos)?;
+            // Version needed to extract
+            reader.read_u16_le()?;
 
+            // Some bitflags, not really important for us
+            reader.read_u16_le()?;
+
+            // Compression method- TODO do we rely on the CDFH's compression
+            // method or the compression method here (in the LFH)?
+            reader.read_u16_le()?;
+
+            // Last modification time
+            reader.read_u16_le()?;
+
+            // Last modification date
+            reader.read_u16_le()?;
+
+            // CRC32
+            reader.read_u32_le()?;
+
+            // Compressed size- this is unreliable here as it will be set to 0
+            // in a streamed zip
+            reader.read_u32_le()?;
+
+            // Uncompressed size- this is unreliable here as it will be set to 0
+            // in a streamed zip
+            reader.read_u32_le()?;
+
+            let name_length = reader.read_u16_le()?;
+
+            let extra_field_length = reader.read_u16_le()?;
+
+            for _ in 0..name_length {
+                reader.read_u8()?;
+            }
+
+            for _ in 0..extra_field_length {
+                reader.read_u8()?;
+            }
+
+            // Finally, we are at the payload
             let raw_bytes = reader.read_bytes(record.compressed_size)?;
 
             match record.compression_method {
@@ -69,6 +106,7 @@ impl ZipFile {
     }
 }
 
+#[derive(Debug)]
 struct FileRecord {
     // Which compression method this record uses
     compression_method: usize,
@@ -78,10 +116,6 @@ struct FileRecord {
 
     // The position of the file's local file header from the start of the file
     header_position: usize,
-
-    // The size of the local file header, precomputed so that we can skip over
-    // it quickly when we're reading the file
-    local_file_header_size: usize,
 }
 
 /// Read an end-of-central-directory record and return relevant data as a tuple
@@ -198,7 +232,9 @@ fn read_records<'a>(
                 compression_method: compression_method as usize,
                 compressed_size: compressed_size as usize,
                 header_position: header_position as usize,
-                local_file_header_size: (0x1e + name_length + extra_field_length) as usize,
+                // NOTE: We *cannot* precalculate the local file header size-
+                // it's valid for the LFH info to state a different extra field
+                // length than the CDFH info.
             },
         );
     }
