@@ -1,8 +1,7 @@
 // Thin wrapper for reading JAR files
 
-use super::read_zip::ZipFile;
+use super::read_zip::{ZipFile, ZipReadError};
 use crate::gc::{Gc, GcCtx, Trace};
-use crate::reader::ReadError;
 
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -19,7 +18,7 @@ pub struct Jar(Gc<JarData>);
 
 impl Jar {
     /// Create a JAR file from the provided data.
-    pub fn from_bytes(gc_ctx: GcCtx, bytes: Vec<u8>) -> Result<Self, ReadError> {
+    pub fn from_bytes(gc_ctx: GcCtx, bytes: Vec<u8>) -> Result<Self, ZipReadError> {
         let jar_file = ZipFile::new(bytes)?;
 
         Ok(Self(Gc::new(
@@ -42,7 +41,7 @@ impl Jar {
     /// into the JAR.
     ///
     /// This method will cache read files.
-    pub fn read_file(self, file_name: String) -> Result<Vec<u8>, ()> {
+    pub fn read_file(self, file_name: String) -> Result<Vec<u8>, ZipReadError> {
         let mut cached_files = self.0.cached_files.borrow_mut();
         match cached_files.entry(file_name.clone()) {
             Entry::Occupied(occupied) => Ok(occupied.get().clone()),

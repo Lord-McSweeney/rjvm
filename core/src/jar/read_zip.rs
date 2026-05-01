@@ -20,7 +20,7 @@ pub struct ZipFile {
 }
 
 impl ZipFile {
-    pub fn new(data: Vec<u8>) -> Result<Self, ReadError> {
+    pub fn new(data: Vec<u8>) -> Result<Self, ZipReadError> {
         let mut reader = FileData::new(&data);
 
         let (records_count, first_record_offset) = read_eocd(&mut reader)?;
@@ -35,20 +35,20 @@ impl ZipFile {
         self.records.contains_key(&record_name)
     }
 
-    pub fn read_file(&self, file_name: &String) -> Result<Vec<u8>, ()> {
+    pub fn read_file(&self, file_name: &String) -> Result<Vec<u8>, ZipReadError> {
         let record_name = Box::from(file_name.as_bytes());
         if let Some(record) = self.records.get(&record_name) {
             // We had the record, so seek to the data
             let mut reader = FileData::new(&self.data);
-            reader.seek(record.header_position).map_err(|_| ())?;
-            if reader.read_u32_le().map_err(|_| ())? != LFH_MAGIC {
-                return Err(());
+            reader.seek(record.header_position)?;
+            if reader.read_u32_le()? != LFH_MAGIC {
+                return Err(ZipReadError::ReadError(ReadError::InvalidMagic));
             }
 
             let seek_pos = record.header_position + record.local_file_header_size;
-            reader.seek(seek_pos).map_err(|_| ())?;
+            reader.seek(seek_pos)?;
 
-            let raw_bytes = reader.read_bytes(record.compressed_size).map_err(|_| ())?;
+            let raw_bytes = reader.read_bytes(record.compressed_size)?;
 
             match record.compression_method {
                 0 => {
@@ -57,14 +57,14 @@ impl ZipFile {
                 }
                 8 => {
                     // Deflate
-                    decompress_to_vec(&raw_bytes).map_err(|_| ())
+                    decompress_to_vec(&raw_bytes).map_err(|_| ZipReadError::DeflateFailed)
                 }
                 unknown => {
                     panic!("Unimplemented compression method for file: {}", unknown)
                 }
             }
         } else {
-            Err(())
+            Err(ZipReadError::FileNotFound)
         }
     }
 }
@@ -204,4 +204,19 @@ fn read_records<'a>(
     }
 
     Ok(map)
+}
+
+#[derive(Debug)]
+pub enum ZipReadError {
+    ReadError(ReadError),
+
+    FileNotFound,
+
+    DeflateFailed,
+}
+
+impl From<ReadError> for ZipReadError {
+    fn from(value: ReadError) -> Self {
+        Self::ReadError(value)
+    }
 }
