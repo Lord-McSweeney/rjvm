@@ -74,74 +74,81 @@ pub(crate) fn run_file(class_name: &str, class_data: &[u8], args: Vec<String>) {
 
     // Initialize JVM
     let loader = loader_backend::WebLoaderBackend::new(class_name, class_data);
-    let context = Context::new(Box::new(loader));
+    Context::init(Box::new(loader));
 
-    // Load globals
-    let globals_base_jar = Jar::from_bytes(context.gc_ctx(), GLOBALS_BASE_JAR.to_vec())
-        .expect("Builtin globals should be valid");
-    context.add_bootstrap_jar(globals_base_jar);
-    let globals_desktop_jar = Jar::from_bytes(context.gc_ctx(), GLOBALS_DESKTOP_JAR.to_vec())
-        .expect("Builtin globals should be valid");
-    context.add_bootstrap_jar(globals_desktop_jar);
+    Context::with(|context| {
+        // Load globals
+        let globals_base_jar = Jar::from_bytes(context.gc_ctx(), GLOBALS_BASE_JAR.to_vec())
+            .expect("Builtin globals should be valid");
+        context.add_bootstrap_jar(globals_base_jar);
+        let globals_desktop_jar = Jar::from_bytes(context.gc_ctx(), GLOBALS_DESKTOP_JAR.to_vec())
+            .expect("Builtin globals should be valid");
+        context.add_bootstrap_jar(globals_desktop_jar);
 
-    base_native_impl::register_native_mappings(&context);
-    native_impl::register_native_mappings(&context);
+        base_native_impl::register_native_mappings(&context);
+        native_impl::register_native_mappings(&context);
 
-    context.load_builtins();
+        context.load_builtins();
 
-    // Load the main class from options
-    let main_class = match init_main_class(&context, class_name, class_data.to_vec(), is_jar) {
-        Ok(class) => class,
-        Err(error) => {
-            output_to_err(&format!("Error: {}", error));
+        // Load the main class from options
+        let main_class = match init_main_class(&context, class_name, class_data.to_vec(), is_jar) {
+            Ok(class) => class,
+            Err(error) => {
+                output_to_err(&format!("Error: {}", error));
 
-            return;
+                return;
+            }
+        };
+
+        // Load program args
+        let mut program_args = Vec::new();
+        for arg in args {
+            let utf16_encoded = arg.encode_utf16().collect::<Vec<_>>();
+
+            let string = context.create_string(&utf16_encoded);
+
+            program_args.push(Some(string));
         }
-    };
 
-    // Load program args
-    let mut program_args = Vec::new();
-    for arg in args {
-        let utf16_encoded = arg.encode_utf16().collect::<Vec<_>>();
+        let string_class = context.builtins().java_lang_string;
+        let args_array = Value::Object(Some(Object::obj_array(
+            &context,
+            string_class,
+            program_args.into_boxed_slice(),
+        )));
 
-        let string = context.create_string(&utf16_encoded);
+        // Call main method
+        let main_name = JvmString::new(context.gc_ctx(), "main".to_string());
+        let main_descriptor_name =
+            JvmString::new(context.gc_ctx(), "([Ljava/lang/String;)V".to_string());
 
-        program_args.push(Some(string));
-    }
+        let main_descriptor = MethodDescriptor::from_string(&context, main_descriptor_name)
+            .expect("Valid descriptor");
 
-    let string_class = context.builtins().java_lang_string;
-    let args_array = Value::Object(Some(Object::obj_array(
-        &context,
-        string_class,
-        program_args.into_boxed_slice(),
-    )));
+        let method_idx = main_class
+            .static_method_vtable()
+            .lookup((main_name, main_descriptor));
 
-    // Call main method
-    let main_name = JvmString::new(context.gc_ctx(), "main".to_string());
-    let main_descriptor_name =
-        JvmString::new(context.gc_ctx(), "([Ljava/lang/String;)V".to_string());
+        if let Some(method_idx) = method_idx {
+            let method = main_class.static_methods()[method_idx];
+            let result = context.exec_method(method, &[args_array]);
 
-    let main_descriptor =
-        MethodDescriptor::from_string(&context, main_descriptor_name).expect("Valid descriptor");
-
-    let method_idx = main_class
-        .static_method_vtable()
-        .lookup((main_name, main_descriptor));
-
-    if let Some(method_idx) = method_idx {
-        let method = main_class.static_methods()[method_idx];
-        let result = context.exec_method(method, &[args_array]);
-
-        if let Err(error) = result {
+            if let Err(error) = result {
+                output_to_err(&format!(
+                    "Error while running main: {}",
+                    error.display(&context)
+                ));
+            }
+        } else {
             output_to_err(&format!(
-                "Error while running main: {}",
-                error.display(&context)
+                "Class {} has no `void main(String[] args)` method\n",
+                main_class.dot_name(),
             ));
         }
-    } else {
-        output_to_err(&format!(
-            "Class {} has no `void main(String[] args)` method\n",
-            main_class.dot_name(),
-        ));
+    });
+
+    // SAFETY: The program terminates here.
+    unsafe {
+        Context::clear();
     }
 }

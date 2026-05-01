@@ -13,6 +13,7 @@ use super::value::Value;
 use crate::gc::{Gc, GcCtx, Trace};
 use crate::jar::Jar;
 use crate::string::{JvmString, JvmStringInterner};
+use crate::utils::Syncable;
 
 use alloc::boxed::Box;
 use alloc::string::{String, ToString};
@@ -36,6 +37,11 @@ pub const STACK_TRACE_ELEMENT_LINE_FIELD: usize = 3;
 pub const STACK_TRACE_ELEMENT_IS_NATIVE_FIELD: usize = 4;
 
 const DEFAULT_GC_THRESHOLD: u32 = 65536;
+
+// There can only be one `Context` instance at a time.
+// SAFETY: The created `INSTANCE` is never shared between threads, as rjvm
+// does not use native multithreading.
+static INSTANCE: Syncable<RefCell<Option<Context>>> = unsafe { Syncable::new(RefCell::new(None)) };
 
 pub struct Context {
     // The backend to call into to load external resources (e.g. bootstrap and
@@ -118,7 +124,48 @@ pub struct Context {
 }
 
 impl Context {
-    pub fn new(loader_backend: Box<dyn LoaderBackend>) -> Self {
+    /// Initialize the singleton `Context`. This method will panic if it has
+    /// already been initialized.
+    pub fn init(loader_backend: Box<dyn LoaderBackend>) {
+        let instance = &INSTANCE;
+        let mut instance = instance.borrow_mut();
+        if instance.is_some() {
+            panic!("Context already exists, drop it first using `Context::clear`");
+        }
+        *instance = Some(Context::new(loader_backend));
+    }
+
+    /// Call the provided function a reference to the singleton `Context`. This
+    /// method will panic if it has not yet been initialized.
+    pub fn with<F>(func: F)
+    where
+        F: FnOnce(&Context),
+    {
+        let instance = &INSTANCE;
+        let instance = instance.borrow();
+        match &*instance {
+            Some(instance) => func(instance),
+            None => panic!("Context does not exist, create it first using `Context::init`"),
+        }
+    }
+
+    /// Clear the singleton `Context`, garbage-collecting everything it holds.
+    /// This allows `Context::init` to be called again to create a new
+    /// `Context`.
+    ///
+    /// SAFETY: This function is highly unsafe. Callers must ensure that no data
+    /// from the previously existing `Context` is accessed or stored across
+    /// calls to this method. This includes [`Object`]s, [`Method`]s, etc.
+    pub unsafe fn clear() {
+        let instance = &INSTANCE;
+        let mut instance = instance.borrow_mut();
+        if instance.is_none() {
+            panic!("Context does not exist, create it first using `Context::init`");
+        }
+        *instance = None;
+    }
+
+    fn new(loader_backend: Box<dyn LoaderBackend>) -> Self {
         let gc_ctx = GcCtx::new();
         let mut interner = JvmStringInterner::new();
 

@@ -238,117 +238,125 @@ Link options:
 
     // Initialize JVM
     let loader = loader_backend::DesktopLoaderBackend::new();
-    let context = Context::new(Box::new(loader));
+    Context::init(Box::new(loader));
 
-    // Load globals
-    if options.load_globals {
-        let globals_base_jar = Jar::from_bytes(context.gc_ctx(), GLOBALS_BASE_JAR.to_vec())
-            .expect("Builtin globals should be valid");
-        context.add_bootstrap_jar(globals_base_jar);
-        let globals_desktop_jar = Jar::from_bytes(context.gc_ctx(), GLOBALS_DESKTOP_JAR.to_vec())
-            .expect("Builtin globals should be valid");
-        context.add_bootstrap_jar(globals_desktop_jar);
+    Context::with(|context| {
+        // Load globals
+        if options.load_globals {
+            let globals_base_jar = Jar::from_bytes(context.gc_ctx(), GLOBALS_BASE_JAR.to_vec())
+                .expect("Builtin globals should be valid");
+            context.add_bootstrap_jar(globals_base_jar);
+            let globals_desktop_jar =
+                Jar::from_bytes(context.gc_ctx(), GLOBALS_DESKTOP_JAR.to_vec())
+                    .expect("Builtin globals should be valid");
+            context.add_bootstrap_jar(globals_desktop_jar);
 
-        base_native_impl::register_native_mappings(&context);
-        native_impl::register_native_mappings(&context);
-    }
+            base_native_impl::register_native_mappings(&context);
+            native_impl::register_native_mappings(&context);
+        }
 
-    // Load linked bootstrap JARs
-    for linked_jar_name in &options.linked_bootstrap_jars {
-        let jar_data = match fs::read(linked_jar_name) {
-            Ok(data) => data,
-            Err(error) => {
-                eprintln!("Failed to read linked bootstrap JAR: {}", error.to_string());
+        // Load linked bootstrap JARs
+        for linked_jar_name in &options.linked_bootstrap_jars {
+            let jar_data = match fs::read(linked_jar_name) {
+                Ok(data) => data,
+                Err(error) => {
+                    eprintln!("Failed to read linked bootstrap JAR: {}", error.to_string());
+                    return;
+                }
+            };
+
+            let linked_jar = Jar::from_bytes(context.gc_ctx(), jar_data);
+
+            if let Ok(linked_jar) = linked_jar {
+                context.add_bootstrap_jar(linked_jar);
+            } else {
+                eprintln!(
+                    "Linked bootstrap JAR \"{}\" was not a valid JAR",
+                    linked_jar_name
+                );
+                return;
+            }
+        }
+
+        // We can't do this after the "Load globals" stage because the user could
+        // have passed `--no-globals --link-bootstrap rt.jar`; we have to do it now
+        context.load_builtins();
+
+        // Load linked JARs
+        for linked_jar_name in &options.linked_jars {
+            let jar_data = match fs::read(linked_jar_name) {
+                Ok(data) => data,
+                Err(error) => {
+                    eprintln!("Failed to read linked JAR: {}", error.to_string());
+                    return;
+                }
+            };
+
+            let linked_jar = Jar::from_bytes(context.gc_ctx(), jar_data);
+
+            if let Ok(linked_jar) = linked_jar {
+                context.add_system_jar(linked_jar);
+            } else {
+                eprintln!("Linked JAR \"{}\" was not a valid JAR", linked_jar_name);
+                return;
+            }
+        }
+
+        // Load the main class from options
+        let main_class = match init_main_class(&context, &options) {
+            Ok(main_class) => main_class,
+            Err(error_msg) => {
+                eprint!("Error while loading main class: {}", error_msg);
                 return;
             }
         };
 
-        let linked_jar = Jar::from_bytes(context.gc_ctx(), jar_data);
+        // Load program args
+        let mut program_args = Vec::new();
+        for arg in options.program_args {
+            let utf16_encoded = arg.encode_utf16().collect::<Box<_>>();
 
-        if let Ok(linked_jar) = linked_jar {
-            context.add_bootstrap_jar(linked_jar);
+            let string = context.create_string(&utf16_encoded);
+
+            program_args.push(Some(string));
+        }
+
+        let string_class = context.builtins().java_lang_string;
+        let args_array = Value::Object(Some(Object::obj_array(
+            &context,
+            string_class,
+            program_args.into_boxed_slice(),
+        )));
+
+        // Call main method
+        let main_name = JvmString::new(context.gc_ctx(), "main".to_string());
+        let main_descriptor_name =
+            JvmString::new(context.gc_ctx(), "([Ljava/lang/String;)V".to_string());
+
+        let main_descriptor = MethodDescriptor::from_string(&context, main_descriptor_name)
+            .expect("Valid descriptor");
+
+        let method_idx = main_class
+            .static_method_vtable()
+            .lookup((main_name, main_descriptor));
+
+        if let Some(method_idx) = method_idx {
+            let method = main_class.static_methods()[method_idx];
+            let result = context.exec_method(method, &[args_array]);
+
+            if let Err(error) = result {
+                eprint!("Error while running main: {}", error.display(&context));
+            }
         } else {
             eprintln!(
-                "Linked bootstrap JAR \"{}\" was not a valid JAR",
-                linked_jar_name
+                "Class {} has no `void main(String[] args)` method",
+                main_class.dot_name()
             );
-            return;
         }
-    }
+    });
 
-    // We can't do this after the "Load globals" stage because the user could
-    // have passed `--no-globals --link-bootstrap rt.jar`; we have to do it now
-    context.load_builtins();
-
-    // Load linked JARs
-    for linked_jar_name in &options.linked_jars {
-        let jar_data = match fs::read(linked_jar_name) {
-            Ok(data) => data,
-            Err(error) => {
-                eprintln!("Failed to read linked JAR: {}", error.to_string());
-                return;
-            }
-        };
-
-        let linked_jar = Jar::from_bytes(context.gc_ctx(), jar_data);
-
-        if let Ok(linked_jar) = linked_jar {
-            context.add_system_jar(linked_jar);
-        } else {
-            eprintln!("Linked JAR \"{}\" was not a valid JAR", linked_jar_name);
-            return;
-        }
-    }
-
-    // Load the main class from options
-    let main_class = match init_main_class(&context, &options) {
-        Ok(main_class) => main_class,
-        Err(error_msg) => {
-            eprint!("Error while loading main class: {}", error_msg);
-            return;
-        }
-    };
-
-    // Load program args
-    let mut program_args = Vec::new();
-    for arg in options.program_args {
-        let utf16_encoded = arg.encode_utf16().collect::<Box<_>>();
-
-        let string = context.create_string(&utf16_encoded);
-
-        program_args.push(Some(string));
-    }
-
-    let string_class = context.builtins().java_lang_string;
-    let args_array = Value::Object(Some(Object::obj_array(
-        &context,
-        string_class,
-        program_args.into_boxed_slice(),
-    )));
-
-    // Call main method
-    let main_name = JvmString::new(context.gc_ctx(), "main".to_string());
-    let main_descriptor_name =
-        JvmString::new(context.gc_ctx(), "([Ljava/lang/String;)V".to_string());
-
-    let main_descriptor =
-        MethodDescriptor::from_string(&context, main_descriptor_name).expect("Valid descriptor");
-
-    let method_idx = main_class
-        .static_method_vtable()
-        .lookup((main_name, main_descriptor));
-
-    if let Some(method_idx) = method_idx {
-        let method = main_class.static_methods()[method_idx];
-        let result = context.exec_method(method, &[args_array]);
-
-        if let Err(error) = result {
-            eprint!("Error while running main: {}", error.display(&context));
-        }
-    } else {
-        eprintln!(
-            "Class {} has no `void main(String[] args)` method",
-            main_class.dot_name()
-        );
+    // SAFETY: The program terminates here.
+    unsafe {
+        Context::clear();
     }
 }

@@ -1,4 +1,4 @@
-//#![no_std]
+#![no_std]
 
 #[macro_use]
 extern crate alloc;
@@ -9,6 +9,7 @@ mod jar;
 mod reader;
 mod runtime;
 mod string;
+mod utils;
 
 pub use crate::classfile::error::Error as ClassFileError;
 pub use crate::classfile::flags::{ClassFlags, FieldFlags, MethodFlags};
