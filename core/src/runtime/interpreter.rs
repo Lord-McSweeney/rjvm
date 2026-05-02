@@ -283,11 +283,11 @@ impl<'a> Interpreter<'a> {
                 }
                 Op::GetFieldWide(class, field_idx) => self.op_get_field_wide(*class, *field_idx),
                 Op::PutFieldWide(class, field_idx) => self.op_put_field_wide(*class, *field_idx),
-                Op::InvokeVirtual(class, descriptor, method_index) => {
-                    self.op_invoke_virtual(*class, *descriptor, *method_index)
+                Op::InvokeVirtual(class, physical_arg_count, method_index) => {
+                    self.op_invoke_virtual(*class, *physical_arg_count, *method_index)
                 }
-                Op::InvokeVirtualWide(class, descriptor, method_index) => {
-                    self.op_invoke_virtual_wide(*class, *descriptor, *method_index)
+                Op::InvokeVirtualWide(class, physical_arg_count, method_index) => {
+                    self.op_invoke_virtual_wide(*class, *physical_arg_count, *method_index)
                 }
                 Op::InvokeSpecial(class, method) => self.op_invoke_special(*class, *method),
                 Op::InvokeStatic(method) => self.op_invoke_static(*method),
@@ -1885,10 +1885,10 @@ impl<'a> Interpreter<'a> {
     fn op_invoke_virtual(
         &mut self,
         class: Class,
-        descriptor: MethodDescriptor,
+        physical_arg_count: usize,
         method_index: usize,
     ) -> Result<ControlFlow, Error> {
-        let receiver = self.stack_peek(descriptor.physical_arg_count()).object();
+        let receiver = self.stack_peek(physical_arg_count).object();
 
         if let Some(receiver) = receiver {
             if !receiver.class().check_cast(class) {
@@ -1918,10 +1918,10 @@ impl<'a> Interpreter<'a> {
     fn op_invoke_virtual_wide(
         &mut self,
         class: Class,
-        descriptor: MethodDescriptor,
+        physical_arg_count: usize,
         method_index: usize,
     ) -> Result<ControlFlow, Error> {
-        let receiver = self.stack_peek(descriptor.physical_arg_count()).object();
+        let receiver = self.stack_peek(physical_arg_count).object();
 
         if let Some(receiver) = receiver {
             if !receiver.class().check_cast(class) {
