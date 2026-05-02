@@ -258,8 +258,8 @@ impl<'a> Interpreter<'a> {
                     &*table_switch.matches,
                     table_switch.default_offset,
                 ),
-                Op::LookupSwitch(matches, default_offset) => {
-                    self.op_lookup_switch(&**matches, *default_offset)
+                Op::LookupSwitch(lookup_switch) => {
+                    self.op_lookup_switch(&*lookup_switch.matches, lookup_switch.default_offset)
                 }
                 Op::IReturn => self.op_i_return(),
                 Op::LReturn => self.op_l_return(),

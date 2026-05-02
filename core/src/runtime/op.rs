@@ -153,7 +153,7 @@ pub enum Op {
     IfACmpNe(usize),
     Goto(usize),
     TableSwitch(Box<TableSwitchInfo>),
-    LookupSwitch(Box<[(i32, usize)]>, usize),
+    LookupSwitch(Box<LookupSwitchInfo>),
 
     // Return
     IReturn,
@@ -334,7 +334,7 @@ impl Trace for Op {
             Op::IfACmpNe(_) => {}
             Op::Goto(_) => {}
             Op::TableSwitch(_) => {}
-            Op::LookupSwitch(_, _) => {}
+            Op::LookupSwitch(_) => {}
             Op::IReturn => {}
             Op::LReturn => {}
             Op::FReturn => {}
@@ -681,12 +681,14 @@ impl Op {
                         })?;
                     }
                 }
-                Op::LookupSwitch(matches, default_offset) => {
-                    *default_offset = *offset_to_idx_map.get(default_offset).ok_or_else(|| {
-                        context.verify_error("Invalid lookupswitch branch target")
-                    })?;
+                Op::LookupSwitch(lookup_switch) => {
+                    lookup_switch.default_offset = *offset_to_idx_map
+                        .get(&lookup_switch.default_offset)
+                        .ok_or_else(|| {
+                            context.verify_error("Invalid lookupswitch branch target")
+                        })?;
 
-                    for (_, offset) in matches.iter_mut() {
+                    for (_, offset) in lookup_switch.matches.iter_mut() {
                         *offset = *offset_to_idx_map.get(offset).ok_or_else(|| {
                             context.verify_error("Invalid lookupswitch case target")
                         })?;
@@ -1070,7 +1072,12 @@ impl Op {
                     pairs.push((matching_value, offset));
                 }
 
-                Op::LookupSwitch(pairs.into_boxed_slice(), default_offset)
+                let lookup_switch = LookupSwitchInfo {
+                    matches: pairs.into_boxed_slice(),
+                    default_offset,
+                };
+
+                Op::LookupSwitch(Box::new(lookup_switch))
             }
             I_RETURN => {
                 let return_type = method.descriptor().return_type();
@@ -1544,5 +1551,11 @@ impl Op {
 pub(crate) struct TableSwitchInfo {
     pub low_int: i32,
     pub matches: Box<[usize]>,
+    pub default_offset: usize,
+}
+
+#[derive(Clone, Debug)]
+pub(crate) struct LookupSwitchInfo {
+    pub matches: Box<[(i32, usize)]>,
     pub default_offset: usize,
 }
