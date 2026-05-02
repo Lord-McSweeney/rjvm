@@ -122,10 +122,13 @@ fn collect_basic_blocks<'a>(
                     }
                     break;
                 }
-                Op::TableSwitch(_, matches, default_offset) => {
-                    if !visited_locations.contains(default_offset) {
-                        visited_locations.insert(*default_offset);
-                        worklist.push(*default_offset);
+                Op::TableSwitch(table_switch) => {
+                    let matches = &table_switch.matches;
+                    let default_offset = table_switch.default_offset;
+
+                    if !visited_locations.contains(&default_offset) {
+                        visited_locations.insert(default_offset);
+                        worklist.push(default_offset);
                     }
 
                     for offset in matches {
@@ -215,8 +218,11 @@ fn collect_basic_blocks<'a>(
 
                 current_block_start = i + 1;
             }
-            Op::TableSwitch(_, matches, default_offset) => {
-                let mut possible_target_list = vec![*default_offset];
+            Op::TableSwitch(table_switch) => {
+                let matches = &table_switch.matches;
+                let default_offset = table_switch.default_offset;
+
+                let mut possible_target_list = vec![default_offset];
 
                 for offset in matches {
                     possible_target_list.push(*offset);
@@ -897,7 +903,7 @@ fn verify_block<'a>(
             Op::Goto(_) => {
                 // This does nothing
             }
-            Op::TableSwitch(_, _, _) => {
+            Op::TableSwitch(_) => {
                 expect_pop_stack!(Integer);
             }
             Op::LookupSwitch(_, _) => {

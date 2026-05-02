@@ -253,9 +253,11 @@ impl<'a> Interpreter<'a> {
                 Op::IfACmpEq(position) => self.op_if_a_cmp_eq(*position),
                 Op::IfACmpNe(position) => self.op_if_a_cmp_ne(*position),
                 Op::Goto(position) => self.op_goto(*position),
-                Op::TableSwitch(low_int, matches, default_offset) => {
-                    self.op_table_switch(*low_int, &**matches, *default_offset)
-                }
+                Op::TableSwitch(table_switch) => self.op_table_switch(
+                    table_switch.low_int,
+                    &*table_switch.matches,
+                    table_switch.default_offset,
+                ),
                 Op::LookupSwitch(matches, default_offset) => {
                     self.op_lookup_switch(&**matches, *default_offset)
                 }

@@ -152,7 +152,7 @@ pub enum Op {
     IfACmpEq(usize),
     IfACmpNe(usize),
     Goto(usize),
-    TableSwitch(i32, Box<[usize]>, usize),
+    TableSwitch(Box<TableSwitchInfo>),
     LookupSwitch(Box<[(i32, usize)]>, usize),
 
     // Return
@@ -333,7 +333,7 @@ impl Trace for Op {
             Op::IfACmpEq(_) => {}
             Op::IfACmpNe(_) => {}
             Op::Goto(_) => {}
-            Op::TableSwitch(_, _, _) => {}
+            Op::TableSwitch(_) => {}
             Op::LookupSwitch(_, _) => {}
             Op::IReturn => {}
             Op::LReturn => {}
@@ -668,12 +668,14 @@ impl Op {
                         .get(position)
                         .ok_or_else(|| context.verify_error("Invalid branch target"))?;
                 }
-                Op::TableSwitch(_, matches, default_offset) => {
-                    *default_offset = *offset_to_idx_map.get(default_offset).ok_or_else(|| {
-                        context.verify_error("Invalid tableswitch default target")
-                    })?;
+                Op::TableSwitch(table_switch) => {
+                    table_switch.default_offset = *offset_to_idx_map
+                        .get(&table_switch.default_offset)
+                        .ok_or_else(|| {
+                            context.verify_error("Invalid tableswitch default target")
+                        })?;
 
-                    for offset in matches.iter_mut() {
+                    for offset in table_switch.matches.iter_mut() {
                         *offset = *offset_to_idx_map.get(offset).ok_or_else(|| {
                             context.verify_error("Invalid tableswitch case target")
                         })?;
@@ -1038,7 +1040,13 @@ impl Op {
                     offsets.push(offset);
                 }
 
-                Op::TableSwitch(low_int, offsets.into_boxed_slice(), default_offset)
+                let table_switch = TableSwitchInfo {
+                    low_int,
+                    matches: offsets.into_boxed_slice(),
+                    default_offset,
+                };
+
+                Op::TableSwitch(Box::new(table_switch))
             }
             LOOKUP_SWITCH => {
                 let padding_bytes = (data_position + 1) % 4;
@@ -1530,4 +1538,11 @@ impl Op {
                 | Op::Clinit(_)
         )
     }
+}
+
+#[derive(Clone, Debug)]
+pub(crate) struct TableSwitchInfo {
+    pub low_int: i32,
+    pub matches: Box<[usize]>,
+    pub default_offset: usize,
 }
