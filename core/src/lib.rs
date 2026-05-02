@@ -13,7 +13,7 @@ mod utils;
 
 pub use crate::classfile::error::Error as ClassFileError;
 pub use crate::classfile::flags::{ClassFlags, FieldFlags, MethodFlags};
-pub use crate::gc::{Gc, GcCtx, Trace};
+pub use crate::gc::{Gc, GcCtx};
 pub use crate::jar::Jar;
 pub use crate::reader::ReadError;
 pub use crate::runtime::array::Array;

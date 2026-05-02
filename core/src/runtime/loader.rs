@@ -303,6 +303,8 @@ pub trait LoaderBackend {
 }
 
 /// A place to search for an external resource.
+///
+/// See [`ClassLoader::add_source`].
 pub enum ResourceLoadSource {
     /// This class was loaded directly from the filesystem. When searching
     /// for resources, look at the files in the directory of this class.

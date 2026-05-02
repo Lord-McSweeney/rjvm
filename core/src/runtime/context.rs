@@ -471,18 +471,26 @@ impl Context {
         self.java_fields.borrow()[id as usize]
     }
 
-    pub fn interner(&self) -> RefMut<'_, JvmStringInterner> {
+    pub(crate) fn interner(&self) -> RefMut<'_, JvmStringInterner> {
         self.interner.borrow_mut()
     }
 
+    /// Intern a Java `String` [`Object`].
+    ///
+    /// This uses the VM's interned Java `String`s set, which is also used for
+    /// interning literal strings when they are loaded by the `ldc` op. This
+    /// method is intended to be called by a native Rust method implementing the
+    /// Java `String.intern` method.
     pub fn intern_string_obj(&self, new_string: Object) -> Object {
         self.interned_strings.borrow_mut().intern(new_string)
     }
 
+    /// Retrieve the primitive class for the given primitive type.
     pub fn primitive_class_for(&self, primitive_type: PrimitiveType) -> Class {
         *self.primitive_classes.get(&primitive_type).unwrap()
     }
 
+    /// The number of entries (method calls) currently on the VM call stack.
     pub fn call_stack_size(&self) -> usize {
         self.call_stack.borrow().len()
     }
@@ -503,11 +511,14 @@ impl Context {
         self.call_stack.borrow_mut().pop_call();
     }
 
+    /// Capture a call stack, returning a list of `StackTraceElement` objects.
     pub fn capture_call_stack(&self, skip_count: usize) -> Vec<Object> {
         let entries = self.call_stack.borrow().get_entries(skip_count);
         CallStack::display(self, &entries)
     }
 
+    /// Capture and format a call stack, returning a Java array of
+    /// `StackTraceElement` objects.
     pub fn format_call_stack(&self, skip_count: usize) -> Object {
         let entries = self.capture_call_stack(skip_count);
 
@@ -520,7 +531,7 @@ impl Context {
         )
     }
 
-    pub fn increment_gc_counter(&self) {
+    pub(crate) fn increment_gc_counter(&self) {
         let new_value = self.gc_counter.get() + 1;
 
         if new_value == self.gc_threshold.get() {
@@ -534,14 +545,20 @@ impl Context {
         }
     }
 
-    /// Convert a Java String object to a Rust `String`.
+    /// Convert a Java `String` object to a Rust [`String`].
+    ///
+    /// Invalid characters will be skipped (this method uses
+    /// [`String::from_utf16_lossy`].
     pub fn string_object_to_string(string_obj: Object) -> String {
         let chars = Context::unwrap_string(string_obj);
 
         return String::from_utf16_lossy(&chars);
     }
 
-    /// Convert a Rust `&str` to a Java String object.
+    /// Convert a Rust `&str` to a Java `String` object.
+    ///
+    /// FIXME This method does not correctly handle paired surrogates in the
+    /// Rust `&str`!
     pub fn str_to_string(&self, string: &str) -> Object {
         let chars = string.chars().map(|c| c as u16).collect::<Box<_>>();
 
@@ -556,6 +573,8 @@ impl Context {
     }
 
     /// Convert a Rust `&[u16]` to a Java String object.
+    ///
+    /// This conversion is lossless.
     pub fn create_string(&self, chars: &[u16]) -> Object {
         let chars_array_object = Object::char_array(&self, Box::from(chars));
 
@@ -568,6 +587,8 @@ impl Context {
     }
 
     /// Convert a Java String object to a Rust `Box<[u16]>`.
+    ///
+    /// This conversion is lossless.
     pub fn unwrap_string(string_obj: Object) -> Box<[u16]> {
         let chars = string_obj.get_field(STRING_DATA_FIELD).object().unwrap();
         let chars = chars.array_data().as_char_array();
@@ -576,10 +597,17 @@ impl Context {
         chars
     }
 
+    /// Returns the [`CommonData`] stored this context.
+    ///
+    /// See that struct for more information.
     pub fn common(&self) -> &CommonData {
         &self.common
     }
 
+    /// Returns the loaded `java.lang.Object` class.
+    ///
+    /// If builtin classes have not yet been loaded using a call to
+    /// `Context::load_builtins`, this method will panic.
     pub fn object_class(&self) -> Class {
         self.object_class
             .get()
@@ -587,6 +615,7 @@ impl Context {
             .expect("Object class should have been loaded")
     }
 
+    /// Retrieve the builtin classes.
     pub fn builtins(&self) -> Ref<'_, BuiltinClasses> {
         let builtins = self.builtins.borrow();
         Ref::map(builtins, |b| {
@@ -601,6 +630,7 @@ impl Context {
         })
     }
 
+    /// Retrieve the primitive array classes.
     pub fn primitive_arrays(&self) -> Ref<'_, PrimitiveArrayClasses> {
         let primitive_arrays = self.primitive_arrays.borrow();
         Ref::map(primitive_arrays, |b| {
@@ -609,6 +639,11 @@ impl Context {
         })
     }
 
+    /// Load builtin classes from the bootstrap loader.
+    ///
+    /// This method is intended to be called after one or more calls to
+    /// [`Context::add_bootstrap_jar`] and before any actual execution of Java
+    /// methods.
     pub fn load_builtins(&self) {
         // First load the `java/lang/Object` class
         let object_class_name = "java/lang/Object".to_string();
@@ -669,6 +704,7 @@ impl Context {
         }
     }
 
+    /// Create an `ArithmeticException` instance.
     #[inline(never)]
     pub fn arithmetic_exception(&self) -> Error {
         let exception_class = self.builtins().java_lang_arithmetic_exception;
@@ -679,6 +715,7 @@ impl Context {
         Error(exception_instance)
     }
 
+    /// Create an `ArrayIndexOutOfBoundsException` instance.
     #[inline(never)]
     pub fn array_index_oob_exception(&self) -> Error {
         let exception_class = self.builtins().java_lang_array_index_oob_exception;
@@ -689,6 +726,7 @@ impl Context {
         Error(exception_instance)
     }
 
+    /// Create an `ArrayStoreException` instance.
     #[inline(never)]
     pub fn array_store_exception(&self) -> Error {
         let exception_class = self.builtins().java_lang_array_store_exception;
@@ -699,6 +737,7 @@ impl Context {
         Error(exception_instance)
     }
 
+    /// Create a `ClassCastException` instance.
     #[inline(never)]
     pub fn class_cast_exception(&self) -> Error {
         let exception_class = self.builtins().java_lang_class_cast_exception;
@@ -709,6 +748,7 @@ impl Context {
         Error(exception_instance)
     }
 
+    /// Create a `ClassFormatError` instance.
     #[inline(never)]
     #[cold]
     pub fn class_format_error(&self, message: &str) -> Error {
@@ -726,6 +766,7 @@ impl Context {
         Error(error_instance)
     }
 
+    /// Create an `ExceptionInInitializerError` instance.
     #[inline(never)]
     #[cold]
     pub fn exception_in_initializer_error(&self, exception: Object) -> Error {
@@ -740,6 +781,7 @@ impl Context {
         Error(error_instance)
     }
 
+    /// Create an `IllegalAccessError` instance.
     #[inline(never)]
     #[cold]
     pub fn illegal_access_error(&self) -> Error {
@@ -751,6 +793,7 @@ impl Context {
         Error(exception_instance)
     }
 
+    /// Create an `IncompatibleClassChangeError` instance.
     #[inline(never)]
     #[cold]
     pub fn incompatible_class_change_error(&self, message: &str) -> Error {
@@ -768,6 +811,7 @@ impl Context {
         Error(error_instance)
     }
 
+    /// Create an `InstantiationError` instance.
     #[inline(never)]
     #[cold]
     pub fn instantiation_error(&self, class_name: JvmString) -> Error {
@@ -785,6 +829,7 @@ impl Context {
         Error(error_instance)
     }
 
+    /// Create an `InstantiationException` instance.
     #[inline(never)]
     #[cold]
     pub fn instantiation_exception(&self) -> Error {
@@ -796,6 +841,7 @@ impl Context {
         Error(exception_instance)
     }
 
+    /// Create a `LinkageError` instance.
     #[inline(never)]
     #[cold]
     pub fn linkage_error(&self, class_name: &str) -> Error {
@@ -813,6 +859,7 @@ impl Context {
         Error(error_instance)
     }
 
+    /// Create a `NegativeArraySizeException` instance.
     #[inline(never)]
     #[cold]
     pub fn negative_array_size_exception(&self) -> Error {
@@ -824,6 +871,7 @@ impl Context {
         Error(exception_instance)
     }
 
+    /// Create a `NoClassDefFoundError` instance.
     #[inline(never)]
     #[cold]
     pub fn no_class_def_found_error(&self, message: &str) -> Error {
@@ -841,6 +889,7 @@ impl Context {
         Error(error_instance)
     }
 
+    /// Create a `NoSuchFieldError` instance.
     #[inline(never)]
     #[cold]
     pub fn no_such_field_error(&self) -> Error {
@@ -852,6 +901,7 @@ impl Context {
         Error(error_instance)
     }
 
+    /// Create a `NoSuchMethodError` instance.
     #[inline(never)]
     #[cold]
     pub fn no_such_method_error(&self, message: &str) -> Error {
@@ -869,6 +919,7 @@ impl Context {
         Error(error_instance)
     }
 
+    /// Create a `NullPointerException` instance.
     #[inline(never)]
     pub fn null_pointer_exception(&self) -> Error {
         let exception_class = self.builtins().java_lang_null_pointer_exception;
@@ -879,6 +930,7 @@ impl Context {
         Error(exception_instance)
     }
 
+    /// Create a `VerifyError` instance.
     #[inline(never)]
     #[cold]
     pub fn verify_error(&self, message: &str) -> Error {
