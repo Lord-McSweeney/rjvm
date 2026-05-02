@@ -20,7 +20,8 @@ public final class System {
 
     // Java code to initialize the VM. This method is called by the native
     // function `Context::load_builtins`.
-    private static void initSystemClass() {
+    private static void initVM() {
+        // This call initializes the system class loader
         ClassLoader.getSystemClassLoader();
 
         properties = new Properties();
