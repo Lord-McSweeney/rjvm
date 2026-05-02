@@ -5,9 +5,6 @@ use crate::gc::{Gc, GcCtx, Trace};
 
 use alloc::string::String;
 use alloc::vec::Vec;
-use core::cell::RefCell;
-use hashbrown::HashMap;
-use hashbrown::hash_map::Entry;
 
 /// A JAR file.
 ///
@@ -21,13 +18,7 @@ impl Jar {
     pub fn from_bytes(gc_ctx: GcCtx, bytes: Vec<u8>) -> Result<Self, ZipReadError> {
         let jar_file = ZipFile::new(bytes)?;
 
-        Ok(Self(Gc::new(
-            gc_ctx,
-            JarData {
-                jar_file,
-                cached_files: RefCell::new(HashMap::new()),
-            },
-        )))
+        Ok(Self(Gc::new(gc_ctx, JarData { jar_file })))
     }
 
     /// Checks whether the JAR contains a file with the given name.
@@ -39,26 +30,13 @@ impl Jar {
     ///
     /// This method makes no attempt to normalize the provided name as a path
     /// into the JAR.
-    ///
-    /// This method will cache read files.
     pub fn read_file(self, file_name: String) -> Result<Vec<u8>, ZipReadError> {
-        let mut cached_files = self.0.cached_files.borrow_mut();
-        match cached_files.entry(file_name.clone()) {
-            Entry::Occupied(occupied) => Ok(occupied.get().clone()),
-            Entry::Vacant(vacant) => {
-                let result = self.0.jar_file.read_file(&file_name)?;
-
-                vacant.insert(result.clone());
-
-                Ok(result)
-            }
-        }
+        self.0.jar_file.read_file(&file_name)
     }
 }
 
 struct JarData {
     jar_file: ZipFile,
-    cached_files: RefCell<HashMap<String, Vec<u8>>>,
 }
 
 impl Trace for Jar {
