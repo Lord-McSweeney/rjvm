@@ -142,8 +142,8 @@ fn field_constant_value(
     Ok(None)
 }
 
-/// A template for a field. This is used to represent the information held by a
-/// `java.lang.reflect.Field` object.
+/// A template for a field, used to represent a `java.lang.reflect.Field`'s
+/// data.
 ///
 /// TODO: This should probably eventually be merged with `Field` and `FieldRef`
 // into one unified `Field` struct.

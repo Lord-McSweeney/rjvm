@@ -43,6 +43,28 @@ const DEFAULT_GC_THRESHOLD: u32 = 65536;
 // does not use native multithreading.
 static INSTANCE: Syncable<RefCell<Option<Context>>> = unsafe { Syncable::new(RefCell::new(None)) };
 
+/// A JVM context.
+///
+/// This struct stores all the information of a single JVM instance. Currently,
+/// this crate does not support multiple JVM instances. Instead, there is a
+/// singleton JVM instance. It can be created, accessed, and cleared using
+/// [`Context::init`], [`Context::with`], and [`Context::clear`], respectively.
+///
+/// For example:
+/// ```
+/// fn main() {
+///     // Code to create a loader backend...
+///
+///     Context::init(loader_backend);
+///     Context::with(|context| {
+///         // Do something with the context
+///     });
+///
+///     // SAFETY: Program exits after this
+///     unsafe {
+///         Context::clear();
+///     }
+/// }
 pub struct Context {
     // The backend to call into to load external resources (e.g. bootstrap and
     // system classes).
