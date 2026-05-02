@@ -286,6 +286,9 @@ impl<'a> Interpreter<'a> {
                 Op::InvokeVirtual(class, descriptor, method_index) => {
                     self.op_invoke_virtual(*class, *descriptor, *method_index)
                 }
+                Op::InvokeVirtualWide(class, descriptor, method_index) => {
+                    self.op_invoke_virtual_wide(*class, *descriptor, *method_index)
+                }
                 Op::InvokeSpecial(class, method) => self.op_invoke_special(*class, *method),
                 Op::InvokeStatic(method) => self.op_invoke_static(*method),
                 Op::InvokeInterface(class, (method_name, method_descriptor)) => {
@@ -1903,11 +1906,40 @@ impl<'a> Interpreter<'a> {
             let result = method.exec(self.context)?;
 
             if let Some(result) = result {
-                if descriptor.return_type().is_wide() {
-                    self.stack_push_wide(result);
-                } else {
-                    self.stack_push(result);
-                }
+                self.stack_push(result);
+            }
+
+            Ok(ControlFlow::Continue)
+        } else {
+            Err(self.context.null_pointer_exception())
+        }
+    }
+
+    fn op_invoke_virtual_wide(
+        &mut self,
+        class: Class,
+        descriptor: MethodDescriptor,
+        method_index: usize,
+    ) -> Result<ControlFlow, Error> {
+        let receiver = self.stack_peek(descriptor.physical_arg_count()).object();
+
+        if let Some(receiver) = receiver {
+            if !receiver.class().check_cast(class) {
+                // TODO verify this in verifier
+                panic!("Object on stack was of wrong Class");
+            }
+
+            let receiver_class = receiver.class();
+            let method = receiver_class
+                .instance_method_vtable()
+                .get_element(method_index);
+
+            // `method.exec` takes arguments from the stack, which they're
+            // already on at this point
+            let result = method.exec(self.context)?;
+
+            if let Some(result) = result {
+                self.stack_push_wide(result);
             }
 
             Ok(ControlFlow::Continue)

@@ -178,6 +178,7 @@ pub enum Op {
 
     // Method invocation
     InvokeVirtual(Class, MethodDescriptor, usize),
+    InvokeVirtualWide(Class, MethodDescriptor, usize),
     InvokeSpecial(Class, Method),
     InvokeStatic(Method),
     InvokeInterface(Class, (JvmString, MethodDescriptor)),
@@ -366,6 +367,10 @@ impl Trace for Op {
                 class.trace();
             }
             Op::InvokeVirtual(class, descriptor, _) => {
+                class.trace();
+                descriptor.trace();
+            }
+            Op::InvokeVirtualWide(class, descriptor, _) => {
                 class.trace();
                 descriptor.trace();
             }
@@ -1291,7 +1296,11 @@ impl Op {
 
                 // TODO access control?
 
-                Op::InvokeVirtual(class, descriptor, method_index)
+                if descriptor.return_type().is_wide() {
+                    Op::InvokeVirtualWide(class, descriptor, method_index)
+                } else {
+                    Op::InvokeVirtual(class, descriptor, method_index)
+                }
             }
             INVOKE_SPECIAL => {
                 let method_ref_idx = read_u16_be!(context, data);
@@ -1531,6 +1540,7 @@ impl Op {
                 | Op::GetFieldWide(_, _)
                 | Op::PutFieldWide(_, _)
                 | Op::InvokeVirtual(_, _, _)
+                | Op::InvokeVirtualWide(_, _, _)
                 | Op::InvokeSpecial(_, _)
                 | Op::InvokeStatic(_)
                 | Op::InvokeInterface(_, _)

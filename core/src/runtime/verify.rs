@@ -1037,7 +1037,7 @@ fn verify_block<'a>(
 
                 expect_pop_stack!(Reference);
             }
-            Op::InvokeVirtual(_, descriptor, _) => {
+            Op::InvokeVirtual(_, descriptor, _) | Op::InvokeVirtualWide(_, descriptor, _) => {
                 for arg in descriptor.args().iter().rev() {
                     match arg {
                         Descriptor::Class(_) | Descriptor::Array(_) => {
