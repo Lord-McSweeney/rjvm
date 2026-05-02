@@ -36,6 +36,7 @@ pub const STACK_TRACE_ELEMENT_FILE_FIELD: usize = 2;
 pub const STACK_TRACE_ELEMENT_LINE_FIELD: usize = 3;
 pub const STACK_TRACE_ELEMENT_IS_NATIVE_FIELD: usize = 4;
 
+// Note: If updating this, make sure to update the doc comment on `set_gc_threshold`.
 const DEFAULT_GC_THRESHOLD: u32 = 65536;
 
 // There can only be one `Context` instance at a time.
@@ -65,6 +66,7 @@ static INSTANCE: Syncable<RefCell<Option<Context>>> = unsafe { Syncable::new(Ref
 ///         Context::clear();
 ///     }
 /// }
+/// ```
 pub struct Context {
     // The backend to call into to load external resources (e.g. bootstrap and
     // system classes).
@@ -264,6 +266,37 @@ impl Context {
         }
     }
 
+    /// Register a list of Rust functions to their associated Java `native`
+    /// methods.
+    ///
+    /// This method accepts a list of strings identifying Java methods and the
+    /// native Rust methods that those Java methods should be associated with.
+    ///
+    /// The format for strings identifying Java methods is
+    /// `ClassName.methodName.(Ldescriptor;)V`. For example:
+    ///
+    /// ```
+    /// java/lang/Object.hashCode.()I
+    /// ```
+    ///
+    /// would be a valid string referencing the `Object.hashCode` method. It
+    /// would be used as so:
+    ///
+    /// ```
+    /// fn object_hash_code(_context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
+    ///     let this = args[0].object().unwrap();
+    ///
+    ///     let result = 0; // Do some calculations to determine the hash code
+    ///
+    ///     Ok(Some(Value::Integer(result)))
+    /// }
+    ///
+    /// let mappings: &[(&str, NativeMethod)] = &[
+    ///     ("java/lang/Object.hashCode.()I", object_hash_code),
+    /// ];
+    ///
+    /// context.register_native_mappings(mappings);
+    /// ```
     pub fn register_native_mappings(&self, mappings: &[(&str, NativeMethod)]) {
         for mapping in mappings {
             let name = mapping.0.split(".").collect::<Vec<_>>();
@@ -283,6 +316,15 @@ impl Context {
         }
     }
 
+    /// Execute the provided [`Method`].
+    ///
+    /// This method ensures that none of the values passed in `args` can be
+    /// garbage-collected as a result of calling the method.
+    ///
+    /// If the method threw an error, this method returns `Err`. Otherwise, if
+    /// the method's return type is `void`, this method will return `Ok(None)`.
+    /// Otherwise, the method will return `Ok(Some(value))`, returning the value
+    /// that the method returned.
     pub fn exec_method(&self, method: Method, args: &[Value]) -> Result<Option<Value>, Error> {
         assert!(
             args.len() == method.physical_arg_count(),
@@ -303,10 +345,15 @@ impl Context {
         result
     }
 
+    /// The garbage collection context used by this `Context`.
     pub fn gc_ctx(&self) -> GcCtx {
         self.gc_ctx
     }
 
+    /// Adjust the `Context`'s GC threshold.
+    ///
+    /// The GC threshold is the number of allocating ops that can be run before
+    /// a full garbage-collection is triggered. By default, it is set to 65536.
     pub fn set_gc_threshold(&self, gc_threshold: u32) {
         self.gc_threshold.set(gc_threshold);
     }
@@ -323,24 +370,41 @@ impl Context {
             .copied()
     }
 
-    pub fn loader_backend(&self) -> Gc<Box<dyn LoaderBackend>> {
+    pub(crate) fn loader_backend(&self) -> Gc<Box<dyn LoaderBackend>> {
         self.loader_backend
     }
 
+    /// Add a JAR file to the list of load sources of the bootstrap loader.
+    ///
+    /// This method is equivalent to
+    /// ```
+    /// self.bootstrap_loader().add_source(ResourceLoadSource::Jar(jar));
+    /// ```
     pub fn add_bootstrap_jar(&self, jar: Jar) {
         self.bootstrap_loader
             .add_source(ResourceLoadSource::Jar(jar));
     }
 
+    /// Add a JAR file to the list of load sources of the system loader.
+    ///
+    /// This method is equivalent to
+    /// ```
+    /// self.system_loader().add_source(ResourceLoadSource::Jar(jar));
+    /// ```
     pub fn add_system_jar(&self, jar: Jar) {
         self.system_loader()
             .add_source(ResourceLoadSource::Jar(jar));
     }
 
+    /// The bootstrap loader used by this `Context`.
     pub fn bootstrap_loader(&self) -> ClassLoader {
         self.bootstrap_loader
     }
 
+    /// The system loader used by this `Context`.
+    ///
+    /// If the system loader has not yet been initialized, calling this method
+    /// will panic.
     pub fn system_loader(&self) -> ClassLoader {
         *self
             .system_loader
@@ -348,6 +412,15 @@ impl Context {
             .expect("Attempted to access system loader before it was initialized")
     }
 
+    /// Initialize the system loader to the provided `ClassLoader`.
+    ///
+    /// This method is intended to be called by native methods that are run
+    /// during the VM's Java-side initialization. In `rjvm_globals`, that would
+    /// be `ClassLoader.getSystemClassLoader`, which is called early during the
+    /// VM's Java-side initialization by `System.initVM`.
+    ///
+    /// If the system loader has not yet been initialized, calling this method
+    /// will panic.
     pub fn init_system_loader(&self, loader: ClassLoader) {
         self.system_loader
             .set(loader)

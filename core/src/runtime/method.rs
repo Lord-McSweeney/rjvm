@@ -534,6 +534,27 @@ impl Trace for BytecodeMethodInfo {
     }
 }
 
+/// The signature for native method implementations.
+///
+/// Native methods are provided with a [`Context`] and the arguments passed to
+/// them as [`Value`]s, and are responsible for returning the correct type of
+/// data.
+///
+/// If the method is a non-static (instance) method, the receiver will be passed
+/// as the first argument. Note that after each `long` and `double` argument,
+/// there will be a dummy argument passed; code must not access this argument.
+///
+/// When returning a value, there are three possibilities:
+/// 1. The native method has thrown an error. In this case the method should
+///    return `Err` with the thrown [`Error`].
+/// 2. The native method has not thrown an error, and the function's return type
+///    is `void`. In this case the method should return `Ok(None)`.
+/// 3. The native method has not thrown an error, and the function's return type
+///    is not `void`. In this case the method should return `Ok(Some)` with the
+///    [`Value`] returned.
+///
+/// See [`Context::register_native_mappings`] for an explanation of how to
+/// associate native Rust methods with Java `native` methods.
 pub type NativeMethod = for<'a> fn(&Context, &[Value]) -> Result<Option<Value>, Error>;
 
 impl Trace for NativeMethod {
