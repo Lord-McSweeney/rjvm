@@ -36,10 +36,41 @@ class E extends D implements C {
     }
 }
 
+class F {
+    static int staticF = 99;
+
+    static {
+        System.out.println("<clinit> for class F");
+    }
+}
+
+class G extends F {
+    static {
+        System.out.println("<clinit> for class G");
+    }
+}
+
+class H {
+    static int staticF = 99;
+
+    static {
+        System.out.println("<clinit> for class H");
+    }
+}
+
+class I extends H {
+    static {
+        System.out.println("<clinit> for class I");
+    }
+}
+
 public class Test {
     public static void main(String[] args) {
         System.out.println(C.staticF);
         System.out.println(new E());
         System.out.println(B.staticF);
+
+        System.out.println(G.staticF);
+        I.staticF = 98;
     }
 }

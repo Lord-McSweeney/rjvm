@@ -265,19 +265,19 @@ impl<'a> Interpreter<'a> {
                 Op::DReturn => self.op_d_return(),
                 Op::AReturn => self.op_a_return(),
                 Op::Return => Ok(ControlFlow::Return(None)),
-                Op::GetStatic(class, defining_class, static_field_idx) => {
-                    self.op_get_static(*class, *defining_class, *static_field_idx)
+                Op::GetStatic(class, static_field_idx) => {
+                    self.op_get_static(*class, *static_field_idx)
                 }
-                Op::PutStatic(class, defining_class, static_field_idx) => {
-                    self.op_put_static(*class, *defining_class, *static_field_idx)
+                Op::PutStatic(class, static_field_idx) => {
+                    self.op_put_static(*class, *static_field_idx)
                 }
                 Op::GetField(class, field_idx) => self.op_get_field(*class, *field_idx),
                 Op::PutField(class, field_idx) => self.op_put_field(*class, *field_idx),
-                Op::GetStaticWide(class, defining_class, static_field_idx) => {
-                    self.op_get_static_wide(*class, *defining_class, *static_field_idx)
+                Op::GetStaticWide(class, static_field_idx) => {
+                    self.op_get_static_wide(*class, *static_field_idx)
                 }
-                Op::PutStaticWide(class, defining_class, static_field_idx) => {
-                    self.op_put_static_wide(*class, *defining_class, *static_field_idx)
+                Op::PutStaticWide(class, static_field_idx) => {
+                    self.op_put_static_wide(*class, *static_field_idx)
                 }
                 Op::GetFieldWide(class, field_idx) => self.op_get_field_wide(*class, *field_idx),
                 Op::PutFieldWide(class, field_idx) => self.op_put_field_wide(*class, *field_idx),
@@ -303,6 +303,7 @@ impl<'a> Interpreter<'a> {
                 }
                 Op::IfNull(position) => self.op_if_null(*position),
                 Op::IfNonNull(position) => self.op_if_non_null(*position),
+                Op::Clinit(class) => self.op_clinit(*class),
             };
 
             match control_flow {
@@ -1741,10 +1742,9 @@ impl<'a> Interpreter<'a> {
     fn op_get_static(
         &mut self,
         class: Class,
-        defining_class: Class,
         static_field_idx: usize,
     ) -> Result<ControlFlow, Error> {
-        defining_class.run_clinit(self.context)?;
+        // Clinit should be done by `clinit` op emitted before this `getstatic` op
 
         let static_field = class.static_fields()[static_field_idx];
         let value = static_field.value();
@@ -1757,10 +1757,9 @@ impl<'a> Interpreter<'a> {
     fn op_put_static(
         &mut self,
         class: Class,
-        defining_class: Class,
         static_field_idx: usize,
     ) -> Result<ControlFlow, Error> {
-        defining_class.run_clinit(self.context)?;
+        // Clinit should be done by `clinit` op emitted before this `putstatic` op
 
         let static_field = class.static_fields()[static_field_idx];
 
@@ -1812,10 +1811,9 @@ impl<'a> Interpreter<'a> {
     fn op_get_static_wide(
         &mut self,
         class: Class,
-        defining_class: Class,
         static_field_idx: usize,
     ) -> Result<ControlFlow, Error> {
-        defining_class.run_clinit(self.context)?;
+        // Clinit should be done by `clinit` op emitted before this `getstatic` op
 
         let static_field = class.static_fields()[static_field_idx];
         let value = static_field.value();
@@ -1828,10 +1826,9 @@ impl<'a> Interpreter<'a> {
     fn op_put_static_wide(
         &mut self,
         class: Class,
-        defining_class: Class,
         static_field_idx: usize,
     ) -> Result<ControlFlow, Error> {
-        defining_class.run_clinit(self.context)?;
+        // Clinit should be done by `clinit` op emitted before this `putstatic` op
 
         let static_field = class.static_fields()[static_field_idx];
 
@@ -2005,7 +2002,7 @@ impl<'a> Interpreter<'a> {
         // This does an allocation; we should increment the gc counter
         self.context.increment_gc_counter();
 
-        class.run_clinit(self.context)?;
+        // Clinit should be done by `clinit` op emitted before this `new` op
 
         if class.cant_instantiate() {
             // Yes, this is a runtime error
@@ -2307,5 +2304,11 @@ impl<'a> Interpreter<'a> {
         }
 
         Ok(ControlFlow::ManualContinue)
+    }
+
+    fn op_clinit(&mut self, class: Class) -> Result<ControlFlow, Error> {
+        class.run_clinit(self.context)?;
+
+        Ok(ControlFlow::Continue)
     }
 }

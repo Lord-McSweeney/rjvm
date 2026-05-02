@@ -164,15 +164,15 @@ pub enum Op {
     Return,
 
     // Field get/set
-    GetStatic(Class, Class, usize),
-    PutStatic(Class, Class, usize),
+    GetStatic(Class, usize),
+    PutStatic(Class, usize),
     GetField(Class, usize),
     PutField(Class, usize),
 
     // Wide field get/set
     // It's slightly faster to separate these than to check wideness at runtime
-    GetStaticWide(Class, Class, usize),
-    PutStaticWide(Class, Class, usize),
+    GetStaticWide(Class, usize),
+    PutStaticWide(Class, usize),
     GetFieldWide(Class, usize),
     PutFieldWide(Class, usize),
 
@@ -197,6 +197,9 @@ pub enum Op {
     MultiANewArray(ResolvedDescriptor, u8),
     IfNull(usize),
     IfNonNull(usize),
+
+    // Custom ops
+    Clinit(Class),
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -338,13 +341,11 @@ impl Trace for Op {
             Op::DReturn => {}
             Op::AReturn => {}
             Op::Return => {}
-            Op::GetStatic(class, defining_class, _) => {
+            Op::GetStatic(class, _) => {
                 class.trace();
-                defining_class.trace();
             }
-            Op::PutStatic(class, defining_class, _) => {
+            Op::PutStatic(class, _) => {
                 class.trace();
-                defining_class.trace();
             }
             Op::GetField(class, _) => {
                 class.trace();
@@ -352,13 +353,11 @@ impl Trace for Op {
             Op::PutField(class, _) => {
                 class.trace();
             }
-            Op::GetStaticWide(class, defining_class, _) => {
+            Op::GetStaticWide(class, _) => {
                 class.trace();
-                defining_class.trace();
             }
-            Op::PutStaticWide(class, defining_class, _) => {
+            Op::PutStaticWide(class, _) => {
                 class.trace();
-                defining_class.trace();
             }
             Op::GetFieldWide(class, _) => {
                 class.trace();
@@ -404,6 +403,10 @@ impl Trace for Op {
             }
             Op::IfNull(_) => {}
             Op::IfNonNull(_) => {}
+
+            Op::Clinit(class) => {
+                class.trace();
+            }
         }
     }
 }
@@ -615,26 +618,31 @@ impl Op {
         let code_start = data.position();
         let mut code = Vec::with_capacity(code_length);
 
-        let mut op_index = 0;
         let mut offset_to_idx_map = HashMap::with_capacity(code_length);
 
         while data.position() < code_start + code_length {
-            offset_to_idx_map.insert(data.position() - code_start, op_index);
+            offset_to_idx_map.insert(data.position() - code_start, code.len());
 
-            code.push(Op::read_op(
+            let ops = Op::read_op(
                 context,
                 method,
                 constant_pool,
                 data,
                 data.position() - code_start,
-            )?);
+            )?;
 
-            op_index += 1;
+            // It is sometimes useful to split a single JVM op into multiple
+            // sub-ops (microops?). So we support emitting two ops instead of
+            // one for each Java op.
+            code.push(ops.0);
+            if let Some(second_op) = ops.1 {
+                code.push(second_op);
+            }
         }
 
         let mut code = code.into_boxed_slice();
 
-        offset_to_idx_map.insert(data.position() - code_start, op_index);
+        offset_to_idx_map.insert(data.position() - code_start, code.len());
 
         // Resolve branch ops' offsets
         for op in code.iter_mut() {
@@ -695,36 +703,36 @@ impl Op {
         constant_pool: &ConstantPool,
         data: &mut FileData<'_>,
         data_position: usize,
-    ) -> Result<Op, Error> {
+    ) -> Result<(Op, Option<Op>), Error> {
         let loader = method.class_loader();
 
         let opcode = read_u8!(context, data);
-        match opcode {
-            NOP => Ok(Op::Nop),
-            A_CONST_NULL => Ok(Op::AConstNull),
-            I_CONST_M1 => Ok(Op::IConst(-1)),
-            I_CONST_0 => Ok(Op::IConst(0)),
-            I_CONST_1 => Ok(Op::IConst(1)),
-            I_CONST_2 => Ok(Op::IConst(2)),
-            I_CONST_3 => Ok(Op::IConst(3)),
-            I_CONST_4 => Ok(Op::IConst(4)),
-            I_CONST_5 => Ok(Op::IConst(5)),
-            L_CONST_0 => Ok(Op::LConst(0)),
-            L_CONST_1 => Ok(Op::LConst(1)),
-            F_CONST_0 => Ok(Op::FConst(0.0)),
-            F_CONST_1 => Ok(Op::FConst(1.0)),
-            F_CONST_2 => Ok(Op::FConst(2.0)),
-            D_CONST_0 => Ok(Op::DConst(0.0)),
-            D_CONST_1 => Ok(Op::DConst(1.0)),
+        let result = match opcode {
+            NOP => Op::Nop,
+            A_CONST_NULL => Op::AConstNull,
+            I_CONST_M1 => Op::IConst(-1),
+            I_CONST_0 => Op::IConst(0),
+            I_CONST_1 => Op::IConst(1),
+            I_CONST_2 => Op::IConst(2),
+            I_CONST_3 => Op::IConst(3),
+            I_CONST_4 => Op::IConst(4),
+            I_CONST_5 => Op::IConst(5),
+            L_CONST_0 => Op::LConst(0),
+            L_CONST_1 => Op::LConst(1),
+            F_CONST_0 => Op::FConst(0.0),
+            F_CONST_1 => Op::FConst(1.0),
+            F_CONST_2 => Op::FConst(2.0),
+            D_CONST_0 => Op::DConst(0.0),
+            D_CONST_1 => Op::DConst(1.0),
             B_I_PUSH => {
                 let byte = read_u8!(context, data) as i8 as i32;
 
-                Ok(Op::IConst(byte))
+                Op::IConst(byte)
             }
             S_I_PUSH => {
                 let byte = read_u16_be!(context, data) as i16 as i32;
 
-                Ok(Op::IConst(byte))
+                Op::IConst(byte)
             }
             LDC => {
                 let constant_pool_idx = read_u8!(context, data);
@@ -732,7 +740,7 @@ impl Op {
                     .entry(constant_pool_idx as u16)
                     .map_err(|e| Error::from_class_file_error(context, e))?;
 
-                Ok(Op::Ldc(Gc::new(context.gc_ctx, entry)))
+                Op::Ldc(Gc::new(context.gc_ctx, entry))
             }
             LDC_W => {
                 let constant_pool_idx = read_u16_be!(context, data);
@@ -740,7 +748,7 @@ impl Op {
                     .entry(constant_pool_idx)
                     .map_err(|e| Error::from_class_file_error(context, e))?;
 
-                Ok(Op::Ldc(Gc::new(context.gc_ctx, entry)))
+                Op::Ldc(Gc::new(context.gc_ctx, entry))
             }
             LDC_2_W => {
                 let constant_pool_idx = read_u16_be!(context, data);
@@ -755,257 +763,257 @@ impl Op {
                     _ => panic!("Ldc2 only works on Double and Long"),
                 };
 
-                Ok(op)
+                op
             }
             I_LOAD => {
                 let local_idx = read_u8!(context, data);
 
-                Ok(Op::ILoad(local_idx as usize))
+                Op::ILoad(local_idx as usize)
             }
             L_LOAD => {
                 let local_idx = read_u8!(context, data);
 
-                Ok(Op::LLoad(local_idx as usize))
+                Op::LLoad(local_idx as usize)
             }
             F_LOAD => {
                 let local_idx = read_u8!(context, data);
 
-                Ok(Op::FLoad(local_idx as usize))
+                Op::FLoad(local_idx as usize)
             }
             D_LOAD => {
                 let local_idx = read_u8!(context, data);
 
-                Ok(Op::DLoad(local_idx as usize))
+                Op::DLoad(local_idx as usize)
             }
             A_LOAD => {
                 let local_idx = read_u8!(context, data);
 
-                Ok(Op::ALoad(local_idx as usize))
+                Op::ALoad(local_idx as usize)
             }
-            I_LOAD_0 => Ok(Op::ILoad(0)),
-            I_LOAD_1 => Ok(Op::ILoad(1)),
-            I_LOAD_2 => Ok(Op::ILoad(2)),
-            I_LOAD_3 => Ok(Op::ILoad(3)),
-            L_LOAD_0 => Ok(Op::LLoad(0)),
-            L_LOAD_1 => Ok(Op::LLoad(1)),
-            L_LOAD_2 => Ok(Op::LLoad(2)),
-            L_LOAD_3 => Ok(Op::LLoad(3)),
-            F_LOAD_0 => Ok(Op::FLoad(0)),
-            F_LOAD_1 => Ok(Op::FLoad(1)),
-            F_LOAD_2 => Ok(Op::FLoad(2)),
-            F_LOAD_3 => Ok(Op::FLoad(3)),
-            D_LOAD_0 => Ok(Op::DLoad(0)),
-            D_LOAD_1 => Ok(Op::DLoad(1)),
-            D_LOAD_2 => Ok(Op::DLoad(2)),
-            D_LOAD_3 => Ok(Op::DLoad(3)),
-            A_LOAD_0 => Ok(Op::ALoad(0)),
-            A_LOAD_1 => Ok(Op::ALoad(1)),
-            A_LOAD_2 => Ok(Op::ALoad(2)),
-            A_LOAD_3 => Ok(Op::ALoad(3)),
-            IA_LOAD => Ok(Op::IaLoad),
-            LA_LOAD => Ok(Op::LaLoad),
-            FA_LOAD => Ok(Op::FaLoad),
-            DA_LOAD => Ok(Op::DaLoad),
-            AA_LOAD => Ok(Op::AaLoad),
-            BA_LOAD => Ok(Op::BaLoad),
-            CA_LOAD => Ok(Op::CaLoad),
-            SA_LOAD => Ok(Op::SaLoad),
+            I_LOAD_0 => Op::ILoad(0),
+            I_LOAD_1 => Op::ILoad(1),
+            I_LOAD_2 => Op::ILoad(2),
+            I_LOAD_3 => Op::ILoad(3),
+            L_LOAD_0 => Op::LLoad(0),
+            L_LOAD_1 => Op::LLoad(1),
+            L_LOAD_2 => Op::LLoad(2),
+            L_LOAD_3 => Op::LLoad(3),
+            F_LOAD_0 => Op::FLoad(0),
+            F_LOAD_1 => Op::FLoad(1),
+            F_LOAD_2 => Op::FLoad(2),
+            F_LOAD_3 => Op::FLoad(3),
+            D_LOAD_0 => Op::DLoad(0),
+            D_LOAD_1 => Op::DLoad(1),
+            D_LOAD_2 => Op::DLoad(2),
+            D_LOAD_3 => Op::DLoad(3),
+            A_LOAD_0 => Op::ALoad(0),
+            A_LOAD_1 => Op::ALoad(1),
+            A_LOAD_2 => Op::ALoad(2),
+            A_LOAD_3 => Op::ALoad(3),
+            IA_LOAD => Op::IaLoad,
+            LA_LOAD => Op::LaLoad,
+            FA_LOAD => Op::FaLoad,
+            DA_LOAD => Op::DaLoad,
+            AA_LOAD => Op::AaLoad,
+            BA_LOAD => Op::BaLoad,
+            CA_LOAD => Op::CaLoad,
+            SA_LOAD => Op::SaLoad,
             I_STORE => {
                 let local_idx = read_u8!(context, data);
 
-                Ok(Op::IStore(local_idx as usize))
+                Op::IStore(local_idx as usize)
             }
             L_STORE => {
                 let local_idx = read_u8!(context, data);
 
-                Ok(Op::LStore(local_idx as usize))
+                Op::LStore(local_idx as usize)
             }
             F_STORE => {
                 let local_idx = read_u8!(context, data);
 
-                Ok(Op::FStore(local_idx as usize))
+                Op::FStore(local_idx as usize)
             }
             D_STORE => {
                 let local_idx = read_u8!(context, data);
 
-                Ok(Op::DStore(local_idx as usize))
+                Op::DStore(local_idx as usize)
             }
             A_STORE => {
                 let local_idx = read_u8!(context, data);
 
-                Ok(Op::AStore(local_idx as usize))
+                Op::AStore(local_idx as usize)
             }
-            I_STORE_0 => Ok(Op::IStore(0)),
-            I_STORE_1 => Ok(Op::IStore(1)),
-            I_STORE_2 => Ok(Op::IStore(2)),
-            I_STORE_3 => Ok(Op::IStore(3)),
-            L_STORE_0 => Ok(Op::LStore(0)),
-            L_STORE_1 => Ok(Op::LStore(1)),
-            L_STORE_2 => Ok(Op::LStore(2)),
-            L_STORE_3 => Ok(Op::LStore(3)),
-            F_STORE_0 => Ok(Op::FStore(0)),
-            F_STORE_1 => Ok(Op::FStore(1)),
-            F_STORE_2 => Ok(Op::FStore(2)),
-            F_STORE_3 => Ok(Op::FStore(3)),
-            D_STORE_0 => Ok(Op::DStore(0)),
-            D_STORE_1 => Ok(Op::DStore(1)),
-            D_STORE_2 => Ok(Op::DStore(2)),
-            D_STORE_3 => Ok(Op::DStore(3)),
-            A_STORE_0 => Ok(Op::AStore(0)),
-            A_STORE_1 => Ok(Op::AStore(1)),
-            A_STORE_2 => Ok(Op::AStore(2)),
-            A_STORE_3 => Ok(Op::AStore(3)),
-            IA_STORE => Ok(Op::IaStore),
-            LA_STORE => Ok(Op::LaStore),
-            FA_STORE => Ok(Op::FaStore),
-            DA_STORE => Ok(Op::DaStore),
-            AA_STORE => Ok(Op::AaStore),
-            BA_STORE => Ok(Op::BaStore),
-            CA_STORE => Ok(Op::CaStore),
-            SA_STORE => Ok(Op::SaStore),
-            POP => Ok(Op::Pop),
-            POP_2 => Ok(Op::Pop2),
-            DUP => Ok(Op::Dup),
-            DUP_X1 => Ok(Op::DupX1),
-            DUP_X2 => Ok(Op::DupX2),
-            DUP_2 => Ok(Op::Dup2),
-            SWAP => Ok(Op::Swap),
-            I_ADD => Ok(Op::IAdd),
-            L_ADD => Ok(Op::LAdd),
-            F_ADD => Ok(Op::FAdd),
-            D_ADD => Ok(Op::DAdd),
-            I_SUB => Ok(Op::ISub),
-            L_SUB => Ok(Op::LSub),
-            F_SUB => Ok(Op::FSub),
-            D_SUB => Ok(Op::DSub),
-            I_MUL => Ok(Op::IMul),
-            L_MUL => Ok(Op::LMul),
-            F_MUL => Ok(Op::FMul),
-            D_MUL => Ok(Op::DMul),
-            I_DIV => Ok(Op::IDiv),
-            L_DIV => Ok(Op::LDiv),
-            F_DIV => Ok(Op::FDiv),
-            D_DIV => Ok(Op::DDiv),
-            I_REM => Ok(Op::IRem),
-            L_REM => Ok(Op::LRem),
-            F_REM => Ok(Op::FRem),
-            D_REM => Ok(Op::DRem),
-            I_NEG => Ok(Op::INeg),
-            L_NEG => Ok(Op::LNeg),
-            F_NEG => Ok(Op::FNeg),
-            D_NEG => Ok(Op::DNeg),
-            I_SHL => Ok(Op::IShl),
-            L_SHL => Ok(Op::LShl),
-            I_SHR => Ok(Op::IShr),
-            L_SHR => Ok(Op::LShr),
-            I_USHR => Ok(Op::IUshr),
-            L_USHR => Ok(Op::LUshr),
-            I_AND => Ok(Op::IAnd),
-            L_AND => Ok(Op::LAnd),
-            I_OR => Ok(Op::IOr),
-            L_OR => Ok(Op::LOr),
-            I_XOR => Ok(Op::IXor),
-            L_XOR => Ok(Op::LXor),
+            I_STORE_0 => Op::IStore(0),
+            I_STORE_1 => Op::IStore(1),
+            I_STORE_2 => Op::IStore(2),
+            I_STORE_3 => Op::IStore(3),
+            L_STORE_0 => Op::LStore(0),
+            L_STORE_1 => Op::LStore(1),
+            L_STORE_2 => Op::LStore(2),
+            L_STORE_3 => Op::LStore(3),
+            F_STORE_0 => Op::FStore(0),
+            F_STORE_1 => Op::FStore(1),
+            F_STORE_2 => Op::FStore(2),
+            F_STORE_3 => Op::FStore(3),
+            D_STORE_0 => Op::DStore(0),
+            D_STORE_1 => Op::DStore(1),
+            D_STORE_2 => Op::DStore(2),
+            D_STORE_3 => Op::DStore(3),
+            A_STORE_0 => Op::AStore(0),
+            A_STORE_1 => Op::AStore(1),
+            A_STORE_2 => Op::AStore(2),
+            A_STORE_3 => Op::AStore(3),
+            IA_STORE => Op::IaStore,
+            LA_STORE => Op::LaStore,
+            FA_STORE => Op::FaStore,
+            DA_STORE => Op::DaStore,
+            AA_STORE => Op::AaStore,
+            BA_STORE => Op::BaStore,
+            CA_STORE => Op::CaStore,
+            SA_STORE => Op::SaStore,
+            POP => Op::Pop,
+            POP_2 => Op::Pop2,
+            DUP => Op::Dup,
+            DUP_X1 => Op::DupX1,
+            DUP_X2 => Op::DupX2,
+            DUP_2 => Op::Dup2,
+            SWAP => Op::Swap,
+            I_ADD => Op::IAdd,
+            L_ADD => Op::LAdd,
+            F_ADD => Op::FAdd,
+            D_ADD => Op::DAdd,
+            I_SUB => Op::ISub,
+            L_SUB => Op::LSub,
+            F_SUB => Op::FSub,
+            D_SUB => Op::DSub,
+            I_MUL => Op::IMul,
+            L_MUL => Op::LMul,
+            F_MUL => Op::FMul,
+            D_MUL => Op::DMul,
+            I_DIV => Op::IDiv,
+            L_DIV => Op::LDiv,
+            F_DIV => Op::FDiv,
+            D_DIV => Op::DDiv,
+            I_REM => Op::IRem,
+            L_REM => Op::LRem,
+            F_REM => Op::FRem,
+            D_REM => Op::DRem,
+            I_NEG => Op::INeg,
+            L_NEG => Op::LNeg,
+            F_NEG => Op::FNeg,
+            D_NEG => Op::DNeg,
+            I_SHL => Op::IShl,
+            L_SHL => Op::LShl,
+            I_SHR => Op::IShr,
+            L_SHR => Op::LShr,
+            I_USHR => Op::IUshr,
+            L_USHR => Op::LUshr,
+            I_AND => Op::IAnd,
+            L_AND => Op::LAnd,
+            I_OR => Op::IOr,
+            L_OR => Op::LOr,
+            I_XOR => Op::IXor,
+            L_XOR => Op::LXor,
             I_INC => {
                 let local_idx = read_u8!(context, data);
                 let constant = read_u8!(context, data) as i8;
 
-                Ok(Op::IInc(local_idx as usize, constant as i32))
+                Op::IInc(local_idx as usize, constant as i32)
             }
-            I2L => Ok(Op::I2L),
-            I2F => Ok(Op::I2F),
-            I2D => Ok(Op::I2D),
-            L2I => Ok(Op::L2I),
-            L2F => Ok(Op::L2F),
-            L2D => Ok(Op::L2D),
-            F2I => Ok(Op::F2I),
-            F2L => Ok(Op::F2L),
-            F2D => Ok(Op::F2D),
-            D2I => Ok(Op::D2I),
-            D2L => Ok(Op::D2L),
-            D2F => Ok(Op::D2F),
-            I2B => Ok(Op::I2B),
-            I2C => Ok(Op::I2C),
-            I2S => Ok(Op::I2S),
-            L_CMP => Ok(Op::LCmp),
-            F_CMP_L => Ok(Op::FCmpL),
-            F_CMP_G => Ok(Op::FCmpG),
-            D_CMP_L => Ok(Op::DCmpL),
-            D_CMP_G => Ok(Op::DCmpG),
+            I2L => Op::I2L,
+            I2F => Op::I2F,
+            I2D => Op::I2D,
+            L2I => Op::L2I,
+            L2F => Op::L2F,
+            L2D => Op::L2D,
+            F2I => Op::F2I,
+            F2L => Op::F2L,
+            F2D => Op::F2D,
+            D2I => Op::D2I,
+            D2L => Op::D2L,
+            D2F => Op::D2F,
+            I2B => Op::I2B,
+            I2C => Op::I2C,
+            I2S => Op::I2S,
+            L_CMP => Op::LCmp,
+            F_CMP_L => Op::FCmpL,
+            F_CMP_G => Op::FCmpG,
+            D_CMP_L => Op::DCmpL,
+            D_CMP_G => Op::DCmpG,
             IF_EQ => {
                 let offset = read_u16_be!(context, data) as i16 as isize;
 
-                Ok(Op::IfEq(((data_position as isize) + offset) as usize))
+                Op::IfEq(((data_position as isize) + offset) as usize)
             }
             IF_NE => {
                 let offset = read_u16_be!(context, data) as i16 as isize;
 
-                Ok(Op::IfNe(((data_position as isize) + offset) as usize))
+                Op::IfNe(((data_position as isize) + offset) as usize)
             }
             IF_LT => {
                 let offset = read_u16_be!(context, data) as i16 as isize;
 
-                Ok(Op::IfLt(((data_position as isize) + offset) as usize))
+                Op::IfLt(((data_position as isize) + offset) as usize)
             }
             IF_GE => {
                 let offset = read_u16_be!(context, data) as i16 as isize;
 
-                Ok(Op::IfGe(((data_position as isize) + offset) as usize))
+                Op::IfGe(((data_position as isize) + offset) as usize)
             }
             IF_GT => {
                 let offset = read_u16_be!(context, data) as i16 as isize;
 
-                Ok(Op::IfGt(((data_position as isize) + offset) as usize))
+                Op::IfGt(((data_position as isize) + offset) as usize)
             }
             IF_LE => {
                 let offset = read_u16_be!(context, data) as i16 as isize;
 
-                Ok(Op::IfLe(((data_position as isize) + offset) as usize))
+                Op::IfLe(((data_position as isize) + offset) as usize)
             }
             IF_I_CMP_EQ => {
                 let offset = read_u16_be!(context, data) as i16 as isize;
 
-                Ok(Op::IfICmpEq(((data_position as isize) + offset) as usize))
+                Op::IfICmpEq(((data_position as isize) + offset) as usize)
             }
             IF_I_CMP_NE => {
                 let offset = read_u16_be!(context, data) as i16 as isize;
 
-                Ok(Op::IfICmpNe(((data_position as isize) + offset) as usize))
+                Op::IfICmpNe(((data_position as isize) + offset) as usize)
             }
             IF_I_CMP_LT => {
                 let offset = read_u16_be!(context, data) as i16 as isize;
 
-                Ok(Op::IfICmpLt(((data_position as isize) + offset) as usize))
+                Op::IfICmpLt(((data_position as isize) + offset) as usize)
             }
             IF_I_CMP_GE => {
                 let offset = read_u16_be!(context, data) as i16 as isize;
 
-                Ok(Op::IfICmpGe(((data_position as isize) + offset) as usize))
+                Op::IfICmpGe(((data_position as isize) + offset) as usize)
             }
             IF_I_CMP_GT => {
                 let offset = read_u16_be!(context, data) as i16 as isize;
 
-                Ok(Op::IfICmpGt(((data_position as isize) + offset) as usize))
+                Op::IfICmpGt(((data_position as isize) + offset) as usize)
             }
             IF_I_CMP_LE => {
                 let offset = read_u16_be!(context, data) as i16 as isize;
 
-                Ok(Op::IfICmpLe(((data_position as isize) + offset) as usize))
+                Op::IfICmpLe(((data_position as isize) + offset) as usize)
             }
             IF_A_CMP_EQ => {
                 let offset = read_u16_be!(context, data) as i16 as isize;
 
-                Ok(Op::IfACmpEq(((data_position as isize) + offset) as usize))
+                Op::IfACmpEq(((data_position as isize) + offset) as usize)
             }
             IF_A_CMP_NE => {
                 let offset = read_u16_be!(context, data) as i16 as isize;
 
-                Ok(Op::IfACmpNe(((data_position as isize) + offset) as usize))
+                Op::IfACmpNe(((data_position as isize) + offset) as usize)
             }
             GOTO => {
                 let offset = read_u16_be!(context, data) as i16 as isize;
 
-                Ok(Op::Goto(((data_position as isize) + offset) as usize))
+                Op::Goto(((data_position as isize) + offset) as usize)
             }
             TABLE_SWITCH => {
                 let padding_bytes = (data_position + 1) % 4;
@@ -1030,11 +1038,7 @@ impl Op {
                     offsets.push(offset);
                 }
 
-                Ok(Op::TableSwitch(
-                    low_int,
-                    offsets.into_boxed_slice(),
-                    default_offset,
-                ))
+                Op::TableSwitch(low_int, offsets.into_boxed_slice(), default_offset)
             }
             LOOKUP_SWITCH => {
                 let padding_bytes = (data_position + 1) % 4;
@@ -1058,7 +1062,7 @@ impl Op {
                     pairs.push((matching_value, offset));
                 }
 
-                Ok(Op::LookupSwitch(pairs.into_boxed_slice(), default_offset))
+                Op::LookupSwitch(pairs.into_boxed_slice(), default_offset)
             }
             I_RETURN => {
                 let return_type = method.descriptor().return_type();
@@ -1071,54 +1075,54 @@ impl Op {
                         | Descriptor::Integer
                         | Descriptor::Short
                 ) {
-                    Err(context.verify_error("ireturn: Bad return type"))
+                    return Err(context.verify_error("ireturn: Bad return type"));
                 } else {
-                    Ok(Op::IReturn)
+                    Op::IReturn
                 }
             }
             L_RETURN => {
                 let return_type = method.descriptor().return_type();
 
                 if !matches!(return_type, Descriptor::Long) {
-                    Err(context.verify_error("lreturn: Bad return type"))
+                    return Err(context.verify_error("lreturn: Bad return type"));
                 } else {
-                    Ok(Op::LReturn)
+                    Op::LReturn
                 }
             }
             F_RETURN => {
                 let return_type = method.descriptor().return_type();
 
                 if !matches!(return_type, Descriptor::Float) {
-                    Err(context.verify_error("freturn: Bad return type"))
+                    return Err(context.verify_error("freturn: Bad return type"));
                 } else {
-                    Ok(Op::FReturn)
+                    Op::FReturn
                 }
             }
             D_RETURN => {
                 let return_type = method.descriptor().return_type();
 
                 if !matches!(return_type, Descriptor::Double) {
-                    Err(context.verify_error("dreturn: Bad return type"))
+                    return Err(context.verify_error("dreturn: Bad return type"));
                 } else {
-                    Ok(Op::DReturn)
+                    Op::DReturn
                 }
             }
             A_RETURN => {
                 let return_type = method.descriptor().return_type();
 
                 if !matches!(return_type, Descriptor::Class(_) | Descriptor::Array(_)) {
-                    Err(context.verify_error("areturn: Bad return type"))
+                    return Err(context.verify_error("areturn: Bad return type"));
                 } else {
-                    Ok(Op::AReturn)
+                    Op::AReturn
                 }
             }
             RETURN => {
                 let return_type = method.descriptor().return_type();
 
                 if !matches!(return_type, Descriptor::Void) {
-                    Err(context.verify_error("return: Bad return type"))
+                    return Err(context.verify_error("return: Bad return type"));
                 } else {
-                    Ok(Op::Return)
+                    Op::Return
                 }
             }
             GET_STATIC => {
@@ -1148,11 +1152,13 @@ impl Op {
 
                 let defining_class = field.defining_class();
 
-                if descriptor.is_wide() {
-                    Ok(Op::GetStaticWide(class, defining_class, field_slot))
+                let field_op = if descriptor.is_wide() {
+                    Op::GetStaticWide(class, field_slot)
                 } else {
-                    Ok(Op::GetStatic(class, defining_class, field_slot))
-                }
+                    Op::GetStatic(class, field_slot)
+                };
+
+                return Ok((Op::Clinit(defining_class), Some(field_op)));
             }
             PUT_STATIC => {
                 let field_ref_idx = read_u16_be!(context, data);
@@ -1181,11 +1187,13 @@ impl Op {
 
                 let defining_class = field.defining_class();
 
-                if descriptor.is_wide() {
-                    Ok(Op::PutStaticWide(class, defining_class, field_slot))
+                let field_op = if descriptor.is_wide() {
+                    Op::PutStaticWide(class, field_slot)
                 } else {
-                    Ok(Op::PutStatic(class, defining_class, field_slot))
-                }
+                    Op::PutStatic(class, field_slot)
+                };
+
+                return Ok((Op::Clinit(defining_class), Some(field_op)));
             }
             GET_FIELD => {
                 let field_ref_idx = read_u16_be!(context, data);
@@ -1211,9 +1219,9 @@ impl Op {
                 }
 
                 if descriptor.is_wide() {
-                    Ok(Op::GetFieldWide(class, field_slot))
+                    Op::GetFieldWide(class, field_slot)
                 } else {
-                    Ok(Op::GetField(class, field_slot))
+                    Op::GetField(class, field_slot)
                 }
             }
             PUT_FIELD => {
@@ -1240,9 +1248,9 @@ impl Op {
                 }
 
                 if descriptor.is_wide() {
-                    Ok(Op::PutFieldWide(class, field_slot))
+                    Op::PutFieldWide(class, field_slot)
                 } else {
-                    Ok(Op::PutField(class, field_slot))
+                    Op::PutField(class, field_slot)
                 }
             }
             INVOKE_VIRTUAL => {
@@ -1268,7 +1276,7 @@ impl Op {
 
                 // TODO access control?
 
-                Ok(Op::InvokeVirtual(class, descriptor, method_index))
+                Op::InvokeVirtual(class, descriptor, method_index)
             }
             INVOKE_SPECIAL => {
                 let method_ref_idx = read_u16_be!(context, data);
@@ -1308,7 +1316,7 @@ impl Op {
 
                 // TODO access control?
 
-                Ok(Op::InvokeSpecial(class, method))
+                Op::InvokeSpecial(class, method)
             }
             INVOKE_STATIC => {
                 let method_ref_idx = read_u16_be!(context, data);
@@ -1334,7 +1342,7 @@ impl Op {
 
                 // TODO access control?
 
-                Ok(Op::InvokeStatic(method))
+                Op::InvokeStatic(method)
             }
             INVOKE_INTERFACE => {
                 let method_ref_idx = read_u16_be!(context, data);
@@ -1359,7 +1367,7 @@ impl Op {
 
                 // TODO access control?
 
-                Ok(Op::InvokeInterface(class, (method_name, descriptor)))
+                Op::InvokeInterface(class, (method_name, descriptor))
             }
             NEW => {
                 let class_idx = read_u16_be!(context, data);
@@ -1369,7 +1377,7 @@ impl Op {
 
                 let class = loader.lookup_class(context, class_name)?;
 
-                Ok(Op::New(class))
+                return Ok((Op::Clinit(class), Some(Op::New(class))));
             }
             NEW_ARRAY => {
                 let array_type = match read_u8!(context, data) {
@@ -1384,7 +1392,7 @@ impl Op {
                     _ => return Err(context.verify_error("Invalid array type")),
                 };
 
-                Ok(Op::NewArray(array_type))
+                Op::NewArray(array_type)
             }
             A_NEW_ARRAY => {
                 let class_idx = read_u16_be!(context, data);
@@ -1394,10 +1402,10 @@ impl Op {
 
                 let class = loader.lookup_class(context, class_name)?;
 
-                Ok(Op::ANewArray(class))
+                Op::ANewArray(class)
             }
-            ARRAY_LENGTH => Ok(Op::ArrayLength),
-            A_THROW => Ok(Op::AThrow),
+            ARRAY_LENGTH => Op::ArrayLength,
+            A_THROW => Op::AThrow,
             CHECK_CAST => {
                 let class_idx = read_u16_be!(context, data);
                 let class_name = constant_pool
@@ -1406,7 +1414,7 @@ impl Op {
 
                 let class = loader.lookup_class(context, class_name)?;
 
-                Ok(Op::CheckCast(class))
+                Op::CheckCast(class)
             }
             INSTANCE_OF => {
                 let class_idx = read_u16_be!(context, data);
@@ -1416,10 +1424,10 @@ impl Op {
 
                 let class = loader.lookup_class(context, class_name)?;
 
-                Ok(Op::InstanceOf(class))
+                Op::InstanceOf(class)
             }
-            MONITOR_ENTER => Ok(Op::MonitorEnter),
-            MONITOR_EXIT => Ok(Op::MonitorExit),
+            MONITOR_ENTER => Op::MonitorEnter,
+            MONITOR_EXIT => Op::MonitorExit,
             MULTI_A_NEW_ARRAY => {
                 let class_idx = read_u16_be!(context, data);
                 let class_name = constant_pool
@@ -1451,22 +1459,22 @@ impl Op {
                         }
                 }
 
-                Ok(Op::MultiANewArray(resolved_descriptor, dim_count))
+                Op::MultiANewArray(resolved_descriptor, dim_count)
             }
             IF_NULL => {
                 let offset = read_u16_be!(context, data) as i16 as isize;
 
-                Ok(Op::IfNull(((data_position as isize) + offset) as usize))
+                Op::IfNull(((data_position as isize) + offset) as usize)
             }
             IF_NON_NULL => {
                 let offset = read_u16_be!(context, data) as i16 as isize;
 
-                Ok(Op::IfNonNull(((data_position as isize) + offset) as usize))
+                Op::IfNonNull(((data_position as isize) + offset) as usize)
             }
             GOTO_W => {
                 let offset = read_u32_be!(context, data) as i32 as isize;
 
-                Ok(Op::Goto(((data_position as isize) + offset) as usize))
+                Op::Goto(((data_position as isize) + offset) as usize)
             }
             other => unimplemented!(
                 "Unimplemented opcode {} ({}.{})",
@@ -1474,7 +1482,9 @@ impl Op {
                 method.class().name(),
                 method.name()
             ),
-        }
+        };
+
+        Ok((result, None))
     }
 
     pub fn can_throw_error(&self) -> bool {
@@ -1517,6 +1527,7 @@ impl Op {
                 | Op::MonitorEnter
                 | Op::MonitorExit
                 | Op::MultiANewArray(_, _)
+                | Op::Clinit(_)
         )
     }
 }
