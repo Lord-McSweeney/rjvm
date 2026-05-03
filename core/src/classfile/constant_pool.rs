@@ -373,7 +373,7 @@ pub enum MethodHandle {
 impl ConstantPoolEntry {
     fn tag(self) -> u8 {
         match self {
-            ConstantPoolEntry::Placeholder { .. } => PLACEHOLDER,
+            ConstantPoolEntry::Placeholder => PLACEHOLDER,
             ConstantPoolEntry::Utf8 { .. } => UTF8,
             ConstantPoolEntry::Integer { .. } => INTEGER,
             ConstantPoolEntry::Float { .. } => FLOAT,
@@ -526,7 +526,7 @@ fn read_constant_pool_entry(
                 name_and_type_idx,
             })
         }
-        _ => return Err(Error::ConstantPoolInvalidEntry),
+        _ => Err(Error::ConstantPoolInvalidEntry),
     }
 }
 

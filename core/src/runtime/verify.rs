@@ -51,11 +51,11 @@ struct BasicBlock<'a> {
     exits: BlockExits,
 }
 
-pub fn verify_ops<'a>(
+pub fn verify_ops(
     method: Method,
     max_stack: usize,
     max_locals: usize,
-    ops: &'a [Op],
+    ops: &[Op],
     exceptions: &[Exception],
 ) -> Result<(), VerifyError> {
     let blocks = collect_basic_blocks(ops, exceptions)?;

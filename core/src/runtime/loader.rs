@@ -117,7 +117,7 @@ impl ClassLoader {
     pub fn lookup_class(self, context: &Context, class_name: JvmString) -> Result<Class, Error> {
         match self.load_class(context, class_name) {
             Ok(Some(class)) => Ok(class),
-            Ok(None) => Err(context.no_class_def_found_error(&*class_name)),
+            Ok(None) => Err(context.no_class_def_found_error(&class_name)),
             Err(err) => Err(err),
         }
     }

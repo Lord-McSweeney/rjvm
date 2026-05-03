@@ -208,7 +208,7 @@ impl Class {
         for interface in &self.0.all_interfaces {
             let interface_statics = interface.static_fields();
 
-            for field in &*interface_statics {
+            for field in interface_statics {
                 static_field_names.push((field.name(), field.descriptor()));
                 static_fields.push(*field);
             }
@@ -638,7 +638,7 @@ impl Class {
             current_class = some_class.super_class();
         }
 
-        return false;
+        false
     }
 
     /// Whether this class is the same class as the given class, or the given

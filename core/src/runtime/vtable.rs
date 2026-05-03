@@ -216,11 +216,7 @@ impl InstanceMethodVTable {
 
         result_indices
             .iter()
-            .map(|i| {
-                let i = u32::try_from(**i).expect("Overflow");
-
-                self.get_element(i)
-            })
+            .map(|i| self.get_element(**i))
             .collect::<Box<_>>()
     }
 }

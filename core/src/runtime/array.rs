@@ -25,7 +25,7 @@ impl Array {
     /// (`byte[]`). If it's not, this method will panic.
     pub fn as_byte_array(&self) -> &[Cell<i8>] {
         match self {
-            Array::ByteArray(arr) => &arr,
+            Array::ByteArray(arr) => arr,
             _ => unreachable!("Wrong array type"),
         }
     }
@@ -34,7 +34,7 @@ impl Array {
     /// (`char[]`). If it's not, this method will panic.
     pub fn as_char_array(&self) -> &[Cell<u16>] {
         match self {
-            Array::CharArray(arr) => &arr,
+            Array::CharArray(arr) => arr,
             _ => unreachable!("Wrong array type"),
         }
     }
@@ -43,7 +43,7 @@ impl Array {
     /// (`double[]`). If it's not, this method will panic.
     pub fn as_double_array(&self) -> &[Cell<f64>] {
         match self {
-            Array::DoubleArray(arr) => &arr,
+            Array::DoubleArray(arr) => arr,
             _ => unreachable!("Wrong array type"),
         }
     }
@@ -52,7 +52,7 @@ impl Array {
     /// (`float[]`). If it's not, this method will panic.
     pub fn as_float_array(&self) -> &[Cell<f32>] {
         match self {
-            Array::FloatArray(arr) => &arr,
+            Array::FloatArray(arr) => arr,
             _ => unreachable!("Wrong array type"),
         }
     }
@@ -61,7 +61,7 @@ impl Array {
     /// (`int[]`). If it's not, this method will panic.
     pub fn as_int_array(&self) -> &[Cell<i32>] {
         match self {
-            Array::IntArray(arr) => &arr,
+            Array::IntArray(arr) => arr,
             _ => unreachable!("Wrong array type"),
         }
     }
@@ -70,7 +70,7 @@ impl Array {
     /// (`long[]`). If it's not, this method will panic.
     pub fn as_long_array(&self) -> &[Cell<i64>] {
         match self {
-            Array::LongArray(arr) => &arr,
+            Array::LongArray(arr) => arr,
             _ => unreachable!("Wrong array type"),
         }
     }
@@ -79,7 +79,7 @@ impl Array {
     /// (`short[]`). If it's not, this method will panic.
     pub fn as_short_array(&self) -> &[Cell<i16>] {
         match self {
-            Array::ShortArray(arr) => &arr,
+            Array::ShortArray(arr) => arr,
             _ => unreachable!("Wrong array type"),
         }
     }
@@ -88,7 +88,7 @@ impl Array {
     /// If it's not, this method will panic.
     pub fn as_object_array(&self) -> &[Cell<Option<Object>>] {
         match self {
-            Array::ObjectArray(arr) => &arr,
+            Array::ObjectArray(arr) => arr,
             _ => unreachable!("Wrong array type"),
         }
     }

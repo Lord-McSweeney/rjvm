@@ -762,14 +762,12 @@ impl Op {
                     .entry(constant_pool_idx)
                     .map_err(|e| Error::from_class_file_error(context, e))?;
 
-                let op = match entry {
+                match entry {
                     ConstantPoolEntry::Long { value } => Op::LoadLong(value),
                     ConstantPoolEntry::Double { value } => Op::LoadDouble(value),
                     // TODO error handling
                     _ => panic!("Ldc2 only works on Double and Long"),
-                };
-
-                op
+                }
             }
             I_LOAD => {
                 let local_idx = read_u8!(context, data);

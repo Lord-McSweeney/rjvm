@@ -251,7 +251,7 @@ impl Context {
             interner: RefCell::new(interner),
             interned_strings: RefCell::new(StringObjectInterner::new()),
             method_descriptor_cache: RefCell::new(method_descriptor_cache),
-            primitive_classes: primitive_classes,
+            primitive_classes,
             native_mapping: RefCell::new(HashMap::new()),
             frame_data: empty_frame_data,
             frame_index: Cell::new(0),
@@ -340,9 +340,7 @@ impl Context {
 
         // TODO: Should we verify that args match the descriptor?
 
-        let result = method.exec(self);
-
-        result
+        method.exec(self)
     }
 
     /// The garbage collection context used by this `Context`.
@@ -552,7 +550,7 @@ impl Context {
     pub fn string_object_to_string(string_obj: Object) -> String {
         let chars = Context::unwrap_string(string_obj);
 
-        return String::from_utf16_lossy(&chars);
+        String::from_utf16_lossy(&chars)
     }
 
     /// Convert a Rust `&str` to a Java `String` object.
@@ -562,7 +560,7 @@ impl Context {
     pub fn str_to_string(&self, string: &str) -> Object {
         let chars = string.chars().map(|c| c as u16).collect::<Box<_>>();
 
-        let chars_array_object = Object::char_array(&self, chars);
+        let chars_array_object = Object::char_array(self, chars);
 
         let string_class = self.builtins().java_lang_string;
 
@@ -576,7 +574,7 @@ impl Context {
     ///
     /// This conversion is lossless.
     pub fn create_string(&self, chars: &[u16]) -> Object {
-        let chars_array_object = Object::char_array(&self, Box::from(chars));
+        let chars_array_object = Object::char_array(self, Box::from(chars));
 
         let string_class = self.builtins().java_lang_string;
 
@@ -853,7 +851,7 @@ impl Context {
         // Set the `message` field
         error_instance.set_field(
             THROWABLE_MESSAGE_FIELD,
-            Value::Object(Some(self.str_to_string(&class_name))),
+            Value::Object(Some(self.str_to_string(class_name))),
         );
 
         Error(error_instance)

@@ -53,7 +53,7 @@ impl<'a> Interpreter<'a> {
 
         Ok(Self {
             method,
-            frame_index: &*context.frame_index(),
+            frame_index: context.frame_index(),
             frame_reference,
             local_count: method.max_locals(),
             local_base,
@@ -70,7 +70,7 @@ impl<'a> Interpreter<'a> {
                 // If the catch_class is None, this catch() { } matches any exception
                 if exception
                     .catch_class
-                    .map_or(true, |c| error.0.class().matches_class(c))
+                    .is_none_or(|c| error.0.class().matches_class(c))
                 {
                     self.ip = exception.target;
 
@@ -255,11 +255,11 @@ impl<'a> Interpreter<'a> {
                 Op::Goto(position) => self.op_goto(*position),
                 Op::TableSwitch(table_switch) => self.op_table_switch(
                     table_switch.low_int,
-                    &*table_switch.matches,
+                    &table_switch.matches,
                     table_switch.default_offset,
                 ),
                 Op::LookupSwitch(lookup_switch) => {
-                    self.op_lookup_switch(&*lookup_switch.matches, lookup_switch.default_offset)
+                    self.op_lookup_switch(&lookup_switch.matches, lookup_switch.default_offset)
                 }
                 Op::IReturn => self.op_i_return(),
                 Op::LReturn => self.op_l_return(),

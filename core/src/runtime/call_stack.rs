@@ -90,11 +90,11 @@ impl CallStack {
         // Set class and method name
         instance.set_field(
             STACK_TRACE_ELEMENT_DECL_CLASS_FIELD,
-            Value::Object(Some(context.str_to_string(&*entry.class().dot_name()))),
+            Value::Object(Some(context.str_to_string(&entry.class().dot_name()))),
         );
         instance.set_field(
             STACK_TRACE_ELEMENT_METHOD_FIELD,
-            Value::Object(Some(context.str_to_string(&*entry.name()))),
+            Value::Object(Some(context.str_to_string(&entry.name()))),
         );
 
         // TODO set these three fields properly

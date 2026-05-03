@@ -46,7 +46,7 @@ pub struct Gc<T> {
 // Clone and Copy can't be #[derive]d here, see https://github.com/rust-lang/rust/issues/26925
 impl<T> Clone for Gc<T> {
     fn clone(&self) -> Self {
-        Self { ptr: self.ptr }
+        *self
     }
 }
 

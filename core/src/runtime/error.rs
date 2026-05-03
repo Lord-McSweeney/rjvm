@@ -50,7 +50,7 @@ impl Error {
     /// to be used to display `Error`s in code that has no access to a
     /// `Context`.
     pub fn display_infallible(&self) -> String {
-        format!("{}", self.0.class().dot_name())
+        self.0.class().dot_name()
     }
 
     /// Formats this `Error` as a string. This will include the `Error`'s

@@ -220,7 +220,7 @@ impl Method {
         let new_method_info = match &*borrow {
             MethodInfo::BytecodeUnparsed(code_data) => {
                 let bytecode_method_info =
-                    BytecodeMethodInfo::from_code_data(context, self, &*code_data)?;
+                    BytecodeMethodInfo::from_code_data(context, self, code_data)?;
 
                 Some(MethodInfo::Bytecode(bytecode_method_info))
             }
