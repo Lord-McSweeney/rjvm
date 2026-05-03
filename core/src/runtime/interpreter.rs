@@ -283,11 +283,11 @@ impl<'a> Interpreter<'a> {
                 }
                 Op::GetFieldWide(class, field_idx) => self.op_get_field_wide(*class, *field_idx),
                 Op::PutFieldWide(class, field_idx) => self.op_put_field_wide(*class, *field_idx),
-                Op::InvokeVirtual(class, physical_arg_count, method_index) => {
-                    self.op_invoke_virtual(*class, *physical_arg_count, *method_index)
+                Op::InvokeVirtual(class, method_index, physical_arg_count) => {
+                    self.op_invoke_virtual(*class, *method_index, *physical_arg_count)
                 }
-                Op::InvokeVirtualWide(class, physical_arg_count, method_index) => {
-                    self.op_invoke_virtual_wide(*class, *physical_arg_count, *method_index)
+                Op::InvokeVirtualWide(class, method_index, physical_arg_count) => {
+                    self.op_invoke_virtual_wide(*class, *method_index, *physical_arg_count)
                 }
                 Op::InvokeSpecial(class, method) => self.op_invoke_special(*class, *method),
                 Op::InvokeStatic(method) => self.op_invoke_static(*method),
@@ -1885,8 +1885,8 @@ impl<'a> Interpreter<'a> {
     fn op_invoke_virtual(
         &mut self,
         class: Class,
-        physical_arg_count: u8,
         method_index: usize,
+        physical_arg_count: u8,
     ) -> Result<ControlFlow, Error> {
         let receiver = self.stack_peek(physical_arg_count as usize).object();
 
@@ -1918,8 +1918,8 @@ impl<'a> Interpreter<'a> {
     fn op_invoke_virtual_wide(
         &mut self,
         class: Class,
-        physical_arg_count: u8,
         method_index: usize,
+        physical_arg_count: u8,
     ) -> Result<ControlFlow, Error> {
         let receiver = self.stack_peek(physical_arg_count as usize).object();
 

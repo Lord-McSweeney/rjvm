@@ -177,8 +177,8 @@ pub enum Op {
     PutFieldWide(Class, usize),
 
     // Method invocation
-    InvokeVirtual(Class, u8, usize),
-    InvokeVirtualWide(Class, u8, usize),
+    InvokeVirtual(Class, usize, u8),
+    InvokeVirtualWide(Class, usize, u8),
     InvokeSpecial(Class, Method),
     InvokeStatic(Method),
     InvokeInterface(Class, (JvmString, MethodDescriptor)),
@@ -1294,10 +1294,12 @@ impl Op {
 
                 // TODO access control?
 
+                let physical_arg_count = descriptor.physical_arg_count();
+
                 if descriptor.return_type().is_wide() {
-                    Op::InvokeVirtualWide(class, descriptor.physical_arg_count(), method_index)
+                    Op::InvokeVirtualWide(class, method_index, physical_arg_count)
                 } else {
-                    Op::InvokeVirtual(class, descriptor.physical_arg_count(), method_index)
+                    Op::InvokeVirtual(class, method_index, physical_arg_count)
                 }
             }
             INVOKE_SPECIAL => {

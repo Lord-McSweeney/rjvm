@@ -1037,8 +1037,8 @@ fn verify_block<'a>(
 
                 expect_pop_stack!(Reference);
             }
-            Op::InvokeVirtual(class, _, method_index)
-            | Op::InvokeVirtualWide(class, _, method_index) => {
+            Op::InvokeVirtual(class, method_index, _)
+            | Op::InvokeVirtualWide(class, method_index, _) => {
                 let descriptor = class
                     .instance_method_vtable()
                     .get_element(*method_index)
