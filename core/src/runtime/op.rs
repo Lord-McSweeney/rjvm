@@ -181,7 +181,7 @@ pub enum Op {
     InvokeVirtualWide(Class, u32, u8),
     InvokeSpecial(Method),
     InvokeStatic(Method),
-    InvokeInterface(Class, (JvmString, MethodDescriptor)),
+    InvokeInterface(Box<InvokeInterfaceInfo>),
 
     // Memory allocation
     New(Class),
@@ -378,10 +378,10 @@ impl Trace for Op {
             Op::InvokeStatic(method) => {
                 method.trace();
             }
-            Op::InvokeInterface(class, (method_name, method_descriptor)) => {
-                class.trace();
-                method_name.trace();
-                method_descriptor.trace();
+            Op::InvokeInterface(invoke_interface) => {
+                invoke_interface.class.trace();
+                invoke_interface.name.trace();
+                invoke_interface.descriptor.trace();
             }
             Op::New(class) => {
                 class.trace();
@@ -1390,7 +1390,13 @@ impl Op {
 
                 // TODO access control?
 
-                Op::InvokeInterface(class, (method_name, descriptor))
+                let invoke_interface = InvokeInterfaceInfo {
+                    class,
+                    name: method_name,
+                    descriptor,
+                };
+
+                Op::InvokeInterface(Box::new(invoke_interface))
             }
             NEW => {
                 let class_idx = read_u16_be!(context, data);
@@ -1542,7 +1548,7 @@ impl Op {
                 | Op::InvokeVirtualWide(_, _, _)
                 | Op::InvokeSpecial(_)
                 | Op::InvokeStatic(_)
-                | Op::InvokeInterface(_, _)
+                | Op::InvokeInterface(_)
                 | Op::NewArray(_)
                 | Op::ANewArray(_)
                 | Op::ArrayLength
@@ -1567,4 +1573,11 @@ pub(crate) struct TableSwitchInfo {
 pub(crate) struct LookupSwitchInfo {
     pub matches: Box<[(i32, usize)]>,
     pub default_offset: usize,
+}
+
+#[derive(Clone, Debug)]
+pub(crate) struct InvokeInterfaceInfo {
+    pub class: Class,
+    pub name: JvmString,
+    pub descriptor: MethodDescriptor,
 }

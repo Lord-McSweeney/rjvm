@@ -1198,7 +1198,9 @@ fn verify_block<'a>(
                     Descriptor::Void => {}
                 }
             }
-            Op::InvokeInterface(_, (_, descriptor)) => {
+            Op::InvokeInterface(invoke_interface) => {
+                let descriptor = invoke_interface.descriptor;
+
                 for arg in descriptor.args().iter().rev() {
                     match arg {
                         Descriptor::Class(_) | Descriptor::Array(_) => {

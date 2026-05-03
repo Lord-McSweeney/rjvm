@@ -291,9 +291,11 @@ impl<'a> Interpreter<'a> {
                 }
                 Op::InvokeSpecial(method) => self.op_invoke_special(*method),
                 Op::InvokeStatic(method) => self.op_invoke_static(*method),
-                Op::InvokeInterface(class, (method_name, method_descriptor)) => {
-                    self.op_invoke_interface(*class, *method_name, *method_descriptor)
-                }
+                Op::InvokeInterface(invoke_interface) => self.op_invoke_interface(
+                    invoke_interface.class,
+                    invoke_interface.name,
+                    invoke_interface.descriptor,
+                ),
                 Op::New(class) => self.op_new(*class),
                 Op::NewArray(array_type) => self.op_new_array(*array_type),
                 Op::ANewArray(class) => self.op_a_new_array(*class),
