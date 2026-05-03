@@ -305,8 +305,8 @@ impl<'a> Interpreter<'a> {
                 Op::InstanceOf(class) => self.op_instance_of(*class),
                 Op::MonitorEnter => self.op_monitor_enter(),
                 Op::MonitorExit => self.op_monitor_exit(),
-                Op::MultiANewArray(resolved_descriptor, dim_count) => {
-                    self.op_multi_a_new_array(*resolved_descriptor, *dim_count)
+                Op::MultiANewArray(multi_a_new_array) => {
+                    self.op_multi_a_new_array(multi_a_new_array.class, multi_a_new_array.dimensions)
                 }
                 Op::IfNull(position) => self.op_if_null(*position),
                 Op::IfNonNull(position) => self.op_if_non_null(*position),

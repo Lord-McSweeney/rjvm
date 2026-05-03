@@ -195,7 +195,7 @@ pub enum Op {
     InstanceOf(Class),
     MonitorEnter,
     MonitorExit,
-    MultiANewArray(ResolvedDescriptor, u8),
+    MultiANewArray(Box<MultiANewArrayInfo>),
     IfNull(usize),
     IfNonNull(usize),
 
@@ -400,8 +400,8 @@ impl Trace for Op {
             }
             Op::MonitorEnter => {}
             Op::MonitorExit => {}
-            Op::MultiANewArray(class, _) => {
-                class.trace();
+            Op::MultiANewArray(multi_a_new_array) => {
+                multi_a_new_array.class.trace();
             }
             Op::IfNull(_) => {}
             Op::IfNonNull(_) => {}
@@ -1488,7 +1488,12 @@ impl Op {
                         }
                 }
 
-                Op::MultiANewArray(resolved_descriptor, dim_count)
+                let multi_a_new_array = MultiANewArrayInfo {
+                    class: resolved_descriptor,
+                    dimensions: dim_count,
+                };
+
+                Op::MultiANewArray(Box::new(multi_a_new_array))
             }
             IF_NULL => {
                 let offset = read_u16_be!(context, data) as i16 as isize;
@@ -1556,7 +1561,7 @@ impl Op {
                 | Op::CheckCast(_)
                 | Op::MonitorEnter
                 | Op::MonitorExit
-                | Op::MultiANewArray(_, _)
+                | Op::MultiANewArray(_)
                 | Op::Clinit(_)
         )
     }
@@ -1581,3 +1586,12 @@ pub(crate) struct InvokeInterfaceInfo {
     pub name: JvmString,
     pub descriptor: MethodDescriptor,
 }
+
+#[derive(Clone, Debug)]
+pub(crate) struct MultiANewArrayInfo {
+    pub class: ResolvedDescriptor,
+    pub dimensions: u8,
+}
+
+#[cfg(target_pointer_width = "64")]
+const _: () = assert!(core::mem::size_of::<Op>() == 16);

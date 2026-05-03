@@ -1284,8 +1284,8 @@ fn verify_block<'a>(
             Op::MonitorExit => {
                 expect_pop_stack!(Reference);
             }
-            Op::MultiANewArray(_, dimension_count) => {
-                for _ in 0..(*dimension_count) {
+            Op::MultiANewArray(multi_a_new_array) => {
+                for _ in 0..multi_a_new_array.dimensions {
                     expect_pop_stack!(Integer);
                 }
 
