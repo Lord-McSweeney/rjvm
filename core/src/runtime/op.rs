@@ -164,21 +164,21 @@ pub enum Op {
     Return,
 
     // Field get/set
-    GetStatic(Class, usize),
-    PutStatic(Class, usize),
-    GetField(Class, usize),
-    PutField(Class, usize),
+    GetStatic(Class, u32),
+    PutStatic(Class, u32),
+    GetField(Class, u32),
+    PutField(Class, u32),
 
     // Wide field get/set
     // It's slightly faster to separate these than to check wideness at runtime
-    GetStaticWide(Class, usize),
-    PutStaticWide(Class, usize),
-    GetFieldWide(Class, usize),
-    PutFieldWide(Class, usize),
+    GetStaticWide(Class, u32),
+    PutStaticWide(Class, u32),
+    GetFieldWide(Class, u32),
+    PutFieldWide(Class, u32),
 
     // Method invocation
-    InvokeVirtual(Class, usize, u8),
-    InvokeVirtualWide(Class, usize, u8),
+    InvokeVirtual(Class, u32, u8),
+    InvokeVirtualWide(Class, u32, u8),
     InvokeSpecial(Class, Method),
     InvokeStatic(Method),
     InvokeInterface(Class, (JvmString, MethodDescriptor)),
@@ -1160,7 +1160,7 @@ impl Op {
                     .lookup((field_name, descriptor))
                     .ok_or_else(|| context.no_such_field_error())?;
 
-                let field = class.static_fields()[field_slot];
+                let field = class.get_static_field(field_slot);
 
                 // TODO "package-private" and "protected" access control
                 let flags = field.flags();
@@ -1195,7 +1195,7 @@ impl Op {
                     .lookup((field_name, descriptor))
                     .ok_or_else(|| context.no_such_field_error())?;
 
-                let field = class.static_fields()[field_slot];
+                let field = class.get_static_field(field_slot);
 
                 // TODO "package-private" and "protected" access control
                 let flags = field.flags();
@@ -1231,7 +1231,7 @@ impl Op {
                     .ok_or_else(|| context.no_such_field_error())?;
 
                 // TODO "package-private" and "protected" access control
-                let flags = class.instance_fields()[field_slot].flags();
+                let flags = class.get_instance_field(field_slot).flags();
                 if flags.contains(FieldFlags::PRIVATE) && method.class() != class {
                     return Err(context.illegal_access_error());
                 }
@@ -1260,7 +1260,7 @@ impl Op {
                     .ok_or_else(|| context.no_such_field_error())?;
 
                 // TODO "package-private" and "protected" access control
-                let flags = class.instance_fields()[field_slot].flags();
+                let flags = class.get_instance_field(field_slot).flags();
                 if flags.contains(FieldFlags::PRIVATE) && method.class() != class {
                     return Err(context.illegal_access_error());
                 }
@@ -1362,7 +1362,7 @@ impl Op {
                         context.no_such_method_error(&message)
                     })?;
 
-                let method = class.static_methods()[method_slot];
+                let method = class.get_static_method(method_slot);
 
                 // TODO access control?
 

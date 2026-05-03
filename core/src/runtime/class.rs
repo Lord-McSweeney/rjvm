@@ -342,7 +342,7 @@ impl Class {
         // initializers aren't inherited.
         let clinit_method_idx = static_method_vtable.lookup_own((clinit_string, void_descriptor));
 
-        let clinit_method = clinit_method_idx.map(|i| self.static_methods()[i]);
+        let clinit_method = clinit_method_idx.map(|i| self.get_static_method(i));
         if clinit_method.is_some_and(|m| m.physical_arg_count() != 0) {
             panic!("Clinit methods should not have declared arguments");
         }
@@ -578,6 +578,10 @@ impl Class {
         &self.0.method_data.get().unwrap().static_fields
     }
 
+    pub fn get_static_field(&self, index: u32) -> Field {
+        self.static_fields()[index as usize]
+    }
+
     pub fn instance_field_vtable(self) -> VTable<Descriptor> {
         self.0.method_data.get().unwrap().instance_field_vtable
     }
@@ -586,12 +590,20 @@ impl Class {
         &self.0.method_data.get().unwrap().instance_fields
     }
 
+    pub fn get_instance_field(&self, index: u32) -> Field {
+        self.instance_fields()[index as usize]
+    }
+
     pub fn static_method_vtable(&self) -> VTable<MethodDescriptor> {
         self.0.method_data.get().unwrap().static_method_vtable
     }
 
     pub fn static_methods(&self) -> &[Method] {
         &self.0.method_data.get().unwrap().static_methods
+    }
+
+    pub fn get_static_method(&self, index: u32) -> Method {
+        self.static_methods()[index as usize]
     }
 
     pub fn instance_method_vtable(&self) -> InstanceMethodVTable {

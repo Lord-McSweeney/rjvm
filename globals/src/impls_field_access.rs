@@ -31,7 +31,7 @@ fn get_static_field(context: &Context, args: &[Value]) -> Result<Option<Value>, 
     let cls = field.defining_class();
     let id = field.id();
 
-    let value = cls.static_fields()[id].value();
+    let value = cls.get_static_field(id).value();
 
     Ok(Some(value))
 }

@@ -22,19 +22,19 @@ use core::cell::{Cell, OnceCell, Ref, RefCell, RefMut};
 use hashbrown::HashMap;
 
 // Various magic fields
-pub const OBJECT_TO_STRING_METHOD: usize = 2;
+pub const OBJECT_TO_STRING_METHOD: u32 = 2;
 
-pub const THROWABLE_MESSAGE_FIELD: usize = 0;
-pub const THROWABLE_STACK_TRACE_FIELD: usize = 1;
-pub const THROWABLE_CAUSE_FIELD: usize = 2;
+pub const THROWABLE_MESSAGE_FIELD: u32 = 0;
+pub const THROWABLE_STACK_TRACE_FIELD: u32 = 1;
+pub const THROWABLE_CAUSE_FIELD: u32 = 2;
 
-pub const STRING_DATA_FIELD: usize = 0;
+pub const STRING_DATA_FIELD: u32 = 0;
 
-pub const STACK_TRACE_ELEMENT_DECL_CLASS_FIELD: usize = 0;
-pub const STACK_TRACE_ELEMENT_METHOD_FIELD: usize = 1;
-pub const STACK_TRACE_ELEMENT_FILE_FIELD: usize = 2;
-pub const STACK_TRACE_ELEMENT_LINE_FIELD: usize = 3;
-pub const STACK_TRACE_ELEMENT_IS_NATIVE_FIELD: usize = 4;
+pub const STACK_TRACE_ELEMENT_DECL_CLASS_FIELD: u32 = 0;
+pub const STACK_TRACE_ELEMENT_METHOD_FIELD: u32 = 1;
+pub const STACK_TRACE_ELEMENT_FILE_FIELD: u32 = 2;
+pub const STACK_TRACE_ELEMENT_LINE_FIELD: u32 = 3;
+pub const STACK_TRACE_ELEMENT_IS_NATIVE_FIELD: u32 = 4;
 
 // Note: If updating this, make sure to update the doc comment on `set_gc_threshold`.
 const DEFAULT_GC_THRESHOLD: u32 = 65536;
@@ -674,7 +674,7 @@ impl Context {
         // Run the Java-side initialization method, which is the first static
         // method of the `System` class
         let system_class = self.builtins().java_lang_system;
-        let init_method = system_class.static_methods()[0];
+        let init_method = system_class.get_static_method(0);
         if init_method.physical_arg_count() != 0 {
             panic!(
                 "Java-side initialization method on `System` class should have no declared arguments"

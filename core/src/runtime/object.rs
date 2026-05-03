@@ -297,10 +297,10 @@ impl Object {
 
     /// Gets the value stored in a field of this `Object`. This method will
     /// panic if called on an `Object` that represents an array.
-    pub fn get_field(self, field_idx: usize) -> Value {
+    pub fn get_field(self, field_idx: u32) -> Value {
         match &self.0.data {
             FieldOrArrayData::Fields(fields) => {
-                let field = &fields[field_idx];
+                let field = &fields[field_idx as usize];
                 field.get()
             }
             FieldOrArrayData::Array(_) => panic!("Cannot get field of array"),
@@ -309,10 +309,10 @@ impl Object {
 
     /// Sets the value stored in a field of this `Object`. This method will
     /// panic if called on an `Object` that represents an array.
-    pub fn set_field(self, field_idx: usize, value: Value) {
+    pub fn set_field(self, field_idx: u32, value: Value) {
         match &self.0.data {
             FieldOrArrayData::Fields(fields) => {
-                let field = &fields[field_idx];
+                let field = &fields[field_idx as usize];
                 field.set(value);
             }
             FieldOrArrayData::Array(_) => panic!("Cannot set field on array"),

@@ -65,11 +65,11 @@ impl<T: Copy + Debug + Eq + Hash> VTable<T> {
         ))
     }
 
-    fn first_unused(self) -> usize {
+    fn first_unused(self) -> u32 {
         self.0.first_unused
     }
 
-    pub fn lookup(self, key: (JvmString, T)) -> Option<usize> {
+    pub fn lookup(self, key: (JvmString, T)) -> Option<u32> {
         if let Some(idx) = self.0.mapping.get(&key) {
             Some(*idx)
         } else if let Some(parent) = self.0.parent {
@@ -81,11 +81,11 @@ impl<T: Copy + Debug + Eq + Hash> VTable<T> {
         }
     }
 
-    pub fn lookup_own(self, key: (JvmString, T)) -> Option<usize> {
+    pub fn lookup_own(self, key: (JvmString, T)) -> Option<u32> {
         self.0.mapping.get(&key).copied()
     }
 
-    pub fn slots_for_name(self, name: JvmString) -> Box<[usize]> {
+    pub fn slots_for_name(self, name: JvmString) -> Box<[u32]> {
         let mut result_indices = Vec::new();
         for ((key_name, _), index) in &self.0.mapping {
             if *key_name == name {
@@ -113,11 +113,11 @@ struct VTableData<T> {
     class: Option<Class>,
 
     /// A mapping of T (a tuple (name, descriptor) ) to slot index.
-    mapping: HashMap<(JvmString, T), usize>,
+    mapping: HashMap<(JvmString, T), u32>,
 
     /// The first unused slot index for this VTable, taking into account
     /// those used by the parent vtable. This will be 0 for empty vtables.
-    first_unused: usize,
+    first_unused: u32,
 }
 
 impl<T> Trace for VTableData<T>
@@ -168,9 +168,10 @@ impl InstanceMethodVTable {
         for (key, element) in data {
             if let Some(idx) = new_mapping.get(&key) {
                 // Override of function
-                new_elements[*idx] = element;
+                new_elements[*idx as usize] = element;
             } else {
-                new_mapping.insert(key, new_elements.len());
+                let idx = u32::try_from(new_elements.len()).expect("Overflow");
+                new_mapping.insert(key, idx);
                 new_elements.push(element);
             }
         }
@@ -193,16 +194,16 @@ impl InstanceMethodVTable {
         &self.0.elements
     }
 
-    pub fn lookup(self, key: (JvmString, MethodDescriptor)) -> Option<usize> {
+    pub fn lookup(self, key: (JvmString, MethodDescriptor)) -> Option<u32> {
         self.0.mapping.get(&key).copied()
     }
 
-    pub fn mapping(&self) -> &HashMap<(JvmString, MethodDescriptor), usize> {
+    pub fn mapping(&self) -> &HashMap<(JvmString, MethodDescriptor), u32> {
         &self.0.mapping
     }
 
-    pub fn get_element(self, index: usize) -> Method {
-        self.0.elements[index]
+    pub fn get_element(self, index: u32) -> Method {
+        self.0.elements[index as usize]
     }
 
     pub fn elements_for_name(self, name: JvmString) -> Box<[Method]> {
@@ -215,7 +216,11 @@ impl InstanceMethodVTable {
 
         result_indices
             .iter()
-            .map(|i| self.get_element(**i))
+            .map(|i| {
+                let i = u32::try_from(**i).expect("Overflow");
+
+                self.get_element(i)
+            })
             .collect::<Box<_>>()
     }
 }
@@ -231,7 +236,7 @@ struct InstanceMethodVTableData {
     class: Class,
 
     /// A mapping of (name, descriptor) to method index.
-    mapping: HashMap<(JvmString, MethodDescriptor), usize>,
+    mapping: HashMap<(JvmString, MethodDescriptor), u32>,
 
     /// The items on this VTable.
     elements: Box<[Method]>,

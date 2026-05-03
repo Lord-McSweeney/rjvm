@@ -1744,14 +1744,10 @@ impl<'a> Interpreter<'a> {
         Ok(ControlFlow::Return(Some(value)))
     }
 
-    fn op_get_static(
-        &mut self,
-        class: Class,
-        static_field_idx: usize,
-    ) -> Result<ControlFlow, Error> {
+    fn op_get_static(&mut self, class: Class, static_field_idx: u32) -> Result<ControlFlow, Error> {
         // Clinit should be done by `clinit` op emitted before this `getstatic` op
 
-        let static_field = class.static_fields()[static_field_idx];
+        let static_field = class.get_static_field(static_field_idx);
         let value = static_field.value();
 
         self.stack_push(value);
@@ -1759,14 +1755,10 @@ impl<'a> Interpreter<'a> {
         Ok(ControlFlow::Continue)
     }
 
-    fn op_put_static(
-        &mut self,
-        class: Class,
-        static_field_idx: usize,
-    ) -> Result<ControlFlow, Error> {
+    fn op_put_static(&mut self, class: Class, static_field_idx: u32) -> Result<ControlFlow, Error> {
         // Clinit should be done by `clinit` op emitted before this `putstatic` op
 
-        let static_field = class.static_fields()[static_field_idx];
+        let static_field = class.get_static_field(static_field_idx);
 
         let value = self.stack_pop();
 
@@ -1775,7 +1767,7 @@ impl<'a> Interpreter<'a> {
         Ok(ControlFlow::Continue)
     }
 
-    fn op_get_field(&mut self, class: Class, field_idx: usize) -> Result<ControlFlow, Error> {
+    fn op_get_field(&mut self, class: Class, field_idx: u32) -> Result<ControlFlow, Error> {
         let object = self.stack_pop().object();
 
         if let Some(object) = object {
@@ -1794,7 +1786,7 @@ impl<'a> Interpreter<'a> {
         }
     }
 
-    fn op_put_field(&mut self, class: Class, field_idx: usize) -> Result<ControlFlow, Error> {
+    fn op_put_field(&mut self, class: Class, field_idx: u32) -> Result<ControlFlow, Error> {
         let value = self.stack_pop();
 
         let object = self.stack_pop().object();
@@ -1816,11 +1808,11 @@ impl<'a> Interpreter<'a> {
     fn op_get_static_wide(
         &mut self,
         class: Class,
-        static_field_idx: usize,
+        static_field_idx: u32,
     ) -> Result<ControlFlow, Error> {
         // Clinit should be done by `clinit` op emitted before this `getstatic` op
 
-        let static_field = class.static_fields()[static_field_idx];
+        let static_field = class.get_static_field(static_field_idx);
         let value = static_field.value();
 
         self.stack_push_wide(value);
@@ -1831,11 +1823,11 @@ impl<'a> Interpreter<'a> {
     fn op_put_static_wide(
         &mut self,
         class: Class,
-        static_field_idx: usize,
+        static_field_idx: u32,
     ) -> Result<ControlFlow, Error> {
         // Clinit should be done by `clinit` op emitted before this `putstatic` op
 
-        let static_field = class.static_fields()[static_field_idx];
+        let static_field = class.get_static_field(static_field_idx);
 
         let value = self.stack_pop_wide();
 
@@ -1844,7 +1836,7 @@ impl<'a> Interpreter<'a> {
         Ok(ControlFlow::Continue)
     }
 
-    fn op_get_field_wide(&mut self, class: Class, field_idx: usize) -> Result<ControlFlow, Error> {
+    fn op_get_field_wide(&mut self, class: Class, field_idx: u32) -> Result<ControlFlow, Error> {
         let object = self.stack_pop().object();
 
         if let Some(object) = object {
@@ -1863,7 +1855,7 @@ impl<'a> Interpreter<'a> {
         }
     }
 
-    fn op_put_field_wide(&mut self, class: Class, field_idx: usize) -> Result<ControlFlow, Error> {
+    fn op_put_field_wide(&mut self, class: Class, field_idx: u32) -> Result<ControlFlow, Error> {
         let value = self.stack_pop_wide();
 
         let object = self.stack_pop().object();
@@ -1885,7 +1877,7 @@ impl<'a> Interpreter<'a> {
     fn op_invoke_virtual(
         &mut self,
         class: Class,
-        method_index: usize,
+        method_index: u32,
         physical_arg_count: u8,
     ) -> Result<ControlFlow, Error> {
         let receiver = self.stack_peek(physical_arg_count as usize).object();
@@ -1918,7 +1910,7 @@ impl<'a> Interpreter<'a> {
     fn op_invoke_virtual_wide(
         &mut self,
         class: Class,
-        method_index: usize,
+        method_index: u32,
         physical_arg_count: u8,
     ) -> Result<ControlFlow, Error> {
         let receiver = self.stack_peek(physical_arg_count as usize).object();

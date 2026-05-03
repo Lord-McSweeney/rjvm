@@ -26,17 +26,16 @@ pub(crate) fn get_class_method(
     let mut current_class = Some(class);
     while let Some(cls) = current_class {
         let static_vtable = cls.static_method_vtable();
-        let static_methods = cls.static_methods();
 
         let slots = static_vtable.slots_for_name(name);
         let static_method_index = slots.iter().find(|i| {
-            let method = static_methods[**i];
+            let method = cls.get_static_method(**i);
             // Make sure we're only picking up public methods
             method.flags().contains(MethodFlags::PUBLIC) && method.descriptor().args() == args
         });
 
         if let Some(static_method_index) = static_method_index {
-            return Some(static_methods[*static_method_index]);
+            return Some(cls.get_static_method(*static_method_index));
         }
 
         current_class = cls.super_class();

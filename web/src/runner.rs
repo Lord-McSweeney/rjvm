@@ -130,7 +130,7 @@ pub(crate) fn run_file(class_name: &str, class_data: &[u8], args: Vec<String>) {
             .lookup((main_name, main_descriptor));
 
         if let Some(method_idx) = method_idx {
-            let method = main_class.static_methods()[method_idx];
+            let method = main_class.get_static_method(method_idx);
             let result = context.exec_method(method, &[args_array]);
 
             if let Err(error) = result {

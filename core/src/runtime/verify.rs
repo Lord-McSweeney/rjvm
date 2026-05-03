@@ -934,7 +934,7 @@ fn verify_block<'a>(
                 // This does nothing
             }
             Op::GetStatic(class, index) | Op::GetStaticWide(class, index) => {
-                let field_descriptor = class.static_fields()[*index].descriptor();
+                let field_descriptor = class.get_static_field(*index).descriptor();
                 match field_descriptor {
                     Descriptor::Class(_) | Descriptor::Array(_) => {
                         push_stack!(Reference);
@@ -959,7 +959,7 @@ fn verify_block<'a>(
                 }
             }
             Op::PutStatic(class, index) | Op::PutStaticWide(class, index) => {
-                let field_descriptor = class.static_fields()[*index].descriptor();
+                let field_descriptor = class.get_static_field(*index).descriptor();
                 match field_descriptor {
                     Descriptor::Class(_) | Descriptor::Array(_) => {
                         expect_pop_stack!(Reference);
@@ -986,7 +986,7 @@ fn verify_block<'a>(
             Op::GetField(class, index) | Op::GetFieldWide(class, index) => {
                 expect_pop_stack!(Reference);
 
-                let field_descriptor = class.instance_fields()[*index].descriptor();
+                let field_descriptor = class.get_instance_field(*index).descriptor();
                 match field_descriptor {
                     Descriptor::Class(_) | Descriptor::Array(_) => {
                         push_stack!(Reference);
@@ -1011,7 +1011,7 @@ fn verify_block<'a>(
                 }
             }
             Op::PutField(class, index) | Op::PutFieldWide(class, index) => {
-                let field_descriptor = class.instance_fields()[*index].descriptor();
+                let field_descriptor = class.get_instance_field(*index).descriptor();
                 match field_descriptor {
                     Descriptor::Class(_) | Descriptor::Array(_) => {
                         expect_pop_stack!(Reference);

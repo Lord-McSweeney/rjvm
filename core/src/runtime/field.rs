@@ -161,14 +161,15 @@ struct FieldTemplateData {
 
     flags: FieldFlags,
 
-    id: usize,
+    id: u32,
 
     object: Object,
 }
 
 impl FieldTemplate {
     pub fn for_static_field(context: &Context, defining_class: Class, id: usize) -> Self {
-        let static_field = defining_class.static_fields()[id];
+        let id = u32::try_from(id).expect("Overflow");
+        let static_field = defining_class.get_static_field(id);
 
         assert!(static_field.flags().contains(FieldFlags::STATIC));
 
@@ -198,7 +199,8 @@ impl FieldTemplate {
     }
 
     pub fn for_instance_field(context: &Context, defining_class: Class, id: usize) -> Self {
-        let instance_field = &defining_class.instance_fields()[id];
+        let id = u32::try_from(id).expect("Overflow");
+        let instance_field = defining_class.get_instance_field(id);
 
         assert!(!instance_field.flags().contains(FieldFlags::STATIC));
 
@@ -270,7 +272,7 @@ impl FieldTemplate {
         self.0.flags.bits()
     }
 
-    pub fn id(self) -> usize {
+    pub fn id(self) -> u32 {
         self.0.id
     }
 
