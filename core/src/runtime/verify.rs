@@ -1095,7 +1095,7 @@ fn verify_block<'a>(
                     Descriptor::Void => {}
                 }
             }
-            Op::InvokeSpecial(_, method) => {
+            Op::InvokeSpecial(method) => {
                 let descriptor = method.descriptor();
                 for arg in descriptor.args().iter().rev() {
                     match arg {

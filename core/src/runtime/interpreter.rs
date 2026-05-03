@@ -289,7 +289,7 @@ impl<'a> Interpreter<'a> {
                 Op::InvokeVirtualWide(class, method_index, physical_arg_count) => {
                     self.op_invoke_virtual_wide(*class, *method_index, *physical_arg_count)
                 }
-                Op::InvokeSpecial(class, method) => self.op_invoke_special(*class, *method),
+                Op::InvokeSpecial(method) => self.op_invoke_special(*method),
                 Op::InvokeStatic(method) => self.op_invoke_static(*method),
                 Op::InvokeInterface(class, (method_name, method_descriptor)) => {
                     self.op_invoke_interface(*class, *method_name, *method_descriptor)
@@ -1940,13 +1940,13 @@ impl<'a> Interpreter<'a> {
         }
     }
 
-    fn op_invoke_special(&mut self, class: Class, method: Method) -> Result<ControlFlow, Error> {
+    fn op_invoke_special(&mut self, method: Method) -> Result<ControlFlow, Error> {
         let receiver = self
             .stack_peek(method.physical_arg_count() as usize - 1)
             .object();
 
         if let Some(receiver) = receiver {
-            if !receiver.class().check_cast(class) {
+            if !receiver.class().check_cast(method.class()) {
                 // TODO verify this in verifier
                 panic!("Object on stack was of wrong Class");
             }
