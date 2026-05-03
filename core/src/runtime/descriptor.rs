@@ -451,7 +451,7 @@ impl Hash for MethodDescriptor {
 #[derive(Eq, Hash, PartialEq)]
 struct MethodDescriptorData {
     args: Box<[Descriptor]>,
-    physical_arg_count: usize,
+    physical_arg_count: u8,
     return_type: Descriptor,
 }
 
@@ -469,15 +469,24 @@ impl MethodDescriptor {
         let mut interner = context.interner();
 
         // Try to create a new one...
-        if let Some(method_desc) = Self::new_from_string(gc_ctx, &mut interner, descriptor) {
-            context.put_cached_method_descriptor(descriptor, method_desc);
+        match Self::new_from_string(gc_ctx, &mut interner, descriptor) {
+            Ok(method_desc) => {
+                context.put_cached_method_descriptor(descriptor, method_desc);
 
-            return Ok(method_desc);
+                Ok(method_desc)
+            }
+            Err(MethodDescParseError::TooManyArgs) => {
+                drop(interner);
+
+                Err(context.class_format_error("Too many arguments in method signature"))
+            }
+            Err(MethodDescParseError::Invalid) => {
+                drop(interner);
+
+                Err(context
+                    .class_format_error(&format!("Illegal method signature \"{}\"", descriptor)))
+            }
         }
-
-        drop(interner);
-
-        Err(context.class_format_error(&format!("Illegal method signature \"{}\"", descriptor)))
     }
 
     // Creates a new `MethodDescriptor` from the given `JvmString`. This is
@@ -486,11 +495,11 @@ impl MethodDescriptor {
         gc_ctx: GcCtx,
         interner: &mut JvmStringInterner,
         descriptor: JvmString,
-    ) -> Option<Self> {
+    ) -> Result<Self, MethodDescParseError> {
         let desc_bytes = descriptor.as_bytes();
 
         if desc_bytes.len() == 0 || desc_bytes[0] != b'(' {
-            return None;
+            return Err(MethodDescParseError::Invalid);
         }
 
         let mut args = Vec::with_capacity(2);
@@ -502,7 +511,7 @@ impl MethodDescriptor {
         let mut i = 1;
         loop {
             if i >= desc_bytes.len() {
-                return None;
+                return Err(MethodDescParseError::Invalid);
             }
 
             match desc_bytes[i] {
@@ -510,11 +519,12 @@ impl MethodDescriptor {
                     i += 1;
 
                     let return_desc =
-                        Descriptor::from_data_counting(gc_ctx, interner, &desc_bytes[i..], true)?;
+                        Descriptor::from_data_counting(gc_ctx, interner, &desc_bytes[i..], true)
+                            .ok_or(MethodDescParseError::Invalid)?;
 
                     // Trailing garbage = invalid descriptor
                     if i + return_desc.1 != descriptor.len() {
-                        return None;
+                        return Err(MethodDescParseError::Invalid);
                     }
 
                     return_type = return_desc.0;
@@ -522,7 +532,8 @@ impl MethodDescriptor {
                 }
                 _ => {
                     let arg_desc =
-                        Descriptor::from_data_counting(gc_ctx, interner, &desc_bytes[i..], false)?;
+                        Descriptor::from_data_counting(gc_ctx, interner, &desc_bytes[i..], false)
+                            .ok_or(MethodDescParseError::Invalid)?;
                     i += arg_desc.1 - 1;
 
                     args.push(arg_desc.0);
@@ -538,7 +549,11 @@ impl MethodDescriptor {
             i += 1;
         }
 
-        Some(Self(Gc::new(
+        let Ok(physical_arg_count) = u8::try_from(physical_arg_count) else {
+            return Err(MethodDescParseError::TooManyArgs);
+        };
+
+        Ok(Self(Gc::new(
             gc_ctx,
             MethodDescriptorData {
                 args: args.into_boxed_slice(),
@@ -555,7 +570,7 @@ impl MethodDescriptor {
 
     /// The "physical" argument count of this descriptor. This counts two
     /// arguments for doubles and longs.
-    pub fn physical_arg_count(&self) -> usize {
+    pub fn physical_arg_count(&self) -> u8 {
         self.0.physical_arg_count
     }
 
@@ -592,6 +607,12 @@ impl fmt::Debug for MethodDescriptor {
     }
 }
 
+#[derive(Debug)]
+pub(crate) enum MethodDescParseError {
+    TooManyArgs,
+    Invalid,
+}
+
 /// A descriptor representing a method's signature that has been both parsed and
 /// resolved.
 ///
@@ -604,7 +625,7 @@ pub struct ResolvedMethodDescriptor(Gc<ResolvedMethodDescriptorData>);
 
 struct ResolvedMethodDescriptorData {
     args: Box<[ResolvedDescriptor]>,
-    physical_arg_count: usize,
+    physical_arg_count: u8,
     return_type: ResolvedDescriptor,
 }
 
@@ -640,7 +661,7 @@ impl ResolvedMethodDescriptor {
 
     /// The "physical" argument count of this descriptor. This counts two
     /// arguments for doubles and longs.
-    pub fn physical_arg_count(&self) -> usize {
+    pub fn physical_arg_count(&self) -> u8 {
         self.0.physical_arg_count
     }
 

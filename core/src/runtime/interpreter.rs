@@ -41,10 +41,10 @@ impl<'a> Interpreter<'a> {
         let frame_reference = context.frame_data();
 
         // Locals are passed on stack
-        let local_base = context.frame_index().get() - method.physical_arg_count();
+        let local_base = context.frame_index().get() - method.physical_arg_count() as usize;
 
         // Initialize the empty locals ("scratch locals"?)
-        let empty_locals_count = method.max_locals() - method.physical_arg_count();
+        let empty_locals_count = method.max_locals() - method.physical_arg_count() as usize;
         for _ in 0..empty_locals_count {
             let current_index = context.frame_index().get();
             frame_reference[current_index].set(Value::Integer(0));
@@ -317,7 +317,7 @@ impl<'a> Interpreter<'a> {
                 Ok(ControlFlow::Return(value)) => {
                     // Reset frame index before returning
                     self.frame_index
-                        .set(self.local_base + self.method.physical_arg_count());
+                        .set(self.local_base + self.method.physical_arg_count() as usize);
 
                     return Ok(value);
                 }
@@ -327,7 +327,7 @@ impl<'a> Interpreter<'a> {
                     if let Err(error) = result {
                         // Reset frame index before returning
                         self.frame_index
-                            .set(self.local_base + self.method.physical_arg_count());
+                            .set(self.local_base + self.method.physical_arg_count() as usize);
 
                         return Err(error);
                     }
@@ -1885,10 +1885,10 @@ impl<'a> Interpreter<'a> {
     fn op_invoke_virtual(
         &mut self,
         class: Class,
-        physical_arg_count: usize,
+        physical_arg_count: u8,
         method_index: usize,
     ) -> Result<ControlFlow, Error> {
-        let receiver = self.stack_peek(physical_arg_count).object();
+        let receiver = self.stack_peek(physical_arg_count as usize).object();
 
         if let Some(receiver) = receiver {
             if !receiver.class().check_cast(class) {
@@ -1918,10 +1918,10 @@ impl<'a> Interpreter<'a> {
     fn op_invoke_virtual_wide(
         &mut self,
         class: Class,
-        physical_arg_count: usize,
+        physical_arg_count: u8,
         method_index: usize,
     ) -> Result<ControlFlow, Error> {
-        let receiver = self.stack_peek(physical_arg_count).object();
+        let receiver = self.stack_peek(physical_arg_count as usize).object();
 
         if let Some(receiver) = receiver {
             if !receiver.class().check_cast(class) {
@@ -1949,7 +1949,9 @@ impl<'a> Interpreter<'a> {
     }
 
     fn op_invoke_special(&mut self, class: Class, method: Method) -> Result<ControlFlow, Error> {
-        let receiver = self.stack_peek(method.physical_arg_count() - 1).object();
+        let receiver = self
+            .stack_peek(method.physical_arg_count() as usize - 1)
+            .object();
 
         if let Some(receiver) = receiver {
             if !receiver.class().check_cast(class) {
@@ -1998,7 +2000,7 @@ impl<'a> Interpreter<'a> {
         method_descriptor: MethodDescriptor,
     ) -> Result<ControlFlow, Error> {
         let receiver = self
-            .stack_peek(method_descriptor.physical_arg_count())
+            .stack_peek(method_descriptor.physical_arg_count() as usize)
             .object();
 
         if let Some(receiver) = receiver {

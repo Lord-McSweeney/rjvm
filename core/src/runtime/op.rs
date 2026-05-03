@@ -177,8 +177,8 @@ pub enum Op {
     PutFieldWide(Class, usize),
 
     // Method invocation
-    InvokeVirtual(Class, usize, usize),
-    InvokeVirtualWide(Class, usize, usize),
+    InvokeVirtual(Class, u8, usize),
+    InvokeVirtualWide(Class, u8, usize),
     InvokeSpecial(Class, Method),
     InvokeStatic(Method),
     InvokeInterface(Class, (JvmString, MethodDescriptor)),

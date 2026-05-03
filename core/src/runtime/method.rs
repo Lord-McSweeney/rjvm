@@ -46,7 +46,7 @@ impl fmt::Debug for Method {
 struct MethodData {
     descriptor: MethodDescriptor,
 
-    physical_arg_count: usize,
+    physical_arg_count: u8,
 
     flags: MethodFlags,
 
@@ -122,7 +122,7 @@ impl Method {
         gc_ctx: GcCtx,
         method: NativeMethod,
         descriptor: MethodDescriptor,
-        physical_arg_count: usize,
+        physical_arg_count: u8,
         flags: MethodFlags,
         name: JvmString,
         class: Class,
@@ -176,7 +176,7 @@ impl Method {
                 }
                 MethodInfo::BytecodeUnparsed(_) => unreachable!(),
                 MethodInfo::Native(native_method) => {
-                    let physical_arg_count = self.physical_arg_count();
+                    let physical_arg_count = self.physical_arg_count() as usize;
                     let current_position = context.frame_index().get();
                     let frame_data = context.frame_data();
 
@@ -209,7 +209,7 @@ impl Method {
         // Pop args
         context
             .frame_index()
-            .set(context.frame_index().get() - self.physical_arg_count());
+            .set(context.frame_index().get() - self.physical_arg_count() as usize);
 
         result
     }
@@ -303,7 +303,7 @@ impl Method {
     /// The "physical" argument count of this method. This counts two arguments
     /// for doubles and longs, and includes the receiver if this method takes
     /// one.
-    pub fn physical_arg_count(self) -> usize {
+    pub fn physical_arg_count(self) -> u8 {
         self.0.physical_arg_count
     }
 

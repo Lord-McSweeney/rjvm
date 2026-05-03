@@ -327,7 +327,7 @@ impl Context {
     /// that the method returned.
     pub fn exec_method(&self, method: Method, args: &[Value]) -> Result<Option<Value>, Error> {
         assert!(
-            args.len() == method.physical_arg_count(),
+            args.len() == method.physical_arg_count() as usize,
             "exec_method called with wrong number of arguments"
         );
 
