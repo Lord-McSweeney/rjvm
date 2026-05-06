@@ -202,9 +202,16 @@ impl Descriptor {
         result
     }
 
-    /// Returns true when called on `Descriptor::Double` or `Descriptor::Long`.
+    /// Returns true when called on `Descriptor::Double` or `Descriptor::Long`,
+    /// and false when called on any other `Descriptor` variant.
     pub fn is_wide(self) -> bool {
         matches!(self, Descriptor::Double | Descriptor::Long)
+    }
+
+    /// Returns false when called on `Descriptor::Class` or `Descriptor::Array`,
+    /// and true when called on any other `Descriptor` variant.
+    pub fn is_primitive(self) -> bool {
+        !matches!(self, Descriptor::Class(_) | Descriptor::Array(_))
     }
 }
 

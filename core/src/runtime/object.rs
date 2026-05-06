@@ -400,7 +400,28 @@ impl Trace for ObjectData {
     #[inline(always)]
     fn trace(&self) {
         self.class.trace();
-        self.data.trace();
+
+        match &self.data {
+            FieldOrArrayData::Fields(data) => {
+                // We're not sure here exactly which of the fields are objects,
+                // so we need to retrieve some information to tell.
+
+                // This bitset has bits set corresponding to fields that are
+                // non-primitive (objects and arrays).
+                let object_fields_bit_set = self.class.instance_object_fields();
+                for (i, field) in data.iter().enumerate() {
+                    if object_fields_bit_set.get(i) {
+                        // If this field is a non-primitive, get it as an object
+                        // and trace it.
+                        let field_object = field.get().object();
+                        if field_object.is_some() {
+                            field_object.trace();
+                        }
+                    }
+                }
+            }
+            FieldOrArrayData::Array(data) => data.trace(),
+        }
     }
 }
 
@@ -408,16 +429,6 @@ impl Trace for ObjectData {
 enum FieldOrArrayData {
     Fields(Box<[Cell<Value>]>),
     Array(Array),
-}
-
-impl Trace for FieldOrArrayData {
-    #[inline]
-    fn trace(&self) {
-        match self {
-            FieldOrArrayData::Fields(data) => data.trace(),
-            FieldOrArrayData::Array(data) => data.trace(),
-        }
-    }
 }
 
 // "[Ljava/lang/Object;".clone()Ljava/lang/Object;

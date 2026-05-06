@@ -37,7 +37,7 @@ pub const STACK_TRACE_ELEMENT_LINE_FIELD: u32 = 3;
 pub const STACK_TRACE_ELEMENT_IS_NATIVE_FIELD: u32 = 4;
 
 // Note: If updating this, make sure to update the doc comment on `set_gc_threshold`.
-const DEFAULT_GC_THRESHOLD: u32 = 65536;
+const DEFAULT_GC_THRESHOLD: u32 = 8192;
 
 // There can only be one `Context` instance at a time.
 // SAFETY: The created `INSTANCE` is never shared between threads, as rjvm
@@ -351,7 +351,7 @@ impl Context {
     /// Adjust the `Context`'s GC threshold.
     ///
     /// The GC threshold is the number of allocating ops that can be run before
-    /// a full garbage-collection is triggered. By default, it is set to 65536.
+    /// a full garbage-collection is triggered. By default, it is set to 8192.
     pub fn set_gc_threshold(&self, gc_threshold: u32) {
         self.gc_threshold.set(gc_threshold);
     }

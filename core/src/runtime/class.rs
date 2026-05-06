@@ -14,6 +14,7 @@ use crate::classfile::flags::{ClassFlags, FieldFlags, MethodFlags};
 use crate::gc::{Gc, GcCtx, Trace};
 use crate::reader::{FileData, Reader};
 use crate::string::JvmString;
+use crate::utils::CompactBitSet;
 
 use alloc::boxed::Box;
 use alloc::string::{String, ToString};
@@ -70,6 +71,7 @@ struct MethodData {
 
     instance_field_vtable: VTable<Descriptor>,
     instance_fields: Box<[Field]>,
+    instance_object_fields: CompactBitSet,
 
     static_method_vtable: VTable<MethodDescriptor>,
     static_methods: Box<[Method]>,
@@ -307,6 +309,16 @@ impl Class {
             }
         }
 
+        // Precalculate the bitset of fields that are objects
+        let is_object_iter = instance_fields.iter().map(|f| {
+            let descriptor = f.descriptor();
+            !descriptor.is_primitive()
+        });
+
+        let instance_object_fields =
+            CompactBitSet::from_iter(is_object_iter, instance_fields.len());
+
+        // Create vtables
         let static_method_vtable = VTable::from_parent_and_keys(
             context.gc_ctx,
             Some(self),
@@ -326,6 +338,7 @@ impl Class {
             static_fields: static_fields.into_boxed_slice(),
             instance_field_vtable,
             instance_fields: instance_fields.into_boxed_slice(),
+            instance_object_fields,
             static_method_vtable,
             static_methods: static_methods.into_boxed_slice(),
             instance_method_vtable,
@@ -422,10 +435,11 @@ impl Class {
         );
 
         let method_data = MethodData {
-            instance_field_vtable: VTable::empty(context.gc_ctx),
-            instance_fields: Box::new([]),
             static_field_vtable: VTable::empty(context.gc_ctx),
             static_fields: Box::new([]),
+            instance_field_vtable: VTable::empty(context.gc_ctx),
+            instance_fields: Box::new([]),
+            instance_object_fields: CompactBitSet::empty(),
             static_method_vtable: VTable::empty(context.gc_ctx),
             static_methods: Box::new([]),
             instance_method_vtable,
@@ -469,10 +483,11 @@ impl Class {
         ));
 
         let method_data = MethodData {
-            instance_field_vtable: VTable::empty(gc_ctx),
-            instance_fields: Box::new([]),
             static_field_vtable: VTable::empty(gc_ctx),
             static_fields: Box::new([]),
+            instance_field_vtable: VTable::empty(gc_ctx),
+            instance_fields: Box::new([]),
+            instance_object_fields: CompactBitSet::empty(),
             static_method_vtable: VTable::empty(gc_ctx),
             static_methods: Box::new([]),
             instance_method_vtable: InstanceMethodVTable::empty(gc_ctx, class),
@@ -588,6 +603,10 @@ impl Class {
 
     pub fn instance_fields(&self) -> &[Field] {
         &self.0.method_data.get().unwrap().instance_fields
+    }
+
+    pub(crate) fn instance_object_fields(&self) -> &CompactBitSet {
+        &self.0.method_data.get().unwrap().instance_object_fields
     }
 
     pub fn get_instance_field(&self, index: u32) -> Field {
