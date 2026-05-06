@@ -1297,7 +1297,11 @@ fn verify_block<'a>(
             Op::IfNonNull(_) => {
                 expect_pop_stack!(Reference);
             }
+
             Op::Clinit(_) => {
+                // Doesn't modify stack
+            }
+            Op::GcCheck => {
                 // Doesn't modify stack
             }
         }

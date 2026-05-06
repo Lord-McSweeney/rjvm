@@ -201,6 +201,7 @@ pub enum Op {
 
     // Custom ops
     Clinit(Class),
+    GcCheck,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -409,6 +410,7 @@ impl Trace for Op {
             Op::Clinit(class) => {
                 class.trace();
             }
+            Op::GcCheck => {}
         }
     }
 }
@@ -621,10 +623,13 @@ impl Op {
         let mut code = Vec::with_capacity(code_length);
 
         let mut offset_to_idx_map = HashMap::with_capacity(code_length);
+        offset_to_idx_map.insert(0, 0);
+
+        // TODO: We should perform a Gc check in more places, probably ideally
+        // at all allocation points
+        code.push(Op::GcCheck);
 
         while data.position() < code_start + code_length {
-            offset_to_idx_map.insert(data.position() - code_start, code.len());
-
             let ops = Op::read_op(
                 context,
                 method,
@@ -640,11 +645,11 @@ impl Op {
             if let Some(second_op) = ops.1 {
                 code.push(second_op);
             }
+
+            offset_to_idx_map.insert(data.position() - code_start, code.len());
         }
 
         let mut code = code.into_boxed_slice();
-
-        offset_to_idx_map.insert(data.position() - code_start, code.len());
 
         // Resolve branch ops' offsets
         for op in code.iter_mut() {

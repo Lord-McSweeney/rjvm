@@ -311,6 +311,7 @@ impl<'a> Interpreter<'a> {
                 Op::IfNull(position) => self.op_if_null(*position),
                 Op::IfNonNull(position) => self.op_if_non_null(*position),
                 Op::Clinit(class) => self.op_clinit(*class),
+                Op::GcCheck => self.op_gc_check(),
             };
 
             match control_flow {
@@ -2338,6 +2339,12 @@ impl<'a> Interpreter<'a> {
 
     fn op_clinit(&mut self, class: Class) -> Result<ControlFlow, Error> {
         class.run_clinit(self.context)?;
+
+        Ok(ControlFlow::Continue)
+    }
+
+    fn op_gc_check(&mut self) -> Result<ControlFlow, Error> {
+        self.context.check_gc();
 
         Ok(ControlFlow::Continue)
     }

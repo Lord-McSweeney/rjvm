@@ -530,16 +530,15 @@ impl Context {
     }
 
     pub(crate) fn increment_gc_counter(&self) {
-        let new_value = self.gc_counter.get() + 1;
+        let new_value = self.gc_counter.get().saturating_add(1);
+        self.gc_counter.set(new_value);
+    }
 
-        if new_value == self.gc_threshold.get() {
+    pub(crate) fn check_gc(&self) {
+        if self.gc_counter.get() == self.gc_threshold.get() {
             unsafe {
                 self.gc_ctx.collect(self);
             }
-
-            self.gc_counter.set(0);
-        } else {
-            self.gc_counter.set(new_value);
         }
     }
 
