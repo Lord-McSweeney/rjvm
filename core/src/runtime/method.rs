@@ -364,6 +364,7 @@ impl Trace for MethodData {
         self.name.trace();
         self.class.trace();
         self.object.trace();
+        self.resolved_descriptor.trace();
         self.method_info.trace();
     }
 }

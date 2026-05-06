@@ -670,3 +670,16 @@ impl ResolvedMethodDescriptor {
         self.0.return_type
     }
 }
+
+impl Trace for ResolvedMethodDescriptor {
+    fn trace(&self) {
+        self.0.trace();
+    }
+}
+
+impl Trace for ResolvedMethodDescriptorData {
+    fn trace(&self) {
+        self.args.trace();
+        self.return_type.trace();
+    }
+}
