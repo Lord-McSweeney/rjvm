@@ -370,7 +370,6 @@ impl fmt::Debug for Object {
 }
 
 impl Trace for Object {
-    #[inline(always)]
     fn trace(&self) {
         self.0.trace();
     }
@@ -397,7 +396,7 @@ struct ObjectData {
 }
 
 impl Trace for ObjectData {
-    #[inline(always)]
+    #[inline]
     fn trace(&self) {
         self.class.trace();
 
