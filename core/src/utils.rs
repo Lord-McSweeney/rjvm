@@ -1,6 +1,8 @@
 // Utility types
 
 use alloc::boxed::Box;
+use alloc::string::String;
+use core::fmt;
 use core::ops::Deref;
 
 /// A struct that implements `Sync` and holds an arbitary value.
@@ -116,5 +118,20 @@ impl CompactBitSetData {
                 *entry |= 1 << bit_index;
             }
         }
+    }
+}
+
+impl fmt::Debug for CompactBitSet {
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        let mut result = String::new();
+        for i in 0..self.size {
+            if self.get(i) {
+                result.push('1');
+            } else {
+                result.push('0');
+            }
+        }
+
+        write!(f, "{}", result)
     }
 }
