@@ -57,10 +57,6 @@ impl JvmString {
             },
         ))
     }
-
-    pub fn to_string(&self) -> &String {
-        &*self
-    }
 }
 
 impl Deref for JvmString {

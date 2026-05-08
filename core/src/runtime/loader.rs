@@ -184,7 +184,7 @@ impl ClassLoader {
             Ok(Some(created_class))
         } else {
             // Not an array class, just try to load it as usual
-            let full_name = class_name.to_string().clone() + ".class";
+            let full_name = class_name.to_string() + ".class";
             let data = self.load_own_resource(&full_name);
             if let Some(data) = data {
                 let class = Class::from_data(context, self, &data)?;
