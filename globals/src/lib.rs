@@ -7,12 +7,7 @@
 extern crate alloc;
 
 pub(crate) mod hash_code;
-pub(crate) mod impls_field_access;
-pub(crate) mod impls_loader;
-pub(crate) mod impls_math;
-pub(crate) mod impls_misc;
-pub(crate) mod impls_reflect;
-pub(crate) mod impls_system;
+pub(crate) mod impls;
 pub mod native_impl;
 pub(crate) mod reflect;
 
