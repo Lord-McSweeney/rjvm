@@ -535,7 +535,8 @@ impl Context {
     }
 
     pub(crate) fn check_gc(&self) {
-        if self.gc_counter.get() == self.gc_threshold.get() {
+        if self.gc_counter.get() >= self.gc_threshold.get() {
+            self.gc_counter.set(0);
             unsafe {
                 self.gc_ctx.collect(self);
             }
