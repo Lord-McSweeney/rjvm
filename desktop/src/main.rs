@@ -44,6 +44,8 @@ struct PassedOptions {
     linked_bootstrap_jars: Vec<String>,
     load_globals: bool,
 
+    gc_threshold: Option<u32>,
+
     program_args: Vec<String>,
 }
 
@@ -62,6 +64,7 @@ impl PassedOptions {
         let mut linked_jars = Vec::new();
         let mut linked_bootstrap_jars = Vec::new();
         let mut load_globals = true;
+        let mut gc_threshold = None;
         let mut program_args = Vec::new();
 
         let mut started_args = false;
@@ -123,6 +126,18 @@ impl PassedOptions {
                     i += 1;
                 } else if arg == "--no-globals" {
                     load_globals = false;
+                } else if arg == "--gc-threshold" {
+                    if i + 1 >= args.len() {
+                        return Err("--gc-threshold flag requires a gc threshold".to_string());
+                    }
+
+                    let Ok(parsed) = args[i + 1].parse::<u32>() else {
+                        return Err("--gc-threshold requires a numerical gc threshold".to_string());
+                    };
+
+                    gc_threshold = Some(parsed);
+
+                    i += 1;
                 } else if arg.starts_with("--") {
                     return Err(format!("Unknown flag {}", arg));
                 } else {
@@ -143,6 +158,7 @@ impl PassedOptions {
                 linked_jars,
                 linked_bootstrap_jars,
                 load_globals,
+                gc_threshold,
                 program_args,
             }))
         } else {
@@ -227,7 +243,10 @@ Options:
 Link options:
 --link library.jar: Load a JAR file when loading this code (add it to classpath)
 --link-bootstrap rt.jar: Load this JAR file alongside the bootstrap classes
---no-globals: (advanced option) Don't load any builtin global classes");
+--no-globals: (advanced option) Don't load any builtin global classes
+
+Advanced options:
+--gc-threshold: Set the GC threshold used by the VM");
             return;
         }
         Err(error) => {
@@ -241,6 +260,10 @@ Link options:
     Context::init(Box::new(loader));
 
     Context::with(|context| {
+        if let Some(gc_threshold) = options.gc_threshold {
+            context.set_gc_threshold(gc_threshold);
+        }
+
         // Load globals
         if options.load_globals {
             let globals_base_jar = Jar::from_bytes(context.gc_ctx(), GLOBALS_BASE_JAR.to_vec())
