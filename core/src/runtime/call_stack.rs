@@ -44,8 +44,8 @@ impl CallStack {
         let mut last_entry_class = None;
 
         for entry in self.entries.iter().rev().skip(skip_count) {
-            if *entry.class().name() == "java/lang/Throwable" {
-                if *entry.name() == "<init>" {
+            if &*entry.class().name() == "java/lang/Throwable" {
+                if &*entry.name() == "<init>" {
                     last_entry_class = Some(entry.class());
                     continue;
                 }
@@ -53,7 +53,7 @@ impl CallStack {
 
             if let Some(this_last_entry_class) = last_entry_class {
                 if entry.class().super_class() == Some(this_last_entry_class) {
-                    if *entry.name() == "<init>" {
+                    if &*entry.name() == "<init>" {
                         // Initializer of a subclass of `last_entry_class`,
                         // remove this frame too
                         last_entry_class = Some(entry.class());

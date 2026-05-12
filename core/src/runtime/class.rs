@@ -726,7 +726,7 @@ impl Class {
             .expect("Class with class file must have loader");
 
         for attribute in attributes {
-            if *attribute.name() == "InnerClasses" {
+            if &*attribute.name() == "InnerClasses" {
                 let mut data = FileData::new(attribute.data());
 
                 let num_inner_classes = read_u16_be!(context, data);

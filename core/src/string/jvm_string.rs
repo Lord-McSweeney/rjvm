@@ -60,7 +60,7 @@ impl JvmString {
 }
 
 impl Deref for JvmString {
-    type Target = String;
+    type Target = str;
 
     fn deref(&self) -> &Self::Target {
         &self.0.contents

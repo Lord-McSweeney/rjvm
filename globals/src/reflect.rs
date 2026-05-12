@@ -69,7 +69,7 @@ pub(crate) fn args_for_instance_call(
         if matches!(method.descriptor().args()[i], Descriptor::Integer) {
             if let Some(arg) = arg {
                 // FIXME this is really hacky
-                if *arg.class().name() == "java/lang/Integer" {
+                if &*arg.class().name() == "java/lang/Integer" {
                     unboxed_args.push(arg.get_field(0));
                     continue;
                 }

@@ -475,7 +475,7 @@ fn get_declared_methods(context: &Context, args: &[Value]) -> Result<Option<Valu
 
     for static_method in &*static_methods {
         // clinit method isn't included
-        if *static_method.name() != "<clinit>" {
+        if &*static_method.name() != "<clinit>" {
             result.push(*static_method);
         }
     }
@@ -484,7 +484,7 @@ fn get_declared_methods(context: &Context, args: &[Value]) -> Result<Option<Valu
         // We only use instance methods declared by this class
         if instance_method.class() == class {
             // init methods aren't included
-            if *instance_method.name() != "<init>" {
+            if &*instance_method.name() != "<init>" {
                 result.push(*instance_method);
             }
         }

@@ -102,7 +102,7 @@ impl ConstantPool {
                             .expect("Just checked it to be MethodRef")
                             .1;
 
-                        if *method_name == "<init>" || *method_name == "<clinit>" {
+                        if &*method_name == "<init>" || &*method_name == "<clinit>" {
                             return Err(Error::ConstantPoolVerifyError);
                         }
                     }
@@ -121,7 +121,7 @@ impl ConstantPool {
                             .expect("Just checked it to be correct")
                             .1;
 
-                        if *method_name == "<init>" || *method_name == "<clinit>" {
+                        if &*method_name == "<init>" || &*method_name == "<clinit>" {
                             return Err(Error::ConstantPoolVerifyError);
                         }
                     }
@@ -133,7 +133,7 @@ impl ConstantPool {
                             .expect("Just checked it to be MethodRef")
                             .1;
 
-                        if *method_name != "<init>" {
+                        if &*method_name != "<init>" {
                             return Err(Error::ConstantPoolVerifyError);
                         }
                     }
@@ -145,8 +145,8 @@ impl ConstantPool {
                             .expect("Just checked it to be InterfaceMethodRef")
                             .1;
 
-                        if *interface_method_name == "<init>"
-                            || *interface_method_name == "<clinit>"
+                        if &*interface_method_name == "<init>"
+                            || &*interface_method_name == "<clinit>"
                         {
                             return Err(Error::ConstantPoolVerifyError);
                         }
