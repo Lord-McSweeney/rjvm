@@ -100,7 +100,10 @@ impl Method {
         let mut physical_arg_count = descriptor.physical_arg_count();
         if !method.flags().contains(MethodFlags::STATIC) {
             // +1 for the receiver arg
-            physical_arg_count += 1;
+            // TODO: We need to throw a VerifyError rather than panic on
+            // overflow...would it be better to do so in `MethodDescriptor`'s
+            // parsing logic?
+            physical_arg_count = physical_arg_count.strict_add(1);
         }
 
         Ok(Self(Gc::new(
