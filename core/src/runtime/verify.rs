@@ -391,49 +391,61 @@ fn verify_blocks<'a>(
     max_locals: usize,
     blocks: Vec<BasicBlock<'a>>,
 ) -> Result<(), VerifyError> {
-    let descriptor = method.descriptor();
-    let mut args = Vec::with_capacity(2);
+    let mut entry_locals = vec![ValueType::Invalid; max_locals];
+
+    // Set up the entry state's locals from the method's receiver (if it has
+    // one) and arguments
+    let mut i = 0;
+
     if !method.flags().contains(MethodFlags::STATIC) {
-        args.push(ValueType::Reference);
+        if max_locals == 0 {
+            // If the method has a receiver, we need at least one local slot
+            // to store the receiver into
+            return Err(VerifyError::WrongCount);
+        }
+
+        entry_locals[i] = ValueType::Reference;
+        i += 1;
     }
 
+    let descriptor = method.descriptor();
     for arg in descriptor.args() {
+        if i >= entry_locals.len() {
+            return Err(VerifyError::WrongCount);
+        }
+
         match arg {
             Descriptor::Class(_) | Descriptor::Array(_) => {
-                args.push(ValueType::Reference);
+                entry_locals[i] = ValueType::Reference;
+                i += 1;
             }
             Descriptor::Boolean
             | Descriptor::Byte
             | Descriptor::Character
             | Descriptor::Short
             | Descriptor::Integer => {
-                args.push(ValueType::Integer);
+                entry_locals[i] = ValueType::Integer;
+                i += 1;
             }
             Descriptor::Float => {
-                args.push(ValueType::Float);
+                entry_locals[i] = ValueType::Float;
+                i += 1;
             }
             Descriptor::Double => {
-                args.push(ValueType::Double);
-                args.push(ValueType::Invalid);
+                entry_locals[i] = ValueType::Double;
+                // Skip over the local after this one- it will remain invalid
+                i += 2;
             }
             Descriptor::Long => {
-                args.push(ValueType::Long);
-                args.push(ValueType::Invalid);
+                entry_locals[i] = ValueType::Long;
+                // Skip over the local after this one- it will remain invalid
+                i += 2;
             }
             Descriptor::Void => unreachable!(),
         }
     }
 
-    if args.len() > max_locals {
-        return Err(VerifyError::WrongCount);
-    }
-
-    let mut entry_locals = vec![ValueType::Invalid; max_locals];
-    for (i, arg) in args.iter().enumerate() {
-        entry_locals[i] = *arg;
-    }
-
-    // The frame state when the entry block is executed.
+    // Now we have the frame state when the entry block is executed.
     let entry_frame_state = FrameState {
         locals: entry_locals.into_boxed_slice(),
         stack: Vec::new(),
@@ -448,9 +460,9 @@ fn verify_blocks<'a>(
     while let Some((block_idx, initial_frame_state)) = worklist.pop() {
         let block = &blocks[block_idx];
 
-        if !verified_states.contains(&(block_idx, initial_frame_state.clone())) {
-            // Clone :/
-            verified_states.insert((block_idx, initial_frame_state.clone()));
+        let new_state = (block_idx, initial_frame_state.clone());
+        if !verified_states.contains(&new_state) {
+            verified_states.insert(new_state);
 
             verify_block(
                 block,
