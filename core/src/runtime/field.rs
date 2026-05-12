@@ -96,7 +96,13 @@ impl Trace for FieldData {
         self.descriptor.trace();
         self.name.trace();
         self.defining_class.trace();
-        self.value.trace();
+
+        if !self.descriptor.is_primitive() {
+            let object = self.value.get().object();
+            if let Some(object) = object {
+                object.trace();
+            }
+        }
     }
 }
 
