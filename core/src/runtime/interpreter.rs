@@ -1680,12 +1680,18 @@ impl<'a> Interpreter<'a> {
         Ok(ControlFlow::ManualContinue)
     }
 
-    fn op_jsr(&mut self, _position: usize) -> Result<ControlFlow, Error> {
-        panic!("Jsr op is unsupported");
+    fn op_jsr(&mut self, position: usize) -> Result<ControlFlow, Error> {
+        self.stack_push(Value::ReturnAddress(self.ip + 1));
+        self.ip = position;
+
+        Ok(ControlFlow::ManualContinue)
     }
 
-    fn op_ret(&mut self, _index: usize) -> Result<ControlFlow, Error> {
-        panic!("Ret op is unsupported");
+    fn op_ret(&mut self, index: usize) -> Result<ControlFlow, Error> {
+        let return_address = self.local_reg(index).return_address();
+        self.ip = return_address;
+
+        Ok(ControlFlow::ManualContinue)
     }
 
     fn op_table_switch(

@@ -41,6 +41,14 @@ impl Value {
         Self(ValueData::Primitive(f64::to_bits(value) as u64))
     }
 
+    /// Returns a `Value` representing the given interpreter return address.
+    #[allow(non_snake_case)]
+    pub(crate) fn ReturnAddress(value: usize) -> Self {
+        Self(ValueData::Primitive(
+            u64::try_from(value).expect("Overflow"),
+        ))
+    }
+
     /// Returns a `Value` representing the given [`Object`].
     ///
     /// Passing `None` to this method will result in it returning a `Value`
@@ -90,6 +98,18 @@ impl Value {
     pub fn double(self) -> f64 {
         match self.0 {
             ValueData::Primitive(p) => f64::from_bits(p),
+            ValueData::Reference(_) => panic!("Expected value to be primitive"),
+        }
+    }
+
+    /// If this `Value` represents a return address, returns the `usize`
+    /// contained in it.
+    ///
+    /// This method's behavior is unspecified if the `Value` does not represent
+    /// a return address. It may panic.
+    pub fn return_address(self) -> usize {
+        match self.0 {
+            ValueData::Primitive(p) => p as usize,
             ValueData::Reference(_) => panic!("Expected value to be primitive"),
         }
     }

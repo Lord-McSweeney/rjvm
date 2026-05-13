@@ -9,6 +9,7 @@ use crate::classfile::flags::MethodFlags;
 
 use alloc::boxed::Box;
 use alloc::vec::Vec;
+use core::fmt;
 use hashbrown::{HashMap, HashSet};
 
 // The possible ways a block can be exited.
@@ -33,6 +34,12 @@ enum BlockExits {
     // with its first op at the index specified.
     Goto(usize),
 
+    // For Ret. When execution is finished, the next block is the block
+    // specified by the ReturnAddress in a local slot specified by the Ret
+    // instruction. It is impossible to statically know (pre-abstract
+    // interpretation) where this block exit can return to.
+    SubroutineReturn,
+
     // Such as for a block ending at the target of a jump. When execution is
     // finished, the next block is the next block in the block list.
     NextBlock,
@@ -41,7 +48,6 @@ enum BlockExits {
     Return,
 }
 
-#[derive(Debug)]
 struct BasicBlock<'a> {
     // The index of the first op making up this BasicBlock.
     start_index: usize,
@@ -51,6 +57,16 @@ struct BasicBlock<'a> {
     exits: BlockExits,
 }
 
+impl fmt::Debug for BasicBlock<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        write!(f, "Start: {}\n", self.start_index)?;
+        for op in self.ops {
+            write!(f, "    {:?}\n", op)?;
+        }
+        write!(f, "Exits: {:?}", self.exits)
+    }
+}
+
 pub fn verify_ops(
     method: Method,
     max_stack: usize,
@@ -58,15 +74,21 @@ pub fn verify_ops(
     ops: &[Op],
     exceptions: &[Exception],
 ) -> Result<(), VerifyError> {
-    let blocks = collect_basic_blocks(ops, exceptions)?;
+    let (blocks, op_index_to_block_index_table) = collect_basic_blocks(ops, exceptions)?;
 
-    verify_blocks(method, max_stack, max_locals, blocks)
+    verify_blocks(
+        method,
+        max_stack,
+        max_locals,
+        &blocks,
+        &op_index_to_block_index_table,
+    )
 }
 
 fn collect_basic_blocks<'a>(
     ops: &'a [Op],
     exceptions: &[Exception],
-) -> Result<Vec<BasicBlock<'a>>, VerifyError> {
+) -> Result<(Vec<BasicBlock<'a>>, HashMap<usize, usize>), VerifyError> {
     let mut block_list = Vec::with_capacity(2);
     let mut current_block_start = 0;
 
@@ -121,6 +143,14 @@ fn collect_basic_blocks<'a>(
                         worklist.push(*position);
                     }
                     break;
+                }
+                Op::Jsr(position) => {
+                    if !visited_locations.contains(position) {
+                        visited_locations.insert(*position);
+                        worklist.push(*position);
+                    }
+                    // The Ret corresponding to a Jsr can allow the Jsr to
+                    // "fall through", so we can't `break` here.
                 }
                 Op::TableSwitch(table_switch) => {
                     let matches = &table_switch.matches;
@@ -215,6 +245,28 @@ fn collect_basic_blocks<'a>(
                     start_index: current_block_start,
                     ops: &ops[current_block_start..i + 1],
                     exits: BlockExits::Goto(*position),
+                };
+
+                block_list.push(block);
+
+                current_block_start = i + 1;
+            }
+            Op::Jsr(position) => {
+                let block = BasicBlock {
+                    start_index: current_block_start,
+                    ops: &ops[current_block_start..i + 1],
+                    exits: BlockExits::Goto(*position),
+                };
+
+                block_list.push(block);
+
+                current_block_start = i + 1;
+            }
+            Op::Ret(_) => {
+                let block = BasicBlock {
+                    start_index: current_block_start,
+                    ops: &ops[current_block_start..i + 1],
+                    exits: BlockExits::SubroutineReturn,
                 };
 
                 block_list.push(block);
@@ -356,7 +408,7 @@ fn collect_basic_blocks<'a>(
         }
     }
 
-    Ok(block_list)
+    Ok((block_list, op_index_to_block_index_table))
 }
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
@@ -367,13 +419,17 @@ enum ValueType {
     Float,
     Double,
     Reference,
+    ReturnAddress(usize),
 }
 
 impl ValueType {
     fn is_wide(self) -> bool {
         match self {
             ValueType::Invalid => unreachable!(),
-            ValueType::Integer | ValueType::Float | ValueType::Reference => false,
+            ValueType::Integer
+            | ValueType::Float
+            | ValueType::Reference
+            | ValueType::ReturnAddress(_) => false,
             ValueType::Long | ValueType::Double => true,
         }
     }
@@ -389,7 +445,8 @@ fn verify_blocks<'a>(
     method: Method,
     max_stack: usize,
     max_locals: usize,
-    blocks: Vec<BasicBlock<'a>>,
+    blocks: &[BasicBlock<'a>],
+    op_index_to_block_index_table: &HashMap<usize, usize>,
 ) -> Result<(), VerifyError> {
     let mut entry_locals = vec![ValueType::Invalid; max_locals];
 
@@ -470,6 +527,7 @@ fn verify_blocks<'a>(
                 max_stack,
                 initial_frame_state,
                 &mut worklist,
+                op_index_to_block_index_table,
             )?;
         }
     }
@@ -483,6 +541,7 @@ fn verify_block<'a>(
     max_stack: usize,
     mut frame_state: FrameState,
     worklist: &mut Vec<(usize, FrameState)>,
+    op_index_to_block_index_table: &HashMap<usize, usize>,
 ) -> Result<(), VerifyError> {
     let ops = block.ops;
 
@@ -490,8 +549,8 @@ fn verify_block<'a>(
     let locals = &mut frame_state.locals;
 
     macro_rules! push_stack {
-        ($value_type:ident) => {
-            stack.push(ValueType::$value_type);
+        ($value_type:expr) => {
+            stack.push($value_type);
             if stack.len() > max_stack {
                 return Err(VerifyError::WrongCount);
             }
@@ -499,10 +558,12 @@ fn verify_block<'a>(
     }
 
     macro_rules! expect_pop_stack {
-        ($expected_type:ident) => {
+        ($expected_type:pat) => {
             if let Some(value) = stack.pop() {
-                if !matches!(value, ValueType::$expected_type) {
+                if !matches!(value, $expected_type) {
                     return Err(VerifyError::WrongType);
+                } else {
+                    value
                 }
             } else {
                 return Err(VerifyError::WrongCount);
@@ -511,161 +572,162 @@ fn verify_block<'a>(
     }
 
     macro_rules! set_local {
-        ($local_index:expr, $value_type:ident) => {
+        ($local_index:expr, $value_type:expr) => {
             *locals
                 .get_mut($local_index)
-                .ok_or(VerifyError::WrongCount)? = ValueType::$value_type;
+                .ok_or(VerifyError::WrongCount)? = $value_type;
         };
     }
 
     macro_rules! expect_local {
-        ($local_index:expr, $expected_type:ident) => {
+        ($local_index:expr, $expected_type:pat) => {
             let value = locals.get($local_index).ok_or(VerifyError::WrongCount)?;
-            if !matches!(value, ValueType::$expected_type) {
+            if !matches!(value, $expected_type) {
                 return Err(VerifyError::WrongType);
             }
         };
     }
 
-    for op in ops {
+    for (intra_block_index, op) in ops.iter().enumerate() {
         match op {
             Op::Nop => {}
             Op::AConstNull => {
-                push_stack!(Reference);
+                push_stack!(ValueType::Reference);
             }
             Op::IConst(_) => {
-                push_stack!(Integer);
+                push_stack!(ValueType::Integer);
             }
             Op::LConst(_) => {
-                push_stack!(Long);
+                push_stack!(ValueType::Long);
             }
             Op::FConst(_) => {
-                push_stack!(Float);
+                push_stack!(ValueType::Float);
             }
             Op::DConst(_) => {
-                push_stack!(Double);
+                push_stack!(ValueType::Double);
             }
             Op::Ldc(entry) => match **entry {
                 ConstantPoolEntry::String { .. } | ConstantPoolEntry::Class { .. } => {
-                    push_stack!(Reference);
+                    push_stack!(ValueType::Reference);
                 }
                 ConstantPoolEntry::Integer { .. } => {
-                    push_stack!(Integer);
+                    push_stack!(ValueType::Integer);
                 }
                 ConstantPoolEntry::Float { .. } => {
-                    push_stack!(Float);
+                    push_stack!(ValueType::Float);
                 }
                 _ => unreachable!(),
             },
             Op::LoadLong(_) => {
-                push_stack!(Long);
+                push_stack!(ValueType::Long);
             }
             Op::LoadDouble(_) => {
-                push_stack!(Double);
+                push_stack!(ValueType::Double);
             }
             Op::ILoad(index) => {
-                expect_local!(*index, Integer);
-                push_stack!(Integer);
+                expect_local!(*index, ValueType::Integer);
+                push_stack!(ValueType::Integer);
             }
             Op::LLoad(index) => {
-                expect_local!(*index, Long);
+                expect_local!(*index, ValueType::Long);
                 if index + 1 >= locals.len() {
                     return Err(VerifyError::WrongCount);
                 }
 
-                push_stack!(Long);
+                push_stack!(ValueType::Long);
             }
             Op::FLoad(index) => {
-                expect_local!(*index, Float);
-                push_stack!(Float);
+                expect_local!(*index, ValueType::Float);
+                push_stack!(ValueType::Float);
             }
             Op::DLoad(index) => {
-                expect_local!(*index, Double);
+                expect_local!(*index, ValueType::Double);
                 if index + 1 >= locals.len() {
                     return Err(VerifyError::WrongCount);
                 }
 
-                push_stack!(Double);
+                push_stack!(ValueType::Double);
             }
             Op::ALoad(index) => {
-                expect_local!(*index, Reference);
-                push_stack!(Reference);
+                expect_local!(*index, ValueType::Reference);
+                push_stack!(ValueType::Reference);
             }
             Op::IaLoad | Op::BaLoad | Op::CaLoad | Op::SaLoad => {
-                expect_pop_stack!(Integer);
-                expect_pop_stack!(Reference);
-                push_stack!(Integer);
+                expect_pop_stack!(ValueType::Integer);
+                expect_pop_stack!(ValueType::Reference);
+                push_stack!(ValueType::Integer);
             }
             Op::LaLoad => {
-                expect_pop_stack!(Integer);
-                expect_pop_stack!(Reference);
-                push_stack!(Long);
+                expect_pop_stack!(ValueType::Integer);
+                expect_pop_stack!(ValueType::Reference);
+                push_stack!(ValueType::Long);
             }
             Op::FaLoad => {
-                expect_pop_stack!(Integer);
-                expect_pop_stack!(Reference);
-                push_stack!(Float);
+                expect_pop_stack!(ValueType::Integer);
+                expect_pop_stack!(ValueType::Reference);
+                push_stack!(ValueType::Float);
             }
             Op::DaLoad => {
-                expect_pop_stack!(Integer);
-                expect_pop_stack!(Reference);
-                push_stack!(Double);
+                expect_pop_stack!(ValueType::Integer);
+                expect_pop_stack!(ValueType::Reference);
+                push_stack!(ValueType::Double);
             }
             Op::AaLoad => {
-                expect_pop_stack!(Integer);
-                expect_pop_stack!(Reference);
-                push_stack!(Reference);
+                expect_pop_stack!(ValueType::Integer);
+                expect_pop_stack!(ValueType::Reference);
+                push_stack!(ValueType::Reference);
             }
             Op::IStore(index) => {
-                expect_pop_stack!(Integer);
-                set_local!(*index, Integer);
+                expect_pop_stack!(ValueType::Integer);
+                set_local!(*index, ValueType::Integer);
             }
             Op::LStore(index) => {
-                expect_pop_stack!(Long);
-                set_local!(*index, Long);
+                expect_pop_stack!(ValueType::Long);
+                set_local!(*index, ValueType::Long);
 
                 // The docs aren't clear on this, but this is expected
-                set_local!(*index + 1, Invalid);
+                set_local!(*index + 1, ValueType::Invalid);
             }
             Op::FStore(index) => {
-                expect_pop_stack!(Float);
-                set_local!(*index, Float);
+                expect_pop_stack!(ValueType::Float);
+                set_local!(*index, ValueType::Float);
             }
             Op::DStore(index) => {
-                expect_pop_stack!(Double);
-                set_local!(*index, Double);
+                expect_pop_stack!(ValueType::Double);
+                set_local!(*index, ValueType::Double);
 
                 // The docs aren't clear on this, but this is expected
-                set_local!(*index + 1, Invalid);
+                set_local!(*index + 1, ValueType::Invalid);
             }
             Op::AStore(index) => {
-                expect_pop_stack!(Reference);
-                set_local!(*index, Reference);
+                let stack_value =
+                    expect_pop_stack!(ValueType::Reference | ValueType::ReturnAddress(_));
+                set_local!(*index, stack_value);
             }
             Op::IaStore | Op::BaStore | Op::CaStore | Op::SaStore => {
-                expect_pop_stack!(Integer);
-                expect_pop_stack!(Integer);
-                expect_pop_stack!(Reference);
+                expect_pop_stack!(ValueType::Integer);
+                expect_pop_stack!(ValueType::Integer);
+                expect_pop_stack!(ValueType::Reference);
             }
             Op::LaStore => {
-                expect_pop_stack!(Long);
-                expect_pop_stack!(Integer);
-                expect_pop_stack!(Reference);
+                expect_pop_stack!(ValueType::Long);
+                expect_pop_stack!(ValueType::Integer);
+                expect_pop_stack!(ValueType::Reference);
             }
             Op::FaStore => {
-                expect_pop_stack!(Float);
-                expect_pop_stack!(Integer);
-                expect_pop_stack!(Reference);
+                expect_pop_stack!(ValueType::Float);
+                expect_pop_stack!(ValueType::Integer);
+                expect_pop_stack!(ValueType::Reference);
             }
             Op::DaStore => {
-                expect_pop_stack!(Double);
-                expect_pop_stack!(Integer);
-                expect_pop_stack!(Reference);
+                expect_pop_stack!(ValueType::Double);
+                expect_pop_stack!(ValueType::Integer);
+                expect_pop_stack!(ValueType::Reference);
             }
             Op::AaStore => {
-                expect_pop_stack!(Reference);
-                expect_pop_stack!(Integer);
-                expect_pop_stack!(Reference);
+                expect_pop_stack!(ValueType::Reference);
+                expect_pop_stack!(ValueType::Integer);
+                expect_pop_stack!(ValueType::Reference);
             }
             Op::Pop => {
                 let value = stack.pop().ok_or(VerifyError::WrongCount)?;
@@ -777,133 +839,133 @@ fn verify_block<'a>(
                 stack.push(second_value);
             }
             Op::IAdd | Op::ISub | Op::IMul | Op::IDiv | Op::IRem => {
-                expect_pop_stack!(Integer);
-                expect_pop_stack!(Integer);
-                push_stack!(Integer);
+                expect_pop_stack!(ValueType::Integer);
+                expect_pop_stack!(ValueType::Integer);
+                push_stack!(ValueType::Integer);
             }
             Op::LAdd | Op::LSub | Op::LMul | Op::LDiv | Op::LRem => {
-                expect_pop_stack!(Long);
-                expect_pop_stack!(Long);
-                push_stack!(Long);
+                expect_pop_stack!(ValueType::Long);
+                expect_pop_stack!(ValueType::Long);
+                push_stack!(ValueType::Long);
             }
             Op::FAdd | Op::FSub | Op::FMul | Op::FDiv | Op::FRem => {
-                expect_pop_stack!(Float);
-                expect_pop_stack!(Float);
-                push_stack!(Float);
+                expect_pop_stack!(ValueType::Float);
+                expect_pop_stack!(ValueType::Float);
+                push_stack!(ValueType::Float);
             }
             Op::DAdd | Op::DSub | Op::DMul | Op::DDiv | Op::DRem => {
-                expect_pop_stack!(Double);
-                expect_pop_stack!(Double);
-                push_stack!(Double);
+                expect_pop_stack!(ValueType::Double);
+                expect_pop_stack!(ValueType::Double);
+                push_stack!(ValueType::Double);
             }
             Op::INeg => {
-                expect_pop_stack!(Integer);
-                push_stack!(Integer);
+                expect_pop_stack!(ValueType::Integer);
+                push_stack!(ValueType::Integer);
             }
             Op::LNeg => {
-                expect_pop_stack!(Long);
-                push_stack!(Long);
+                expect_pop_stack!(ValueType::Long);
+                push_stack!(ValueType::Long);
             }
             Op::FNeg => {
-                expect_pop_stack!(Float);
-                push_stack!(Float);
+                expect_pop_stack!(ValueType::Float);
+                push_stack!(ValueType::Float);
             }
             Op::DNeg => {
-                expect_pop_stack!(Double);
-                push_stack!(Double);
+                expect_pop_stack!(ValueType::Double);
+                push_stack!(ValueType::Double);
             }
             Op::IShl | Op::IShr | Op::IUshr => {
-                expect_pop_stack!(Integer);
-                expect_pop_stack!(Integer);
-                push_stack!(Integer);
+                expect_pop_stack!(ValueType::Integer);
+                expect_pop_stack!(ValueType::Integer);
+                push_stack!(ValueType::Integer);
             }
             Op::LShl | Op::LShr | Op::LUshr => {
-                expect_pop_stack!(Integer);
-                expect_pop_stack!(Long);
-                push_stack!(Long);
+                expect_pop_stack!(ValueType::Integer);
+                expect_pop_stack!(ValueType::Long);
+                push_stack!(ValueType::Long);
             }
             Op::IAnd | Op::IOr | Op::IXor => {
-                expect_pop_stack!(Integer);
-                expect_pop_stack!(Integer);
-                push_stack!(Integer);
+                expect_pop_stack!(ValueType::Integer);
+                expect_pop_stack!(ValueType::Integer);
+                push_stack!(ValueType::Integer);
             }
             Op::LAnd | Op::LOr | Op::LXor => {
-                expect_pop_stack!(Long);
-                expect_pop_stack!(Long);
-                push_stack!(Long);
+                expect_pop_stack!(ValueType::Long);
+                expect_pop_stack!(ValueType::Long);
+                push_stack!(ValueType::Long);
             }
             Op::IInc(index, _) => {
-                expect_local!(*index, Integer);
+                expect_local!(*index, ValueType::Integer);
             }
             Op::I2L => {
-                expect_pop_stack!(Integer);
-                push_stack!(Long);
+                expect_pop_stack!(ValueType::Integer);
+                push_stack!(ValueType::Long);
             }
             Op::I2F => {
-                expect_pop_stack!(Integer);
-                push_stack!(Float);
+                expect_pop_stack!(ValueType::Integer);
+                push_stack!(ValueType::Float);
             }
             Op::I2D => {
-                expect_pop_stack!(Integer);
-                push_stack!(Double);
+                expect_pop_stack!(ValueType::Integer);
+                push_stack!(ValueType::Double);
             }
             Op::L2I => {
-                expect_pop_stack!(Long);
-                push_stack!(Integer);
+                expect_pop_stack!(ValueType::Long);
+                push_stack!(ValueType::Integer);
             }
             Op::L2F => {
-                expect_pop_stack!(Long);
-                push_stack!(Float);
+                expect_pop_stack!(ValueType::Long);
+                push_stack!(ValueType::Float);
             }
             Op::L2D => {
-                expect_pop_stack!(Long);
-                push_stack!(Double);
+                expect_pop_stack!(ValueType::Long);
+                push_stack!(ValueType::Double);
             }
             Op::F2I => {
-                expect_pop_stack!(Float);
-                push_stack!(Integer);
+                expect_pop_stack!(ValueType::Float);
+                push_stack!(ValueType::Integer);
             }
             Op::F2L => {
-                expect_pop_stack!(Float);
-                push_stack!(Long);
+                expect_pop_stack!(ValueType::Float);
+                push_stack!(ValueType::Long);
             }
             Op::F2D => {
-                expect_pop_stack!(Float);
-                push_stack!(Double);
+                expect_pop_stack!(ValueType::Float);
+                push_stack!(ValueType::Double);
             }
             Op::D2I => {
-                expect_pop_stack!(Double);
-                push_stack!(Integer);
+                expect_pop_stack!(ValueType::Double);
+                push_stack!(ValueType::Integer);
             }
             Op::D2L => {
-                expect_pop_stack!(Double);
-                push_stack!(Long);
+                expect_pop_stack!(ValueType::Double);
+                push_stack!(ValueType::Long);
             }
             Op::D2F => {
-                expect_pop_stack!(Double);
-                push_stack!(Float);
+                expect_pop_stack!(ValueType::Double);
+                push_stack!(ValueType::Float);
             }
             Op::I2B | Op::I2C | Op::I2S => {
-                expect_pop_stack!(Integer);
-                push_stack!(Integer);
+                expect_pop_stack!(ValueType::Integer);
+                push_stack!(ValueType::Integer);
             }
             Op::LCmp => {
-                expect_pop_stack!(Long);
-                expect_pop_stack!(Long);
-                push_stack!(Integer);
+                expect_pop_stack!(ValueType::Long);
+                expect_pop_stack!(ValueType::Long);
+                push_stack!(ValueType::Integer);
             }
             Op::FCmpL | Op::FCmpG => {
-                expect_pop_stack!(Float);
-                expect_pop_stack!(Float);
-                push_stack!(Integer);
+                expect_pop_stack!(ValueType::Float);
+                expect_pop_stack!(ValueType::Float);
+                push_stack!(ValueType::Integer);
             }
             Op::DCmpL | Op::DCmpG => {
-                expect_pop_stack!(Double);
-                expect_pop_stack!(Double);
-                push_stack!(Integer);
+                expect_pop_stack!(ValueType::Double);
+                expect_pop_stack!(ValueType::Double);
+                push_stack!(ValueType::Integer);
             }
             Op::IfEq(_) | Op::IfNe(_) | Op::IfLt(_) | Op::IfGe(_) | Op::IfGt(_) | Op::IfLe(_) => {
-                expect_pop_stack!(Integer);
+                expect_pop_stack!(ValueType::Integer);
             }
             Op::IfICmpEq(_)
             | Op::IfICmpNe(_)
@@ -911,42 +973,61 @@ fn verify_block<'a>(
             | Op::IfICmpGe(_)
             | Op::IfICmpGt(_)
             | Op::IfICmpLe(_) => {
-                expect_pop_stack!(Integer);
-                expect_pop_stack!(Integer);
+                expect_pop_stack!(ValueType::Integer);
+                expect_pop_stack!(ValueType::Integer);
             }
             Op::IfACmpEq(_) | Op::IfACmpNe(_) => {
-                expect_pop_stack!(Reference);
-                expect_pop_stack!(Reference);
+                expect_pop_stack!(ValueType::Reference);
+                expect_pop_stack!(ValueType::Reference);
             }
             Op::Goto(_) => {
                 // This does nothing
             }
             Op::Jsr(_) => {
-                // This will panic at runtime as we don't support it
+                // This is the index of the op right after this one
+                let op_index = block.start_index + intra_block_index + 1;
+
+                push_stack!(ValueType::ReturnAddress(op_index));
             }
-            Op::Ret(_) => {
-                // This will panic at runtime as we don't support it
+            Op::Ret(index) => {
+                let value = locals.get(*index).ok_or(VerifyError::WrongCount)?;
+
+                match value {
+                    ValueType::ReturnAddress(position) => {
+                        // Convert the position to a block and push to the
+                        // worklist here, manually.
+                        let returned_block_idx = *op_index_to_block_index_table
+                            .get(position)
+                            .expect("Return address should map to valid block index");
+                        worklist.push((returned_block_idx, frame_state));
+
+                        // This must be the last op in this block, so we're
+                        // finished verifying the block
+                        return Ok(());
+                    }
+                    _ => return Err(VerifyError::WrongType),
+                }
             }
             Op::TableSwitch(_) => {
-                expect_pop_stack!(Integer);
+                expect_pop_stack!(ValueType::Integer);
             }
             Op::LookupSwitch(_) => {
-                expect_pop_stack!(Integer);
+                expect_pop_stack!(ValueType::Integer);
             }
             Op::IReturn => {
-                expect_pop_stack!(Integer);
+                expect_pop_stack!(ValueType::Integer);
             }
             Op::LReturn => {
-                expect_pop_stack!(Long);
+                expect_pop_stack!(ValueType::Long);
             }
             Op::FReturn => {
-                expect_pop_stack!(Float);
+                expect_pop_stack!(ValueType::Float);
             }
             Op::DReturn => {
-                expect_pop_stack!(Double);
+                expect_pop_stack!(ValueType::Double);
             }
             Op::AReturn => {
-                expect_pop_stack!(Reference);
+                expect_pop_stack!(ValueType::Reference);
             }
             Op::Return => {
                 // This does nothing
@@ -955,23 +1036,23 @@ fn verify_block<'a>(
                 let field_descriptor = class.get_static_field(*index).descriptor();
                 match field_descriptor {
                     Descriptor::Class(_) | Descriptor::Array(_) => {
-                        push_stack!(Reference);
+                        push_stack!(ValueType::Reference);
                     }
                     Descriptor::Boolean
                     | Descriptor::Byte
                     | Descriptor::Character
                     | Descriptor::Short
                     | Descriptor::Integer => {
-                        push_stack!(Integer);
+                        push_stack!(ValueType::Integer);
                     }
                     Descriptor::Float => {
-                        push_stack!(Float);
+                        push_stack!(ValueType::Float);
                     }
                     Descriptor::Double => {
-                        push_stack!(Double);
+                        push_stack!(ValueType::Double);
                     }
                     Descriptor::Long => {
-                        push_stack!(Long);
+                        push_stack!(ValueType::Long);
                     }
                     Descriptor::Void => unreachable!(),
                 }
@@ -980,50 +1061,50 @@ fn verify_block<'a>(
                 let field_descriptor = class.get_static_field(*index).descriptor();
                 match field_descriptor {
                     Descriptor::Class(_) | Descriptor::Array(_) => {
-                        expect_pop_stack!(Reference);
+                        expect_pop_stack!(ValueType::Reference);
                     }
                     Descriptor::Boolean
                     | Descriptor::Byte
                     | Descriptor::Character
                     | Descriptor::Short
                     | Descriptor::Integer => {
-                        expect_pop_stack!(Integer);
+                        expect_pop_stack!(ValueType::Integer);
                     }
                     Descriptor::Float => {
-                        expect_pop_stack!(Float);
+                        expect_pop_stack!(ValueType::Float);
                     }
                     Descriptor::Double => {
-                        expect_pop_stack!(Double);
+                        expect_pop_stack!(ValueType::Double);
                     }
                     Descriptor::Long => {
-                        expect_pop_stack!(Long);
+                        expect_pop_stack!(ValueType::Long);
                     }
                     Descriptor::Void => unreachable!(),
                 }
             }
             Op::GetField(class, index) | Op::GetFieldWide(class, index) => {
-                expect_pop_stack!(Reference);
+                expect_pop_stack!(ValueType::Reference);
 
                 let field_descriptor = class.get_instance_field(*index).descriptor();
                 match field_descriptor {
                     Descriptor::Class(_) | Descriptor::Array(_) => {
-                        push_stack!(Reference);
+                        push_stack!(ValueType::Reference);
                     }
                     Descriptor::Boolean
                     | Descriptor::Byte
                     | Descriptor::Character
                     | Descriptor::Short
                     | Descriptor::Integer => {
-                        push_stack!(Integer);
+                        push_stack!(ValueType::Integer);
                     }
                     Descriptor::Float => {
-                        push_stack!(Float);
+                        push_stack!(ValueType::Float);
                     }
                     Descriptor::Double => {
-                        push_stack!(Double);
+                        push_stack!(ValueType::Double);
                     }
                     Descriptor::Long => {
-                        push_stack!(Long);
+                        push_stack!(ValueType::Long);
                     }
                     Descriptor::Void => unreachable!(),
                 }
@@ -1032,28 +1113,28 @@ fn verify_block<'a>(
                 let field_descriptor = class.get_instance_field(*index).descriptor();
                 match field_descriptor {
                     Descriptor::Class(_) | Descriptor::Array(_) => {
-                        expect_pop_stack!(Reference);
+                        expect_pop_stack!(ValueType::Reference);
                     }
                     Descriptor::Boolean
                     | Descriptor::Byte
                     | Descriptor::Character
                     | Descriptor::Short
                     | Descriptor::Integer => {
-                        expect_pop_stack!(Integer);
+                        expect_pop_stack!(ValueType::Integer);
                     }
                     Descriptor::Float => {
-                        expect_pop_stack!(Float);
+                        expect_pop_stack!(ValueType::Float);
                     }
                     Descriptor::Double => {
-                        expect_pop_stack!(Double);
+                        expect_pop_stack!(ValueType::Double);
                     }
                     Descriptor::Long => {
-                        expect_pop_stack!(Long);
+                        expect_pop_stack!(ValueType::Long);
                     }
                     Descriptor::Void => unreachable!(),
                 }
 
-                expect_pop_stack!(Reference);
+                expect_pop_stack!(ValueType::Reference);
             }
             Op::InvokeVirtual(class, method_index, _)
             | Op::InvokeVirtualWide(class, method_index, _) => {
@@ -1065,50 +1146,50 @@ fn verify_block<'a>(
                 for arg in descriptor.args().iter().rev() {
                     match arg {
                         Descriptor::Class(_) | Descriptor::Array(_) => {
-                            expect_pop_stack!(Reference);
+                            expect_pop_stack!(ValueType::Reference);
                         }
                         Descriptor::Boolean
                         | Descriptor::Byte
                         | Descriptor::Character
                         | Descriptor::Short
                         | Descriptor::Integer => {
-                            expect_pop_stack!(Integer);
+                            expect_pop_stack!(ValueType::Integer);
                         }
                         Descriptor::Float => {
-                            expect_pop_stack!(Float);
+                            expect_pop_stack!(ValueType::Float);
                         }
                         Descriptor::Double => {
-                            expect_pop_stack!(Double);
+                            expect_pop_stack!(ValueType::Double);
                         }
                         Descriptor::Long => {
-                            expect_pop_stack!(Long);
+                            expect_pop_stack!(ValueType::Long);
                         }
                         Descriptor::Void => unreachable!(),
                     }
                 }
 
                 // Receiver
-                expect_pop_stack!(Reference);
+                expect_pop_stack!(ValueType::Reference);
 
                 match descriptor.return_type() {
                     Descriptor::Class(_) | Descriptor::Array(_) => {
-                        push_stack!(Reference);
+                        push_stack!(ValueType::Reference);
                     }
                     Descriptor::Boolean
                     | Descriptor::Byte
                     | Descriptor::Character
                     | Descriptor::Short
                     | Descriptor::Integer => {
-                        push_stack!(Integer);
+                        push_stack!(ValueType::Integer);
                     }
                     Descriptor::Float => {
-                        push_stack!(Float);
+                        push_stack!(ValueType::Float);
                     }
                     Descriptor::Double => {
-                        push_stack!(Double);
+                        push_stack!(ValueType::Double);
                     }
                     Descriptor::Long => {
-                        push_stack!(Long);
+                        push_stack!(ValueType::Long);
                     }
                     Descriptor::Void => {}
                 }
@@ -1118,50 +1199,50 @@ fn verify_block<'a>(
                 for arg in descriptor.args().iter().rev() {
                     match arg {
                         Descriptor::Class(_) | Descriptor::Array(_) => {
-                            expect_pop_stack!(Reference);
+                            expect_pop_stack!(ValueType::Reference);
                         }
                         Descriptor::Boolean
                         | Descriptor::Byte
                         | Descriptor::Character
                         | Descriptor::Short
                         | Descriptor::Integer => {
-                            expect_pop_stack!(Integer);
+                            expect_pop_stack!(ValueType::Integer);
                         }
                         Descriptor::Float => {
-                            expect_pop_stack!(Float);
+                            expect_pop_stack!(ValueType::Float);
                         }
                         Descriptor::Double => {
-                            expect_pop_stack!(Double);
+                            expect_pop_stack!(ValueType::Double);
                         }
                         Descriptor::Long => {
-                            expect_pop_stack!(Long);
+                            expect_pop_stack!(ValueType::Long);
                         }
                         Descriptor::Void => unreachable!(),
                     }
                 }
 
                 // Receiver
-                expect_pop_stack!(Reference);
+                expect_pop_stack!(ValueType::Reference);
 
                 match descriptor.return_type() {
                     Descriptor::Class(_) | Descriptor::Array(_) => {
-                        push_stack!(Reference);
+                        push_stack!(ValueType::Reference);
                     }
                     Descriptor::Boolean
                     | Descriptor::Byte
                     | Descriptor::Character
                     | Descriptor::Short
                     | Descriptor::Integer => {
-                        push_stack!(Integer);
+                        push_stack!(ValueType::Integer);
                     }
                     Descriptor::Float => {
-                        push_stack!(Float);
+                        push_stack!(ValueType::Float);
                     }
                     Descriptor::Double => {
-                        push_stack!(Double);
+                        push_stack!(ValueType::Double);
                     }
                     Descriptor::Long => {
-                        push_stack!(Long);
+                        push_stack!(ValueType::Long);
                     }
                     Descriptor::Void => {}
                 }
@@ -1171,23 +1252,23 @@ fn verify_block<'a>(
                 for arg in descriptor.args().iter().rev() {
                     match arg {
                         Descriptor::Class(_) | Descriptor::Array(_) => {
-                            expect_pop_stack!(Reference);
+                            expect_pop_stack!(ValueType::Reference);
                         }
                         Descriptor::Boolean
                         | Descriptor::Byte
                         | Descriptor::Character
                         | Descriptor::Short
                         | Descriptor::Integer => {
-                            expect_pop_stack!(Integer);
+                            expect_pop_stack!(ValueType::Integer);
                         }
                         Descriptor::Float => {
-                            expect_pop_stack!(Float);
+                            expect_pop_stack!(ValueType::Float);
                         }
                         Descriptor::Double => {
-                            expect_pop_stack!(Double);
+                            expect_pop_stack!(ValueType::Double);
                         }
                         Descriptor::Long => {
-                            expect_pop_stack!(Long);
+                            expect_pop_stack!(ValueType::Long);
                         }
                         Descriptor::Void => unreachable!(),
                     }
@@ -1195,23 +1276,23 @@ fn verify_block<'a>(
 
                 match descriptor.return_type() {
                     Descriptor::Class(_) | Descriptor::Array(_) => {
-                        push_stack!(Reference);
+                        push_stack!(ValueType::Reference);
                     }
                     Descriptor::Boolean
                     | Descriptor::Byte
                     | Descriptor::Character
                     | Descriptor::Short
                     | Descriptor::Integer => {
-                        push_stack!(Integer);
+                        push_stack!(ValueType::Integer);
                     }
                     Descriptor::Float => {
-                        push_stack!(Float);
+                        push_stack!(ValueType::Float);
                     }
                     Descriptor::Double => {
-                        push_stack!(Double);
+                        push_stack!(ValueType::Double);
                     }
                     Descriptor::Long => {
-                        push_stack!(Long);
+                        push_stack!(ValueType::Long);
                     }
                     Descriptor::Void => {}
                 }
@@ -1222,98 +1303,98 @@ fn verify_block<'a>(
                 for arg in descriptor.args().iter().rev() {
                     match arg {
                         Descriptor::Class(_) | Descriptor::Array(_) => {
-                            expect_pop_stack!(Reference);
+                            expect_pop_stack!(ValueType::Reference);
                         }
                         Descriptor::Boolean
                         | Descriptor::Byte
                         | Descriptor::Character
                         | Descriptor::Short
                         | Descriptor::Integer => {
-                            expect_pop_stack!(Integer);
+                            expect_pop_stack!(ValueType::Integer);
                         }
                         Descriptor::Float => {
-                            expect_pop_stack!(Float);
+                            expect_pop_stack!(ValueType::Float);
                         }
                         Descriptor::Double => {
-                            expect_pop_stack!(Double);
+                            expect_pop_stack!(ValueType::Double);
                         }
                         Descriptor::Long => {
-                            expect_pop_stack!(Long);
+                            expect_pop_stack!(ValueType::Long);
                         }
                         Descriptor::Void => unreachable!(),
                     }
                 }
 
                 // Receiver
-                expect_pop_stack!(Reference);
+                expect_pop_stack!(ValueType::Reference);
 
                 match descriptor.return_type() {
                     Descriptor::Class(_) | Descriptor::Array(_) => {
-                        push_stack!(Reference);
+                        push_stack!(ValueType::Reference);
                     }
                     Descriptor::Boolean
                     | Descriptor::Byte
                     | Descriptor::Character
                     | Descriptor::Short
                     | Descriptor::Integer => {
-                        push_stack!(Integer);
+                        push_stack!(ValueType::Integer);
                     }
                     Descriptor::Float => {
-                        push_stack!(Float);
+                        push_stack!(ValueType::Float);
                     }
                     Descriptor::Double => {
-                        push_stack!(Double);
+                        push_stack!(ValueType::Double);
                     }
                     Descriptor::Long => {
-                        push_stack!(Long);
+                        push_stack!(ValueType::Long);
                     }
                     Descriptor::Void => {}
                 }
             }
             Op::New(_) => {
-                push_stack!(Reference);
+                push_stack!(ValueType::Reference);
             }
             Op::NewArray(_) => {
-                expect_pop_stack!(Integer);
-                push_stack!(Reference);
+                expect_pop_stack!(ValueType::Integer);
+                push_stack!(ValueType::Reference);
             }
             Op::ANewArray(_) => {
-                expect_pop_stack!(Integer);
-                push_stack!(Reference);
+                expect_pop_stack!(ValueType::Integer);
+                push_stack!(ValueType::Reference);
             }
             Op::ArrayLength => {
-                expect_pop_stack!(Reference);
-                push_stack!(Integer);
+                expect_pop_stack!(ValueType::Reference);
+                push_stack!(ValueType::Integer);
             }
             Op::AThrow => {
-                expect_pop_stack!(Reference);
+                expect_pop_stack!(ValueType::Reference);
             }
             Op::CheckCast(_) => {
-                expect_pop_stack!(Reference);
-                push_stack!(Reference);
+                expect_pop_stack!(ValueType::Reference);
+                push_stack!(ValueType::Reference);
             }
             Op::InstanceOf(_) => {
-                expect_pop_stack!(Reference);
-                push_stack!(Integer);
+                expect_pop_stack!(ValueType::Reference);
+                push_stack!(ValueType::Integer);
             }
             Op::MonitorEnter => {
-                expect_pop_stack!(Reference);
+                expect_pop_stack!(ValueType::Reference);
             }
             Op::MonitorExit => {
-                expect_pop_stack!(Reference);
+                expect_pop_stack!(ValueType::Reference);
             }
             Op::MultiANewArray(multi_a_new_array) => {
                 for _ in 0..multi_a_new_array.dimensions {
-                    expect_pop_stack!(Integer);
+                    expect_pop_stack!(ValueType::Integer);
                 }
 
-                push_stack!(Reference);
+                push_stack!(ValueType::Reference);
             }
             Op::IfNull(_) => {
-                expect_pop_stack!(Reference);
+                expect_pop_stack!(ValueType::Reference);
             }
             Op::IfNonNull(_) => {
-                expect_pop_stack!(Reference);
+                expect_pop_stack!(ValueType::Reference);
             }
 
             Op::Clinit(_) => {
@@ -1349,6 +1430,10 @@ fn verify_block<'a>(
         }
         BlockExits::NextBlock => {
             worklist.push((block_idx + 1, frame_state));
+        }
+        BlockExits::SubroutineReturn => {
+            // The Ret op should have manually added the correct index
+            // to the worklist.
         }
         BlockExits::Return => {}
     }
