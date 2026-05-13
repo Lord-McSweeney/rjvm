@@ -253,6 +253,8 @@ impl<'a> Interpreter<'a> {
                 Op::IfACmpEq(position) => self.op_if_a_cmp_eq(*position),
                 Op::IfACmpNe(position) => self.op_if_a_cmp_ne(*position),
                 Op::Goto(position) => self.op_goto(*position),
+                Op::Jsr(position) => self.op_jsr(*position),
+                Op::Ret(index) => self.op_ret(*index),
                 Op::TableSwitch(table_switch) => self.op_table_switch(
                     table_switch.low_int,
                     &table_switch.matches,
@@ -1676,6 +1678,14 @@ impl<'a> Interpreter<'a> {
         self.ip = position;
 
         Ok(ControlFlow::ManualContinue)
+    }
+
+    fn op_jsr(&mut self, _position: usize) -> Result<ControlFlow, Error> {
+        panic!("Jsr op is unsupported");
+    }
+
+    fn op_ret(&mut self, _index: usize) -> Result<ControlFlow, Error> {
+        panic!("Ret op is unsupported");
     }
 
     fn op_table_switch(

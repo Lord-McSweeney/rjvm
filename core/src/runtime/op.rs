@@ -152,6 +152,8 @@ pub enum Op {
     IfACmpEq(usize),
     IfACmpNe(usize),
     Goto(usize),
+    Jsr(usize),
+    Ret(usize),
     TableSwitch(Box<TableSwitchInfo>),
     LookupSwitch(Box<LookupSwitchInfo>),
 
@@ -335,6 +337,8 @@ impl Trace for Op {
             Op::IfACmpEq(_) => {}
             Op::IfACmpNe(_) => {}
             Op::Goto(_) => {}
+            Op::Jsr(_) => {}
+            Op::Ret(_) => {}
             Op::TableSwitch(_) => {}
             Op::LookupSwitch(_) => {}
             Op::IReturn => {}
@@ -581,6 +585,8 @@ const IF_I_CMP_LE: u8 = 0xA4;
 const IF_A_CMP_EQ: u8 = 0xA5;
 const IF_A_CMP_NE: u8 = 0xA6;
 const GOTO: u8 = 0xA7;
+const JSR: u8 = 0xA8;
+const RET: u8 = 0xA9;
 const TABLE_SWITCH: u8 = 0xAA;
 const LOOKUP_SWITCH: u8 = 0xAB;
 const I_RETURN: u8 = 0xAC;
@@ -610,6 +616,7 @@ const MULTI_A_NEW_ARRAY: u8 = 0xC5;
 const IF_NULL: u8 = 0xC6;
 const IF_NON_NULL: u8 = 0xC7;
 const GOTO_W: u8 = 0xC8;
+const JSR_W: u8 = 0xC9;
 
 impl Op {
     pub fn read_ops(
@@ -669,6 +676,7 @@ impl Op {
                 | Op::IfACmpEq(position)
                 | Op::IfACmpNe(position)
                 | Op::Goto(position)
+                | Op::Jsr(position)
                 | Op::IfNull(position)
                 | Op::IfNonNull(position) => {
                     *position = *offset_to_idx_map
@@ -1023,6 +1031,16 @@ impl Op {
                 let offset = read_u16_be!(context, data) as i16 as isize;
 
                 Op::Goto(((data_position as isize) + offset) as usize)
+            }
+            JSR => {
+                let offset = read_u16_be!(context, data) as i16 as isize;
+
+                Op::Jsr(((data_position as isize) + offset) as usize)
+            }
+            RET => {
+                let local_idx = read_u8!(context, data);
+
+                Op::Ret(local_idx as usize)
             }
             TABLE_SWITCH => {
                 let padding_bytes = (data_position + 1) % 4;
@@ -1512,6 +1530,11 @@ impl Op {
                 let offset = read_u32_be!(context, data) as i32 as isize;
 
                 Op::Goto(((data_position as isize) + offset) as usize)
+            }
+            JSR_W => {
+                let offset = read_u32_be!(context, data) as i32 as isize;
+
+                Op::Jsr(((data_position as isize) + offset) as usize)
             }
             other => unimplemented!(
                 "Unimplemented opcode {} ({}.{})",

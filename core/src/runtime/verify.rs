@@ -921,6 +921,12 @@ fn verify_block<'a>(
             Op::Goto(_) => {
                 // This does nothing
             }
+            Op::Jsr(_) => {
+                // This will panic at runtime as we don't support it
+            }
+            Op::Ret(_) => {
+                // This will panic at runtime as we don't support it
+            }
             Op::TableSwitch(_) => {
                 expect_pop_stack!(Integer);
             }
