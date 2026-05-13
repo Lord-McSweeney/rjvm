@@ -102,9 +102,17 @@ impl Reader for FileData<'_> {
         let slice = &self.data[self.position..self.position + length];
         self.position += length;
 
-        interner
-            .get_or_alloc_bytes(gc_ctx, slice)
-            .map_err(|_| ReadError::InvalidString)
+        let string = interner.get_or_alloc_bytes(gc_ctx, slice);
+        if let Ok(string) = string {
+            Ok(string)
+        } else {
+            // If that failed, try fixing the UTF-8 and trying again
+            let converted_slice = fix_extended_utf8(slice);
+
+            interner
+                .get_or_alloc_bytes(gc_ctx, &converted_slice)
+                .map_err(|_| ReadError::InvalidString)
+        }
     }
 
     fn position(&self) -> usize {
@@ -132,4 +140,26 @@ pub enum ReadError {
 
     /// An invalid UTF-8 string was encountered
     InvalidString,
+}
+
+/// Convert extended UTF-8 as the JVMS specifies to "normal" UTF-8.
+fn fix_extended_utf8(data: &[u8]) -> Vec<u8> {
+    let mut result = Vec::with_capacity(data.len());
+    let mut i = 0;
+    while i < data.len() {
+        if i < data.len() - 1 {
+            // The JVMS states that a null byte should be encoded by C0 80, but
+            // Rust doesn't support decoding that. So we do it here.
+            if data[i] == 0xC0 && data[i + 1] == 0x80 {
+                result.push(b'\x00');
+                i += 2;
+                continue;
+            }
+        }
+
+        result.push(data[i]);
+        i += 1;
+    }
+
+    result
 }
