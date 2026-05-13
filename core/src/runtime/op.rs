@@ -70,6 +70,7 @@ pub enum Op {
     DupX1,
     DupX2,
     Dup2,
+    Dup2X2,
     Swap,
 
     // Arithmetic
@@ -264,6 +265,7 @@ impl Trace for Op {
             Op::DupX1 => {}
             Op::DupX2 => {}
             Op::Dup2 => {}
+            Op::Dup2X2 => {}
             Op::Swap => {}
             Op::IAdd => {}
             Op::LAdd => {}
@@ -512,6 +514,7 @@ const DUP: u8 = 0x59;
 const DUP_X1: u8 = 0x5A;
 const DUP_X2: u8 = 0x5B;
 const DUP_2: u8 = 0x5C;
+const DUP_2_X2: u8 = 0x5E;
 const SWAP: u8 = 0x5F;
 const I_ADD: u8 = 0x60;
 const L_ADD: u8 = 0x61;
@@ -894,6 +897,7 @@ impl Op {
             DUP_X1 => Op::DupX1,
             DUP_X2 => Op::DupX2,
             DUP_2 => Op::Dup2,
+            DUP_2_X2 => Op::Dup2X2,
             SWAP => Op::Swap,
             I_ADD => Op::IAdd,
             L_ADD => Op::LAdd,

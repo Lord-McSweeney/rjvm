@@ -844,6 +844,61 @@ fn verify_block<'a>(
                     return Err(VerifyError::WrongCount);
                 }
             }
+            Op::Dup2X2 => {
+                let value1 = stack.pop().ok_or(VerifyError::WrongCount)?;
+                let value2 = stack.pop().ok_or(VerifyError::WrongCount)?;
+
+                if value1.is_wide() {
+                    if value2.is_wide() {
+                        // Form 4 in the JVMS
+                        stack.push(value1);
+                        stack.push(value2);
+                        stack.push(value1);
+                    } else {
+                        let value3 = stack.pop().ok_or(VerifyError::WrongCount)?;
+                        if value3.is_wide() {
+                            return Err(VerifyError::WrongType);
+                        } else {
+                            // Form 2 in the JVMS
+                            stack.push(value1);
+                            stack.push(value3);
+                            stack.push(value2);
+                            stack.push(value1);
+                        }
+                    }
+                } else {
+                    if value2.is_wide() {
+                        return Err(VerifyError::WrongType);
+                    } else {
+                        let value3 = stack.pop().ok_or(VerifyError::WrongCount)?;
+                        if value3.is_wide() {
+                            // Form 3 in the JVMS
+                            stack.push(value2);
+                            stack.push(value1);
+                            stack.push(value3);
+                            stack.push(value2);
+                            stack.push(value1);
+                        } else {
+                            let value4 = stack.pop().ok_or(VerifyError::WrongCount)?;
+                            if value4.is_wide() {
+                                return Err(VerifyError::WrongType);
+                            } else {
+                                // Form 1 in the JVMS
+                                stack.push(value2);
+                                stack.push(value1);
+                                stack.push(value4);
+                                stack.push(value3);
+                                stack.push(value2);
+                                stack.push(value1);
+                            }
+                        }
+                    }
+                }
+
+                if stack.len() > max_stack {
+                    return Err(VerifyError::WrongCount);
+                }
+            }
             Op::Swap => {
                 let first_value = stack.pop().ok_or(VerifyError::WrongCount)?;
 
