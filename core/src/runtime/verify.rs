@@ -12,6 +12,28 @@ use alloc::vec::Vec;
 use core::fmt;
 use hashbrown::{HashMap, HashSet};
 
+/*
+Verifier notes
+
+The verifier first creates a list of basic blocks and then runs a "perfect"
+abstract interpreter over them, i.e. it verifies every possible state of the
+interpreter. The A.I. being "perfect" allows us to perfectly validate
+subroutines (jsr/ret), which means that this VM/verifier will accept some
+valid subroutines that other VMs/verifiers will not. The verifier is still
+perfectly sound.
+
+However, the verifier being "perfect" comes with some downsides:
+
+- The A.I. is algorithmically (very) slow. Because it cannot do program state
+  merging, certain blocks may be needlessly re-verified.
+
+- The verifier does not output a "canon"/fully merged state list post-
+  verification, because it does not have one. If we want a canon state list, we
+  must perform merging manually post-verification. We don't currently need a
+  canon state list, though we may need one in the future if we ever want to
+  implement certain non-peephole bytecode optimizations.
+*/
+
 // The possible ways a block can be exited.
 #[derive(Debug)]
 enum BlockExits {
