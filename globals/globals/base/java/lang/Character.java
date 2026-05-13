@@ -158,9 +158,14 @@ public final class Character extends Number implements Comparable<Character> {
         return c >= '0' && c <= '9';
     }
 
+    public static boolean isSpace(char c) {
+        // These are the only characters that isSpace returns true for
+        return c == ' ' || c == '\f' || c == '\t' || c == '\r' || c == '\n';
+    }
+
     public static boolean isWhitespace(int c) {
         // TODO more characters
-        return c == ' ' || c == '\t' || c == '\r' || c == '\n';
+        return c == ' ' || c == '\f' || c == '\t' || c == '\r' || c == '\n';
     }
 
     public static char toLowerCase(char c) {
