@@ -106,7 +106,7 @@ public class Throwable {
         }
 
         // TODO guard against recursion
-        if (this.cause != this) {
+        if (this.cause != this && this.cause != null) {
             s.print("Caused by: ");
             this.cause.printStackTrace(s);
         }
