@@ -5,6 +5,11 @@ public class Vector<E> extends AbstractList<E> {
     Object[] data;
 
     public Vector() {
+       this(10);
+    }
+
+    public Vector(int capacity) {
+        // TODO capacity
         this.data = new Object[0];
     }
 

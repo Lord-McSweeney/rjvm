@@ -76,6 +76,32 @@ public final class Integer extends Number implements Comparable<Integer> {
         return Integer.parseInt(string, radix);
     }
 
+    public static Integer getInteger(String name) {
+        return Integer.getInteger(name, null);
+    }
+
+    public static Integer getInteger(String name, int defaultValue) {
+        Integer result = Integer.getInteger(name);
+
+        if (result != null) {
+            return result;
+        } else {
+            return Integer.valueOf(defaultValue);
+        }
+    }
+
+    public static Integer getInteger(String name, Integer defaultValue) {
+        try {
+            // TODO this should use Integer.decode
+            return Integer.parseInt(System.getProperty(name));
+        } catch (IllegalArgumentException e) {
+
+        } catch (NullPointerException e) {
+
+        }
+        return defaultValue;
+    }
+
     public static String toString(int integer) {
         // Special-case for radix 10 because most code will use this
         if (integer == Integer.MIN_VALUE) {
