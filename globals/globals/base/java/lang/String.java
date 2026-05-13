@@ -253,9 +253,17 @@ public final class String implements CharSequence, Comparable<String> {
     }
 
     public int lastIndexOf(int search) {
+        return this.lastIndexOf(search, this.data.length - 1);
+    }
+
+    public int lastIndexOf(int search, int fromIndex) {
+        if (fromIndex > this.data.length - 1) {
+            fromIndex = this.data.length - 1;
+        }
+
         // TODO support code points
         char searchChar = (char) search;
-        for (int i = this.data.length - 1; i >= 0; i --) {
+        for (int i = fromIndex; i >= 0; i --) {
             if (this.data[i] == searchChar) {
                 return i;
             }
