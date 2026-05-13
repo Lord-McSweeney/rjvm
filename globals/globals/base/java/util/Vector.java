@@ -100,6 +100,10 @@ public class Vector<E> extends AbstractList<E> {
 
         this.data = newData;
     }
+
+    public synchronized void copyInto(Object[] array) {
+        System.arraycopy(this.data, 0, array, 0, this.data.length);
+    }
 }
 
 class VectorEnumeration<E> implements Enumeration<E> {

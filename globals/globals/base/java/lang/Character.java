@@ -115,6 +115,16 @@ public final class Character extends Number implements Comparable<Character> {
         return Character.isJavaIdentifierStart(c) || (c >= '0' && c <= '9');
     }
 
+    public static boolean isJavaLetter(char c) {
+        // TODO more...
+        return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
+    }
+
+    public static boolean isJavaLetterOrDigit(char c) {
+        // TODO more...
+        return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9');
+    }
+
     public static boolean isLetter(char c) {
         // TODO more...
         return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
