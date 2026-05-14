@@ -173,7 +173,9 @@ public class HashMap<K, V> extends AbstractMap<K, V> {
     public Collection<V> values() {
         ArrayList<V> values = new ArrayList<V>();
         for (int i = 0; i < this.data.length; i ++) {
-            values.add((V) this.data[i].value);
+            if (this.data[i] != null) {
+                values.add((V) this.data[i].value);
+            }
         }
 
         // TODO this should be an interactive `Collection`

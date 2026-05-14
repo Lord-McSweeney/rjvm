@@ -18,15 +18,11 @@ public class Hashtable<K, V> extends Dictionary<K, V> implements Map<K, V> {
     }
 
     public synchronized Enumeration<K> keys() {
-        Todo.warnNotImpl("java.util.Hashtable.keys");
-
-        return null;
+        return new IteratorEnumeration<K>(this.backingMap.keySet().iterator());
     }
 
     public synchronized Enumeration<V> elements() {
-        Todo.warnNotImpl("java.util.Hashtable.elements");
-
-        return null;
+        return new IteratorEnumeration<V>(this.backingMap.values().iterator());
     }
 
     public synchronized V get(Object key) {
