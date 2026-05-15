@@ -131,7 +131,7 @@ impl Class {
             }
         }
 
-        let mut own_interfaces = Vec::new();
+        let mut own_interfaces = Vec::with_capacity(class_file.interfaces().len());
         for interface in class_file.interfaces() {
             // Hopefully we won't get a class that tries to implement itself as an interface
             let class = loader.lookup_class(context, *interface)?;

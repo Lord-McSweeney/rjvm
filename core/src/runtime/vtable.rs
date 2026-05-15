@@ -48,7 +48,7 @@ impl<T: Copy + Debug + Eq + Hash> VTable<T> {
             0
         };
 
-        let mut mapping = HashMap::new();
+        let mut mapping = HashMap::with_capacity(keys.len());
         for key in keys {
             mapping.insert(key, first_unused);
             first_unused += 1;

@@ -226,7 +226,7 @@ impl Context {
         // We need the method descriptors to create `CommonData`, but we also
         // need to insert them into the method descriptor cache, so we create
         // the method descriptor cache now
-        let mut method_descriptor_cache = HashMap::new();
+        let mut method_descriptor_cache = HashMap::with_capacity(128);
         method_descriptor_cache.insert(void_desc_name, void_method_desc);
         method_descriptor_cache.insert(array_clone_desc_name, array_clone_method_desc);
 

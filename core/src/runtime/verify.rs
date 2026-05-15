@@ -405,7 +405,7 @@ fn collect_basic_blocks<'a>(
     }
 
     // Create a table mapping op indices to block indicies.
-    let mut op_index_to_block_index_table = HashMap::new();
+    let mut op_index_to_block_index_table = HashMap::with_capacity(block_list.len());
     for (i, block) in block_list.iter().enumerate() {
         op_index_to_block_index_table.insert(block.start_index, i);
     }
