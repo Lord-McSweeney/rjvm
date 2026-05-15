@@ -527,7 +527,7 @@ fn verify_blocks<'a>(
     // Now we have the frame state when the entry block is executed.
     let entry_frame_state = FrameState {
         locals: entry_locals.into_boxed_slice(),
-        stack: Vec::new(),
+        stack: Vec::with_capacity(max_stack),
     };
 
     // A HashSet of (block index, frame state)

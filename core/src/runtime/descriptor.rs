@@ -63,7 +63,7 @@ impl Descriptor {
 
         let result = match descriptor[0] {
             b'L' => {
-                let mut class_name = String::with_capacity(24);
+                let mut class_name = String::with_capacity(descriptor.len() - 2);
                 loop {
                     if consumed_bytes >= descriptor.len() {
                         return None;
