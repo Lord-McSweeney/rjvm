@@ -12,7 +12,7 @@ pub struct JvmStringInterner(HashTable<JvmString>);
 
 impl JvmStringInterner {
     pub fn new() -> Self {
-        JvmStringInterner(HashTable::with_capacity(256))
+        JvmStringInterner(HashTable::with_capacity(2048))
     }
 
     pub fn get_or_alloc(&mut self, gc_ctx: GcCtx, string: String) -> JvmString {
