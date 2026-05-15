@@ -378,10 +378,6 @@ impl Class {
             c.0.flags.intersection(ClassFlags::PUBLIC)
         });
 
-        let mut name = String::with_capacity(8);
-        name.push('[');
-        name.push_str(&array_type.to_string());
-
         let class = Self(Gc::new(
             context.gc_ctx,
             ClassData {
@@ -391,7 +387,7 @@ impl Class {
 
                 flags: access_flags | ClassFlags::FINAL | ClassFlags::ABSTRACT,
 
-                name: JvmString::new(context.gc_ctx, name),
+                name: JvmString::new(context.gc_ctx, format!("[{}", array_type)),
                 super_class: Some(object_class),
 
                 object: OnceCell::new(),

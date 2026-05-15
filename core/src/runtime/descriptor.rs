@@ -19,7 +19,7 @@ use core::hash::{Hash, Hasher};
 ///
 /// This can be any kind of descriptor, including a field, method argument, and
 /// method return type descriptor.
-#[derive(Clone, Copy, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum Descriptor {
     Class(JvmString),
     Array(Gc<Descriptor>),
@@ -34,9 +34,21 @@ pub enum Descriptor {
     Void,
 }
 
-impl fmt::Debug for Descriptor {
+impl fmt::Display for Descriptor {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-        write!(f, "{}", self.to_string())
+        match self {
+            Descriptor::Class(class_name) => write!(f, "L{};", class_name),
+            Descriptor::Array(inner_descriptor) => write!(f, "[{}", **inner_descriptor),
+            Descriptor::Byte => write!(f, "B"),
+            Descriptor::Character => write!(f, "C"),
+            Descriptor::Double => write!(f, "D"),
+            Descriptor::Float => write!(f, "F"),
+            Descriptor::Integer => write!(f, "I"),
+            Descriptor::Long => write!(f, "J"),
+            Descriptor::Short => write!(f, "S"),
+            Descriptor::Boolean => write!(f, "Z"),
+            Descriptor::Void => write!(f, "V"),
+        }
     }
 }
 
@@ -170,38 +182,6 @@ impl Descriptor {
         }
     }
 
-    /// Forms a `String` from this `Descriptor`.
-    ///
-    /// There is only one possible way to represent any `Descriptor`, so if this
-    /// `Descriptor` was created using [`Descriptor::try_from_string`], this
-    /// method will return the exact string that was passed to that method.
-    pub fn to_string(self) -> String {
-        let mut result = String::with_capacity(8);
-
-        match self {
-            Descriptor::Class(class_name) => {
-                result.push('L');
-                result.push_str(&class_name);
-                result.push(';');
-            }
-            Descriptor::Array(inner_descriptor) => {
-                result.push('[');
-                result.push_str(&inner_descriptor.to_string());
-            }
-            Descriptor::Byte => result.push('B'),
-            Descriptor::Character => result.push('C'),
-            Descriptor::Double => result.push('D'),
-            Descriptor::Float => result.push('F'),
-            Descriptor::Integer => result.push('I'),
-            Descriptor::Long => result.push('J'),
-            Descriptor::Short => result.push('S'),
-            Descriptor::Boolean => result.push('Z'),
-            Descriptor::Void => result.push('V'),
-        }
-
-        result
-    }
-
     /// Returns true when called on `Descriptor::Double` or `Descriptor::Long`,
     /// and false when called on any other `Descriptor` variant.
     pub fn is_wide(self) -> bool {
@@ -241,6 +221,24 @@ pub enum ResolvedDescriptor {
     Long,
     Short,
     Void,
+}
+
+impl fmt::Display for ResolvedDescriptor {
+    fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+        match self {
+            ResolvedDescriptor::Class(class) => write!(f, "L{};", class.name()),
+            ResolvedDescriptor::Array(class) => write!(f, "{}", class.name()),
+            ResolvedDescriptor::Byte => write!(f, "B"),
+            ResolvedDescriptor::Character => write!(f, "C"),
+            ResolvedDescriptor::Double => write!(f, "D"),
+            ResolvedDescriptor::Float => write!(f, "F"),
+            ResolvedDescriptor::Integer => write!(f, "I"),
+            ResolvedDescriptor::Long => write!(f, "J"),
+            ResolvedDescriptor::Short => write!(f, "S"),
+            ResolvedDescriptor::Boolean => write!(f, "Z"),
+            ResolvedDescriptor::Void => write!(f, "V"),
+        }
+    }
 }
 
 impl ResolvedDescriptor {
@@ -383,36 +381,6 @@ impl ResolvedDescriptor {
         }
     }
 
-    /// Forms a `String` from this `Descriptor`.
-    ///
-    /// This should be equivalent to calling [`ResolvedDescriptor::descriptor`],
-    /// and then calling `Descriptor::to_string`, but is more efficient.
-    pub fn to_string(self) -> String {
-        let mut result = String::with_capacity(8);
-
-        match self {
-            ResolvedDescriptor::Class(class) => {
-                result.push('L');
-                result.push_str(&class.name());
-                result.push(';');
-            }
-            ResolvedDescriptor::Array(class) => {
-                result.push_str(&class.name());
-            }
-            ResolvedDescriptor::Byte => result.push('B'),
-            ResolvedDescriptor::Character => result.push('C'),
-            ResolvedDescriptor::Double => result.push('D'),
-            ResolvedDescriptor::Float => result.push('F'),
-            ResolvedDescriptor::Integer => result.push('I'),
-            ResolvedDescriptor::Long => result.push('J'),
-            ResolvedDescriptor::Short => result.push('S'),
-            ResolvedDescriptor::Boolean => result.push('Z'),
-            ResolvedDescriptor::Void => result.push('V'),
-        }
-
-        result
-    }
-
     /// Get the [`Class`] corresponding to this `ResolvedDescriptor`.
     ///
     /// If this is not a `ResolvedDescriptor::Array` or
@@ -438,7 +406,7 @@ impl Trace for ResolvedDescriptor {
 ///
 /// This struct stores a list of [`Descriptor`]s for the arguments and one
 /// `Descriptor` for the return type.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct MethodDescriptor(Gc<MethodDescriptorData>);
 
 impl PartialEq for MethodDescriptor {
@@ -455,7 +423,7 @@ impl Hash for MethodDescriptor {
     }
 }
 
-#[derive(Eq, Hash, PartialEq)]
+#[derive(Debug, Eq, Hash, PartialEq)]
 struct MethodDescriptorData {
     args: Box<[Descriptor]>,
     physical_arg_count: u8,
@@ -600,17 +568,13 @@ impl Trace for MethodDescriptorData {
     }
 }
 
-impl fmt::Debug for MethodDescriptor {
+impl fmt::Display for MethodDescriptor {
     fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-        let mut result = String::new();
-        result.push('(');
+        write!(f, "(")?;
         for arg in &self.0.args {
-            result.push_str(&arg.to_string());
+            write!(f, "{}", arg)?;
         }
-        result.push(')');
-        result.push_str(&self.0.return_type.to_string());
-
-        write!(f, "{}", result)
+        write!(f, "){}", self.0.return_type)
     }
 }
 
