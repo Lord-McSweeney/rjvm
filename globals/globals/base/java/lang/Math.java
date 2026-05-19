@@ -12,6 +12,8 @@ public class Math {
 
     public static native double atan2(double y, double x);
 
+    public static native double ceil(double v);
+
     public static native double floor(double v);
 
     public static native double log(double v);
