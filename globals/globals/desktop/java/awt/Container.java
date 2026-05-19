@@ -1,3 +1,5 @@
 package java.awt;
 
-public class Container extends Component { }
+public class Container extends Component {
+    public Container() { }
+}

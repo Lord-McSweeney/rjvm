@@ -12,6 +12,17 @@ public abstract class FontMetrics {
     }
 
     public int getAscent() {
+        // TODO
         return this.font.getSize();
+    }
+
+    public int getDescent() {
+        // TODO
+        return this.font.getSize() / 5;
+    }
+
+    public int charWidth(char c) {
+        // TODO
+        return this.font.getSize() / 2;
     }
 }
