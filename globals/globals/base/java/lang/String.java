@@ -176,6 +176,11 @@ public final class String implements CharSequence, Comparable<String> {
         int start = 0;
         int end = this.data.length;
 
+        // If this.data.length is 0, just return an empty string
+        if (end == 0) {
+            return "";
+        }
+
         while (this.data[start] <= ' ') {
             start += 1;
 
@@ -192,10 +197,7 @@ public final class String implements CharSequence, Comparable<String> {
             }
         }
 
-        // An allocation could be skipped here, but it shouldn't be too important
-        char[] newBuffer = new char[end - start];
-        this.getChars(start, end, newBuffer, 0);
-        return new String(newBuffer);
+        return this.substring(start, end);
     }
 
     public boolean startsWith(String prefix) {
