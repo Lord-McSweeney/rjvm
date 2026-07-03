@@ -4,10 +4,14 @@
 still remaining portable. It can be compiled on any platform that supports
 Rust and has `alloc` support.
 
+`rjvm` provides a partial set of Java builtin classes, as `rjvm_globals`. This
+means that running it does not require users to have an existing Java
+installation.
+
 `rjvm` is also very modular. The core JVM, `rjvm_core`, is `no_std` and requires
 only a few standard classes to be provided during its bootstrap process. The
 base globals implementations, `rjvm_globals`, is also `no_std` and remains under
-1 MB. Users such as `rjvm_web` and `rjvm_desktop` provide their own
+1 MB. Users of the VM, such as `rjvm_web` and `rjvm_desktop`, provide their own
 implementations for platform-dependent behavior, such as loading classes from
 the filesystem, I/O, and reading date and time.
 
@@ -34,7 +38,6 @@ and indirect dependencies as possible.
 - Object class verification in verifier
 - Better performance
     - 8-byte Value
-    - split fields into object and primitive fields?
     - other?
 
 ## Missing features
