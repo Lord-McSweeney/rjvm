@@ -531,7 +531,7 @@ fn verify_blocks<'a>(
     };
 
     // A HashSet of (block index, frame state)
-    let mut verified_states = HashSet::new();
+    let mut verified_states = HashSet::with_capacity(blocks.len());
 
     // Block #0 is the entry block
     let mut worklist = Vec::new();
