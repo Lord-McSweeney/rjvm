@@ -9,6 +9,39 @@ public final class Character extends Number implements Comparable<Character> {
 
     public static final int MAX_RADIX = 36;
 
+    // `Character.getType` results
+    public static final byte UNASSIGNED = 0;
+    public static final byte UPPERCASE_LETTER = 1;
+    public static final byte LOWERCASE_LETTER = 2;
+    public static final byte TITLECASE_LETTER = 3;
+    public static final byte MODIFIER_LETTER = 4;
+    public static final byte OTHER_LETTER = 5;
+    public static final byte NON_SPACING_MARK = 6;
+    public static final byte ENCLOSING_MARK = 7;
+    public static final byte COMBINING_SPACING_MARK = 8;
+    public static final byte DECIMAL_DIGIT_NUMBER = 9;
+    public static final byte LETTER_NUMBER = 10;
+    public static final byte OTHER_NUMBER = 11;
+    public static final byte SPACE_SEPARATOR = 12;
+    public static final byte LINE_SEPARATOR = 13;
+    public static final byte PARAGRAPH_SEPARATOR = 14;
+    public static final byte CONTROL = 15;
+    public static final byte FORMAT = 16;
+    // 17?
+    public static final byte PRIVATE_USE = 18;
+    public static final byte SURROGATE = 19;
+    public static final byte DASH_PUNCTUATION = 20;
+    public static final byte START_PUNCTUATION = 21;
+    public static final byte END_PUNCTUATION = 22;
+    public static final byte CONNECTOR_PUNCTUATION = 23;
+    public static final byte OTHER_PUNCTUATION = 24;
+    public static final byte MATH_SYMBOL = 25;
+    public static final byte CURRENCY_SYMBOL = 26;
+    public static final byte MODIFIER_SYMBOL = 27;
+    public static final byte OTHER_SYMBOL = 28;
+    public static final byte INITIAL_QUOTE_PUNCTUATION = 29;
+    public static final byte FINAL_QUOTE_PUNCTUATION = 30;
+
     private char value;
 
     public Character(char value) {
@@ -94,15 +127,15 @@ public final class Character extends Number implements Comparable<Character> {
     }
 
     public static int getType(char c) {
-        Todo.warnNotImpl("java.lang.Character.getType");
+        return CharacterTables.typeOf((int) c);
+    }
 
-        return 0;
+    public static int getType(int c) {
+        return CharacterTables.typeOf(c);
     }
 
     public static boolean isDefined(char c) {
-        Todo.warnNotImpl("java.lang.Character.isDefined");
-
-        return false;
+        return Character.getType(c) != Character.UNASSIGNED;
     }
 
     public static boolean isJavaIdentifierStart(char c) {
@@ -126,8 +159,9 @@ public final class Character extends Number implements Comparable<Character> {
     }
 
     public static boolean isLetter(char c) {
-        // TODO more...
-        return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
+        int type = Character.getType(c);
+
+        return type == Character.UPPERCASE_LETTER || type == Character.LOWERCASE_LETTER || type == Character.TITLECASE_LETTER || type == Character.MODIFIER_LETTER || type == Character.OTHER_LETTER;
     }
 
     public static boolean isLowerCase(char c) {
@@ -135,8 +169,10 @@ public final class Character extends Number implements Comparable<Character> {
     }
 
     public static boolean isLowerCase(int c) {
-        // TODO more...
-        return c >= 'a' && c <= 'z';
+        int type = Character.getType(c);
+
+        // TODO more?
+        return type == Character.LOWERCASE_LETTER;
     }
 
     public static boolean isUpperCase(char c) {
@@ -144,23 +180,29 @@ public final class Character extends Number implements Comparable<Character> {
     }
 
     public static boolean isUpperCase(int c) {
-        // TODO more...
-        return c >= 'A' && c <= 'Z';
+        int type = Character.getType(c);
+
+        // TODO more?
+        return type == Character.UPPERCASE_LETTER;
     }
 
     public static boolean isDigit(char c) {
-        // TODO more...
-        return c >= '0' && c <= '9';
+        return Character.isDigit((int) c);
     }
 
     public static boolean isDigit(int c) {
-        // TODO more...
-        return c >= '0' && c <= '9';
+        int type = Character.getType(c);
+
+        return type == Character.DECIMAL_DIGIT_NUMBER;
     }
 
     public static boolean isSpace(char c) {
         // These are the only characters that isSpace returns true for
         return c == ' ' || c == '\f' || c == '\t' || c == '\r' || c == '\n';
+    }
+
+    public static boolean isWhitespace(char c) {
+        return Character.isWhitespace((int) c);
     }
 
     public static boolean isWhitespace(int c) {
