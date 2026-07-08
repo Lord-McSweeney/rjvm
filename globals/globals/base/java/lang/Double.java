@@ -72,6 +72,8 @@ public final class Double extends Number {
 
     public static native long doubleToRawLongBits(double value);
 
+    public static native double longBitsToDouble(long bits);
+
     // String operation functions
     public static double parseDouble(String string) throws NumberFormatException {
         string = string.trim();

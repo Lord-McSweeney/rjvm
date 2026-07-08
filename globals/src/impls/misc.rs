@@ -12,6 +12,7 @@ pub fn register_native_mappings(context: &Context) {
         ("java/lang/String.intern.()Ljava/lang/String;", string_intern),
         ("java/lang/Float.floatToRawIntBits.(F)I", float_to_raw_int_bits),
         ("java/lang/Double.doubleToRawLongBits.(D)J", double_to_raw_long_bits),
+        ("java/lang/Double.longBitsToDouble.(J)D", long_bits_to_double),
 
         ("java/nio/charset/Charset.stringToUtf8.(Ljava/lang/String;)[B", string_to_utf8),
         ("java/lang/Double.toString.(D)Ljava/lang/String;", double_to_string),
@@ -78,6 +79,13 @@ fn double_to_raw_long_bits(_context: &Context, args: &[Value]) -> Result<Option<
     let bits = f64::to_bits(double);
 
     Ok(Some(Value::Long(bits as i64)))
+}
+
+fn long_bits_to_double(_context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
+    let bits = args[0].long();
+    let double = f64::from_bits(bits as u64);
+
+    Ok(Some(Value::Double(double)))
 }
 
 fn string_to_utf8(context: &Context, args: &[Value]) -> Result<Option<Value>, Error> {
