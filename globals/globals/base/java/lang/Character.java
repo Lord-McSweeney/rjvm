@@ -121,9 +121,31 @@ public final class Character extends Number implements Comparable<Character> {
     }
 
     public static int digit(char c, int radix) {
-        Todo.warnNotImpl("java.lang.Character.digit");
+        return Character.digit((int) c, radix);
+    }
 
-        return 0;
+    public static int digit(int c, int radix) {
+        if (radix < MIN_RADIX || radix > MAX_RADIX) {
+            return -1;
+        }
+
+        int result;
+
+        if (c >= '0' && c <= '9') {
+            result = c - '0';
+        } else if (c >= 'a' && c <= 'z') {
+            result = 10 + c - 'a';
+        } else if (c >= 'A' && c <= 'Z') {
+            result = 10 + c - 'A';
+        } else {
+            result = -1;
+        }
+
+        if (result >= radix) {
+            return -1;
+        } else {
+            return result;
+        }
     }
 
     public static int getType(char c) {
@@ -171,8 +193,7 @@ public final class Character extends Number implements Comparable<Character> {
     public static boolean isLowerCase(int c) {
         int type = Character.getType(c);
 
-        // TODO more?
-        return type == Character.LOWERCASE_LETTER;
+        return type == Character.LOWERCASE_LETTER || CharacterTables.isLowerCaseSpecial(c);
     }
 
     public static boolean isUpperCase(char c) {
@@ -207,7 +228,7 @@ public final class Character extends Number implements Comparable<Character> {
 
     public static boolean isWhitespace(int c) {
         // TODO more characters
-        return c == ' ' || c == '\f' || c == '\t' || c == '\r' || c == '\n';
+        return c == ' ' || c == '\f' || c == '\t' || c == '\r' || c == '\n' || c == '\u001c' || c == '\u001d' || c == '\u001e' || c == '\u001f' || c == '\u000b';
     }
 
     public static char toLowerCase(char c) {

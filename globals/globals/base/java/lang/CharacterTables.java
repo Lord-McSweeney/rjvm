@@ -22,4 +22,9 @@ class CharacterTables {
             return 0;
         }
     }
+
+    static boolean isLowerCaseSpecial(int c) {
+        // TODO more
+        return c == 170 || c == 186;
+    }
 }
